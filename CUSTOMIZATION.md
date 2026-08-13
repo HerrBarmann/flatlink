@@ -241,6 +241,7 @@ eingreifen lässt:
 | `.short-row` / `.grid-form` / `.check` | Formular-Layouts |
 | `.designer` | zweispaltiges Layout des QR-Designers |
 | `.origin` | Herkunftszeile im Fuß |
+| `body.<name>` | ganze Gestaltungsvariante, siehe unten (`body_class`) |
 
 Ein paar erprobte Eingriffe:
 
@@ -268,6 +269,55 @@ Ein paar erprobte Eingriffe:
 /* Breitere Seite */
 .wrap { max-width: 1140px; }
 ```
+
+### Varianten, die sich abschalten lassen
+
+Ein größerer Umbau ist heikel: Gefällt er nicht, muss man ihn wieder
+herausoperieren – und dabei geht meist versehentlich auch etwas Gutes mit
+verloren. Dafür gibt es `body_class` in der Konfiguration. Der Wert landet als
+Klasse am `<body>`, und alles, was darunter geschrieben ist, gilt nur, solange
+er gesetzt ist:
+
+```php
+// inc/config.php
+'body_class' => 'kantig',
+```
+
+```css
+/* assets/custom.css */
+body.kantig { --radius: 0; }
+body.kantig .card { border-width: 2px; box-shadow: 5px 5px 0 var(--ink); }
+body.kantig .btn { border-radius: 0; }
+```
+
+Ein leerer Wert nimmt die ganze Variante zurück, ohne dass eine Zeile CSS
+gelöscht wird – und ein anderer Wert schaltet auf die nächste um. So lassen
+sich zwei Entwürfe nebeneinander pflegen und im Wechsel ansehen.
+
+Für **vollflächige Farbbänder**, die aus der Inhaltsspalte ausbrechen, hat sich
+dieses Muster bewährt:
+
+```css
+body.variante .band { position: relative; }
+body.variante .band::before {
+    content: "";
+    position: absolute;
+    z-index: -1;               /* hinter dem Inhalt, nicht im Weg */
+    inset: 0;
+    left: 50%;
+    width: 100vw;
+    transform: translateX(-50%);
+    background: var(--accent-tint);
+    clip-path: polygon(0 0, 100% 0, 100% calc(100% - 3rem), 0 100%);
+}
+body.variante { overflow-x: clip; }   /* nicht 'hidden': das bricht position: sticky */
+```
+
+Zwei Stolpersteine dabei: Ein `100vw` breites Element ist bei sichtbarer
+Bildlaufleiste minimal breiter als der Inhalt – daher `overflow-x: clip` am
+`body`. Und eine solche Fläche darf nicht unter den letzten Inhalt hinausragen,
+auch nicht „nur ein bisschen zur Sicherheit": Sie verlängert sonst die
+Scrollfläche, und die Seite lässt sich ins Leere weiterscrollen.
 
 ---
 

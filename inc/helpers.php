@@ -480,8 +480,14 @@ function page_header(string $title, bool $admin = false, ?string $desc = null, ?
         echo '<meta name="theme-color" media="(prefers-color-scheme: ' . e((string)$scheme) . ')"'
             . ' content="' . e((string)$color) . '">';
     }
+    // Eine Klasse am <body>, an der sich ganze Gestaltungsvarianten aufhängen
+    // lassen: In assets/custom.css alles darunter schreiben, und ein leerer
+    // Wert in der Konfiguration nimmt die Variante wieder zurück – ohne die
+    // Stile zu löschen und ohne eine einzige Vorlage anzufassen.
+    $bodyClass = trim((string)cfg('body_class'));
     echo '<script src="' . $root . '/assets/app.js" defer></script>'
-        . '</head><body><div class="wrap">';
+        . '</head><body' . ($bodyClass !== '' ? ' class="' . e($bodyClass) . '"' : '') . '>'
+        . '<div class="wrap">';
 
     // Wortmarke, optional mit eigenem Logo davor. Der Name steckt in einem
     // eigenen Element, und heißt die Instanz wie eine Domain, ist der Teil ab

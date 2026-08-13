@@ -117,6 +117,12 @@ return [
     // überschreibt es damit und ist vom Update ausgenommen. Vorlage zum
     // Kopieren: assets/custom.example.css
 
+    // Klasse am <body>-Element. Daran lassen sich in assets/custom.css ganze
+    // Gestaltungsvarianten aufhängen (alles unter `body.variante { … }`), die
+    // sich hier mit einem leeren Wert wieder abschalten lassen – ohne eine
+    // Zeile CSS zu löschen. Mehrere Klassen durch Leerzeichen getrennt.
+    'body_class' => '',
+
     // Eigenes Logo in der Kopfzeile. Dateiname innerhalb von assets/,
     // leer = nur der Name der Instanz. SVG oder PNG, etwa 'logo.svg'.
     'logo' => '',
