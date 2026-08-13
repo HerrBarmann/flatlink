@@ -1,0 +1,20 @@
+# flatlink
+Options -Indexes -MultiViews
+
+# Doppelter Boden: Greift die Rewrite-Regel unten nicht (Hoster-Eigenheiten),
+# landen unbekannte Pfade als 404 bei go.php, das den Kurz-Code aus der URL liest.
+# Läuft der Dienst in einem Unterverzeichnis, hier den Pfad anpassen (z. B. /links/go.php).
+ErrorDocument 404 /go.php
+
+<IfModule mod_rewrite.c>
+RewriteEngine On
+RewriteBase /
+
+# Interne Verzeichnisse sperren
+RewriteRule ^(inc|data)(/|$) - [F,L]
+
+# Kurzcodes an den Redirect-Handler geben (nur wenn keine echte Datei/kein Verzeichnis)
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^([A-Za-z0-9_-]{1,64}(?:/[A-Za-z0-9_-]{1,64})?)/?$ go.php?c=$1 [L,QSA]
+</IfModule>

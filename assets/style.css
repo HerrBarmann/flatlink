@@ -1,0 +1,286 @@
+/* flatlink – schlichtes Standard-Theme.
+   Bewusst zurückhaltend gehalten: Wer die Software betreibt, soll hier
+   die eigenen Farben eintragen. Alle Farben hängen an den Variablen unten,
+   ein Austausch der beiden :root-Blöcke reicht für ein komplettes Redesign. */
+
+:root {
+    color-scheme: light dark;
+    --paper: #FBFBFC;        /* Seitengrund */
+    --surface: #F3F4F6;      /* Karten, Flächen */
+    --ink: #16181D;          /* Text, Ränder */
+    --muted: #5C6270;        /* Sekundärtext */
+    --line: #DFE1E6;         /* Trennlinien */
+    --accent: #3B6EA8;       /* Signal: Primär-Aktion, Erfolg */
+    --accent-deep: #2C5480;  /* Akzent als Text auf hellen Flächen (kontrastsicher) */
+    --accent-tint: #E8EFF7;  /* Hover, markierte Zeilen */
+    --on-accent: #FFFFFF;    /* Text auf gefüllter Akzentfläche */
+    --radius: 6px;
+    --mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+    :root {
+        --paper: #101216;
+        --surface: #191C22;
+        --ink: #E7E9EE;
+        --muted: #949AA6;
+        --line: #2A2E37;
+        --accent: #5B9BD8;
+        --accent-deep: #8CBCE8;
+        --accent-tint: #1A222C;
+        --on-accent: #101216;
+    }
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    line-height: 1.6;
+}
+
+.wrap { max-width: 960px; margin: 0 auto; padding: 0 1rem 3rem; }
+
+a { color: var(--accent-deep); text-decoration: none; }
+a:hover { text-decoration: underline; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+code, .prefix { font-family: var(--mono); }
+
+/* Kopf & Fuß */
+.site-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1.2rem 0; gap: 1rem; flex-wrap: wrap;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 1.5rem;
+}
+.brand {
+    display: inline-flex; align-items: center; gap: 0.6rem;
+    font-family: var(--mono);
+    font-size: 1.35rem; font-weight: 700; color: var(--ink);
+    letter-spacing: -0.02em;
+}
+.brand svg, .brand img { display: block; }
+.brand:hover { text-decoration: none; }
+.site-head nav { display: flex; align-items: center; gap: 0.9rem; flex-wrap: wrap; }
+.site-head nav a { color: var(--ink); }
+.who, .site-head nav a.who { color: var(--muted); font-family: var(--mono); font-size: 0.85rem; }
+.site-foot {
+    margin-top: 3rem; padding-top: 1.2rem; border-top: 1px solid var(--line);
+    color: var(--muted); font-size: 0.8rem; text-align: center;
+    font-family: var(--mono);
+}
+.site-foot a { color: var(--muted); }
+.site-foot p { margin: 0.25rem 0; }
+
+/* Herkunftszeile: kleines Kiwi-Zeichen neben dem Hinweis aufs Ursprungsprojekt */
+.origin {
+    display: flex; align-items: center; justify-content: center;
+    gap: 0.45rem; opacity: 0.8;
+}
+/* Der Vogel ist deutlich breiter als hoch (Seitenverhältnis 3:2) – eine
+   quadratische Box würde ihn auf Punktgröße schrumpfen */
+.origin-mark { width: 2.1em; height: 1.4em; flex: none; }
+
+/* Hero (öffentliche Seite) */
+.hero { text-align: center; margin: 2.5rem 0 2rem; }
+.hero h1 { font-size: 2.1rem; font-weight: 700; letter-spacing: -0.02em; margin: 0 0 0.4rem; text-wrap: balance; }
+.accent { color: var(--accent-deep); }
+.sub { color: var(--muted); margin: 0; }
+
+/* Karten — flach, kleiner Radius, kein Schatten */
+.card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 1.4rem;
+    margin-bottom: 1.2rem;
+}
+.card h1 { margin-top: 0; }
+.card h2, .card h3 { margin: 0 0 0.8rem; }
+.card.narrow { max-width: 420px; margin: 3rem auto; }
+.card.narrow-wide { max-width: 720px; margin: 2rem auto; }
+.card.narrow-wide h2 { margin-top: 1.4rem; font-size: 1.1rem; }
+.card.highlight { border-color: var(--accent); border-left-width: 3px; }
+.card.center { text-align: center; margin: 3rem auto; max-width: 420px; }
+
+/* Formulare */
+label {
+    display: block; font-weight: 500; font-size: 0.78rem;
+    font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--muted); margin: 0.7rem 0 0.3rem;
+}
+input[type="text"], input[type="password"], input[type="search"], input[type="url"],
+input[type="date"], input[type="number"], select {
+    width: 100%;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    font-family: var(--mono);
+    font-size: 0.95rem;
+    background: var(--paper);
+    color: var(--ink);
+}
+input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: var(--accent); }
+/* Datumsfelder: iOS/Safari erzwingt sonst eine intrinsische Breite und
+   sprengt schmale Layouts nach rechts */
+input[type="date"] {
+    min-width: 0;
+    display: block;
+    -webkit-appearance: none;
+    appearance: none;
+}
+/* Flex-Kinder dürfen schrumpfen (sonst schieben intrinsische Breiten die Zeile auf) */
+.short-row > *, .actions > *, .actions form.inline > * { min-width: 0; }
+/* Kompakte Datumsfelder in Tabellen-Aktionen */
+.actions input[type="date"] { width: auto; padding: 0.3rem 0.5rem; font-size: 0.85rem; }
+
+/* Leere Vorschau (noch keine Eingabe) nicht als kaputtes Bild anzeigen */
+.preview img:not([src]) { display: none; }
+
+input[type="color"] { width: 100%; height: 2.4rem; padding: 0.15rem; border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper); }
+input[type="range"] { width: 100%; accent-color: var(--accent); }
+.hp { position: absolute; left: -9999px; }
+
+.short-row { display: flex; gap: 0.5rem; align-items: center; }
+.short-row input[type="text"], .short-row input[type="search"], .short-row select { flex: 1; }
+.prefix { color: var(--muted); white-space: nowrap; }
+.grid-form { display: grid; gap: 0.4rem; }
+.grid-form button { justify-self: start; margin-top: 0.6rem; }
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; }
+
+/* Buttons — sprechen Mono, sie sind Kommandos.
+   Primär ist die einzige gefüllte Akzentfläche im Sichtfeld. */
+.btn {
+    display: inline-block;
+    padding: 0.5rem 1.1rem;
+    border: 1px solid var(--ink);
+    border-radius: 5px;
+    background: transparent;
+    color: var(--ink);
+    font-family: var(--mono);
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    white-space: nowrap;
+}
+.btn:hover { background: var(--accent-tint); text-decoration: none; }
+.btn-primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.btn-primary:hover { background: var(--accent); filter: brightness(0.93); }
+.btn-small { padding: 0.28rem 0.7rem; font-size: 0.8rem; }
+.btn-danger { border-color: var(--line); color: var(--muted); }
+.btn-danger:hover { border-color: var(--ink); color: var(--ink); background: transparent; }
+
+/* Meldungen — Erfolg trägt den Akzent; Fehler brauchen kein Rot,
+   ihnen fehlt einfach der Akzent. */
+.flash {
+    padding: 0.7rem 1rem;
+    border-radius: var(--radius);
+    margin-bottom: 1rem;
+    border: 1px solid;
+    font-family: var(--mono);
+    font-size: 0.9rem;
+}
+.flash-ok { background: var(--accent-tint); border-color: var(--accent); color: var(--accent-deep); }
+.flash-err { background: var(--surface); border-color: var(--ink); color: var(--ink); }
+
+/* Ergebnis + QR */
+.result { text-align: center; }
+.result .short-row { max-width: 480px; margin: 0 auto 1rem; }
+.result input { font-weight: 700; text-align: center; color: var(--accent-deep); }
+.qr-preview { display: flex; flex-direction: column; align-items: center; gap: 0.6rem; }
+.qr-preview img { border: 1px solid var(--line); border-radius: var(--radius); background: #fff; }
+.qr-links { display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: center; }
+
+/* Tabellen — Kurz-Codes und Zahlen in Mono, Kopfzeile wie ein Terminal-Label */
+.table-scroll { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 0.92rem; font-variant-numeric: tabular-nums; }
+th {
+    text-align: left; color: var(--muted); font-weight: 500;
+    font-family: var(--mono); font-size: 0.72rem;
+    text-transform: uppercase; letter-spacing: 0.07em;
+}
+th, td { padding: 0.55rem 0.6rem; border-bottom: 1px solid var(--line); vertical-align: middle; }
+tr:last-child td { border-bottom: 0; }
+td a { font-family: var(--mono); }
+.row-hl td { background: var(--accent-tint); }
+.url-cell { max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); }
+.actions { display: flex; gap: 0.35rem; align-items: center; flex-wrap: wrap; }
+.actions form.inline { display: flex; gap: 0.35rem; margin: 0; }
+.actions input[type="password"] { width: 150px; padding: 0.3rem 0.5rem; font-size: 0.85rem; }
+.list-head { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; }
+.list-head form { margin: 0; }
+
+/* Badges */
+.badge {
+    display: inline-block; padding: 0.1rem 0.5rem; border-radius: 4px;
+    font-family: var(--mono); font-size: 0.72rem; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.05em;
+}
+.badge-expired { background: transparent; color: var(--muted); border: 1px solid var(--line); }
+.badge-quiet { background: transparent; color: var(--muted); border: 1px solid var(--line); }
+
+/* Einstellungen */
+.radio-group { display: grid; gap: 0.7rem; margin-bottom: 1rem; }
+.radio {
+    display: flex; gap: 0.7rem; align-items: flex-start;
+    padding: 0.8rem; border: 1px solid var(--line); border-radius: var(--radius);
+    font-family: inherit; font-weight: 400; font-size: 0.95rem;
+    text-transform: none; letter-spacing: 0; color: var(--ink);
+    cursor: pointer; margin: 0;
+}
+.radio:has(input:checked) { border-color: var(--accent); background: var(--accent-tint); }
+.radio input { margin-top: 0.25rem; accent-color: var(--accent-deep); }
+
+/* Statistik — Zahlen sind Inhalt: Mono, tabellarisch */
+.stat-row { display: flex; gap: 1.5rem; flex-wrap: wrap; margin: 1rem 0 1.5rem; }
+.stat { display: flex; flex-direction: column; }
+.stat strong { font-family: var(--mono); font-size: 1.5rem; font-variant-numeric: tabular-nums; }
+.stat span { color: var(--muted); font-family: var(--mono); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; }
+.bars { display: block; }
+.bar { fill: var(--accent); }
+.bar-zero { fill: var(--line); }
+.chart-label { fill: var(--muted); font-family: var(--mono); }
+
+/* QR-Designer */
+.designer { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; align-items: start; }
+.designer .preview { text-align: center; position: sticky; top: 1rem; }
+.designer .preview img { border: 1px solid var(--line); border-radius: var(--radius); background: #fff; max-width: 100%; height: auto; margin-bottom: 0.8rem; }
+/* Auf der Untergrund-Bühne bringt das Bild keinen eigenen Grund mit –
+   transparente Rahmen-Ecken liegen direkt auf Hell/Dunkel auf */
+#preview-stage { line-height: 0; max-width: 100%; }
+#preview-stage img { background: transparent; border: 0; border-radius: 0; margin-bottom: 0; }
+.controls form { margin-top: 0.8rem; }
+.muted { color: var(--muted); font-weight: 400; }
+.small { font-size: 0.85rem; }
+
+/* Ankreuzfelder (Rechte, Gruppenzuordnung) – normale Schreibweise statt
+   des Versalien-Labels, das für Eingabefelder gilt */
+.check {
+    display: flex; align-items: center; gap: 0.45rem;
+    font-family: inherit; text-transform: none; letter-spacing: 0;
+    font-size: 0.9rem; color: var(--ink); font-weight: 400;
+    margin: 0.15rem 0;
+}
+.check input { width: auto; margin: 0; accent-color: var(--accent); }
+.check-row { display: flex; flex-wrap: wrap; gap: 0.15rem 1.1rem; }
+.tag {
+    display: inline-block; font-family: var(--mono); font-size: 0.75rem;
+    padding: 0.1rem 0.45rem; border: 1px solid var(--line);
+    border-radius: 999px; color: var(--muted); background: var(--paper);
+    white-space: nowrap;
+}
+.tag-on { border-color: var(--accent); color: var(--accent-deep); background: var(--accent-tint); }
+
+@media (max-width: 720px) {
+    .designer { grid-template-columns: 1fr; }
+    .designer .preview { position: static; }
+    .hero h1 { font-size: 1.55rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+}

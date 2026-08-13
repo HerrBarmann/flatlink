@@ -1,0 +1,12 @@
+# Konfiguration mit Zugangsdaten – niemals einchecken
+inc/config.php
+
+# Laufzeitdaten: Links, Konten, Klickzähler, Logos, Rate-Limit-Dateien
+data/
+
+# Optionale Schrift für die PNG-Beschriftung (selbst hinzufügen, Lizenz beachten)
+assets/fonts/
+
+.DS_Store
+*.tmp.*
+*.lock

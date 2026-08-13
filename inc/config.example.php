@@ -1,0 +1,205 @@
+<?php
+declare(strict_types=1);
+
+/**
+ * Konfiguration.
+ *
+ * Diese Datei nach inc/config.php kopieren und anpassen:
+ *     cp inc/config.example.php inc/config.php
+ *
+ * inc/config.php enthält Zugangsdaten und ist per .gitignore ausgeschlossen.
+ */
+
+return [
+    // Anzeigename der Instanz (Titel, Kopfzeile, Absender)
+    'site_name' => 'flatlink',
+
+    // Basis-URL inkl. Schema, OHNE Slash am Ende, z. B. 'https://example.org'
+    // Leer lassen = automatische Erkennung aus dem Request (klappt auch im Unterverzeichnis)
+    'base_url' => '',
+
+    // Länge zufällig erzeugter Codes
+    'code_length' => 6,
+
+    // Alphabet für zufällige Codes (ohne 0/O und 1/l/I – schwer zu unterscheiden)
+    'alphabet' => '23456789abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ',
+
+    // Max. Links pro IP und Stunde über das öffentliche Formular
+    'public_rate_limit' => 15,
+
+    // Codes, die nie als Kurzlink vergeben werden dürfen.
+    // Hier ergänzen, was an eigenen Seiten dazukommt.
+    'reserved' => ['admin', 'assets', 'data', 'inc', 'qr', 'go', 'index',
+        'login', 'logout', 'api', 'register', 'reset', 'report'],
+
+    // Max. Länge der Ziel-URL
+    'max_url_length' => 2048,
+
+    // ---- Wunsch-Codes ----
+    // Mindestlänge selbst gewählter Codes; kürzere bleiben Admins vorbehalten.
+    // Kontingent aktiver Wunsch-Codes pro Konto (0 = unbegrenzt).
+    // Auf einer öffentlichen Instanz bremst das Namensraum-Squatting;
+    // im internen Einsatz kann beides großzügig gesetzt werden.
+    'custom_code_min_len' => 3,
+    'custom_code_quota' => 0,
+
+    // ---- Rechte ----
+    // Rechte werden über Gruppen vergeben (Admin-Bereich → Gruppen). Was hier
+    // steht, gilt zusätzlich für JEDES angemeldete Konto, auch ohne Gruppe.
+    // Verfügbar: 'custom_code' (Wunsch-Namen), 'csv_import', 'logo_upload'.
+    // Leer lassen = alles nur über Gruppen. Administratoren dürfen immer alles.
+    'default_perms' => ['logo_upload'],
+
+    // ---- Nutzungs-Limits (gelten je Konto; Admins haben keine Limits) ----
+    // links: gleichzeitig aktive Links · stats_days: Tiefe der Klick-Statistik
+    // logos: Bilder in der Logo-Bibliothek für QR-Codes · 0 = unbegrenzt
+    'limits' => ['links' => 0, 'stats_days' => 365, 'logos' => 10],
+
+    // Optionale Absenderzeile unter erzeugten QR-Codes (leer = keine).
+    // Nützlich, wenn Codes gedruckt werden und erkennbar sein soll, wer sie ausgibt.
+    // Gemeint ist dein eigener Name – hier steht bewusst nichts vorbelegt.
+    'qr_brand_text' => '',
+
+    // Herkunftszeile im Seitenfuß: kleines Kiwi-Zeichen und der Hinweis, dass
+    // flatlink der offene Kern von 1337.kiwi ist. Die Lizenz verlangt sie
+    // nicht – wer sie nicht möchte, setzt hier false.
+    'show_origin' => true,
+
+    // ---- Automatisches Aufräumen ungenutzter Links ----
+    // Löscht Links, die über den gesamten Zeitraum kein einziges Mal aufgerufen
+    // wurden. Jeder Aufruf setzt die Frist zurück. Die kurze Frist gilt für
+    // Links, deren Besitzer per E-Mail vorgewarnt werden kann (Warnung einen
+    // Monat vorher, Löschung frühestens 30 Tage danach); die lange Frist gilt
+    // für anonyme Links und Konten ohne E-Mail-Adresse.
+    // Beide auf 0 setzen = Aufräumen komplett deaktiviert (Standard).
+    'link_gc_years' => 0,
+    'link_gc_years_unreachable' => 0,
+
+    // Kontaktadresse für Rückfragen (erscheint in Systemmails)
+    'contact_email' => '',
+
+    // ---- E-Mail-Versand (Registrierung, Passwort-Reset) ----
+    // mode 'log':  Mails landen in data/mail.log – kein Versand, ideal zum Testen
+    // mode 'smtp': echter Versand über SMTP mit STARTTLS
+    'mail' => [
+        'mode' => 'log',
+        'host' => 'smtp.example.org',
+        'port' => 587,
+        'user' => '',
+        'pass' => '',
+        'from' => 'noreply@example.org',
+        'from_name' => 'flatlink',
+    ],
+
+    // ================================================================
+    //  Zentrale Anmeldung – beide Wege sind optional und stehen auf AUS
+    // ================================================================
+
+    // ---- Weg 1: SSO über den Webserver (Shibboleth, SAML, OpenID Connect) ----
+    //
+    // Die Anmeldung erledigt ein Servermodul (mod_shib, mod_auth_mellon,
+    // mod_auth_openidc). flatlink liest nur, wen der Server bereits
+    // authentifiziert hat. Der Webserver muss den Pfad /admin/ dafür schützen,
+    // z. B. in der Apache-Konfiguration:
+    //
+    //     <Location /admin>
+    //         AuthType shibboleth
+    //         ShibRequestSetting requireSession 1
+    //         Require valid-user
+    //     </Location>
+    //
+    // !! SICHERHEIT !!
+    // 'user_var' benennt die Servervariable mit der Kennung. Variablen, die
+    // der Webserver selbst setzt (REMOTE_USER und die Attribute von mod_shib),
+    // sind vertrauenswürdig. Ein Wert, der als HTTP-Header ankommt (Name
+    // beginnt dann mit HTTP_), ist es NICHT – den kann jeder Client frei
+    // erfinden und sich damit als beliebiger Nutzer ausgeben. flatlink
+    // akzeptiert HTTP_-Variablen deshalb nur, wenn unter 'trusted_proxies'
+    // die IP des Reverse Proxy steht, der diese Header nachweislich
+    // überschreibt. Ohne diesen Eintrag werden sie verworfen.
+    'sso' => [
+        'enabled' => false,
+
+        // Servervariable mit der Kennung des angemeldeten Nutzers
+        'user_var' => 'REMOTE_USER',
+        // Optional: Variablen für E-Mail-Adresse und Gruppen
+        'mail_var' => '',            // z. B. 'mail' (mod_shib) oder 'HTTP_MAIL'
+        'group_var' => '',           // z. B. 'isMemberOf' oder 'entitlement'
+        'group_separator' => ';',
+
+        // Externe Gruppennamen auf lokale Gruppen-Kennungen abbilden.
+        // Ist die Tabelle leer, wird ein externer Name nur übernommen, wenn es
+        // hier eine gleichnamige Gruppe gibt. Aus dem IdP kommende Namen
+        // können nie neue Gruppen anlegen.
+        'group_map' => [
+            // 'urn:mace:example.org:group:marketing' => 'marketing',
+            // 'cn=it,ou=groups,dc=example,dc=org'    => ['it', 'technik'],
+        ],
+        // Gruppen, die jedes über SSO angemeldete Konto zusätzlich bekommt
+        'default_groups' => [],
+
+        // Konten beim ersten Login automatisch anlegen
+        'auto_create' => true,
+
+        // Nur nötig, wenn die Kennung als HTTP-Header ankommt (siehe Warnung).
+        // Eintragen ist die IP, mit der der Proxy hier ankommt – bei einem
+        // lokalen Proxy können das zwei sein, je nachdem ob er über IPv4 oder
+        // IPv6 verbindet. Im Zweifel beide eintragen.
+        'trusted_proxies' => [],     // z. B. ['127.0.0.1', '::1', '10.0.0.5']
+
+        // Ziel des Anmelde-Knopfes und des Abmeldens (Single Logout)
+        'login_url' => '',           // z. B. '/Shibboleth.sso/Login?target=/admin/'
+        'logout_url' => '',          // z. B. '/Shibboleth.sso/Logout'
+        'button_label' => 'Mit institutionellem Konto anmelden',
+    ],
+
+    // ---- Weg 2: LDAP / Active Directory ----
+    //
+    // flatlink fragt selbst beim Verzeichnis nach; Kennung und Passwort werden
+    // im eigenen Login-Formular eingegeben. Braucht die PHP-Erweiterung ldap.
+    // Geprüft wird per Bind als der gefundene Nutzer – das Passwort wird
+    // nirgends gespeichert. Lokale Konten bleiben parallel nutzbar: Erst wird
+    // das lokale Passwort geprüft, dann das Verzeichnis.
+    'ldap' => [
+        'enabled' => false,
+
+        // ldaps:// bevorzugen; bei ldap:// unbedingt 'start_tls' setzen,
+        // sonst geht das Passwort im Klartext über das Netz
+        'uri' => 'ldaps://ldap.example.org:636',
+        'start_tls' => false,
+        'timeout' => 5,
+
+        // Dienstkonto für die Suche (leer = anonyme Suche)
+        'bind_dn' => '',
+        'bind_pass' => '',
+
+        // Wo und wonach gesucht wird; %s wird durch die Eingabe ersetzt
+        // (sie wird vorher escaped – LDAP-Injection ist nicht möglich).
+        // Active Directory: '(sAMAccountName=%s)'
+        'base_dn' => 'ou=people,dc=example,dc=org',
+        'user_filter' => '(uid=%s)',
+        'mail_attr' => 'mail',
+
+        // Gruppen: 'memberof' liest das Attribut am Nutzereintrag,
+        // 'search' sucht stattdessen im Gruppenbaum nach Einträgen mit dem
+        // Nutzer als Mitglied (nötig bei groupOfNames ohne memberOf-Overlay).
+        'group_mode' => 'memberof',
+        'group_base_dn' => 'ou=groups,dc=example,dc=org',
+        'group_filter' => '(&(objectClass=groupOfNames)(member=%s))',
+        'group_attr' => 'cn',
+
+        // Wie bei SSO: leer = nur namensgleiche lokale Gruppen zählen
+        'group_map' => [],
+        'default_groups' => [],
+        'auto_create' => true,
+    ],
+
+    // ---- Google Safe Browsing (optional, standardmäßig AUS) ----
+    // Prüft beim Anlegen eines Links dessen Ziel-URL gegen Googles Phishing-Liste.
+    // Achtung: Dabei wird die Ziel-URL an Google übertragen. Für öffentliche
+    // Instanzen ein sinnvoller Missbrauchsschutz, für interne meist unnötig.
+    // Wer es aktiviert, sollte es in seiner Datenschutzerklärung angeben.
+    // Leer lassen = deaktiviert.
+    // https://developers.google.com/safe-browsing/v4/get-started
+    'safe_browsing_key' => '',
+];
