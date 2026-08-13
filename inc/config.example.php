@@ -15,7 +15,13 @@ return [
     'site_name' => 'flatlink',
 
     // Basis-URL inkl. Schema, OHNE Slash am Ende, z. B. 'https://example.org'
-    // Leer lassen = automatische Erkennung aus dem Request (klappt auch im Unterverzeichnis)
+    //
+    // BITTE SETZEN. Bleibt der Wert leer, wird die Adresse aus dem
+    // Host-Header des Requests erraten – und der ist eine Nutzereingabe.
+    // Links in verschickten Mails (Passwort-Reset, Registrierung) würden
+    // sich damit auf eine fremde Domain umbiegen lassen; flatlink verschickt
+    // solche Mails deshalb gar nicht erst, solange hier nichts steht.
+    // Auch das secure-Flag des Sitzungs-Cookies hängt an diesem Wert.
     'base_url' => '',
 
     // Länge zufällig erzeugter Codes

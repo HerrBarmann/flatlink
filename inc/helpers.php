@@ -62,11 +62,21 @@ function e(?string $s): string
     return htmlspecialchars($s ?? '', ENT_QUOTES, 'UTF-8');
 }
 
-/** Basis-URL des Dienstes, ohne Slash am Ende */
-function base_url(): string
+/**
+ * Basis-URL des Dienstes, ohne Slash am Ende.
+ *
+ * Ohne konfigurierten Wert wird sie aus dem Request erraten – bequem, aber
+ * vom Aufrufer steuerbar: Der Host-Header ist eine Nutzereingabe. Für alles,
+ * was ein Angreifer nicht beeinflussen darf – allen voran Links in
+ * verschickten Mails –, gehört deshalb $trusted = true gesetzt. Dann gilt
+ * ausschließlich der konfigurierte Wert; fehlt er, kommt ein leerer String
+ * zurück und der Aufrufer muss abbrechen.
+ */
+function base_url(bool $trusted = false): string
 {
     $configured = cfg('base_url');
     if ($configured !== '') return rtrim($configured, '/');
+    if ($trusted) return '';
     $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
         || ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https';
     $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
@@ -100,12 +110,29 @@ function json_read(string $file, array $default = []): array
     return is_array($data) ? $data : $default;
 }
 
-/** Atomar schreiben: Tempdatei + rename */
+/**
+ * Atomar schreiben: Tempdatei + rename.
+ *
+ * Der Rückgabewert von file_put_contents wird geprüft – sonst schöbe ein
+ * voller Datenträger eine halbe oder leere Tempdatei über die echten Daten
+ * und löschte damit sämtliche Links.
+ */
 function json_write(string $file, array $data): void
 {
+    $json = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    if ($json === false) {
+        throw new RuntimeException('Daten lassen sich nicht als JSON schreiben: ' . json_last_error_msg());
+    }
     $tmp = $file . '.tmp.' . bin2hex(random_bytes(4));
-    file_put_contents($tmp, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
-    rename($tmp, $file);
+    $written = file_put_contents($tmp, $json, LOCK_EX);
+    if ($written === false || $written !== strlen($json)) {
+        @unlink($tmp);
+        throw new RuntimeException('Schreiben nach ' . basename($file) . ' fehlgeschlagen – Datenträger voll oder keine Rechte.');
+    }
+    if (!rename($tmp, $file)) {
+        @unlink($tmp);
+        throw new RuntimeException('Umbenennen nach ' . basename($file) . ' fehlgeschlagen.');
+    }
 }
 
 /**
@@ -217,6 +244,41 @@ function client_ip(): string
     return $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
 }
 
+/**
+ * Zufälliges Geheimnis dieser Instanz, beim ersten Bedarf erzeugt.
+ * Dient als Schlüssel für IP-Hashes – ohne es sind die nicht rückrechenbar.
+ */
+function instance_secret(): string
+{
+    static $secret = null;
+    if ($secret !== null) return $secret;
+    $file = data_path() . '/secret.key';
+    if (is_file($file)) {
+        $secret = trim((string)file_get_contents($file));
+        if ($secret !== '') return $secret;
+    }
+    $secret = bin2hex(random_bytes(32));
+    file_put_contents($file, $secret, LOCK_EX);
+    @chmod($file, 0600);
+    return $secret;
+}
+
+/**
+ * IP-Adresse für die Ablage verschlüsseln.
+ *
+ * Ein blanker SHA-256 über eine IPv4-Adresse ist KEINE Anonymisierung: Der
+ * gesamte Adressraum umfasst nur 2^32 Werte, eine vollständige Tabelle ist in
+ * Minuten erzeugt. Mit einem instanzeigenen Geheimnis als Schlüssel ist die
+ * Rückrechnung ohne Serverzugriff dagegen ausgeschlossen.
+ *
+ * Auch dann bleibt der Wert pseudonym, nicht anonym – er gehört in die
+ * Datenschutzerklärung und braucht eine Aufbewahrungsfrist.
+ */
+function ip_hash(string $ip = ''): string
+{
+    return hash_hmac('sha256', $ip === '' ? client_ip() : $ip, instance_secret());
+}
+
 /** Rate-Limit-/Login-Schutzdateien (gehashte IPs) älter als 24 h aufräumen */
 function rate_limit_gc(): void
 {
@@ -229,7 +291,7 @@ function rate_limit_gc(): void
 function bucket_rate_ok(string $bucket, int $limit): bool
 {
     rate_limit_gc();
-    $file = data_path('ratelimit') . '/' . $bucket . '-' . hash('sha256', client_ip()) . '.json';
+    $file = data_path('ratelimit') . '/' . $bucket . '-' . ip_hash() . '.json';
     $hour = date('YmdH');
     $ok = true;
     json_update($file, function (array $d) use ($hour, $limit, &$ok) {

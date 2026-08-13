@@ -87,8 +87,9 @@ in der Konfiguration schaltet sie ab.
 - **Gruppen** für geteilte Links und für Rechte: Ein Link kann einer Gruppe
   gehören, dann verwaltet ihn das ganze Team
 - **CSV-Import** für viele Links auf einmal
-- **Missbrauchsschutz**: Rate-Limits pro IP (nur als Hash gespeichert),
-  Meldeformular, Sperrfunktion, optional Google Safe Browsing
+- **Missbrauchsschutz**: Rate-Limits pro IP (gespeichert wird nur ein
+  Schlüssel-Hash, kein Klartext), Meldeformular, Sperrfunktion, optional
+  Google Safe Browsing
 - **Automatisches Aufräumen** nie aufgerufener Links, mit Vorwarnung per Mail
   (standardmäßig deaktiviert)
 
@@ -333,7 +334,8 @@ und atomarem Schreiben über Tempdatei plus `rename`:
 | `clicks/<code>.json` | Klickzähler, siehe oben |
 | `settings.json` | Zur Laufzeit änderbare Einstellungen |
 | `logos/` | Hochgeladene Logos für QR-Codes |
-| `ratelimit/` | Zähler je gehashter IP, nach 24 Stunden gelöscht |
+| `ratelimit/` | Zähler je IP-Hash (HMAC mit Instanz-Geheimnis), nach 24 h gelöscht |
+| `secret.key` | Geheimnis dieser Instanz für die IP-Hashes – wie ein Passwort behandeln |
 | `pending/` | Offene Bestätigungs-Token (Registrierung, Reset) |
 
 Ein Backup ist damit ein simples Kopieren des `data/`-Ordners.

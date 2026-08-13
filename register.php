@@ -53,7 +53,7 @@ if (!$closed && $_SERVER['REQUEST_METHOD'] === 'POST') {
                     "Hallo,\n\n"
                     . "jemand (vermutlich du) wollte sich mit dieser Adresse bei " . cfg('site_name') . "\n"
                     . "registrieren – aber dazu gibt es schon ein Konto.\n\n"
-                    . "Passwort vergessen? " . base_url() . "/reset.php\n\n"
+                    . "Passwort vergessen? " . (mail_link('reset.php') ?? '') . "\n\n"
                     . "Falls das nicht du warst, kannst du diese Mail ignorieren.\n\n"
                     . "– " . cfg('site_name'));
             } else {
@@ -64,7 +64,7 @@ if (!$closed && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 $ok = mail_send($email, 'Bestätige deine Registrierung bei ' . cfg('site_name'),
                     "Hallo,\n\n"
                     . "einmal klicken, fertig:\n\n"
-                    . base_url() . "/register.php?token=" . $token . "\n\n"
+                    . mail_link('register.php') . "?token=" . $token . "\n\n"
                     . "Der Link ist 24 Stunden gültig. Falls du dich nicht bei " . cfg('site_name') . "\n"
                     . "registriert hast, ignoriere diese Mail einfach – es passiert nichts.\n\n"
                     . "– " . cfg('site_name'));

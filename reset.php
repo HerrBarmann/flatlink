@@ -29,12 +29,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($key !== null && (users_all()[$key]['auth'] ?? 'local') !== 'local') {
                 $key = null;
             }
+            $link = mail_link('reset.php');
+            if ($key !== null && $link === null) {
+                // Ohne konfigurierte base_url ließe sich der Link fälschen –
+                // dann lieber gar nicht verschicken
+                error_log('flatlink: Passwort-Reset nicht verschickt – base_url ist nicht konfiguriert.');
+                $key = null;
+            }
             if ($key !== null) {
                 $t = pending_create('pwreset', ['user' => $key], 3600);
                 mail_send($email, 'Passwort zurücksetzen bei ' . cfg('site_name'),
                     "Hallo,\n\n"
                     . "hier kannst du ein neues Passwort setzen:\n\n"
-                    . base_url() . "/reset.php?token=" . $t . "\n\n"
+                    . $link . "?token=" . $t . "\n\n"
                     . "Der Link ist eine Stunde gültig. Falls du das nicht angefordert hast,\n"
                     . "ignoriere diese Mail – dein Passwort bleibt unverändert.\n\n"
                     . "– " . cfg('site_name'));

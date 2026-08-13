@@ -11,6 +11,23 @@ require_once __DIR__ . '/helpers.php';
  * Gibt false zurück, wenn der Versand scheitert – Aufrufer entscheiden, was sie
  * dem Nutzer sagen (nie den Fehlertext des Servers durchreichen).
  */
+/**
+ * Absolute Adresse für einen Link in einer Mail.
+ *
+ * Nutzt ausschließlich die konfigurierte base_url. Grund: Ohne sie würde die
+ * Adresse aus dem Host-Header des Auslösers gebaut – wer eine
+ * Passwort-vergessen-Mail für ein fremdes Konto anstößt, könnte den Link
+ * damit auf die eigene Domain zeigen lassen und den Token abgreifen.
+ *
+ * @return ?string null, wenn keine Basis-URL konfiguriert ist
+ */
+function mail_link(string $path = ''): ?string
+{
+    $base = base_url(true);
+    if ($base === '') return null;
+    return $base . ($path === '' ? '' : '/' . ltrim($path, '/'));
+}
+
 function mail_send(string $to, string $subject, string $body, ?string $replyTo = null): bool
 {
     if (filter_var($to, FILTER_VALIDATE_EMAIL) === false) return false;

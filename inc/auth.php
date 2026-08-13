@@ -6,7 +6,14 @@ require_once __DIR__ . '/helpers.php';
 function auth_boot(): void
 {
     if (session_status() === PHP_SESSION_ACTIVE) return;
-    $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
+    // Hinter einem TLS-terminierenden Proxy sieht PHP nur eine HTTP-Verbindung
+    // und würde das Cookie ohne 'secure' setzen. Der konfigurierte Wert ist
+    // die verlässlichste Quelle; erst danach der Request.
+    $configured = (string)cfg('base_url');
+    $https = $configured !== ''
+        ? str_starts_with($configured, 'https://')
+        : ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+            || ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
     session_name('kurzsid');
     session_set_cookie_params([
         'lifetime' => 0,
@@ -85,11 +92,18 @@ function user_resolve(string $ident): ?string
     return null;
 }
 
+/**
+ * Vergleichs-Hash für nicht existierende Konten: ein fester bcrypt-Wert, der
+ * zu keinem Passwort passt. Kostet beim Prüfen dieselbe Zeit wie ein echter,
+ * ohne beim Erzeugen CPU zu verbrennen.
+ */
+const DUMMY_HASH = '$2y$10$usesomesillystringfore7hnbRJHxXVLeakoG8K30oukPsA.ztMG';
+
 /** Login mit Throttling: nach 5 Fehlversuchen 60 s Sperre pro IP+Name */
 function auth_login(string $username, string $password): bool
 {
     rate_limit_gc();
-    $throttleFile = data_path('ratelimit') . '/login-' . hash('sha256', client_ip() . '|' . $username) . '.json';
+    $throttleFile = data_path('ratelimit') . '/login-' . ip_hash(client_ip() . '|' . $username) . '.json';
     $t = json_read($throttleFile, ['fails' => 0, 'until' => 0]);
     if ($t['fails'] >= 5 && time() < $t['until']) {
         sleep(2);
@@ -103,8 +117,10 @@ function auth_login(string $username, string $password): bool
     // und dürfen sich hier auch nicht anmelden – sonst wäre die zentrale
     // Anmeldung über ein lokal gesetztes Passwort umgehbar.
     if ($u !== null && ($u['auth'] ?? 'local') !== 'local') $u = null;
-    // Immer verifizieren, damit Timing keinen Nutzernamen verrät
-    $hash = $u['pass'] ?? password_hash('dummy-' . bin2hex(random_bytes(8)), PASSWORD_DEFAULT);
+    // Immer verifizieren, damit Timing keinen Nutzernamen verrät. Der
+    // Vergleichs-Hash ist eine Konstante – ihn bei jedem Fehlversuch neu zu
+    // berechnen wäre ein billiger Weg, die CPU des Servers auszulasten.
+    $hash = $u['pass'] ?? DUMMY_HASH;
     if ($u !== null && is_string($u['pass'] ?? null) && password_verify($password, $hash)) {
         @unlink($throttleFile);
         session_regenerate_id(true);
@@ -324,7 +340,7 @@ function user_activate(string $email, string $passHash): ?string
             'created' => date('c'),
             // Double-Opt-In-Nachweis (DSGVO): Zeitpunkt der Bestätigung + IP-Hash
             'verified' => date('c'),
-            'verified_ip' => hash('sha256', client_ip()),
+            'verified_ip' => ip_hash(),
         ];
         return $users;
     });

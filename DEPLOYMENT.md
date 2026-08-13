@@ -137,9 +137,14 @@ Alles steckt in `inc/config.php`. Für den Anfang reichen zwei Werte:
 'base_url'  => 'https://kurz.example.org',
 ```
 
-`base_url` leer zu lassen funktioniert auch – dann errät flatlink die Adresse
-aus dem Request. Hinter einem Reverse Proxy oder mit mehreren Domainnamen ist
-der feste Eintrag verlässlicher.
+> **`base_url` gehört gesetzt – das ist keine Geschmacksfrage.** Bleibt der
+> Wert leer, errät flatlink die Adresse aus dem `Host`-Header des Requests.
+> Der ist eine Nutzereingabe: Wer eine Passwort-vergessen-Mail für ein fremdes
+> Konto anstößt, könnte den Link darin sonst auf die eigene Domain zeigen
+> lassen und den Token abgreifen. flatlink verschickt deshalb **gar keine**
+> Mails mit Links, solange `base_url` fehlt – der Reset bliebe wirkungslos.
+> Auch das `secure`-Flag des Sitzungs-Cookies wird daraus abgeleitet, was
+> hinter einem TLS-terminierenden Proxy den Unterschied macht.
 
 Für eine interne Instanz lohnt sich außerdem:
 
@@ -246,8 +251,10 @@ LDAP auch fremde Zugangsdaten laufen sonst im Klartext. Mit Let's Encrypt:
 sudo certbot --apache -d kurz.example.org      # oder --nginx
 ```
 
-flatlink erkennt HTTPS und setzt das Sitzungs-Cookie dann automatisch mit dem
-`secure`-Flag.
+Das `secure`-Flag des Sitzungs-Cookies leitet flatlink aus der konfigurierten
+`base_url` ab. Steht dort `https://`, wird es gesetzt – auch dann, wenn ein
+Proxy TLS terminiert und intern per HTTP weiterreicht, wo PHP von sich aus
+keine gesicherte Verbindung sähe.
 
 ---
 

@@ -62,6 +62,7 @@ function links_gc(): void
     $deleteCutoffLong = strtotime('-' . $yearsLong . ' years');
     $warnFile = data_path() . '/links-gc-warned.json';
     $warned = json_read($warnFile);
+    $trustedBase = base_url(true);
     $log = function (string $line): void {
         file_put_contents(data_path() . '/links-gc.log', date('c') . ' ' . $line . "\n", FILE_APPEND | LOCK_EX);
     };
@@ -108,7 +109,11 @@ function links_gc(): void
     foreach ($toWarn as $mail => $codes) {
         $lines = '';
         foreach ($codes as $code => $lastUse) {
-            $lines .= '  ' . short_url((string)$code) . ' (letzte Nutzung: ' . date('d.m.Y', $lastUse) . ")\n";
+            // Die Aufräum-Warnung läuft im Hintergrund, ausgelöst durch einen
+            // beliebigen Besucher – dessen Host-Header darf die Adressen in
+            // der Mail nicht bestimmen
+            $lines .= '  ' . ($trustedBase !== '' ? $trustedBase . '/' . $code : (string)$code)
+                . ' (letzte Nutzung: ' . date('d.m.Y', $lastUse) . ")\n";
         }
         $ok = mail_send($mail, 'Lange ungenutzte Kurzlinks werden bald gelöscht',
             "Hallo,\n\n"

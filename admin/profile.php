@@ -26,7 +26,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 "Hallo,\n\n"
                 . "für das Konto „" . $user['name'] . "“ bei " . cfg('site_name') . " soll diese Adresse\n"
                 . "als E-Mail-Adresse hinterlegt werden. Zum Bestätigen (angemeldet bleiben!):\n\n"
-                . base_url() . "/admin/profile.php?token=" . $token . "\n\n"
+                . mail_link('admin/profile.php') . "?token=" . $token . "\n\n"
                 . "Der Link ist 24 Stunden gültig. Falls du das nicht warst, ignoriere diese Mail.\n\n"
                 . "– " . cfg('site_name'));
             // Sicherheits-Info an die bisherige Adresse, falls vorhanden
