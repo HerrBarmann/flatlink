@@ -126,6 +126,13 @@ Mailversand auf `log`, die Bestätigungsmail landet also in `data/mail.log` –
 dort den Link herauskopieren und aufrufen. Das erste angelegte Konto bekommt
 automatisch die Admin-Rolle.
 
+> **Für den echten Betrieb** gibt es eine ausführliche
+> **[Deployment-Anleitung](DEPLOYMENT.md)**: Rechte und Webserver-Konfiguration
+> für Apache und nginx, Mailversand samt SPF/DKIM/DMARC, LDAP und Active
+> Directory, die komplette Shibboleth-Einrichtung inklusive Apache und
+> Attributfreigabe – dazu Betrieb, Sicherung und eine Tabelle mit den
+> häufigsten Stolpersteinen.
+
 ## Konfiguration
 
 Alles steckt in `inc/config.php`; die kommentierte Vorlage ist
@@ -186,7 +193,9 @@ dem Verzeichnis kommen (siehe unten).
 ## Zentrale Anmeldung
 
 Beide Wege sind optional, stehen standardmäßig auf `false` und lassen sich
-parallel zu lokalen Konten betreiben.
+parallel zu lokalen Konten betreiben. Hier steht das Prinzip – die
+Schritt-für-Schritt-Einrichtung samt Apache-Konfiguration, SP-Metadaten und
+Attributfreigabe steht in der [Deployment-Anleitung](DEPLOYMENT.md#8-shibboleth-saml-und-openid-connect).
 
 ### Über den Webserver (Shibboleth, SAML, OpenID Connect)
 
