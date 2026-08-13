@@ -11,6 +11,8 @@ $isAdmin = $user['role'] === 'admin';
 // Kontingent für Wunsch-Codes; 0 in der Konfiguration = unbegrenzt
 $codeQuota = (int)cfg('custom_code_quota');
 $myGroups = user_groups($user['name']);
+// Namensraum-Präfixe: leer = frei, sonst darf nur darunter angelegt werden
+$myPrefixes = $isAdmin ? [] : user_prefixes($user['name']);
 // Zuweisbar sind die eigenen Gruppen; Admins dürfen jeder Gruppe zuordnen
 $assignable = $isAdmin ? array_keys(groups_all()) : $myGroups;
 $mayCustom = user_can($user['name'], 'custom_code');
@@ -22,6 +24,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'create') {
         $url = trim((string)($_POST['url'] ?? ''));
         $code = trim((string)($_POST['code'] ?? ''));
+        // Gewählter Namensraum; ohne Beschränkung bleibt er leer
+        $prefix = trim((string)($_POST['prefix'] ?? ''));
+        if ($myPrefixes === []) {
+            $prefix = '';
+        } elseif (!in_array($prefix, $myPrefixes, true)) {
+            $prefix = $myPrefixes[0];
+        }
         $group = trim((string)($_POST['group'] ?? ''));
         $group = $group === '' ? null : $group;
         [$expOk, $expires] = parse_expiry((string)($_POST['expires'] ?? ''));
@@ -41,13 +50,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif ($code !== '' && !$isAdmin && $codeQuota > 0 && custom_code_count($user['name']) >= $codeQuota) {
             flash('Kontingent erreicht: maximal ' . $codeQuota . ' aktive Wunsch-Codes pro Konto. Lösche zuerst einen bestehenden.', 'err');
         } elseif ($code !== '' && !valid_code($code)) {
-            flash('Ungültiger Wunsch-Code: 1–64 Zeichen (a-z, A-Z, 0-9, _ und -), nicht reserviert.', 'err');
+            flash('Ungültiger Wunsch-Name: 1–64 Zeichen (a-z, A-Z, 0-9, _ und -), nicht reserviert.', 'err');
+        } elseif ($code !== '' && $prefix === '' && in_array(strtolower($code), all_prefixes(), true)) {
+            flash('Dieser Name ist als Namensraum vergeben.', 'err');
         } elseif (!$expOk) {
             flash('Ungültiges Ablaufdatum (frühestens heute).', 'err');
         } elseif (url_flagged($url)) {
             flash('Diese Ziel-URL ist als schädlich gemeldet und kann nicht verkürzt werden.', 'err');
         } else {
-            [$ok, $result] = link_create($url, $code === '' ? null : $code, $user['name'], $code === '' ? 'random' : 'custom', '', $expires, $group);
+            // Wunsch-Name unter das Präfix hängen; Zufallscodes erledigt link_create
+            $full = $code === '' ? null : ($prefix === '' ? $code : $prefix . '/' . $code);
+            [$ok, $result] = link_create($url, $full, $user['name'], $code === '' ? 'random' : 'custom', $prefix, $expires, $group);
             if ($ok) {
                 $linkpass = (string)($_POST['linkpass'] ?? '');
                 if ($linkpass !== '') {
@@ -157,8 +170,35 @@ show_flash();
             <label for="c-code">Wunsch-Name <span class="muted">(leer = zufällig · mind. <?= (int)cfg('custom_code_min_len') ?> Zeichen<?= $codeQuota > 0 ? ' · ' . $used . '/' . $codeQuota . ' belegt' : '' ?>)</span></label>
             <div class="short-row">
                 <span class="prefix"><?= e(preg_replace('#^https?://#', '', base_url())) ?>/</span>
+                <?php if (count($myPrefixes) === 1): ?>
+                    <span class="prefix"><?= e($myPrefixes[0]) ?>/</span>
+                    <input type="hidden" name="prefix" value="<?= e($myPrefixes[0]) ?>">
+                <?php elseif (count($myPrefixes) > 1): ?>
+                    <select name="prefix" style="flex:0 0 auto;width:auto">
+                        <?php foreach ($myPrefixes as $p): ?><option value="<?= e($p) ?>"><?= e($p) ?>/</option><?php endforeach; ?>
+                    </select>
+                <?php endif; ?>
                 <input id="c-code" type="text" name="code" placeholder="wunschname" pattern="[A-Za-z0-9_-]{<?= (int)cfg('custom_code_min_len') ?>,64}">
             </div>
+            <?php if ($myPrefixes !== []): ?>
+            <p class="muted small">Deine Links liegen im Namensraum
+                <?= e(implode(' bzw. ', array_map(fn($p) => $p . '/', $myPrefixes))) ?> –
+                so kommen sich die Bereiche nicht in die Quere.</p>
+            <?php endif; ?>
+        </div>
+        <?php endif; ?>
+        <?php if (!$mayCustom && !$isAdmin && $myPrefixes !== []): ?>
+        <div>
+            <label>Namensraum</label>
+            <?php if (count($myPrefixes) === 1): ?>
+                <p class="muted small" style="margin:0">Deine Links entstehen unter
+                <code><?= e(preg_replace('#^https?://#', '', base_url())) ?>/<?= e($myPrefixes[0]) ?>/…</code></p>
+                <input type="hidden" name="prefix" value="<?= e($myPrefixes[0]) ?>">
+            <?php else: ?>
+                <select name="prefix">
+                    <?php foreach ($myPrefixes as $p): ?><option value="<?= e($p) ?>"><?= e($p) ?>/…</option><?php endforeach; ?>
+                </select>
+            <?php endif; ?>
         </div>
         <?php endif; ?>
         <?php if ($assignable !== []): ?>

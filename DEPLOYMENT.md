@@ -726,6 +726,54 @@ Verfügbare Rechte:
 | `csv_import` | darf viele Links auf einmal importieren |
 | `logo_upload` | darf eigene Logos für QR-Codes hochladen |
 
+### Wer darf sich überhaupt anmelden?
+
+Die wichtigste Frage bei einer Föderation – und die am leichtesten übersehene.
+Ein Verbund wie die DFN-AAI authentifiziert Angehörige **aller** beteiligten
+Einrichtungen. Ohne Einschränkung bekommt also jedes Mitglied jeder deutschen
+Hochschule auf deiner Instanz ein Konto. Drei Bremsen, beliebig kombinierbar:
+
+```php
+'allowed_scopes' => ['hfmt-hamburg.de'],   // nur die eigene Einrichtung
+'require_group'  => true,                  // nur wer in einer Gruppe landet
+'auto_create'    => false,                 // nur wer hier schon ein Konto hat
+```
+
+**`allowed_scopes`** greift bei Kennungen der Form `name@einrichtung.de`
+(eppn) – der übliche Fall und meist schon ausreichend.
+
+**`require_group`** ist der Weg, wenn die Kennung undurchsichtig ist
+(`persistent-id`): Dann entscheidet die Gruppenzuordnung aus `group_map`, ob
+jemand hereinkommt. `true` verlangt irgendeine Gruppe, eine Liste verlangt
+eine bestimmte.
+
+**`auto_create => false`** ist die strengste Stufe. Bei undurchsichtigen
+Kennungen entsteht dabei ein Henne-Ei-Problem – niemand kann ein Konto vorab
+anlegen, dessen Kennung er nicht kennt. Deshalb gibt es die
+**Freischalt-Warteschlange** (`'approval_queue' => true`): Abgewiesene
+Anmeldungen landen in der Nutzerverwaltung, mit Klarname, E-Mail und den
+Gruppen aus dem Verzeichnis. Ein Klick auf *Freischalten*, und die nächste
+Anmeldung derselben Person geht durch.
+
+Dieselben drei Schalter gibt es im `ldap`-Block. Dort begrenzt schon
+`base_dn` den Kreis; `require_group` verengt ihn auf bestimmte
+Verzeichnis-Gruppen.
+
+### Namensräume statt Namensstreit
+
+Ist der Zugang bewusst offen, hilft die andere Richtung: Jede Gruppe bekommt
+ein Präfix, und ihre Mitglieder legen nur darunter an.
+
+| Gruppe | Präfix | Ergebnis |
+| --- | --- | --- |
+| Bibliothek | `bib` | `kurz.hochschule.de/bib/oeffnungszeiten` |
+| Studierende | `stud` | `kurz.hochschule.de/stud/mensaplan` |
+| (Verwaltung, ohne Präfix) | – | `kurz.hochschule.de/immatrikulation` |
+
+So kann niemand versehentlich den kurzen, zentralen Namen belegen, und die
+Bereiche kommen sich nicht in die Quere. Administratoren bleiben unbeschränkt.
+Gesetzt wird das Präfix im Admin-Bereich unter *Gruppen*.
+
 Ein bewährter Zuschnitt für eine Hochschule:
 
 ```php

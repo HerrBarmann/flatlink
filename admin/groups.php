@@ -14,7 +14,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($action === 'save') {
         $err = group_save($id, (string)($_POST['name'] ?? ''), (array)($_POST['perms'] ?? []),
-            (array)($_POST['limits'] ?? []));
+            (array)($_POST['limits'] ?? []), (string)($_POST['prefix'] ?? ''));
         flash($err ?? 'Gruppe „' . $id . '“ gespeichert.', $err === null ? 'ok' : 'err');
     } elseif ($action === 'delete') {
         if (group_get($id) === null) {
@@ -75,6 +75,18 @@ show_flash();
             für alle angemeldeten Konten. Administratoren dürfen ohnehin alles.</p>
         </div>
         <div>
+            <label for="g-prefix">Namensraum <span class="muted">(optional – z.&nbsp;B. <code>bib</code>)</span></label>
+            <div class="short-row">
+                <span class="prefix"><?= e(preg_replace('#^https?://#', '', base_url())) ?>/</span>
+                <input id="g-prefix" type="text" name="prefix" pattern="[a-z0-9_-]{1,32}" style="max-width:12rem"
+                       value="<?= e($edit['prefix'] ?? '') ?>" placeholder="bib">
+                <span class="prefix">/…</span>
+            </div>
+            <p class="muted small">Ist ein Namensraum gesetzt, legen Mitglieder ihre Kurzlinks
+            ausschließlich darunter an. So bekommt jede Abteilung ihren eigenen Bereich, ohne
+            sich mit den anderen um kurze Namen zu streiten. Administratoren bleiben frei.</p>
+        </div>
+        <div>
             <label>Eigene Limits <span class="muted">(leer oder 0 = es gilt der Wert aus <code>config.php</code>)</span></label>
             <div class="check-row">
                 <?php foreach (['links' => 'Links', 'stats_days' => 'Statistik (Tage)', 'logos' => 'Logos'] as $k => $lbl): ?>
@@ -100,11 +112,16 @@ show_flash();
         <p class="muted">Noch keine Gruppen. Ohne Gruppen sieht jedes Konto nur seine eigenen Links.</p>
     <?php else: ?>
     <div class="table-scroll"><table>
-        <tr><th>Kennung</th><th>Name</th><th>Rechte</th><th>Limits</th><th>Mitglieder</th><th>Links</th><th></th></tr>
+        <tr><th>Kennung</th><th>Name</th><th>Namensraum</th><th>Rechte</th><th>Limits</th><th>Mitglieder</th><th>Links</th><th></th></tr>
         <?php foreach ($groups as $id => $g): $members = group_members((string)$id); ?>
         <tr>
             <td><code><?= e((string)$id) ?></code></td>
             <td><?= e($g['name']) ?></td>
+            <td class="small"><?php
+                $pfx = (string)($g['prefix'] ?? '');
+                echo $pfx === '' ? '<span class="muted">frei</span>'
+                    : '<code>' . e($pfx) . '/</code>';
+            ?></td>
             <td class="small">
                 <?php if (($g['perms'] ?? []) === []): ?>
                     <span class="muted">keine besonderen</span>

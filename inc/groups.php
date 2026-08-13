@@ -61,7 +61,7 @@ function valid_group_id(string $id): bool
  * @param string[] $perms
  * @return ?string Fehlermeldung oder null bei Erfolg
  */
-function group_save(string $id, string $name, array $perms, array $limits = []): ?string
+function group_save(string $id, string $name, array $perms, array $limits = [], string $prefix = ''): ?string
 {
     if (!valid_group_id($id)) {
         return 'Gruppen-Kennung: 2–32 Zeichen, nur Kleinbuchstaben, Ziffern, Punkt, Minus, Unterstrich.';
@@ -78,16 +78,63 @@ function group_save(string $id, string $name, array $perms, array $limits = []):
         if ($v > 0) $clean[$k] = $v;
     }
 
-    json_update(groups_file(), function (array $groups) use ($id, $name, $perms, $clean) {
+    $prefix = strtolower(trim($prefix, " /"));
+    if ($prefix !== '' && preg_match('/^[a-z0-9_-]{1,32}$/', $prefix) !== 1) {
+        return 'Präfix: 1–32 Zeichen, nur Kleinbuchstaben, Ziffern, Punkt, Minus, Unterstrich.';
+    }
+
+    json_update(groups_file(), function (array $groups) use ($id, $name, $perms, $clean, $prefix) {
         $groups[$id] = [
             'name' => $name,
             'perms' => $perms,
             'limits' => $clean,
+            'prefix' => $prefix,
             'created' => $groups[$id]['created'] ?? date('c'),
         ];
         return $groups;
     });
     return null;
+}
+
+// ---- Namensraum-Präfixe ----
+
+/** Präfix einer Gruppe ('' = keins) */
+function group_prefix(string $id): string
+{
+    return (string)(groups_all()[$id]['prefix'] ?? '');
+}
+
+/**
+ * Präfixe, unter denen ein Konto Kurzlinks anlegen darf.
+ *
+ * Leeres Ergebnis heißt: keine Beschränkung – der Link landet direkt im
+ * Wurzel-Namensraum. Sobald aber auch nur eine Gruppe des Kontos ein Präfix
+ * führt, sind ausschließlich diese Präfixe erlaubt. So bekommt die
+ * Bibliothek /bib/… und die Studierendenschaft /stud/…, ohne sich
+ * gegenseitig den Namensraum wegzunehmen.
+ *
+ * @return string[]
+ */
+function user_prefixes(string $username): array
+{
+    $out = [];
+    $groups = groups_all();
+    foreach (user_groups($username) as $g) {
+        $p = (string)($groups[$g]['prefix'] ?? '');
+        if ($p !== '') $out[] = $p;
+    }
+    return array_values(array_unique($out));
+}
+
+/** Alle vergebenen Präfixe – dürfen nicht als gewöhnlicher Code belegt werden */
+function all_prefixes(): array
+{
+    $out = [];
+    foreach (groups_all() as $g) {
+        $p = (string)($g['prefix'] ?? '');
+        if ($p !== '') $out[] = $p;
+    }
+    return array_values(array_unique($out));
 }
 
 /**

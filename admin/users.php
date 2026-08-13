@@ -4,6 +4,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../inc/store.php';
 require_once __DIR__ . '/../inc/auth.php';
 require_once __DIR__ . '/../inc/groups.php';
+require_once __DIR__ . '/../inc/sso.php';
 
 $user = auth_require_admin();
 
@@ -44,6 +45,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $err = user_set_role($name, $role);
             flash($err ?? 'Rolle von ' . $name . ': ' . $role . '.', $err === null ? 'ok' : 'err');
         }
+    } elseif ($action === 'approve') {
+        $err = pending_user_approve($name, (string)($_POST['source'] ?? 'sso'));
+        flash($err ?? 'Zugang für ' . $name . ' freigeschaltet – die nächste Anmeldung geht durch.',
+            $err === null ? 'ok' : 'err');
+    } elseif ($action === 'reject') {
+        pending_user_drop($name);
+        flash('Anfrage verworfen. Bei einem erneuten Anmeldeversuch taucht sie wieder auf.');
     } elseif ($action === 'delete') {
         if ($name === $user['name']) {
             flash('Du kannst dich nicht selbst löschen.', 'err');
@@ -54,6 +62,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     redirect_to('users.php');
 }
+
+$queue = pending_users();
+uasort($queue, fn($a, $b) => strcmp($b['last_seen'], $a['last_seen']));
 
 $q = trim((string)($_GET['q'] ?? ''));
 $users = users_all();
@@ -74,6 +85,48 @@ $perms = perms_all();
 page_header('Nutzer', true);
 show_flash();
 ?>
+
+<?php if ($queue !== []): ?>
+<div class="card highlight">
+    <h2>Wartet auf Freischaltung <span class="muted">(<?= count($queue) ?>)</span></h2>
+    <p class="muted small">Diese Kennungen haben sich erfolgreich über die zentrale Anmeldung
+    ausgewiesen, haben hier aber noch kein Konto. Freischalten legt eines an – Name, E-Mail
+    und Gruppen kommen bei der nächsten Anmeldung aus dem Verzeichnis.</p>
+    <div class="table-scroll"><table>
+        <tr><th>Person</th><th>Kennung</th><th>Gruppen laut Verzeichnis</th><th>Versuche</th><th></th></tr>
+        <?php foreach ($queue as $key => $e): ?>
+        <tr>
+            <td>
+                <strong><?= e($e['display'] ?? '(kein Name übermittelt)') ?></strong>
+                <?php if (!empty($e['email'])): ?><br><span class="muted small"><?= e($e['email']) ?></span><?php endif; ?>
+            </td>
+            <td class="small" style="font-family:var(--mono)" title="<?= e((string)$key) ?>">
+                <?= e(mb_strimwidth((string)$key, 0, 34, '…')) ?></td>
+            <td class="small"><?php
+                $gs = (array)($e['groups'] ?? []);
+                echo $gs === [] ? '<span class="muted">keine</span>'
+                    : implode(' ', array_map(fn($g) => '<span class="tag tag-on">' . e(group_label($g)) . '</span>', $gs));
+            ?></td>
+            <td><?= (int)($e['tries'] ?? 1) ?>×<br><span class="muted small"><?= e(date('d.m.Y H:i', strtotime($e['last_seen']))) ?></span></td>
+            <td class="actions">
+                <form method="post" action="" class="inline">
+                    <?= csrf_field() ?>
+                    <input type="hidden" name="action" value="approve">
+                    <input type="hidden" name="username" value="<?= e((string)$key) ?>">
+                    <button class="btn btn-small btn-primary" type="submit">Freischalten</button>
+                </form>
+                <form method="post" action="" class="inline">
+                    <?= csrf_field() ?>
+                    <input type="hidden" name="action" value="reject">
+                    <input type="hidden" name="username" value="<?= e((string)$key) ?>">
+                    <button class="btn btn-small btn-danger" type="submit">Verwerfen</button>
+                </form>
+            </td>
+        </tr>
+        <?php endforeach; ?>
+    </table></div>
+</div>
+<?php endif; ?>
 
 <div class="card">
     <h2>Neuer Nutzer</h2>

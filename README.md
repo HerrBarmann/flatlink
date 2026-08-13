@@ -183,6 +183,23 @@ sind:
 | `logo_upload` | darf eigene Logos für QR-Codes hochladen |
 | `qr_unbranded` | erzeugt QR-Codes ohne die Absenderzeile |
 
+### Namensräume
+
+Eine Gruppe kann ein **Präfix** führen. Ihre Mitglieder legen Kurzlinks dann
+ausschließlich darunter an:
+
+```
+kurz.hochschule.de/bib/oeffnungszeiten     ← Gruppe „Bibliothek", Präfix bib
+kurz.hochschule.de/stud/mensaplan          ← Gruppe „Studierende", Präfix stud
+```
+
+Das löst den Streit um kurze Namen, bevor er entsteht: Jeder Bereich hat seinen
+eigenen Raum, und `/mensaplan` bleibt frei für die zentrale Verwaltung. Wer in
+mehreren Gruppen mit Präfix ist, wählt beim Anlegen; Administratoren sind nicht
+beschränkt. Ohne Präfix verhält sich alles wie bisher.
+
+### Limits und Befristung
+
 Gruppen können außerdem **eigene Limits** mitbringen, die die globalen aus
 `config.php` anheben – wer in mehreren ist, bekommt jeweils den höchsten Wert.
 Und eine Mitgliedschaft lässt sich **befristen**: Nach dem Stichtag zählt sie

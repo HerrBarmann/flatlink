@@ -185,8 +185,31 @@ return [
         // Gruppen, die jedes über SSO angemeldete Konto zusätzlich bekommt
         'default_groups' => [],
 
-        // Konten beim ersten Login automatisch anlegen
+        // ---- Wer darf überhaupt herein? ----
+        //
+        // WICHTIG bei Föderationen: Ein IdP-Verbund wie die DFN-AAI
+        // authentifiziert Angehörige aller beteiligten Einrichtungen. Ohne
+        // Einschränkung bekäme also jedes Mitglied jeder Hochschule hier ein
+        // Konto. Drei Bremsen, beliebig kombinierbar:
+
+        // 1. Nur bestimmte Einrichtungen. Greift bei Kennungen der Form
+        //    name@einrichtung.de (eppn). Undurchsichtige Kennungen
+        //    (persistent-id) tragen keine Einrichtung – dort helfen 2. und 3.
+        'allowed_scopes' => [],      // z. B. ['hfmt-hamburg.de']
+
+        // 2. Nur wer über 'group_map' in einer lokalen Gruppe landet.
+        //    true = irgendeine Gruppe genügt, Liste = eine der genannten.
+        'require_group' => false,    // z. B. true oder ['mitarbeitende']
+
+        // 3. Nur Konten, die hier schon existieren. Die strengste Stufe.
         'auto_create' => true,
+
+        // Zu 3.: Bei undurchsichtigen Kennungen kann niemand ein Konto vorab
+        // anlegen – man kennt die Kennung ja nicht. Steht dies auf true,
+        // landen abgewiesene Anmeldungen stattdessen in einer Warteschlange
+        // in der Nutzerverwaltung, mit Klarname und E-Mail, und lassen sich
+        // dort mit einem Klick freischalten.
+        'approval_queue' => true,
 
         // Nur nötig, wenn die Kennung als HTTP-Header ankommt (siehe Warnung).
         // Eintragen ist die IP, mit der der Proxy hier ankommt – bei einem
@@ -242,7 +265,13 @@ return [
         // Wie bei SSO: leer = nur namensgleiche lokale Gruppen zählen
         'group_map' => [],
         'default_groups' => [],
+
+        // Zugangskontrolle wie beim SSO-Weg (siehe dort). Bei LDAP begrenzt
+        // schon 'base_dn' den Kreis – 'require_group' verengt ihn weiter auf
+        // Mitglieder bestimmter Verzeichnis-Gruppen.
+        'require_group' => false,
         'auto_create' => true,
+        'approval_queue' => true,
     ],
 
     // ---- Google Safe Browsing (optional, standardmäßig AUS) ----

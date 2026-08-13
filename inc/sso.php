@@ -32,6 +32,7 @@ function sso_cfg(): array
     return (array)(cfg('sso') ?? []) + [
         'enabled' => false, 'user_var' => 'REMOTE_USER', 'mail_var' => '', 'name_var' => '', 'group_var' => '',
         'group_separator' => ';', 'group_map' => [], 'auto_create' => true,
+        'allowed_scopes' => [], 'require_group' => false, 'approval_queue' => true,
         'default_groups' => [], 'login_url' => '', 'logout_url' => '',
         'trusted_proxies' => [], 'button_label' => 'Mit institutionellem Konto anmelden',
     ];
@@ -45,7 +46,8 @@ function ldap_cfg(): array
         'mail_attr' => 'mail', 'name_attr' => 'displayName',
         'group_mode' => 'memberof', 'group_attr' => 'cn',
         'group_base_dn' => '', 'group_filter' => '(&(objectClass=groupOfNames)(member=%s))',
-        'group_map' => [], 'auto_create' => true, 'default_groups' => [], 'timeout' => 5,
+        'group_map' => [], 'auto_create' => true, 'require_group' => false,
+        'approval_queue' => true, 'default_groups' => [], 'timeout' => 5,
     ];
 }
 
@@ -94,6 +96,114 @@ function sso_map_groups(array $external, array $map, array $defaults): array
     return array_values(array_unique($out));
 }
 
+// ------------------------------------------------------- Zugangskontrolle
+
+/**
+ * Darf sich diese Kennung überhaupt anmelden?
+ *
+ * In einer Föderation authentifiziert der IdP-Verbund weit mehr Menschen als
+ * die eigene Einrichtung – ohne Einschränkung bekäme jedes Mitglied jeder
+ * beteiligten Hochschule ein Konto. Zwei Bremsen, beide optional:
+ *
+ * - allowed_scopes: nur Kennungen aus den genannten Einrichtungen. Greift bei
+ *   Kennungen der Form name@einrichtung.de (eppn). Undurchsichtige Kennungen
+ *   (persistent-id) tragen keine Einrichtung – dort hilft require_group.
+ * - require_group: die Person muss über die Zuordnung in mindestens einer
+ *   lokalen Gruppe landen.
+ *
+ * @param string[] $groups bereits abgebildete lokale Gruppen
+ * @return ?string Ablehnungsgrund oder null, wenn zugelassen
+ */
+function access_denied_reason(string $username, array $groups, array $c): ?string
+{
+    $scopes = (array)($c['allowed_scopes'] ?? []);
+    if ($scopes !== []) {
+        $at = strrpos($username, '@');
+        $scope = $at === false ? '' : strtolower(substr($username, $at + 1));
+        $ok = false;
+        foreach ($scopes as $s) {
+            if ($scope !== '' && strtolower((string)$s) === $scope) { $ok = true; break; }
+        }
+        if (!$ok) return 'Diese Kennung gehört nicht zu einer zugelassenen Einrichtung.';
+    }
+
+    $req = $c['require_group'] ?? false;
+    if ($req !== false && $req !== []) {
+        // true = irgendeine Gruppe; Liste = eine der genannten
+        $needed = is_array($req) ? array_intersect($groups, $req) : $groups;
+        if ($needed === []) {
+            return 'Für diese Kennung ist keine Berechtigung hinterlegt.';
+        }
+    }
+    return null;
+}
+
+// -------------------------------------------- Warteschlange zur Freischaltung
+
+function pending_users_file(): string
+{
+    return data_path() . '/pending-users.json';
+}
+
+/** @return array<string,array> Kennung => {display, email, groups, first_seen, last_seen, tries} */
+function pending_users(): array
+{
+    return json_read(pending_users_file());
+}
+
+/**
+ * Einen abgewiesenen Anmeldeversuch vormerken.
+ *
+ * Ohne das wäre 'auto_create' => false bei undurchsichtigen Kennungen
+ * unbrauchbar: Niemand kann ein Konto vorab anlegen, dessen Kennung er nicht
+ * kennt. So sieht die Verwaltung stattdessen Klarname und E-Mail und kann
+ * mit einem Klick freischalten.
+ */
+function pending_user_note(string $username, ?string $display, ?string $email, array $groups): void
+{
+    json_update(pending_users_file(), function (array $q) use ($username, $display, $email, $groups) {
+        $now = date('c');
+        $q[$username] = [
+            'display' => $display !== null && $display !== '' ? mb_substr($display, 0, 80) : ($q[$username]['display'] ?? null),
+            'email' => $email !== null && $email !== '' ? strtolower($email) : ($q[$username]['email'] ?? null),
+            'groups' => $groups,
+            'first_seen' => $q[$username]['first_seen'] ?? $now,
+            'last_seen' => $now,
+            'tries' => (int)($q[$username]['tries'] ?? 0) + 1,
+        ];
+        // Die Warteschlange darf nicht unbegrenzt wachsen – ältestes fliegt raus
+        if (count($q) > 200) {
+            uasort($q, fn($a, $b) => strcmp($a['last_seen'], $b['last_seen']));
+            $q = array_slice($q, -200, null, true);
+        }
+        return $q;
+    });
+}
+
+function pending_user_drop(string $username): void
+{
+    json_update(pending_users_file(), function (array $q) use ($username) {
+        unset($q[$username]);
+        return $q;
+    });
+}
+
+/**
+ * Vorgemerkte Kennung freischalten: Konto anlegen, damit die nächste Anmeldung
+ * durchgeht. Der Rest (Gruppen, Mail, Name) kommt beim Login aus dem Verzeichnis.
+ * @return ?string Fehlermeldung oder null bei Erfolg
+ */
+function pending_user_approve(string $username, string $source): ?string
+{
+    $q = pending_users();
+    if (!isset($q[$username])) return 'Diese Kennung steht nicht in der Warteschlange.';
+    $e = $q[$username];
+    $err = user_provision($username, $source, $e['email'] ?? null, (array)($e['groups'] ?? []),
+        true, $e['display'] ?? null);
+    if ($err === null) pending_user_drop($username);
+    return $err;
+}
+
 /**
  * Konto aus einer externen Quelle anlegen oder aktualisieren.
  *
@@ -105,9 +215,19 @@ function sso_map_groups(array $external, array $map, array $defaults): array
  * @param string[] $groups
  * @return ?string Fehlermeldung oder null bei Erfolg
  */
+/**
+ * Taugt die Kennung als Kontoschlüssel? Keine Steuerzeichen, kein Leerraum,
+ * höchstens 190 Zeichen. Wird schon vor dem Vormerken geprüft – sonst lägen
+ * in der Warteschlange Einträge, die sich nie freischalten ließen.
+ */
+function valid_external_id(string $username): bool
+{
+    return preg_match('/^[^\x00-\x1F\x7F\s]{1,190}$/u', $username) === 1;
+}
+
 function user_provision(string $username, string $source, ?string $email, array $groups, bool $autoCreate, ?string $display = null): ?string
 {
-    if (preg_match('/^[^\x00-\x1F\x7F\s]{1,190}$/u', $username) !== 1) {
+    if (!valid_external_id($username)) {
         return 'Ungültige Kennung aus der zentralen Anmeldung.';
     }
     $err = null;
@@ -211,8 +331,24 @@ function sso_attempt(): ?string
 {
     $id = sso_identity();
     if ($id === null) return null;
+    $c = sso_cfg();
+
+    if (!valid_external_id($id['user'])) return 'Ungültige Kennung aus der zentralen Anmeldung.';
+
+    $deny = access_denied_reason($id['user'], $id['groups'], $c);
+    if ($deny !== null) return $deny;
+
+    $known = isset(users_all()[$id['user']]);
+    if (!$known && !$c['auto_create']) {
+        if ($c['approval_queue']) {
+            pending_user_note($id['user'], $id['display'] ?? null, $id['email'], $id['groups']);
+            return 'Dein Zugang ist noch nicht freigeschaltet. Die Anfrage liegt jetzt zur Prüfung vor.';
+        }
+        return 'Für diese Kennung gibt es hier kein Konto.';
+    }
+
     $err = user_provision($id['user'], 'sso', $id['email'], $id['groups'],
-        (bool)sso_cfg()['auto_create'], $id['display'] ?? null);
+        (bool)$c['auto_create'], $id['display'] ?? null);
     if ($err !== null) return $err;
     sso_start_session($id['user']);
     return null;
@@ -329,8 +465,24 @@ function ldap_login(string $username, string $password): ?string
 {
     $id = ldap_authenticate($username, $password);
     if ($id === null) return 'Anmeldung fehlgeschlagen.';
+    $c = ldap_cfg();
+
+    if (!valid_external_id($id['user'])) return 'Ungültige Kennung aus dem Verzeichnis.';
+
+    $deny = access_denied_reason($id['user'], $id['groups'], $c);
+    if ($deny !== null) return $deny;
+
+    $known = isset(users_all()[$id['user']]);
+    if (!$known && !$c['auto_create']) {
+        if ($c['approval_queue']) {
+            pending_user_note($id['user'], $id['display'] ?? null, $id['email'], $id['groups']);
+            return 'Dein Zugang ist noch nicht freigeschaltet. Die Anfrage liegt jetzt zur Prüfung vor.';
+        }
+        return 'Für diese Kennung gibt es hier kein Konto.';
+    }
+
     $err = user_provision($id['user'], 'ldap', $id['email'], $id['groups'],
-        (bool)ldap_cfg()['auto_create'], $id['display'] ?? null);
+        (bool)$c['auto_create'], $id['display'] ?? null);
     if ($err !== null) return $err;
     sso_start_session($id['user']);
     return null;
