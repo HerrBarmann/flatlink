@@ -12,9 +12,20 @@ require_once __DIR__ . '/inc/store.php';
 require_once __DIR__ . '/inc/auth.php';
 require_once __DIR__ . '/inc/groups.php';
 
+/**
+ * Eingaben ausdrücklich aus GET und POST – nicht aus $_REQUEST.
+ * Dessen Inhalt hängt von der Einstellung request_order ab und kann je nach
+ * Konfiguration auch Cookies enthalten; die haben hier nichts zu suchen.
+ * POST wird gebraucht, damit WLAN-Passwörter nicht in Adresszeilen landen.
+ */
+function qin(string $key): mixed
+{
+    return $_POST[$key] ?? $_GET[$key] ?? null;
+}
+
 function qp(string $key, string $default, string $pattern): string
 {
-    $v = $_REQUEST[$key] ?? '';
+    $v = qin($key) ?? '';
     return is_string($v) && preg_match($pattern, $v) ? $v : $default;
 }
 
@@ -23,15 +34,15 @@ $type = qp('t', 'link', '/^(link|wifi|vcard|event)$/');
 if ($type !== 'link') {
     // Statische Codes: Payload direkt aus Formularfeldern, nichts wird gespeichert.
     $in = fn(string $k, int $max): string => mb_strimwidth(
-        trim((string)preg_replace('/[\x00-\x1F\x7F]/u', '', (string)($_REQUEST[$k] ?? ''))), 0, $max, '');
+        trim((string)preg_replace('/[\x00-\x1F\x7F]/u', '', (string)(qin($k) ?? ''))), 0, $max, '');
     // Escaping für vCard/iCal (Backslash, Semikolon, Komma, Zeilenumbruch)
     $vesc = fn(string $s): string => strtr($s, ['\\' => '\\\\', ';' => '\\;', ',' => '\\,', "\n" => '\\n']);
 
     if ($type === 'wifi') {
-        $ssid = (string)($_REQUEST['ssid'] ?? '');
-        $pw = (string)($_REQUEST['pw'] ?? '');
+        $ssid = (string)(qin('ssid') ?? '');
+        $pw = (string)(qin('pw') ?? '');
         $enc = qp('enc', 'WPA', '/^(WPA|WEP|nopass)$/');
-        $hidden = ($_REQUEST['hidden'] ?? '') === '1';
+        $hidden = (qin('hidden') ?? '') === '1';
         if ($ssid === '' || strlen($ssid) > 32 || strlen($pw) > 63) {
             http_response_code(400);
             exit('Ungültige WLAN-Angaben.');
@@ -66,7 +77,7 @@ if ($type !== 'link') {
         $titel = $in('titel', 64);
         $ort = $in('ort', 64);
         $dt = function (string $k): ?string {
-            $v = (string)($_REQUEST[$k] ?? '');
+            $v = (string)(qin($k) ?? '');
             if (preg_match('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/', $v) !== 1) return null;
             return str_replace(['-', ':'], '', $v) . '00'; // 2026-09-01T18:00 → 20260901T180000
         };
@@ -103,14 +114,14 @@ $eye    = qp('eye', 'square', '/^(square|rounded|circle)$/');
 $fg     = qp('fg', '#16181D', '/^#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/');
 $bg     = qp('bg', '#ffffff', '/^#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/');
 $ecc    = qp('ecc', 'M', '/^[LMQH]$/');
-$size   = max(64, min(2048, (int)($_REQUEST['size'] ?? 512)));
-$margin = max(0, min(10, (int)($_REQUEST['margin'] ?? 4)));
-$ls     = max(10, min(35, (int)($_REQUEST['ls'] ?? 22))) / 100;
+$size   = max(64, min(2048, (int)(qin('size') ?? 512)));
+$margin = max(0, min(10, (int)(qin('margin') ?? 4)));
+$ls     = max(10, min(35, (int)(qin('ls') ?? 22))) / 100;
 // PDF ist für den Druck: immer in hoher Auflösung rastern
 if ($format === 'pdf') $size = max($size, 2048);
 
 // Rahmen-Text (leer = kein Rahmen): Steuerzeichen raus, max. 24 Zeichen
-$ftext = trim((string)preg_replace('/[\x00-\x1F\x7F]/u', '', (string)($_REQUEST['ftext'] ?? '')));
+$ftext = trim((string)preg_replace('/[\x00-\x1F\x7F]/u', '', (string)(qin('ftext') ?? '')));
 $ftext = $ftext === '' ? null : mb_strimwidth($ftext, 0, 24, '');
 
 // Absender-Zeile (mit Rahmen im Band, ohne Rahmen als dezente Zeile unter dem
@@ -153,7 +164,7 @@ $renderer = new QrRenderer($qr, [
     'brandGlyphSvg' => $glyphSvg, 'brandGlyphPng' => $glyphPng,
 ]);
 
-$disposition = isset($_REQUEST['download']) ? 'attachment' : 'inline';
+$disposition = qin('download') !== null ? 'attachment' : 'inline';
 header('Cache-Control: public, max-age=300');
 if ($format === 'png') {
     header('Content-Type: image/png');

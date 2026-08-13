@@ -281,7 +281,7 @@ show_flash();
         <h2><?= $isAdmin ? 'Alle Links' : ($myGroups === [] ? 'Deine Links' : 'Deine und Gruppen-Links') ?> <span class="muted">(<?= count($links) ?>)</span></h2>
         <form method="get" action="" class="short-row">
             <?php if ($assignable !== []): ?>
-            <select name="g" onchange="this.form.submit()">
+            <select name="g" data-autosubmit>
                 <option value="">alle Gruppen</option>
                 <option value="-"<?= $gFilter === '-' ? ' selected' : '' ?>>ohne Gruppe</option>
                 <?php foreach ($assignable as $gid): ?>
@@ -329,7 +329,7 @@ show_flash();
             <td class="actions">
                 <a class="btn btn-small" href="qrdesign.php?c=<?= e(rawurlencode((string)$code)) ?>">QR</a>
                 <a class="btn btn-small" href="index.php?edit=<?= e(rawurlencode((string)$code)) ?>">Bearbeiten</a>
-                <form method="post" action="" class="inline" onsubmit="return confirm('Kurzlink „<?= e((string)$code) ?>“ wirklich löschen?')">
+                <form method="post" action="" class="inline" data-confirm="Kurzlink „<?= e((string)$code) ?>“ wirklich löschen?">
                     <?= csrf_field() ?>
                     <input type="hidden" name="action" value="delete">
                     <input type="hidden" name="code" value="<?= e((string)$code) ?>">

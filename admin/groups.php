@@ -147,7 +147,7 @@ show_flash();
             <td class="actions">
                 <a class="btn btn-small" href="groups.php?edit=<?= e(rawurlencode((string)$id)) ?>">Bearbeiten</a>
                 <form method="post" action="" class="inline"
-                      onsubmit="return confirm('Gruppe „<?= e((string)$id) ?>“ wirklich löschen? Mitgliedschaften und Link-Zuordnungen werden aufgehoben, die Links selbst bleiben.')">
+                      data-confirm="Gruppe „<?= e((string)$id) ?>“ wirklich löschen? Mitgliedschaften und Link-Zuordnungen werden aufgehoben, die Links selbst bleiben.">
                     <?= csrf_field() ?>
                     <input type="hidden" name="action" value="delete">
                     <input type="hidden" name="id" value="<?= e((string)$id) ?>">

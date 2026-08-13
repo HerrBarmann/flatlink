@@ -51,10 +51,10 @@ Auswirkung.
 Manches ist keine Lücke, sondern eine bewusste Entscheidung. Der Vollständigkeit
 halber:
 
-- **`data/` liegt standardmäßig im Webroot.** Der Schutz kommt bei Apache aus
-  `.htaccess`, bei nginx aus den Blöcken in der
-  [Deployment-Anleitung](DEPLOYMENT.md#4-webserver-einrichten). Wer das
-  Verzeichnis verschieben kann, sollte es tun.
+- **`data/` liegt standardmäßig im Webroot.** Mit `'data_dir'` lässt es sich
+  an einen beliebigen absoluten Pfad außerhalb legen – dringend empfohlen.
+  Bleibt es im Webroot, schützt es bei Apache die `.htaccess`, bei nginx die
+  Blöcke aus der [Deployment-Anleitung](DEPLOYMENT.md#4-webserver-einrichten).
 - **Google Safe Browsing schlägt fail-open fehl:** Ist der Dienst nicht
   erreichbar, wird der Link angelegt statt abgelehnt. Verfügbarkeit geht hier
   vor Vollständigkeit der Prüfung.
@@ -74,3 +74,9 @@ halber:
 | 13.08.2026 | IP-Hashes ohne Schlüssel rückrechenbar | behoben |
 | 13.08.2026 | Datenverlust bei vollem Datenträger (`json_write`) | behoben |
 | 13.08.2026 | CPU-Last durch bcrypt bei jedem Login-Fehlversuch | behoben |
+| 13.08.2026 | `data/` nicht aus dem Webroot verlagerbar | behoben (`data_dir`) |
+| 13.08.2026 | Rate-Limit und Login-Sperre kollabieren hinter Reverse Proxy | behoben (`trusted_proxies`) |
+| 13.08.2026 | Keine Sicherheits-Header, kein CSP | behoben |
+| 13.08.2026 | Verteiltes Password-Spraying umgeht die Sperre | behoben (Instanz-Zähler) |
+| 13.08.2026 | `qr.php` liest aus `$_REQUEST` | behoben |
+| 13.08.2026 | Zu weite Dateirechte auf Shared Hosting | behoben (0700/0600) |

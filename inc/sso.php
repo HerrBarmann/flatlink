@@ -289,7 +289,8 @@ function sso_server_var(string $key): ?string
 {
     if ($key === '') return null;
     if (str_starts_with($key, 'HTTP_')) {
-        $trusted = (array)sso_cfg()['trusted_proxies'];
+        // Eigene Liste, sonst die der Instanz
+        $trusted = (array)sso_cfg()['trusted_proxies'] ?: (array)cfg('trusted_proxies');
         if ($trusted === [] || !in_array(client_ip(), $trusted, true)) return null;
     }
     $v = $_SERVER[$key] ?? null;

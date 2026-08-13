@@ -131,8 +131,35 @@ function auth_login(string $username, string $password): bool
     $t['fails']++;
     $t['until'] = time() + 60;
     json_write($throttleFile, $t);
+    login_failure_note();
     sleep(1);
     return false;
+}
+
+/**
+ * Fehlversuche über die ganze Instanz mitzählen.
+ *
+ * Die Sperre pro IP+Nutzername greift gegen das Durchprobieren eines Kontos.
+ * Verteiltes Ausprobieren (ein Versuch je Konto über viele Konten) läuft
+ * daran vorbei, weil kein einzelner Zähler auffällig wird. Ein gemeinsamer
+ * Stundenzähler bremst genau das.
+ *
+ * Bewusst kein Sperren: Ein instanzweiter Riegel wäre ein Weg, alle
+ * auszusperren. Verzögern genügt – automatisiertes Ausprobieren lebt von
+ * Geschwindigkeit, ein Mensch merkt zwei Sekunden kaum.
+ */
+function login_failure_note(): void
+{
+    $file = data_path('ratelimit') . '/login-global.json';
+    $hour = date('YmdH');
+    $n = 0;
+    json_update($file, function (array $d) use ($hour, &$n) {
+        if (($d['hour'] ?? '') !== $hour) $d = ['hour' => $hour, 'n' => 0];
+        $d['n']++;
+        $n = $d['n'];
+        return $d;
+    });
+    if ($n > 30) sleep(2);
 }
 
 function auth_logout(): void

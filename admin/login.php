@@ -66,7 +66,7 @@ page_header($firstRun ? 'Ersteinrichtung' : 'Login', true);
         <p class="muted small" style="text-align:center">oder mit lokalem Konto:</p>
     <?php endif; ?>
 
-    <form method="post" action="">
+    <form method="post" action="" data-enter-submit>
         <?= csrf_field() ?>
         <label for="username"><?= $firstRun ? 'Nutzername' : 'E-Mail oder Nutzername' ?></label>
         <input id="username" type="text" name="username" required autofocus autocomplete="username">
@@ -81,16 +81,4 @@ page_header($firstRun ? 'Ersteinrichtung' : 'Login', true);
         <?php endif; ?>
     <?php endif; ?>
 </div>
-<script>
-// Absicherung: Enter in einem Formularfeld schickt das Formular immer ab –
-// auch wenn Autofill/Erweiterungen die implizite Übermittlung schlucken.
-document.addEventListener('keydown', function (e) {
-    if (e.key !== 'Enter' || e.defaultPrevented) return;
-    var t = e.target;
-    if (t && t.tagName === 'INPUT' && t.form) {
-        e.preventDefault();
-        if (t.form.requestSubmit) t.form.requestSubmit(); else t.form.submit();
-    }
-});
-</script>
 <?php page_footer(); ?>

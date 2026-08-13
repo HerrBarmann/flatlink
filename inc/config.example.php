@@ -24,6 +24,27 @@ return [
     // Auch das secure-Flag des Sitzungs-Cookies hängt an diesem Wert.
     'base_url' => '',
 
+    // ---- Reverse Proxy ----
+    // Adressen der Proxys, die vor dieser Instanz stehen. Nur wenn eine
+    // Anfrage von einer davon kommt, wird X-Forwarded-For ausgewertet.
+    //
+    // Ohne diesen Eintrag sieht flatlink hinter einem Proxy für ALLE Besucher
+    // dieselbe Adresse – Rate-Limit und Login-Sperre gelten dann versehentlich
+    // für alle gemeinsam, und ein einzelner Nutzer kann den Dienst für die
+    // anderen blockieren. Bei lokalem Proxy beide Schreibweisen eintragen.
+    'trusted_proxies' => [],     // z. B. ['127.0.0.1', '::1']
+
+    // ---- Ablageort der Laufzeitdaten ----
+    // Leer = das Verzeichnis data/ neben der Anwendung, also im Webroot.
+    // Dort schützt es nur eine .htaccess – die nginx, Caddy und LiteSpeed
+    // ignorieren. Darin liegen Passwort-Hashes, gültige Reset-Token und im
+    // Mail-Modus 'log' sämtliche Mails im Klartext.
+    //
+    // Wenn dein Hosting es zulässt: absoluten Pfad AUSSERHALB des Webroots
+    // eintragen, z. B. '/var/lib/flatlink'. Das Verzeichnis muss dem
+    // Webserver-Benutzer gehören.
+    'data_dir' => '',
+
     // Länge zufällig erzeugter Codes
     'code_length' => 6,
 
@@ -218,9 +239,8 @@ return [
         'approval_queue' => true,
 
         // Nur nötig, wenn die Kennung als HTTP-Header ankommt (siehe Warnung).
-        // Eintragen ist die IP, mit der der Proxy hier ankommt – bei einem
-        // lokalen Proxy können das zwei sein, je nachdem ob er über IPv4 oder
-        // IPv6 verbindet. Im Zweifel beide eintragen.
+        // Leer lassen genügt, wenn oben schon 'trusted_proxies' gesetzt ist –
+        // dann gilt diese Liste auch hier.
         'trusted_proxies' => [],     // z. B. ['127.0.0.1', '::1', '10.0.0.5']
 
         // Ziel des Anmelde-Knopfes und des Abmeldens (Single Logout)

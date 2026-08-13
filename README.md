@@ -156,6 +156,8 @@ Alles steckt in `inc/config.php`; die kommentierte Vorlage ist
 | `mail` | `log` schreibt nach `data/mail.log`, `smtp` versendet echt |
 | `safe_browsing_key` | Leer = aus. Siehe Warnung unten |
 | `link_gc_years` | `0` = kein automatisches Aufräumen |
+| `data_dir` | Laufzeitdaten außerhalb des Webroots ablegen – empfohlen |
+| `trusted_proxies` | Adressen vorgelagerter Proxys; nötig für korrekte Rate-Limits |
 
 Zur Laufzeit lassen sich im Admin-Bereich außerdem die öffentliche
 Link-Erstellung und die Selbstregistrierung abschalten – praktisch, wenn die

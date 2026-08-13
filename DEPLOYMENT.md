@@ -123,10 +123,26 @@ sudo chmod 750 /var/www/flatlink/data
 sudo chmod 640 /var/www/flatlink/inc/config.php
 ```
 
-`data/` legt sich beim ersten Aufruf auch selbst an; die Datei
-`data/.htaccess` mit `Require all denied` schreibt flatlink dabei mit.
-Verlass dich nicht darauf – sperr die Verzeichnisse zusätzlich im Webserver
-(siehe nächster Abschnitt). Bei nginx wird `.htaccess` schlicht ignoriert.
+`data/` legt sich beim ersten Aufruf selbst an, mit Rechten 0700 und einer
+`.htaccess` – die aber nur Apache liest.
+
+> **Besser: `data/` aus dem Webroot heraus.** Dort liegen Passwort-Hashes,
+> gültige Reset-Token und im Mail-Modus `log` sämtliche Mails im Klartext.
+> Wenn dein Hosting einen Pfad außerhalb zulässt, trag ihn ein:
+>
+> ```php
+> 'data_dir' => '/var/lib/flatlink',
+> ```
+>
+> ```bash
+> sudo mkdir -p /var/lib/flatlink
+> sudo chown www-data:www-data /var/lib/flatlink
+> sudo chmod 700 /var/lib/flatlink
+> ```
+>
+> Bleibt es im Webroot, sperr das Verzeichnis zusätzlich im Webserver (siehe
+> nächster Abschnitt) – auf nginx, Caddy und LiteSpeed ist die `.htaccess`
+> wirkungslos.
 
 ### Konfiguration anpassen
 
@@ -241,6 +257,30 @@ server {
 
 Den Socket-Pfad an die installierte PHP-Version anpassen –
 `ls /run/php/` zeigt, was da ist.
+
+### Hinter einem Reverse Proxy
+
+Steht nginx, Traefik oder HAProxy davor, sieht flatlink für **alle** Besucher
+dieselbe Adresse – Rate-Limit und Login-Sperre gelten dann versehentlich für
+alle gemeinsam, und ein einzelner Nutzer kann den Dienst für die anderen
+blockieren. Deshalb die Proxy-Adressen eintragen:
+
+```php
+'trusted_proxies' => ['127.0.0.1', '::1'],
+```
+
+Nur bei Anfragen von diesen Adressen wird `X-Forwarded-For` überhaupt
+ausgewertet – und dann von rechts nach links, bis ein Eintrag kommt, der kein
+bekannter Proxy ist. Alles andere wäre gefährlicher als das Problem: Ohne
+diese Prüfung könnte sich jeder per Header eine beliebige Adresse geben und
+sämtliche Limits umgehen.
+
+Der Proxy muss `X-Forwarded-For` selbst setzen bzw. überschreiben. Bei nginx:
+
+```nginx
+proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+proxy_set_header X-Forwarded-Proto $scheme;
+```
 
 ### HTTPS
 

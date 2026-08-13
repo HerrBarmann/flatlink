@@ -41,20 +41,44 @@ function load_local(): void
     if (is_file($file)) require_once $file;
 }
 
+/**
+ * Verzeichnis der Laufzeitdaten.
+ *
+ * Standardmäßig liegt es neben der Anwendung – also im Webroot. Der Schutz
+ * besteht dort nur aus einer .htaccess, die nginx, Caddy und LiteSpeed
+ * schlicht ignorieren. Wer kann, setzt 'data_dir' auf einen absoluten Pfad
+ * außerhalb des Webroots; dann ist das Verzeichnis über den Webserver
+ * grundsätzlich nicht erreichbar.
+ *
+ * Was hier liegt, ist keine Nebensache: Passwort-Hashes, gültige
+ * Reset-Token, im Log-Modus sämtliche Mails im Klartext.
+ */
 function data_path(string $sub = ''): string
 {
-    $base = dirname(__DIR__) . '/data';
+    $configured = (string)cfg('data_dir');
+    $base = $configured !== '' ? rtrim($configured, '/') : dirname(__DIR__) . '/data';
     if (!is_dir($base)) {
-        mkdir($base, 0775, true);
+        mkdir($base, 0700, true);
+        // Doppelter Boden für den Fall, dass das Verzeichnis doch im Webroot
+        // liegt und der Webserver .htaccess auswertet
         file_put_contents($base . '/.htaccess', "Require all denied\n");
         file_put_contents($base . '/index.html', '');
     }
     if ($sub !== '') {
         $dir = $base . '/' . $sub;
-        if (!is_dir($dir)) mkdir($dir, 0775, true);
+        if (!is_dir($dir)) mkdir($dir, 0700, true);
         return $dir;
     }
     return $base;
+}
+
+/**
+ * Liegt das Datenverzeichnis im Webroot und wäre damit auf einem Webserver
+ * ohne .htaccess-Auswertung abrufbar? Für den Hinweis im Admin-Bereich.
+ */
+function data_dir_in_webroot(): bool
+{
+    return (string)cfg('data_dir') === '';
 }
 
 function e(?string $s): string
@@ -125,6 +149,9 @@ function json_write(string $file, array $data): void
     }
     $tmp = $file . '.tmp.' . bin2hex(random_bytes(4));
     $written = file_put_contents($tmp, $json, LOCK_EX);
+    // Vor dem Umbenennen setzen – danach gäbe es ein Zeitfenster mit
+    // Standardrechten. Auf Shared Hosting mit gemeinsamer Gruppe zählt das.
+    @chmod($tmp, 0600);
     if ($written === false || $written !== strlen($json)) {
         @unlink($tmp);
         throw new RuntimeException('Schreiben nach ' . basename($file) . ' fehlgeschlagen – Datenträger voll oder keine Rechte.');
@@ -239,9 +266,34 @@ function parse_expiry(string $raw): array
     return [true, $raw];
 }
 
+/**
+ * Adresse des Aufrufers.
+ *
+ * Standardmäßig REMOTE_ADDR – der einzige Wert, den der Webserver selbst
+ * feststellt. X-Forwarded-For blind zu vertrauen wäre schlimmer als das
+ * Problem: Jeder könnte sich damit eine beliebige Adresse geben und
+ * Rate-Limits umgehen.
+ *
+ * Steht die Anfrage aber nachweislich von einem eingetragenen Reverse Proxy,
+ * ist REMOTE_ADDR für alle Besucher gleich – dann kollabieren Rate-Limit und
+ * Login-Sperre auf einen einzigen Zähler. In diesem Fall wird X-Forwarded-For
+ * von rechts nach links gelesen und der erste Eintrag genommen, der kein
+ * bekannter Proxy ist: der letzte Wert, den ein Angreifer nicht mehr
+ * überschreiben konnte.
+ */
 function client_ip(): string
 {
-    return $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+    $remote = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+    $trusted = (array)cfg('trusted_proxies');
+    if ($trusted === [] || !in_array($remote, $trusted, true)) return $remote;
+
+    $xff = (string)($_SERVER['HTTP_X_FORWARDED_FOR'] ?? '');
+    foreach (array_reverse(explode(',', $xff)) as $part) {
+        $ip = trim($part);
+        if ($ip === '' || in_array($ip, $trusted, true)) continue;
+        if (filter_var($ip, FILTER_VALIDATE_IP) !== false) return $ip;
+    }
+    return $remote;
 }
 
 /**
@@ -309,6 +361,42 @@ function bucket_rate_ok(string $bucket, int $limit): bool
 // ---- Mini-Templating ----
 
 /**
+ * Sicherheits-Kopfzeilen.
+ *
+ * Die Content-Security-Policy kommt ohne 'unsafe-inline' für Skripte aus –
+ * dafür liegt sämtliches JavaScript in assets/ statt im Markup. Sie kann
+ * einen künftigen XSS-Fund zwar nicht verhindern, aber seine Wirkung stark
+ * begrenzen: Eingeschleuster Code ließe sich nicht ausführen und nichts
+ * nach außen senden.
+ *
+ * img-src erlaubt zusätzlich data: und blob:. Beides braucht die Oberfläche:
+ * data: für eingebettete Logos in erzeugten SVGs, blob: für die Live-Vorschau
+ * der QR-Generatoren, die ihr Bild aus einer POST-Antwort baut, statt die
+ * Eingaben in eine Adresszeile zu schreiben. Beide Formen können keinen Code
+ * ausführen.
+ *
+ * Bei Stilen bleibt 'unsafe-inline' stehen. An etlichen Stellen hängen
+ * style-Attribute im Markup; sie zu entfernen wäre viel Arbeit für wenig
+ * Gewinn, denn ein style-Attribut kann keinen Code ausführen.
+ */
+function security_headers(): void
+{
+    if (headers_sent()) return;
+    header("Content-Security-Policy: default-src 'self'; script-src 'self'; "
+        . "style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; "
+        . "connect-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'");
+    // Ältere Browser, die frame-ancestors nicht kennen
+    header('X-Frame-Options: DENY');
+    header('X-Content-Type-Options: nosniff');
+    // Beim Verlassen der Seite nur die Herkunft mitgeben, nie den vollen Pfad –
+    // ein Kurzlink im Referrer würde das Ziel an Dritte verraten
+    header('Referrer-Policy: strict-origin-when-cross-origin');
+    if (str_starts_with((string)cfg('base_url'), 'https://')) {
+        header('Strict-Transport-Security: max-age=31536000');
+    }
+}
+
+/**
  * Seitenkopf.
  *
  * @param ?string $desc       Meta-Description (nur für öffentliche Seiten setzen)
@@ -319,6 +407,7 @@ function page_header(string $title, bool $admin = false, ?string $desc = null, ?
     $site = e(cfg('site_name'));
     $root = $admin ? '..' : '.';
     $GLOBALS['_page_root'] = $root;
+    security_headers();
     echo '<!doctype html><html lang="de"><head><meta charset="utf-8">'
         . '<meta name="viewport" content="width=device-width, initial-scale=1">'
         . '<title>' . e($title) . ' – ' . $site . '</title>';
@@ -344,7 +433,8 @@ function page_header(string $title, bool $admin = false, ?string $desc = null, ?
     if ($favicon !== '') {
         echo '<link rel="icon" href="' . $root . '/assets/' . e($favicon) . '">';
     }
-    echo '</head><body><div class="wrap">';
+    echo '<script src="' . $root . '/assets/app.js" defer></script>'
+        . '</head><body><div class="wrap">';
 
     // Wortmarke, optional mit eigenem Logo davor. Der Name steckt in einem
     // eigenen Element, und heißt die Instanz wie eine Domain, ist der Teil ab

@@ -248,7 +248,7 @@ show_flash();
                 </form>
                 <?php endif; ?>
                 <?php if ($name !== $user['name']): ?>
-                <form method="post" action="" class="inline" onsubmit="return confirm('Nutzer „<?= e((string)$name) ?>“ wirklich löschen?')">
+                <form method="post" action="" class="inline" data-confirm="Nutzer „<?= e((string)$name) ?>“ wirklich löschen?">
                     <?= csrf_field() ?>
                     <input type="hidden" name="action" value="delete">
                     <input type="hidden" name="username" value="<?= e((string)$name) ?>">

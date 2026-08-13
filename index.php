@@ -66,7 +66,7 @@ page_header('Kurzlinks & QR-Codes');
         <h2>Fertig.</h2>
         <div class="short-row">
             <input id="short" type="text" readonly value="<?= e($short) ?>">
-            <button class="btn" type="button" onclick="navigator.clipboard.writeText(document.getElementById('short').value);this.textContent='Kopiert ✓'">Kopieren</button>
+            <button class="btn" type="button" data-copy="#short" data-copied="Kopiert ✓">Kopieren</button>
         </div>
         <div class="qr-preview">
             <img src="qr.php?c=<?= e($created) ?>&amp;size=240" width="180" height="180" alt="QR-Code für <?= e($short) ?>">
