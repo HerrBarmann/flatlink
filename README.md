@@ -6,7 +6,7 @@ Ein Kurzlink-Dienst mit QR-Code-Generator, der seine Besucher nicht vermisst.
 Reines PHP, keine Datenbank, keine Abhängigkeiten – läuft auf jedem
 Feld-Wald-und-Wiesen-Webspace.
 
-📦 Projektseite: **[flatlink.1337.kiwi](https://flatlink.1337.kiwi)** ·
+📦 Projektseite: **[1337.kiwi/flatlink](https://1337.kiwi/flatlink)** ·
 🥝 Öffentliche Instanz: **[1337.kiwi](https://1337.kiwi)**
 
 > **In English:** a self-hosted URL shortener and QR code generator written in

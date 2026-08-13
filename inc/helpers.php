@@ -510,7 +510,7 @@ function origin_note(): string
         ? 'flatlink ist ein Open-Source-Projekt von '
         : 'Läuft mit flatlink, einem Open-Source-Projekt von ';
     return '<p class="origin">' . $glyph . '<span>' . $self
-        . '<a href="https://flatlink.1337.kiwi" target="_blank" rel="noopener">1337.kiwi</a>'
+        . '<a href="https://1337.kiwi/flatlink" target="_blank" rel="noopener">1337.kiwi</a>'
         . '</span></p>';
 }
 
