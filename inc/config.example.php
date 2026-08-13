@@ -116,6 +116,19 @@ return [
     // Eigenes Favicon, ebenfalls ein Dateiname innerhalb von assets/.
     'favicon' => '',
 
+    // Weitere Symbole, rel => Dateiname in assets/. Zum Beispiel:
+    // ['apple-touch-icon' => 'apple-touch-icon.png', 'manifest' => 'site.webmanifest']
+    'icons' => [],
+
+    // Farbe der Browserleiste je Erscheinungsbild, z. B.
+    // ['light' => '#FAFCF6', 'dark' => '#0D110A']
+    'theme_color' => [],
+
+    // Vorschaubild beim Teilen in Messengern und sozialen Netzen
+    // (Dateiname in assets/, quadratisch oder 1200×630). Erscheint nur auf
+    // Seiten, die eine Beschreibung setzen.
+    'og_image' => '',
+
     // Zusätzliche Einträge in der Kopf-Navigation, Beschriftung => Ziel.
     // Nützlich für eigene Zusatzseiten. Relative Ziele beziehen sich auf den
     // Webroot.

@@ -412,7 +412,19 @@ function page_header(string $title, bool $admin = false, ?string $desc = null, ?
         . '<meta name="viewport" content="width=device-width, initial-scale=1">'
         . '<title>' . e($title) . ' – ' . $site . '</title>';
     if ($desc !== null) {
-        echo '<meta name="description" content="' . e($desc) . '">';
+        // Beschreibung plus Open Graph: bestimmt, wie die Seite aussieht, wenn
+        // jemand sie in einem Messenger oder sozialen Netz teilt. Ohne die
+        // Angaben zeigen die meisten Dienste nur eine nackte Adresse.
+        echo '<meta name="description" content="' . e($desc) . '">'
+            . '<meta property="og:title" content="' . e($title) . ' – ' . $site . '">'
+            . '<meta property="og:description" content="' . e($desc) . '">'
+            . '<meta property="og:site_name" content="' . $site . '">'
+            . '<meta property="og:type" content="website">'
+            . '<meta name="twitter:card" content="summary">';
+        $og = (string)cfg('og_image');
+        if ($og !== '') {
+            echo '<meta property="og:image" content="' . e(base_url() . '/assets/' . $og) . '">';
+        }
     }
     if ($canonical !== null) {
         echo '<link rel="canonical" href="' . e($canonical) . '">';
@@ -432,6 +444,14 @@ function page_header(string $title, bool $admin = false, ?string $desc = null, ?
     $favicon = (string)cfg('favicon');
     if ($favicon !== '') {
         echo '<link rel="icon" href="' . $root . '/assets/' . e($favicon) . '">';
+    }
+    // Weitere Symbole und Farben der Instanz, alle optional
+    foreach ((array)cfg('icons') as $rel => $file) {
+        echo '<link rel="' . e((string)$rel) . '" href="' . $root . '/assets/' . e((string)$file) . '">';
+    }
+    foreach ((array)cfg('theme_color') as $scheme => $color) {
+        echo '<meta name="theme-color" media="(prefers-color-scheme: ' . e((string)$scheme) . ')"'
+            . ' content="' . e((string)$color) . '">';
     }
     echo '<script src="' . $root . '/assets/app.js" defer></script>'
         . '</head><body><div class="wrap">';
