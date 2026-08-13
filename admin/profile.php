@@ -4,13 +4,67 @@ declare(strict_types=1);
 require_once __DIR__ . '/../inc/auth.php';
 require_once __DIR__ . '/../inc/groups.php';
 require_once __DIR__ . '/../inc/store.php';
+require_once __DIR__ . '/../inc/account.php';
 require_once __DIR__ . '/../inc/mail.php';
 
 $user = auth_require();
+$extern = ($user['auth'] ?? 'local') !== 'local';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_check();
     $action = (string)($_POST['action'] ?? 'password');
+
+    if ($action === 'export') {
+        // Bewusst POST: Ein GET-Download ließe sich über ein eingebettetes Bild
+        // auf einer fremden Seite auslösen – ohne Nutzen für den Angreifer,
+        // aber es gehört sich nicht.
+        $daten = account_export($user['name']);
+        header('Content-Type: application/json; charset=UTF-8');
+        header('Content-Disposition: attachment; filename="'
+            . preg_replace('/[^A-Za-z0-9._-]/', '-', $user['name']) . '-daten-' . date('Y-m-d') . '.json"');
+        header('Cache-Control: no-store');
+        nosniff_header();
+        echo json_encode($daten, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        exit;
+    }
+
+    if ($action === 'delete') {
+        // Nachweis, dass wirklich der Kontoinhaber vor dem Knopf sitzt. Wer
+        // sich über LDAP oder SSO anmeldet, hat hier kein Passwort – dort
+        // tritt das Abtippen der eigenen Kennung an dessen Stelle.
+        $nachweis = $extern
+            ? trim((string)($_POST['confirm'] ?? '')) === $user['name']
+            : password_verify((string)($_POST['current'] ?? ''), users_all()[$user['name']]['pass'] ?? '');
+        if (!$nachweis) {
+            sleep(1);
+            flash($extern
+                ? 'Zum Löschen bitte die Kennung genau so eintippen, wie sie oben steht.'
+                : 'Das Passwort stimmt nicht – es wurde nichts gelöscht.', 'err');
+            redirect_to('profile.php');
+        }
+        $umfang = account_delete_scope($user['name']);
+        $err = account_delete($user['name']);
+        if ($err !== null) {
+            flash($err, 'err');
+            redirect_to('profile.php');
+        }
+        auth_logout();
+        // Keine Flash-Nachricht: Die Sitzung ist gerade beendet worden, sie
+        // käme nirgends mehr an. Eine gelöschte Existenz verdient ohnehin
+        // mehr als eine Zeile, die beim nächsten Klick verschwindet.
+        page_header('Konto gelöscht', true);
+        echo '<div class="card narrow"><h1>Konto gelöscht</h1>'
+            . '<p>Dein Konto ist entfernt, zusammen mit ' . (int)$umfang['eigene']
+            . ' Kurzlink' . ($umfang['eigene'] === 1 ? '' : 's') . ' und den zugehörigen Zählern.</p>';
+        if ($umfang['gruppe'] > 0) {
+            echo '<p class="muted small">' . (int)$umfang['gruppe'] . ' Link'
+                . ($umfang['gruppe'] === 1 ? ' war einer Gruppe zugeordnet und bleibt' : 'e waren Gruppen zugeordnet und bleiben')
+                . ' bestehen – dort arbeiten andere damit weiter.</p>';
+        }
+        echo '<p><a class="btn btn-primary" href="' . e(base_url()) . '/">Zur Startseite</a></p></div>';
+        page_footer();
+        exit;
+    }
 
     if ($action === 'email') {
         $new = strtolower(trim((string)($_POST['email'] ?? '')));
@@ -147,5 +201,45 @@ show_flash();
         <input id="p-repeat" type="password" name="repeat" required minlength="8" autocomplete="new-password">
         <p><button class="btn btn-primary" type="submit">Passwort ändern</button></p>
     </form>
+
+    <h2>Deine Daten</h2>
+    <p class="muted small">Alles, was über dieses Konto gespeichert ist, als JSON-Datei:
+    Kontodaten, Gruppen, Rechte sowie jeder Kurzlink mit Ziel, Datum und Klickzahlen.
+    Ohne Passwort-Hash – der ist ein Zugangsmittel, kein Inhalt.</p>
+    <form method="post" action="">
+        <?= csrf_field() ?>
+        <input type="hidden" name="action" value="export">
+        <p><button class="btn" type="submit">Daten herunterladen</button></p>
+    </form>
+
+    <?php if (cfg('self_delete')): $umfang = account_delete_scope($user['name']); ?>
+    <h2>Konto löschen</h2>
+    <p class="muted small">Das Konto verschwindet mitsamt
+    <strong><?= (int)$umfang['eigene'] ?> Kurzlink<?= $umfang['eigene'] === 1 ? '' : 's' ?></strong>
+    und den zugehörigen Klickzählern. Gedruckte QR-Codes darauf zeigen danach ins Leere.
+    <?php if ($umfang['gruppe'] > 0): ?>
+        <?= (int)$umfang['gruppe'] ?> weitere<?= $umfang['gruppe'] === 1 ? 'r Link ist' : ' Links sind' ?>
+        einer Gruppe zugeordnet und bleib<?= $umfang['gruppe'] === 1 ? 't' : 'en' ?> bestehen.
+    <?php endif; ?>
+    Rückgängig machen lässt sich das nicht.</p>
+    <?php if ($extern): ?>
+        <p class="muted small">Dein Konto kommt aus der zentralen Anmeldung. Meldest du dich
+        danach erneut an, kann es je nach Einstellung neu angelegt werden – die Links sind
+        trotzdem weg.</p>
+    <?php endif; ?>
+    <form method="post" action="" data-confirm="Konto und Links endgültig löschen?">
+        <?= csrf_field() ?>
+        <input type="hidden" name="action" value="delete">
+        <?php if ($extern): ?>
+            <label for="p-confirm">Zur Sicherheit deine Kennung eintippen:
+                <span style="font-family:var(--mono)"><?= e($user['name']) ?></span></label>
+            <input id="p-confirm" type="text" name="confirm" required autocomplete="off">
+        <?php else: ?>
+            <label for="p-del-pass">Zur Sicherheit dein Passwort:</label>
+            <input id="p-del-pass" type="password" name="current" required autocomplete="current-password">
+        <?php endif; ?>
+        <p><button class="btn btn-danger" type="submit">Konto endgültig löschen</button></p>
+    </form>
+    <?php endif; ?>
 </div>
 <?php page_footer(); ?>

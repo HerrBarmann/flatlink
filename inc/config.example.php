@@ -96,6 +96,14 @@ return [
     'qr_brand_glyph_svg' => '',
     'qr_brand_glyph_png' => '',
 
+    // Darf ein Konto sich selbst löschen? Die DSGVO verlangt die Löschung auf
+    // Verlangen, nicht den Knopf dafür – auf einer Instanz mit zentral
+    // verwalteten Konten (LDAP, Shibboleth) ist er sogar irreführend, weil das
+    // Verzeichnis das Konto bei der nächsten Anmeldung neu anlegt. Dort auf
+    // false setzen und im Impressum den Weg über die Verwaltung nennen.
+    // Die Auskunft (Datenexport im Profil) bleibt davon unberührt.
+    'self_delete' => true,
+
     // Herkunftszeile im Seitenfuß: kleines Kiwi-Zeichen und der Hinweis, dass
     // flatlink der offene Kern von 1337.kiwi ist. Die Lizenz verlangt sie
     // nicht – wer sie nicht möchte, setzt hier false.

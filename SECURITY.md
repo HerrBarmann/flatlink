@@ -91,6 +91,12 @@ Link-Erstellung, höchstens einmal pro Woche:
 | Passwort-Reset-Vorgänge | 1 Stunde |
 | Lange ungenutzte Kurzlinks | `link_gc_years`, aus (Vorwarnung per Mail) |
 
+Dazu kommt, was die betroffene Person selbst auslöst: Das Profil hat einen
+Datenexport (Art. 15/20) und einen Löschknopf (Art. 17), der Konto, Links und
+Klickzähler entfernt. Links mit Gruppenzuordnung bleiben und verlieren nur den
+Besitzer. Abschaltbar über `'self_delete' => false`, wo Konten zentral
+verwaltet werden.
+
 ## Bisherige Meldungen
 
 | Datum | Fund | Status |
@@ -114,3 +120,4 @@ Link-Erstellung, höchstens einmal pro Woche:
 | 13.08.2026 | Leeres `data/links/` schaltet nicht migrierte Instanz um | behoben (Markierung) |
 | 13.08.2026 | Sekundengenauer Zeitstempel des letzten Klicks | behoben (tagesgenau) |
 | 13.08.2026 | `verified_ip` unbefristet gespeichert | behoben (12 Monate) |
+| 13.08.2026 | Keine Selbstauskunft und keine Selbstlöschung im Profil | behoben |

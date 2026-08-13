@@ -87,6 +87,9 @@ in der Konfiguration schaltet sie ab.
   Code kodiert, sodass diese Grafiken völlig unabhängig vom Dienst funktionieren
 - **Konten** mit Selbstregistrierung per Double-Opt-In, Passwort-Reset und
   Rollen (Nutzer/Admin), inklusive Nutzungs-Limits pro Konto
+- **Auskunft und Löschung im Profil**: Datenexport als JSON und ein Knopf, der
+  Konto und Links wirklich entfernt – Art. 15, 17 und 20 DSGVO ohne
+  Ticketsystem
 - **Zentrale Anmeldung** über LDAP/Active Directory oder über den Webserver
   (Shibboleth, SAML, OpenID Connect) – siehe unten
 - **Gruppen** für geteilte Links und für Rechte: Ein Link kann einer Gruppe
@@ -315,6 +318,28 @@ Die Rolle bleibt beim erneuten Login unangetastet: Wer hier zum Administrator
 gemacht wurde, bleibt es. Und ein Konto, das zentral verwaltet wird, kann sich
 nicht mehr über das lokale Passwortformular anmelden – sonst wäre die zentrale
 Anmeldung über ein altes Passwort umgehbar.
+
+### Auskunft, Mitnahme, Löschung
+
+Im Profil steht beides ohne Umweg über den Betreiber:
+
+**Daten herunterladen** liefert eine JSON-Datei mit allem, was zum Konto
+gespeichert ist – Kontodaten, Gruppen, Rechte, Limits und jeder Kurzlink mit
+Ziel, Datum und Klickzahlen. Der Passwort-Hash ist bewusst nicht dabei: Er ist
+ein Zugangsmittel und kein Inhalt, und eine Datei damit landet danach im
+Download-Ordner. Das deckt Art. 15 (Auskunft) und Art. 20 (Mitnahme).
+
+**Konto löschen** entfernt das Konto und alle Links, die nur daran hängen,
+samt Klickzählern. Links **mit Gruppenzuordnung bleiben** und verlieren nur
+ihren Besitzer – sie gehören der Gruppe, andere arbeiten damit weiter, und
+gedruckte QR-Codes darauf sollen nicht ins Leere zeigen, weil eine Person
+geht. Vorher wird das Passwort abgefragt (bei zentraler Anmeldung: die eigene
+Kennung abgetippt), der letzte Administrator kann sich nicht selbst entfernen.
+
+Auf einer Instanz mit zentral verwalteten Konten ist der Löschknopf
+irreführend, weil das Verzeichnis das Konto bei der nächsten Anmeldung neu
+anlegt. Dort `'self_delete' => false` setzen – der Export bleibt davon
+unberührt.
 
 ### Zwei Hinweise zum Datenschutz
 
