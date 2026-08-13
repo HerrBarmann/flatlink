@@ -324,7 +324,8 @@ function page_header(string $title, bool $admin = false, ?string $desc = null, ?
                 . '<a href="' . $adm . 'reports.php">Meldungen</a> '
                 . '<a href="' . $adm . 'settings.php">Einstellungen</a> ';
         }
-        echo '<a class="who" href="' . $adm . 'profile.php" title="Profil / Passwort ändern">' . e($u['name']) . '</a> '
+        echo '<a class="who" href="' . $adm . 'profile.php" title="Profil / Passwort ändern">'
+            . e(mb_strimwidth($u['display'] ?? $u['name'], 0, 28, '…')) . '</a> '
             . '<a class="btn btn-small" href="' . $adm . 'logout.php">Abmelden</a>';
     } else {
         if (settings()['registration'] === 'on') echo '<a href="' . $pub . 'register.php">Registrieren</a> ';

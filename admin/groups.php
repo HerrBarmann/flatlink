@@ -115,8 +115,9 @@ show_flash();
             <td>
                 <?= count($members) ?>
                 <?php if ($members !== []): ?>
-                <span class="muted small" title="<?= e(implode(', ', $members)) ?>">
-                    (<?= e(mb_strimwidth(implode(', ', $members), 0, 34, '…')) ?>)</span>
+                <?php $namen = array_map('user_display', $members); ?>
+                <span class="muted small" title="<?= e(implode(', ', $namen)) ?>">
+                    (<?= e(mb_strimwidth(implode(', ', $namen), 0, 34, '…')) ?>)</span>
                 <?php endif; ?>
             </td>
             <td class="small"><?php

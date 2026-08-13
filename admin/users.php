@@ -14,8 +14,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($action === 'add') {
         $err = user_add($name, (string)($_POST['password'] ?? ''), (string)($_POST['role'] ?? 'user'));
-        if ($err === null) user_set_groups($name, (array)($_POST['groups'] ?? []));
+        if ($err === null) {
+            user_set_groups($name, (array)($_POST['groups'] ?? []));
+            user_set_display_name($name, (string)($_POST['display_name'] ?? ''));
+        }
         flash($err ?? 'Nutzer ' . $name . ' angelegt.', $err === null ? 'ok' : 'err');
+    } elseif ($action === 'display') {
+        $err = user_set_display_name($name, (string)($_POST['display_name'] ?? ''));
+        flash($err ?? 'Anzeigename von ' . $name . ': ' . (user_has_display($name) ? user_display($name) : '(keiner)') . '.',
+            $err === null ? 'ok' : 'err');
     } elseif ($action === 'password') {
         $err = user_set_password($name, (string)($_POST['password'] ?? ''));
         flash($err ?? 'Passwort von ' . $name . ' geändert.', $err === null ? 'ok' : 'err');
@@ -48,8 +55,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     redirect_to('users.php');
 }
 
+$q = trim((string)($_GET['q'] ?? ''));
 $users = users_all();
-ksort($users);
+if ($q !== '') {
+    // Undurchsichtige Kennungen aus Föderationen sind ohne Suche unauffindbar
+    $users = array_filter($users, fn($u, $k) =>
+        stripos((string)$k, $q) !== false
+        || stripos((string)($u['display_name'] ?? ''), $q) !== false
+        || stripos((string)($u['email'] ?? ''), $q) !== false,
+        ARRAY_FILTER_USE_BOTH);
+}
+// Nach Anzeigename sortieren – danach sucht man, nicht nach der Kennung
+uksort($users, fn($a, $b) => strcasecmp(user_display((string)$a), user_display((string)$b)));
 $groups = groups_all();
 ksort($groups);
 $perms = perms_all();
@@ -66,6 +83,10 @@ show_flash();
         <div>
             <label for="u-name">Nutzername</label>
             <input id="u-name" type="text" name="username" required pattern="[a-zA-Z0-9._-]{2,32}">
+        </div>
+        <div>
+            <label for="u-display">Anzeigename <span class="muted">(optional)</span></label>
+            <input id="u-display" type="text" name="display_name" maxlength="80" placeholder="Vorname Nachname">
         </div>
         <div>
             <label for="u-pass">Passwort (mind. 8 Zeichen)</label>
@@ -95,15 +116,27 @@ show_flash();
 </div>
 
 <div class="card">
-    <h2>Nutzer <span class="muted">(<?= count($users) ?>)</span></h2>
+    <div class="list-head">
+        <h2>Nutzer <span class="muted">(<?= count($users) ?><?= $q !== '' ? ' von ' . count(users_all()) : '' ?>)</span></h2>
+        <form method="get" action="" class="short-row">
+            <input type="search" name="q" value="<?= e($q) ?>" placeholder="Name, Kennung oder E-Mail…">
+            <button class="btn btn-small" type="submit">Suchen</button>
+            <?php if ($q !== ''): ?><a class="btn btn-small" href="users.php">Alle</a><?php endif; ?>
+        </form>
+    </div>
     <div class="table-scroll"><table>
-        <tr><th>Name</th><th>Rolle</th><th>Anmeldung</th><th>Gruppen</th><th>Links</th><th>Seit</th><th></th></tr>
+        <tr><th>Konto</th><th>Rolle</th><th>Anmeldung</th><th>Gruppen</th><th>Links</th><th>Seit</th><th></th></tr>
         <?php foreach ($users as $name => $u):
             $src = $u['auth'] ?? 'local';
             $mine = user_groups((string)$name);
         ?>
         <tr>
-            <td><?= e((string)$name) ?><?= $name === $user['name'] ? ' <span class="muted">(du)</span>' : '' ?></td>
+            <td>
+                <strong><?= e(user_display((string)$name)) ?></strong><?= $name === $user['name'] ? ' <span class="muted">(du)</span>' : '' ?>
+                <?php if (user_has_display((string)$name)): ?>
+                <br><span class="muted small" style="font-family:var(--mono)" title="<?= e((string)$name) ?>"><?= e(mb_strimwidth((string)$name, 0, 38, '…')) ?></span>
+                <?php endif; ?>
+            </td>
             <td><?= e($u['role']) ?></td>
             <td><span class="tag"><?= e(match ($src) {
                 'ldap' => 'LDAP', 'sso' => 'SSO', default => 'lokal',
@@ -144,6 +177,14 @@ show_flash();
                     <button class="btn btn-small" type="submit">→ <?= $u['role'] === 'admin' ? 'user' : 'admin' ?></button>
                 </form>
                 <?php endif; ?>
+                <form method="post" action="" class="inline">
+                    <?= csrf_field() ?>
+                    <input type="hidden" name="action" value="display">
+                    <input type="hidden" name="username" value="<?= e((string)$name) ?>">
+                    <input type="text" name="display_name" maxlength="80" placeholder="Anzeigename"
+                           value="<?= e(user_has_display((string)$name) ? user_display((string)$name) : '') ?>">
+                    <button class="btn btn-small" type="submit">Setzen</button>
+                </form>
                 <?php if ($src === 'local'): ?>
                 <form method="post" action="" class="inline">
                     <?= csrf_field() ?>

@@ -44,6 +44,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 : 'Die Mail konnte gerade nicht verschickt werden – bitte später erneut versuchen.',
                 $ok ? 'ok' : 'err');
         }
+    } elseif ($action === 'display') {
+        $err = user_set_display_name($user['name'], (string)($_POST['display_name'] ?? ''));
+        flash($err ?? 'Anzeigename gespeichert.', $err === null ? 'ok' : 'err');
     } else {
         $current = (string)($_POST['current'] ?? '');
         $new = (string)($_POST['new'] ?? '');
@@ -83,7 +86,9 @@ show_flash();
 ?>
 <div class="card narrow">
     <h1>Profil</h1>
-    <p class="muted">Angemeldet als <strong><?= e($user['name']) ?></strong> (Rolle: <?= e($user['role']) ?>)</p>
+    <p class="muted">Angemeldet als <strong><?= e(user_display($user['name'])) ?></strong>
+        <?php if (user_has_display($user['name'])): ?><br><span class="small" style="font-family:var(--mono)"><?= e($user['name']) ?></span><?php endif; ?>
+        <br>Rolle: <?= e($user['role']) ?></p>
     <?php $codeQuota = (int)cfg('custom_code_quota'); ?>
     <p><span class="muted small">Links: <?= link_count($user['name']) ?>/<?= e(limit_label(user_limit($user['name'], 'links'))) ?> ·
         Wunsch-Codes: <?= custom_code_count($user['name']) ?><?= $codeQuota > 0 ? '/' . $codeQuota : '' ?>
@@ -91,6 +96,25 @@ show_flash();
         Logos: <?= e(limit_label(user_limit($user['name'], 'logos'))) ?> ·
         Statistik: <?= (int)user_limit($user['name'], 'stats_days') === PHP_INT_MAX ? 'unbegrenzt' : (int)user_limit($user['name'], 'stats_days') . ' Tage' ?> ·
         <a href="import.php">CSV-Import</a></span></p>
+
+    <h2>Anzeigename</h2>
+    <?php if (($user['auth'] ?? 'local') !== 'local'): ?>
+        <p class="muted small">Dein Anzeigename kommt aus der zentralen Anmeldung
+        (<strong><?= e(user_display($user['name'])) ?></strong>) und wird bei jeder Anmeldung
+        von dort aktualisiert.</p>
+    <?php else: ?>
+    <form method="post" action="">
+        <?= csrf_field() ?>
+        <input type="hidden" name="action" value="display">
+        <label for="p-display">Wie sollen andere dich sehen? <span class="muted">(leer = deine Kennung)</span></label>
+        <div class="short-row">
+            <input id="p-display" type="text" name="display_name" maxlength="80"
+                   value="<?= e(user_has_display($user['name']) ? user_display($user['name']) : '') ?>"
+                   placeholder="Vorname Nachname">
+            <button class="btn" type="submit">Speichern</button>
+        </div>
+    </form>
+    <?php endif; ?>
 
     <h2>E-Mail-Adresse</h2>
     <?php $email = users_all()[$user['name']]['email'] ?? null; ?>

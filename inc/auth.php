@@ -34,14 +34,20 @@ function users_exist(): bool
     return users_all() !== [];
 }
 
-/** @return ?array{name:string,role:string,auth:string} */
+/** @return ?array{name:string,role:string,auth:string,display:string} */
 function auth_user(): ?array
 {
     $name = $_SESSION['user'] ?? null;
     if (!is_string($name)) return null;
     $u = users_all()[$name] ?? null;
     if ($u === null) return null;
-    return ['name' => $name, 'role' => $u['role'], 'auth' => $u['auth'] ?? 'local'];
+    return [
+        'name' => $name,
+        'role' => $u['role'],
+        'auth' => $u['auth'] ?? 'local',
+        'display' => (is_string($u['display_name'] ?? null) && trim($u['display_name']) !== '')
+            ? trim($u['display_name']) : $name,
+    ];
 }
 
 function auth_require(): array
@@ -184,6 +190,49 @@ function user_set_email(string $username, string $email): ?string
             }
         }
         $users[$username]['email'] = $email;
+        $err = null;
+        return $users;
+    });
+    return $err;
+}
+
+/**
+ * Anzeigename eines Kontos, sonst die Kennung selbst.
+ *
+ * Wichtig bei zentraler Anmeldung: Föderationen liefern häufig undurchsichtige
+ * Kennungen (persistent-id, pairwise-id) – ohne Klarnamen wäre die
+ * Nutzerverwaltung damit unbedienbar. Der Anzeigename ist rein kosmetisch;
+ * identifiziert wird weiterhin über die Kennung.
+ */
+function user_display(string $username): string
+{
+    $n = users_all()[$username]['display_name'] ?? '';
+    return is_string($n) && trim($n) !== '' ? trim($n) : $username;
+}
+
+/** Hat das Konto einen vom Schlüssel abweichenden Anzeigenamen? */
+function user_has_display(string $username): bool
+{
+    return user_display($username) !== $username;
+}
+
+/**
+ * Anzeigename setzen (leer = wieder die Kennung zeigen).
+ * @return ?string Fehlermeldung oder null bei Erfolg
+ */
+function user_set_display_name(string $username, string $name): ?string
+{
+    // Steuerzeichen raus – der Wert kommt teils aus fremden Verzeichnissen
+    $name = trim((string)preg_replace('/[\x00-\x1F\x7F]/u', '', $name));
+    if (mb_strlen($name) > 80) return 'Anzeigename: höchstens 80 Zeichen.';
+    $err = 'Nutzer nicht gefunden.';
+    json_update(users_file(), function (array $users) use ($username, $name, &$err) {
+        if (!isset($users[$username])) return null;
+        if ($name === '') {
+            unset($users[$username]['display_name']);
+        } else {
+            $users[$username]['display_name'] = $name;
+        }
         $err = null;
         return $users;
     });

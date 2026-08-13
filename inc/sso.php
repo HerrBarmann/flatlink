@@ -30,7 +30,7 @@ require_once __DIR__ . '/groups.php';
 function sso_cfg(): array
 {
     return (array)(cfg('sso') ?? []) + [
-        'enabled' => false, 'user_var' => 'REMOTE_USER', 'mail_var' => '', 'group_var' => '',
+        'enabled' => false, 'user_var' => 'REMOTE_USER', 'mail_var' => '', 'name_var' => '', 'group_var' => '',
         'group_separator' => ';', 'group_map' => [], 'auto_create' => true,
         'default_groups' => [], 'login_url' => '', 'logout_url' => '',
         'trusted_proxies' => [], 'button_label' => 'Mit institutionellem Konto anmelden',
@@ -42,7 +42,8 @@ function ldap_cfg(): array
     return (array)(cfg('ldap') ?? []) + [
         'enabled' => false, 'uri' => '', 'start_tls' => false, 'base_dn' => '',
         'bind_dn' => '', 'bind_pass' => '', 'user_filter' => '(uid=%s)',
-        'mail_attr' => 'mail', 'group_mode' => 'memberof', 'group_attr' => 'cn',
+        'mail_attr' => 'mail', 'name_attr' => 'displayName',
+        'group_mode' => 'memberof', 'group_attr' => 'cn',
         'group_base_dn' => '', 'group_filter' => '(&(objectClass=groupOfNames)(member=%s))',
         'group_map' => [], 'auto_create' => true, 'default_groups' => [], 'timeout' => 5,
     ];
@@ -104,13 +105,14 @@ function sso_map_groups(array $external, array $map, array $defaults): array
  * @param string[] $groups
  * @return ?string Fehlermeldung oder null bei Erfolg
  */
-function user_provision(string $username, string $source, ?string $email, array $groups, bool $autoCreate): ?string
+function user_provision(string $username, string $source, ?string $email, array $groups, bool $autoCreate, ?string $display = null): ?string
 {
     if (preg_match('/^[^\x00-\x1F\x7F\s]{1,190}$/u', $username) !== 1) {
         return 'Ungültige Kennung aus der zentralen Anmeldung.';
     }
     $err = null;
-    json_update(users_file(), function (array $users) use ($username, $source, $email, $groups, $autoCreate, &$err) {
+    $display = $display === null ? null : trim((string)preg_replace('/[\x00-\x1F\x7F]/u', '', $display));
+    json_update(users_file(), function (array $users) use ($username, $source, $email, $groups, $autoCreate, $display, &$err) {
         $exists = isset($users[$username]);
         if (!$exists && !$autoCreate) {
             $err = 'Für diese Kennung gibt es hier kein Konto, und die automatische Anlage ist deaktiviert.';
@@ -127,6 +129,11 @@ function user_provision(string $username, string $source, ?string $email, array 
         // ab jetzt zentral verwaltet, ein Alt-Passwort darf nicht weitergelten.
         unset($users[$username]['pass']);
         if ($email !== null && $email !== '') $users[$username]['email'] = strtolower($email);
+        // Der Klarname aus dem Verzeichnis gewinnt – er ist dort gepflegt.
+        // Fehlt er, bleibt ein lokal gesetzter Name bestehen.
+        if ($display !== null && $display !== '') {
+            $users[$username]['display_name'] = mb_substr($display, 0, 80);
+        }
         $users[$username]['groups'] = $groups;
         $users[$username]['last_login'] = date('c');
         return $users;
@@ -190,6 +197,7 @@ function sso_identity(): ?array
     return [
         'user' => $user,
         'email' => $c['mail_var'] !== '' ? sso_server_var((string)$c['mail_var']) : null,
+        'display' => $c['name_var'] !== '' ? sso_server_var((string)$c['name_var']) : null,
         'groups' => sso_map_groups($groups, (array)$c['group_map'], (array)$c['default_groups']),
     ];
 }
@@ -203,7 +211,8 @@ function sso_attempt(): ?string
 {
     $id = sso_identity();
     if ($id === null) return null;
-    $err = user_provision($id['user'], 'sso', $id['email'], $id['groups'], (bool)sso_cfg()['auto_create']);
+    $err = user_provision($id['user'], 'sso', $id['email'], $id['groups'],
+        (bool)sso_cfg()['auto_create'], $id['display'] ?? null);
     if ($err !== null) return $err;
     sso_start_session($id['user']);
     return null;
@@ -246,7 +255,7 @@ function ldap_authenticate(string $username, string $password): ?array
         // LDAP-Injection: Nutzereingabe gehört escaped in den Filter
         $safe = ldap_escape($username, '', LDAP_ESCAPE_FILTER);
         $filter = str_replace('%s', $safe, (string)$c['user_filter']);
-        $attrs = array_values(array_filter([(string)$c['mail_attr'], 'memberOf', 'dn']));
+        $attrs = array_values(array_filter([(string)$c['mail_attr'], (string)$c['name_attr'], 'memberOf', 'dn']));
         $res = @ldap_search($conn, (string)$c['base_dn'], $filter, $attrs, 0, 2, (int)$c['timeout']);
         if ($res === false) return null;
         $entries = @ldap_get_entries($conn, $res);
@@ -260,10 +269,13 @@ function ldap_authenticate(string $username, string $password): ?array
 
         $mailAttr = strtolower((string)$c['mail_attr']);
         $email = $entries[0][$mailAttr][0] ?? null;
+        $nameAttr = strtolower((string)$c['name_attr']);
+        $display = $nameAttr !== '' ? ($entries[0][$nameAttr][0] ?? null) : null;
 
         return [
             'user' => $username,
             'email' => is_string($email) ? $email : null,
+            'display' => is_string($display) ? $display : null,
             'groups' => sso_map_groups(
                 ldap_group_names($conn, $dn, $entries[0], $c),
                 (array)$c['group_map'],
@@ -317,7 +329,8 @@ function ldap_login(string $username, string $password): ?string
 {
     $id = ldap_authenticate($username, $password);
     if ($id === null) return 'Anmeldung fehlgeschlagen.';
-    $err = user_provision($id['user'], 'ldap', $id['email'], $id['groups'], (bool)ldap_cfg()['auto_create']);
+    $err = user_provision($id['user'], 'ldap', $id['email'], $id['groups'],
+        (bool)ldap_cfg()['auto_create'], $id['display'] ?? null);
     if ($err !== null) return $err;
     sso_start_session($id['user']);
     return null;

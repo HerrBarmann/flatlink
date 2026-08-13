@@ -575,8 +575,20 @@ Diese Datei geht ans Rechenzentrum bzw. in die Föderation. Dazu die Bitte,
 selbst wenn alles andere stimmt. Für flatlink genügen:
 
 - `eppn` – zwingend, das ist die Kennung
+- `displayName` – **dringend empfohlen**, siehe unten
 - `mail` – optional, füllt die E-Mail-Adresse des Kontos
 - `isMemberOf` oder `entitlement` – optional, nur für die Gruppenzuordnung
+
+> **Zum Anzeigenamen.** Viele Hochschulen geben aus Datenschutzgründen keine
+> sprechende Kennung heraus, sondern eine undurchsichtige (`persistent-id`,
+> `pairwise-id`) – etwa
+> `https://idp.example.org!https://kurz.example.org!a7f3c9d21e8b4f6a`.
+> Das ist richtig so, macht die Nutzerverwaltung aber unbedienbar: In der
+> Liste stünden nur solche Zeichenketten. Mit einem freigegebenen
+> `displayName` und `'name_var' => 'displayName'` zeigt flatlink stattdessen
+> den Klarnamen und die Kennung nur klein darunter. Ist kein Klarname
+> verfügbar, hilft die Suche in der Nutzerverwaltung, die auch Teile der
+> Kennung und die E-Mail-Adresse findet.
 
 Weniger zu verlangen ist hier die bessere Haltung: flatlink braucht weder Namen
 noch Matrikelnummer noch Fakultät.
@@ -612,6 +624,7 @@ Der Rest der Seite – Kurzlinks, QR-Endpunkt, Startseite – bleibt bewusst off
 
     'user_var'  => 'REMOTE_USER',   // von mod_shib gesetzt
     'mail_var'  => 'mail',          // wie in attribute-map.xml benannt
+    'name_var'  => 'displayName',   // Klarname für die Nutzerverwaltung
     'group_var' => 'isMemberOf',
     'group_separator' => ';',
 

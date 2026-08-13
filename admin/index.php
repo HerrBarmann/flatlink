@@ -270,7 +270,12 @@ show_flash();
                     ? '<span class="muted">–</span>'
                     : '<span class="tag tag-on">' . e(group_label($g)) . '</span>';
             ?></td>
-            <?php if ($isAdmin): ?><td><?= e($link['owner'] ?? '–') ?></td><?php endif; ?>
+            <?php if ($isAdmin): ?><td><?php
+                $o = $link['owner'] ?? null;
+                echo $o === null
+                    ? '<span class="muted">–</span>'
+                    : '<span title="' . e($o) . '">' . e(user_display($o)) . '</span>';
+            ?></td><?php endif; ?>
             <td><?php
                 if (($link['expires'] ?? null) === null) {
                     echo '<span class="muted">–</span>';

@@ -275,6 +275,17 @@ eine gleichnamige Gruppe gibt. Aus dem Verzeichnis kommende Namen können nie
 neue Gruppen anlegen und nie Rechte erfinden – welche Rechte an einer Gruppe
 hängen, entscheidet immer die lokale Konfiguration.
 
+### Anzeigenamen
+
+Kommt die Kennung als undurchsichtige Zeichenkette aus der Föderation
+(`persistent-id`, `pairwise-id`), ist die Nutzerverwaltung ohne Klarnamen
+kaum bedienbar. Deshalb übernimmt flatlink auf Wunsch einen Anzeigenamen aus
+dem Verzeichnis – bei SSO über `name_var`, bei LDAP über `name_attr`. In der
+Oberfläche steht dann der Name, die technische Kennung nur klein darunter.
+Lokale Konten setzen ihren Anzeigenamen selbst im Profil, Administratoren
+können ihn überall nachpflegen. Gesucht wird über Name, Kennung und
+E-Mail-Adresse gleichzeitig.
+
 Die Rolle bleibt beim erneuten Login unangetastet: Wer hier zum Administrator
 gemacht wurde, bleibt es. Und ein Konto, das zentral verwaltet wird, kann sich
 nicht mehr über das lokale Passwortformular anmelden – sonst wäre die zentrale

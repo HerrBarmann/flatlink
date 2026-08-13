@@ -167,6 +167,10 @@ return [
         'user_var' => 'REMOTE_USER',
         // Optional: Variablen für E-Mail-Adresse und Gruppen
         'mail_var' => '',            // z. B. 'mail' (mod_shib) oder 'HTTP_MAIL'
+        // Klarname für die Anzeige. Dringend empfohlen, wenn die Föderation
+        // undurchsichtige Kennungen liefert (persistent-id, pairwise-id) –
+        // ohne ihn steht in der Nutzerverwaltung nur Buchstabensalat.
+        'name_var' => '',            // z. B. 'displayName' oder 'cn'
         'group_var' => '',           // z. B. 'isMemberOf' oder 'entitlement'
         'group_separator' => ';',
 
@@ -222,6 +226,10 @@ return [
         'base_dn' => 'ou=people,dc=example,dc=org',
         'user_filter' => '(uid=%s)',
         'mail_attr' => 'mail',
+        // Attribut mit dem Klarnamen für die Anzeige; leer = keiner.
+        // Ohne ihn steht in der Nutzerverwaltung nur die technische Kennung.
+        // Active Directory: 'displayName' oder 'cn'
+        'name_attr' => 'displayName',
 
         // Gruppen: 'memberof' liest das Attribut am Nutzereintrag,
         // 'search' sucht stattdessen im Gruppenbaum nach Einträgen mit dem
