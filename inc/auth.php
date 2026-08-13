@@ -231,28 +231,6 @@ function user_delete(string $username): ?string
     return null;
 }
 
-// ---- Nutzungs-Limits ----
-
-/**
- * Limit eines Kontos ('links' | 'stats_days' | 'logos').
- * Admins unterliegen keinen Limits; ein konfigurierter Wert von 0 bedeutet
- * ebenfalls "unbegrenzt". Rückgabe ist immer eine Zahl, die sich direkt
- * vergleichen lässt.
- */
-function user_limit(string $username, string $key): int
-{
-    $u = users_all()[$username] ?? null;
-    if ($u !== null && ($u['role'] ?? '') === 'admin') return PHP_INT_MAX;
-    $v = (int)(cfg('limits')[$key] ?? 0);
-    return $v > 0 ? $v : PHP_INT_MAX;
-}
-
-/** Limit für die Anzeige aufbereiten: unbegrenzte Werte als "∞" */
-function limit_label(int $limit): string
-{
-    return $limit === PHP_INT_MAX ? '∞' : (string)$limit;
-}
-
 // ---- Selbst-Registrierung (Konto per E-Mail, Rolle immer "user") ----
 
 /** @return ?string Fehlermeldung oder null, wenn E-Mail und Passwort formal in Ordnung sind */

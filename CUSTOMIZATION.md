@@ -15,7 +15,8 @@ Anleitung zeigt, wie daraus deiner wird.
 7. [QR-Codes](#7-qr-codes)
 8. [Ein vollständiges Beispiel](#8-ein-vollständiges-beispiel)
 9. [Was beim Update passiert](#9-was-beim-update-passiert)
-10. [Wo die Grenze liegt](#10-wo-die-grenze-liegt)
+10. [Eigene Seiten und Funktionen](#10-eigene-seiten-und-funktionen)
+11. [Wo die Grenze liegt](#11-wo-die-grenze-liegt)
 
 ---
 
@@ -366,16 +367,43 @@ Kommen neue Optionen dazu, tauchen sie zuerst in
 
 ---
 
-## 10. Wo die Grenze liegt
+## 10. Eigene Seiten und Funktionen
+
+Zusätzliche Seiten legst du einfach als weitere Dateien in den Webroot – sie
+können `inc/store.php` einbinden und alle Bausteine mitbenutzen. In die
+Navigation kommen sie über die Konfiguration:
+
+```php
+'nav_links'       => ['Hilfe' => 'hilfe.php'],   // immer sichtbar
+'nav_links_guest' => ['Preise' => 'preise.php'], // nur für Nichtangemeldete
+```
+
+Brauchen diese Seiten eigene Hilfsfunktionen, gehören die nach
+**`inc/local.php`**. Existiert die Datei, wird sie automatisch geladen; sie ist
+vom Update ausgenommen und damit der richtige Ort für alles, was nur deine
+Installation braucht.
+
+```php
+<?php
+// inc/local.php
+function hinweis_kasten(string $text): string
+{
+    return '<div class="card highlight"><p>' . e($text) . '</p></div>';
+}
+```
+
+Sie kann allerdings nur **ergänzen**: Vorhandene Funktionen lassen sich in PHP
+nicht überschreiben.
+
+## 11. Wo die Grenze liegt
 
 Ohne Eingriff in den Quelltext lässt sich **nicht** ändern:
 
 - **Die Texte der Oberfläche.** Sie stecken direkt in den PHP-Dateien. Es gibt
   keine Übersetzungsebene, und sie sind durchgehend deutsch.
-- **Aufbau und Reihenfolge der Seiten.** Welche Karte wo steht, entscheidet
-  das jeweilige PHP-Skript.
-- **Die Navigation.** Sie wird in `page_header()` in
-  [`inc/helpers.php`](inc/helpers.php) erzeugt.
+- **Aufbau und Reihenfolge der bestehenden Seiten.** Welche Karte wo steht,
+  entscheidet das jeweilige PHP-Skript.
+- **Die Reihenfolge der Navigationspunkte.** Eigene Einträge stehen immer vorn.
 
 Wer daran muss, kommt um einen Fork nicht herum – die MIT-Lizenz erlaubt das
 ausdrücklich. Rechne dann damit, bei Updates gelegentlich von Hand

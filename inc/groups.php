@@ -25,6 +25,7 @@ function perms_all(): array
         'custom_code' => 'Wunsch-Namen vergeben',
         'csv_import'  => 'Links per CSV importieren',
         'logo_upload' => 'Eigene Logos hochladen',
+        'qr_unbranded' => 'QR-Codes ohne Absenderzeile',
     ];
 }
 
@@ -60,7 +61,7 @@ function valid_group_id(string $id): bool
  * @param string[] $perms
  * @return ?string Fehlermeldung oder null bei Erfolg
  */
-function group_save(string $id, string $name, array $perms): ?string
+function group_save(string $id, string $name, array $perms, array $limits = []): ?string
 {
     if (!valid_group_id($id)) {
         return 'Gruppen-Kennung: 2–32 Zeichen, nur Kleinbuchstaben, Ziffern, Punkt, Minus, Unterstrich.';
@@ -69,10 +70,19 @@ function group_save(string $id, string $name, array $perms): ?string
     if ($name === '' || mb_strlen($name) > 64) return 'Anzeigename: 1–64 Zeichen.';
     $perms = array_values(array_intersect($perms, array_keys(perms_all())));
 
-    json_update(groups_file(), function (array $groups) use ($id, $name, $perms) {
+    // Eigene Limits sind optional; 0 oder leer heißt "kein eigener Wert",
+    // dann gilt für dieses Konto weiter das globale Limit
+    $clean = [];
+    foreach (['links', 'stats_days', 'logos'] as $k) {
+        $v = (int)($limits[$k] ?? 0);
+        if ($v > 0) $clean[$k] = $v;
+    }
+
+    json_update(groups_file(), function (array $groups) use ($id, $name, $perms, $clean) {
         $groups[$id] = [
             'name' => $name,
             'perms' => $perms,
+            'limits' => $clean,
             'created' => $groups[$id]['created'] ?? date('c'),
         ];
         return $groups;
@@ -109,36 +119,71 @@ function group_delete(string $id): void
 
 // ---- Mitgliedschaften ----
 
-/** @return string[] Gruppen-IDs eines Kontos (nur solche, die es noch gibt) */
+/**
+ * Gruppen-IDs eines Kontos. Gefiltert wird zweifach: Gruppen, die es nicht
+ * mehr gibt, und Mitgliedschaften, deren Befristung abgelaufen ist. Letzteres
+ * geschieht rein bei der Auswertung – kein Cronjob, keine Aufräumläufe. Der
+ * Eintrag bleibt stehen und lebt wieder auf, wenn die Frist verlängert wird.
+ *
+ * @return string[]
+ */
 function user_groups(string $username): array
 {
     $u = users_all()[$username] ?? null;
     if ($u === null) return [];
     $known = groups_all();
-    return array_values(array_filter($u['groups'] ?? [], fn($g) => isset($known[$g])));
+    $until = (array)($u['groups_until'] ?? []);
+    $today = date('Y-m-d');
+    return array_values(array_filter(
+        $u['groups'] ?? [],
+        fn($g) => isset($known[$g]) && (!isset($until[$g]) || $until[$g] >= $today)
+    ));
+}
+
+/** Ablaufdatum einer Mitgliedschaft ('YYYY-MM-DD') oder null = unbefristet */
+function user_group_until(string $username, string $group): ?string
+{
+    $v = users_all()[$username]['groups_until'][$group] ?? null;
+    return is_string($v) ? $v : null;
 }
 
 /**
  * Gruppenmitgliedschaften eines Kontos setzen (ersetzt die bisherigen).
+ * $until befristet alle hier gesetzten Gruppen auf dieses Datum
+ * ('YYYY-MM-DD'); null = unbefristet.
+ *
  * @param string[] $groups
  */
-function user_set_groups(string $username, array $groups): void
+function user_set_groups(string $username, array $groups, ?string $until = null): void
 {
     $known = array_keys(groups_all());
     $groups = array_values(array_unique(array_intersect($groups, $known)));
-    json_update(users_file(), function (array $users) use ($username, $groups) {
+    if ($until !== null && preg_match('/^\d{4}-\d{2}-\d{2}$/', $until) !== 1) $until = null;
+
+    json_update(users_file(), function (array $users) use ($username, $groups, $until) {
         if (!isset($users[$username])) return null;
         $users[$username]['groups'] = $groups;
+        // Befristungen nur für die jetzt gesetzten Gruppen führen
+        $map = [];
+        foreach ($groups as $g) {
+            $keep = $until ?? ($users[$username]['groups_until'][$g] ?? null);
+            if (is_string($keep)) $map[$g] = $keep;
+        }
+        if ($map === []) {
+            unset($users[$username]['groups_until']);
+        } else {
+            $users[$username]['groups_until'] = $map;
+        }
         return $users;
     });
 }
 
-/** @return string[] Kontonamen, die in dieser Gruppe sind */
+/** @return string[] Kontonamen mit gültiger Mitgliedschaft in dieser Gruppe */
 function group_members(string $id): array
 {
     $out = [];
     foreach (users_all() as $name => $u) {
-        if (in_array($id, $u['groups'] ?? [], true)) $out[] = (string)$name;
+        if (in_array($id, user_groups((string)$name), true)) $out[] = (string)$name;
     }
     return $out;
 }
@@ -156,6 +201,40 @@ function user_can(string $username, string $perm): bool
     if ($u === null) return false;
     if (($u['role'] ?? '') === 'admin') return true;
     return in_array($perm, user_perms($username), true);
+}
+
+// ---- Nutzungs-Limits ----
+
+/**
+ * Limit eines Kontos ('links' | 'stats_days' | 'logos').
+ *
+ * Grundlage ist der globale Wert aus der Konfiguration. Gruppen können ihn
+ * anheben: Wer in mehreren ist, bekommt den jeweils höchsten Wert. Admins
+ * unterliegen keinen Limits, und eine 0 in der Konfiguration bedeutet
+ * ebenfalls "unbegrenzt". Rückgabe ist immer eine Zahl, die sich direkt
+ * vergleichen lässt.
+ */
+function user_limit(string $username, string $key): int
+{
+    $u = users_all()[$username] ?? null;
+    if ($u !== null && ($u['role'] ?? '') === 'admin') return PHP_INT_MAX;
+
+    $best = (int)(cfg('limits')[$key] ?? 0);
+    if ($best === 0) return PHP_INT_MAX;   // global unbegrenzt schlägt alles
+
+    $groups = groups_all();
+    foreach (user_groups($username) as $g) {
+        $v = (int)($groups[$g]['limits'][$key] ?? 0);
+        if ($v === 0) continue;
+        if ($v > $best) $best = $v;
+    }
+    return $best;
+}
+
+/** Limit für die Anzeige aufbereiten: unbegrenzte Werte als "∞" */
+function limit_label(int $limit): string
+{
+    return $limit === PHP_INT_MAX ? '∞' : (string)$limit;
 }
 
 // ---- Zugriff auf Kurzlinks ----

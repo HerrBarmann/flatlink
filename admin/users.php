@@ -23,9 +23,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!isset(users_all()[$name])) {
             flash('Nutzer nicht gefunden.', 'err');
         } else {
-            user_set_groups($name, (array)($_POST['groups'] ?? []));
+            $until = trim((string)($_POST['until'] ?? ''));
+            user_set_groups($name, (array)($_POST['groups'] ?? []), $until === '' ? null : $until);
             $now = user_groups($name);
-            flash('Gruppen von ' . $name . ': ' . ($now === [] ? 'keine' : implode(', ', array_map('group_label', $now))) . '.');
+            flash('Gruppen von ' . $name . ': ' . ($now === [] ? 'keine' : implode(', ', array_map('group_label', $now)))
+                . ($until !== '' ? ' (befristet bis ' . date('d.m.Y', strtotime($until)) . ')' : '') . '.');
         }
     } elseif ($action === 'role') {
         $role = (string)($_POST['role'] ?? '');
@@ -108,7 +110,9 @@ show_flash();
             }) ?></span></td>
             <td class="small">
                 <?php if ($mine === []): ?><span class="muted">–</span>
-                <?php else: foreach ($mine as $g): ?><span class="tag tag-on"><?= e(group_label($g)) ?></span>
+                <?php else: foreach ($mine as $g): $bis = user_group_until((string)$name, $g); ?>
+                    <span class="tag tag-on" <?= $bis !== null ? 'title="befristet bis ' . e(date('d.m.Y', strtotime($bis))) . '"' : '' ?>>
+                        <?= e(group_label($g)) ?><?= $bis !== null ? ' ⏱' : '' ?></span>
                 <?php endforeach; endif; ?>
             </td>
             <td><?= link_count((string)$name) ?><span class="muted">/<?= e(limit_label(user_limit((string)$name, 'links'))) ?></span></td>
@@ -126,6 +130,8 @@ show_flash();
                         <?= e(mb_strimwidth($g['name'], 0, 14, '…')) ?>
                     </label>
                     <?php endforeach; ?>
+                    <input type="date" name="until" min="<?= e(date('Y-m-d')) ?>"
+                           title="Mitgliedschaft befristen (leer = unbefristet)">
                     <button class="btn btn-small" type="submit">Gruppen setzen</button>
                 </form>
                 <?php endif; ?>

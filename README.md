@@ -181,6 +181,13 @@ sind:
 | `custom_code` | darf Wunsch-Namen vergeben statt Zufallscodes |
 | `csv_import` | darf viele Links auf einmal importieren |
 | `logo_upload` | darf eigene Logos für QR-Codes hochladen |
+| `qr_unbranded` | erzeugt QR-Codes ohne die Absenderzeile |
+
+Gruppen können außerdem **eigene Limits** mitbringen, die die globalen aus
+`config.php` anheben – wer in mehreren ist, bekommt jeweils den höchsten Wert.
+Und eine Mitgliedschaft lässt sich **befristen**: Nach dem Stichtag zählt sie
+nicht mehr, ganz ohne Cronjob. Damit lässt sich ein gestaffeltes Angebot
+abbilden, ohne dass die Software einen Tarifbegriff kennen müsste.
 
 In `config.php` legt `default_perms` fest, was **jedes** angemeldete Konto
 zusätzlich darf – auch ohne Gruppe. Administratoren dürfen immer alles.

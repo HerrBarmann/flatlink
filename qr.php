@@ -10,6 +10,7 @@ declare(strict_types=1);
  */
 require_once __DIR__ . '/inc/store.php';
 require_once __DIR__ . '/inc/auth.php';
+require_once __DIR__ . '/inc/groups.php';
 
 function qp(string $key, string $default, string $pattern): string
 {
@@ -112,12 +113,19 @@ if ($format === 'pdf') $size = max($size, 2048);
 $ftext = trim((string)preg_replace('/[\x00-\x1F\x7F]/u', '', (string)($_REQUEST['ftext'] ?? '')));
 $ftext = $ftext === '' ? null : mb_strimwidth($ftext, 0, 24, '');
 
-// Optionale Absender-Zeile aus der Konfiguration (mit Rahmen im Band, ohne
-// Rahmen als dezente Zeile unter dem Code). Leer konfiguriert = keine Zeile.
-// Bewusst nicht per URL-Parameter steuerbar, damit sie auf einer Instanz
-// einheitlich bleibt.
+// Absender-Zeile (mit Rahmen im Band, ohne Rahmen als dezente Zeile unter dem
+// Code). Sie entfällt, wenn das Konto des Link-Besitzers das Recht
+// 'qr_unbranded' hat – entscheidend ist also der Besitzer, nicht der Aufrufer.
+// Bewusst nicht per URL-Parameter steuerbar.
 $brandText = (string)cfg('qr_brand_text');
-$brand = $brandText === '' ? null : $brandText;
+$unbranded = $owner !== null && user_can((string)$owner, 'qr_unbranded');
+$brand = ($brandText === '' || $unbranded) ? null : $brandText;
+
+// Optionales Bildzeichen neben der Absenderzeile
+$glyphSvg = (string)cfg('qr_brand_glyph_svg');
+$glyphPng = (string)cfg('qr_brand_glyph_png');
+$glyphSvg = $glyphSvg !== '' ? __DIR__ . '/assets/' . basename($glyphSvg) : null;
+$glyphPng = $glyphPng !== '' ? __DIR__ . '/assets/' . basename($glyphPng) : null;
 
 $logo = null;
 $logoId = qp('logo', '', '/^[a-f0-9]{16}\.(png|jpe?g|webp|svg)$/');
@@ -142,6 +150,7 @@ $renderer = new QrRenderer($qr, [
     'style' => $style, 'eye' => $eye, 'fg' => $fg, 'bg' => $bg,
     'size' => $size, 'margin' => $margin, 'logo' => $logo, 'logoScale' => $ls,
     'frameText' => $ftext, 'brandText' => $brand,
+    'brandGlyphSvg' => $glyphSvg, 'brandGlyphPng' => $glyphPng,
 ]);
 
 $disposition = isset($_REQUEST['download']) ? 'attachment' : 'inline';

@@ -430,7 +430,13 @@ final class QrRenderer
             'logo'      => null,       // Dateipfad
             'logoScale' => 0.22,       // Anteil an der Kantenlänge
             'frameText' => null,       // Rahmen mit Text unter dem Code (null = kein Rahmen)
-            'brandText' => null,       // kleine Absender-Zeile im Band (Free-Tarif), nur mit frameText
+            'brandText' => null,       // kleine Absender-Zeile (unter dem Code oder im Band)
+            // Optionales Bildzeichen links neben der Absenderzeile. Zwei Wege,
+            // weil Vektor- und Rasterausgabe verschiedene Quellen brauchen:
+            // eine eigenständige SVG-Datei (mit eigener viewBox) fürs SVG und
+            // eine PNG-Maske fürs Raster, die auf die Textfarbe eingefärbt wird.
+            'brandGlyphSvg' => null,   // Dateipfad
+            'brandGlyphPng' => null,   // Dateipfad
         ], $options);
     }
 
@@ -478,18 +484,63 @@ final class QrRenderer
             . ' width="' . $o['size'] . '" height="' . (int)round($o['size'] * $h / $total) . '">'
             . '<rect width="' . $total . '" height="' . $h . '" fill="' . htmlspecialchars($o['bg']) . '"/>'
             . '<g' . $crisp . '>' . $this->svgInner($total) . '</g>'
-            . self::svgBrandLine($total / 2, $total + $strip / 2, 1.05, (string)$o['brandText'], $muted)
+            . $this->svgBrandLine($total / 2, $total + $strip / 2, 1.05, (string)$o['brandText'], $muted)
             . '</svg>';
     }
 
     /** Absender-Zeile, horizontal um $cx zentriert, vertikale Mitte $cy */
-    private static function svgBrandLine(float $cx, float $cy, float $fs, string $text, string $color, float $opacity = 1.0): string
+    /**
+     * Inhalt und Seitenverhältnis einer eigenständigen SVG-Datei lesen.
+     * @return ?array{0:string,1:string,2:float} [innerer Inhalt, viewBox, Breite/Höhe]
+     */
+    private static function glyphSvg(?string $file): ?array
+    {
+        if ($file === null || !is_file($file)) return null;
+        static $cache = [];
+        if (isset($cache[$file])) return $cache[$file];
+
+        $svg = (string)@file_get_contents($file);
+        if ($svg === '' || preg_match('/viewBox="([^"]+)"/', $svg, $m) !== 1) return $cache[$file] = null;
+        $vb = array_map('floatval', preg_split('/[\s,]+/', trim($m[1])) ?: []);
+        if (count($vb) !== 4 || $vb[3] <= 0) return $cache[$file] = null;
+        // Alles zwischen öffnendem und schließendem <svg> ist der Zeichen-Inhalt
+        if (preg_match('#<svg[^>]*>(.*)</svg>#is', $svg, $c) !== 1) return $cache[$file] = null;
+        // <title> würde als Tooltip im Code auftauchen
+        $inner = (string)preg_replace('#<title>.*?</title>#is', '', $c[1]);
+        return $cache[$file] = [trim($inner), trim($m[1]), $vb[2] / $vb[3]];
+    }
+
+    /** Absender-Zeile, optional mit Bildzeichen davor, um $cx zentriert */
+    private function svgBrandLine(float $cx, float $cy, float $fs, string $text, string $color, float $opacity = 1.0): string
     {
         $font = ' font-family="&#39;Courier New&#39;, monospace" font-weight="500"'
             . ' font-size="' . round($fs, 2) . '" dominant-baseline="central"';
-        return '<text x="' . round($cx, 2) . '" y="' . round($cy, 2) . '" fill="' . htmlspecialchars($color) . '"'
-            . ($opacity < 1.0 ? ' opacity="' . $opacity . '"' : '') . $font
-            . ' text-anchor="middle">' . htmlspecialchars($text) . '</text>';
+        $col = htmlspecialchars($color);
+        $wrap = fn(string $inner): string =>
+            $opacity < 1.0 ? '<g opacity="' . $opacity . '">' . $inner . '</g>' : $inner;
+
+        $glyph = self::glyphSvg($this->opt['brandGlyphSvg'] ?? null);
+        if ($glyph === null) {
+            return $wrap('<text x="' . round($cx, 2) . '" y="' . round($cy, 2) . '" fill="' . $col . '"'
+                . $font . ' text-anchor="middle">' . htmlspecialchars($text) . '</text>');
+        }
+
+        [$inner, $viewBox, $ratio] = $glyph;
+        $gh = $fs * 1.35;
+        $gw = $gh * $ratio;
+        $gap = $fs * 0.45;
+        // Monospace läuft mit rund 0.62 em je Zeichen – genau genug zum Zentrieren
+        $textW = max(1, mb_strlen($text)) * $fs * 0.62;
+        $x0 = $cx - ($gw + $gap + $textW) / 2;
+
+        return $wrap(
+            '<svg x="' . round($x0, 2) . '" y="' . round($cy - $gh / 2, 2) . '"'
+            . ' width="' . round($gw, 2) . '" height="' . round($gh, 2) . '"'
+            . ' viewBox="' . htmlspecialchars($viewBox) . '" preserveAspectRatio="xMidYMid meet">'
+            . '<g fill="' . $col . '" color="' . $col . '">' . $inner . '</g></svg>'
+            . '<text x="' . round($x0 + $gw + $gap, 2) . '" y="' . round($cy, 2) . '" fill="' . $col . '"'
+            . $font . ' text-anchor="start">' . htmlspecialchars($text) . '</text>'
+        );
     }
 
     /** Zwei Hex-Farben mischen ($t = Anteil von $b) – für gedämpfte Absender-Zeilen */
@@ -536,7 +587,7 @@ final class QrRenderer
             . ' font-weight="700" font-size="' . round($fs, 2) . '" text-anchor="middle" dominant-baseline="central">'
             . htmlspecialchars((string)$o['frameText']) . '</text>';
         if ($brand !== null) {
-            $out .= self::svgBrandLine($w / 2, $b + $total + $band - 1.0, 1.0, $brand, $o['bg'], 0.75);
+            $out .= $this->svgBrandLine($w / 2, $b + $total + $band - 1.0, 1.0, $brand, $o['bg'], 0.75);
         }
         return $out . '</svg>';
     }
@@ -725,7 +776,7 @@ final class QrRenderer
         imagefilledrectangle($img, 0, 0, $px - 1, $px + $strip - 1, self::gdColor($img, $o['bg']));
         imagecopy($img, $qr, 0, 0, 0, 0, $px, $px);
         $muted = self::gdColor($img, self::mixColor($o['fg'], $o['bg'], 0.45));
-        $this->gdBandText($img, $px, $px, $strip, $muted, (string)$o['brandText'], 0.62);
+        $this->gdBrandLine($img, $px, $px, $strip, $muted, (string)$o['brandText']);
         return $img;
     }
 
@@ -755,10 +806,55 @@ final class QrRenderer
         } else {
             $mainH = (int)round($band * 0.72);
             $this->gdBandText($img, $w, $b + $px, $mainH, $color, (string)$o['frameText'], 0.62);
-            $this->gdBandText($img, $w, $b + $px + $mainH, $band - $mainH, $color, $brand, 0.62);
+            $this->gdBrandLine($img, $w, $b + $px + $mainH, $band - $mainH, $color, $brand);
         }
         imagesavealpha($img, true);
         return $img;
+    }
+
+    /**
+     * Absender-Zeile im Raster: optionales Bildzeichen (eingefärbte PNG-Maske)
+     * plus Text, zusammen zentriert. Ohne Maske oder ohne TrueType-Schrift
+     * übernimmt gdBandText.
+     */
+    private function gdBrandLine(\GdImage $img, int $w, int $top, int $bandH, int $color, string $text): void
+    {
+        $font = self::bandFont();
+        $glyphFile = $this->opt['brandGlyphPng'] ?? null;
+        if ($font === null || !function_exists('imagettftext')
+            || $glyphFile === null || !is_file($glyphFile)) {
+            $this->gdBandText($img, $w, $top, $bandH, $color, $text, 0.62);
+            return;
+        }
+
+        $size = max(3.0, $bandH * 0.55 * 72 / 96);
+        while ($size > 3.0) {
+            $box = imagettfbbox($size, 0, $font, $text);
+            if (($box[2] - $box[0]) <= $w * 0.7 && ($box[1] - $box[7]) <= $bandH * 0.62) break;
+            $size *= 0.92;
+        }
+        $box = imagettfbbox($size, 0, $font, $text);
+        $tw = $box[2] - $box[0];
+        $th = $box[1] - $box[7];
+
+        $glyph = @imagecreatefrompng($glyphFile);
+        if ($glyph === false) {
+            $this->gdBandText($img, $w, $top, $bandH, $color, $text, 0.62);
+            return;
+        }
+        $gh = max(6, (int)round($th * 1.35));
+        $gw = (int)round($gh * imagesx($glyph) / max(1, imagesy($glyph)));
+        $gap = (int)round($th * 0.45);
+        $x0 = (int)round(($w - ($gw + $gap + $tw)) / 2);
+        $cy = $top + intdiv($bandH, 2);
+
+        // Die Maske ist einfarbig mit Alphakanal – Einfärben auf die Textfarbe
+        imagefilter($glyph, IMG_FILTER_COLORIZE, ($color >> 16) & 0xFF, ($color >> 8) & 0xFF, $color & 0xFF);
+        imagecopyresampled($img, $glyph, $x0, $cy - intdiv($gh, 2), 0, 0,
+            $gw, $gh, imagesx($glyph), imagesy($glyph));
+
+        $y = (int)round($cy - $th / 2 - $box[7]);
+        imagettftext($img, $size, 0, $x0 + $gw + $gap - $box[0], $y, $color, $font, $text);
     }
 
     /**

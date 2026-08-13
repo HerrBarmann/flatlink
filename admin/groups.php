@@ -13,7 +13,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $id = strtolower(trim((string)($_POST['id'] ?? '')));
 
     if ($action === 'save') {
-        $err = group_save($id, (string)($_POST['name'] ?? ''), (array)($_POST['perms'] ?? []));
+        $err = group_save($id, (string)($_POST['name'] ?? ''), (array)($_POST['perms'] ?? []),
+            (array)($_POST['limits'] ?? []));
         flash($err ?? 'Gruppe „' . $id . '“ gespeichert.', $err === null ? 'ok' : 'err');
     } elseif ($action === 'delete') {
         if (group_get($id) === null) {
@@ -73,6 +74,19 @@ show_flash();
             <p class="muted small">Zusätzlich gelten die Standardrechte aus <code>config.php</code>
             für alle angemeldeten Konten. Administratoren dürfen ohnehin alles.</p>
         </div>
+        <div>
+            <label>Eigene Limits <span class="muted">(leer oder 0 = es gilt der Wert aus <code>config.php</code>)</span></label>
+            <div class="check-row">
+                <?php foreach (['links' => 'Links', 'stats_days' => 'Statistik (Tage)', 'logos' => 'Logos'] as $k => $lbl): ?>
+                <span style="display:inline-flex;align-items:center;gap:0.4rem">
+                    <span class="muted small"><?= e($lbl) ?></span>
+                    <input type="number" name="limits[<?= e($k) ?>]" min="0" step="1" style="width:6.5rem"
+                           value="<?= e((string)($edit['limits'][$k] ?? '')) ?>">
+                </span>
+                <?php endforeach; ?>
+            </div>
+            <p class="muted small">Wer in mehreren Gruppen ist, bekommt jeweils den höchsten Wert.</p>
+        </div>
         <button class="btn btn-primary" type="submit"><?= $edit !== null ? 'Speichern' : 'Anlegen' ?></button>
         <?php if ($edit !== null): ?>
         <p><a href="groups.php">Abbrechen</a></p>
@@ -86,7 +100,7 @@ show_flash();
         <p class="muted">Noch keine Gruppen. Ohne Gruppen sieht jedes Konto nur seine eigenen Links.</p>
     <?php else: ?>
     <div class="table-scroll"><table>
-        <tr><th>Kennung</th><th>Name</th><th>Rechte</th><th>Mitglieder</th><th>Links</th><th></th></tr>
+        <tr><th>Kennung</th><th>Name</th><th>Rechte</th><th>Limits</th><th>Mitglieder</th><th>Links</th><th></th></tr>
         <?php foreach ($groups as $id => $g): $members = group_members((string)$id); ?>
         <tr>
             <td><code><?= e((string)$id) ?></code></td>
@@ -105,6 +119,12 @@ show_flash();
                     (<?= e(mb_strimwidth(implode(', ', $members), 0, 34, '…')) ?>)</span>
                 <?php endif; ?>
             </td>
+            <td class="small"><?php
+                $lim = array_filter($g['limits'] ?? []);
+                echo $lim === []
+                    ? '<span class="muted">Standard</span>'
+                    : e(implode(' · ', array_map(fn($k, $v) => $k . ' ' . $v, array_keys($lim), $lim)));
+            ?></td>
             <td><?= (int)($linkCount[(string)$id] ?? 0) ?></td>
             <td class="actions">
                 <a class="btn btn-small" href="groups.php?edit=<?= e(rawurlencode((string)$id)) ?>">Bearbeiten</a>

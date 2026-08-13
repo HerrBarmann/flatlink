@@ -15,8 +15,30 @@ function cfg(?string $key = null): mixed
         // Beispieldatei als Fallback, damit neue Optionen nach einem Update
         // nicht sofort zu Notices führen
         $cfg = array_merge(require __DIR__ . '/config.example.php', require $file);
+        load_local();
     }
     return $key === null ? $cfg : ($cfg[$key] ?? null);
+}
+
+/**
+ * Optionale Erweiterungen dieser Instanz.
+ *
+ * Existiert inc/local.php, wird sie einmalig geladen. Dort können eigene
+ * Hilfsfunktionen liegen, die nur diese Installation braucht – etwa
+ * Bausteine für eigene Zusatzseiten. Die Datei ist per .gitignore
+ * ausgenommen und übersteht damit jedes Update.
+ *
+ * Sie kann nur ergänzen, nicht ersetzen: Vorhandene Funktionen lassen sich
+ * in PHP nicht überschreiben. Für Aussehen und Beschriftungen gibt es
+ * assets/custom.css und die Konfiguration.
+ */
+function load_local(): void
+{
+    static $done = false;
+    if ($done) return;
+    $done = true;
+    $file = __DIR__ . '/local.php';
+    if (is_file($file)) require_once $file;
 }
 
 function data_path(string $sub = ''): string
@@ -262,11 +284,18 @@ function page_header(string $title, bool $admin = false, ?string $desc = null, ?
     }
     echo '</head><body><div class="wrap">';
 
-    // Wortmarke, optional mit eigenem Logo davor
+    // Wortmarke, optional mit eigenem Logo davor. Der Name steckt in einem
+    // eigenen Element, und heißt die Instanz wie eine Domain, ist der Teil ab
+    // dem ersten Punkt noch einmal getrennt auszeichenbar – beides nur, damit
+    // sich die Marke über assets/custom.css gestalten lässt.
+    $name = (string)cfg('site_name');
+    $dot = strpos($name, '.');
+    $inner = ($dot === false || $dot === 0)
+        ? e($name)
+        : e(substr($name, 0, $dot)) . '<span class="brand-tld">' . e(substr($name, $dot)) . '</span>';
     $logo = (string)cfg('logo');
-    $mark = $logo !== ''
-        ? '<img class="brand-logo" src="' . $root . '/assets/' . e($logo) . '" alt="">' . $site
-        : $site;
+    $mark = ($logo !== '' ? '<img class="brand-logo" src="' . $root . '/assets/' . e($logo) . '" alt="">' : '')
+        . '<span class="brand-name">' . $inner . '</span>';
     echo '<header class="site-head"><a class="brand" href="' . $root . '/">' . $mark . '</a>';
     // Einheitliche, session-sensitive Navigation auf allen Seiten.
     // (Seiten ohne Session-Start – z. B. die 404-Seite des Redirect-Handlers –
@@ -275,6 +304,17 @@ function page_header(string $title, bool $admin = false, ?string $desc = null, ?
     $adm = $admin ? '' : 'admin/'; // Pfad zum Login-Bereich
     $pub = $admin ? '../' : '';    // Pfad zu öffentlichen Seiten
     echo '<nav>';
+    // Zusätzliche Einträge dieser Instanz. 'nav_links' erscheint immer,
+    // 'nav_links_guest' nur für Nichtangemeldete – nützlich für Seiten, die
+    // im Login-Bereich ohnehin über einen eigenen Punkt erreichbar sind.
+    $extra = (array)cfg('nav_links');
+    if ($u === null) $extra += (array)cfg('nav_links_guest');
+    foreach ($extra as $label => $url) {
+        $href = preg_match('#^(https?:)?//#', (string)$url) === 1
+            ? (string)$url
+            : $pub . ltrim((string)$url, '/');
+        echo '<a href="' . e($href) . '">' . e((string)$label) . '</a> ';
+    }
     if ($u !== null) {
         echo '<a href="' . $adm . 'index.php">Links</a> '
             . '<a href="' . $adm . 'qrdesign.php">QR-Designer</a> ';

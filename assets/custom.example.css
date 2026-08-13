@@ -96,6 +96,20 @@ body {
 .brand { font-size: 1.15rem; }
 */
 
+/* Heißt die Instanz wie eine Domain, lässt sich der Teil ab dem ersten Punkt
+   getrennt einfärben – und ein blinkender Cursor dahinter kostet nichts. */
+/*
+.brand-tld { color: var(--accent-deep); }
+.brand-name::after {
+    content: ""; display: inline-block;
+    width: 0.55em; height: 0.09em;
+    background: var(--accent);
+    margin-left: 0.12em; vertical-align: baseline;
+    animation: brand-blink 1.1s steps(1) infinite;
+}
+@keyframes brand-blink { 50% { opacity: 0; } }
+*/
+
 /* Kopfzeile farbig hinterlegen */
 /*
 .site-head {

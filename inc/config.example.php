@@ -58,7 +58,16 @@ return [
     // Optionale Absenderzeile unter erzeugten QR-Codes (leer = keine).
     // Nützlich, wenn Codes gedruckt werden und erkennbar sein soll, wer sie ausgibt.
     // Gemeint ist dein eigener Name – hier steht bewusst nichts vorbelegt.
+    // Konten mit dem Recht 'qr_unbranded' bekommen die Zeile nicht.
     'qr_brand_text' => '',
+
+    // Optionales Bildzeichen links neben der Absenderzeile. Zwei Dateien,
+    // weil Vektor- und Rasterausgabe verschiedene Quellen brauchen: eine
+    // eigenständige SVG-Datei mit eigener viewBox fürs SVG, und eine
+    // einfarbige PNG-Maske mit Alphakanal fürs Raster (PNG/PDF), die auf die
+    // Textfarbe eingefärbt wird. Beide Dateinamen innerhalb von assets/.
+    'qr_brand_glyph_svg' => '',
+    'qr_brand_glyph_png' => '',
 
     // Herkunftszeile im Seitenfuß: kleines Kiwi-Zeichen und der Hinweis, dass
     // flatlink der offene Kern von 1337.kiwi ist. Die Lizenz verlangt sie
@@ -79,6 +88,16 @@ return [
 
     // Eigenes Favicon, ebenfalls ein Dateiname innerhalb von assets/.
     'favicon' => '',
+
+    // Zusätzliche Einträge in der Kopf-Navigation, Beschriftung => Ziel.
+    // Nützlich für eigene Zusatzseiten. Relative Ziele beziehen sich auf den
+    // Webroot.
+    'nav_links' => [
+        // 'Hilfe' => 'hilfe.html',
+    ],
+
+    // Wie oben, aber nur für Nichtangemeldete sichtbar.
+    'nav_links_guest' => [],
 
     // Zusätzliche Links im Seitenfuß, Beschriftung => Ziel. Hier gehören
     // Impressum und Datenschutzerklärung hin, zu denen öffentliche Instanzen
