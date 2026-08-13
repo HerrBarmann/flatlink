@@ -3,20 +3,125 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/helpers.php';
 
+/**
+ * ---------------------------------------------------------------------------
+ *  Ablage der Kurzlinks
+ * ---------------------------------------------------------------------------
+ *
+ * Die Links liegen nicht in einer Datei, sondern auf 256 Ablagen verteilt.
+ * Zugeordnet wird über die ersten zwei Zeichen des Code-Hashes – das streut
+ * gleichmäßig und funktioniert mit jeder Code-Form, auch mit Namensräumen
+ * wie "bib/oeffnungszeiten".
+ *
+ * Der Grund ist der Weiterleitungspfad: Er ist der einzige Vorgang, der bei
+ * jedem einzelnen Scan eines gedruckten Codes läuft. Läge alles in einer
+ * Datei, müsste er sie jedes Mal vollständig einlesen und dekodieren – bei
+ * 100.000 Links rund 28 MB und 50 ms. So liest er gut hundert Kilobyte.
+ *
+ * Nebeneffekt: Schreibvorgänge sperren nur noch ihre eigene Ablage statt der
+ * gesamten Sammlung.
+ */
+
+function links_dir(): string
+{
+    return data_path('links');
+}
+
+/** Alte Sammeldatei – nur noch für den Lesefallback vor der Migration */
 function links_file(): string
 {
     return data_path() . '/links.json';
 }
 
-/** @return array<string,array> alle Links: code => {url, owner, type, created, updated} */
-function links_all(): array
+/**
+ * Läuft diese Instanz schon auf der aufgeteilten Ablage?
+ *
+ * Solange nicht, wird weiter aus der alten Sammeldatei gelesen. Damit bleibt
+ * eine Instanz zwischen dem Einspielen der neuen Dateien und dem Ausführen
+ * der Migration durchgehend funktionsfähig.
+ */
+function links_sharded(): bool
 {
-    return json_read(links_file());
+    static $yes = null;
+    if ($yes === null) {
+        // Bewusst ohne data_path(): das legt fehlende Verzeichnisse an und
+        // würde die Prüfung damit immer bejahen
+        $dir = (string)cfg('data_dir');
+        $base = $dir !== '' ? rtrim($dir, '/') : dirname(__DIR__) . '/data';
+        // Aufgeteilt ist der Normalfall. Nur wenn eine alte Sammeldatei
+        // vorliegt und noch keine Ablagen, wird weiter aus ihr gelesen –
+        // bis migrate-links.php gelaufen ist. Frische Instanzen starten
+        // damit sofort aufgeteilt.
+        $yes = is_dir($base . '/links') || !is_file($base . '/links.json');
+    }
+    return $yes;
 }
 
+/** Ablage-Kennung eines Codes */
+function link_shard(string $code): string
+{
+    return substr(sha1($code), 0, 2);
+}
+
+function link_shard_file(string $code): string
+{
+    return links_dir() . '/' . link_shard($code) . '.json';
+}
+
+/**
+ * Alle Links. Setzt die Ablagen wieder zusammen – gebraucht für Listen,
+ * Zählungen und das Aufräumen, nicht für den Weiterleitungspfad.
+ *
+ * @return array<string,array> code => {url, owner, type, created, updated}
+ */
+function links_all(): array
+{
+    $all = [];
+    foreach (link_store_files() as $f) {
+        foreach (json_read($f) as $code => $l) $all[$code] = $l;
+    }
+    return $all;
+}
+
+/**
+ * Einen einzelnen Link holen – der heiße Pfad.
+ * Liest genau eine Ablage statt der gesamten Sammlung.
+ */
 function link_get(string $code): ?array
 {
-    return links_all()[$code] ?? null;
+    if (!links_sharded()) return json_read(links_file())[$code] ?? null;
+    return json_read(link_shard_file($code))[$code] ?? null;
+}
+
+/**
+ * Alle Dateien, in denen Links stehen – eine Ablage je Datei, vor der
+ * Migration die einzelne Sammeldatei. Für Vorgänge, die jeden Link anfassen.
+ *
+ * @return string[]
+ */
+function link_store_files(): array
+{
+    if (!links_sharded()) return is_file(links_file()) ? [links_file()] : [];
+    return glob(links_dir() . '/*.json') ?: [];
+}
+
+/**
+ * Schreibzugriff auf den Datensatz eines Codes, unter Sperre seiner Ablage.
+ * $fn bekommt den Datensatz (oder null) und gibt den neuen zurück; null
+ * löscht ihn.
+ */
+function link_write(string $code, callable $fn): bool
+{
+    $file = links_sharded() ? link_shard_file($code) : links_file();
+    $changed = false;
+    json_update($file, function (array $links) use ($code, $fn, &$changed) {
+        $new = $fn($links[$code] ?? null);
+        if ($new === false) return null;          // false = nichts ändern
+        $changed = true;
+        if ($new === null) unset($links[$code]); else $links[$code] = $new;
+        return $links;
+    });
+    return $changed;
 }
 
 /**
@@ -137,19 +242,18 @@ function links_gc(): void
 function link_create(string $url, ?string $code, ?string $owner, string $type, string $prefix = '', ?string $expires = null, ?string $group = null): array
 {
     links_gc();
-    $result = [false, 'Unbekannter Fehler'];
-    json_update(links_file(), function (array $links) use ($url, $code, $owner, $type, $prefix, $expires, $group, &$result) {
+
+    if ($code === null) {
+        $code = link_random_code($prefix);
         if ($code === null) {
-            $code = link_random_code($links, $prefix);
-            if ($code === null) {
-                $result = [false, 'Kein freier Code gefunden – Code-Länge in config.php erhöhen.'];
-                return null;
-            }
-        } elseif (isset($links[$code])) {
-            $result = [false, 'Dieser Code ist schon vergeben.'];
-            return null;
+            return [false, 'Kein freier Code gefunden – Code-Länge in config.php erhöhen.'];
         }
-        $links[$code] = [
+    }
+
+    $taken = false;
+    $ok = link_write($code, function (?array $existing) use ($url, $owner, $type, $expires, $group, &$taken) {
+        if ($existing !== null) { $taken = true; return false; }
+        $new = [
             'url' => $url,
             'owner' => $owner,
             'type' => $type,
@@ -159,43 +263,34 @@ function link_create(string $url, ?string $code, ?string $owner, string $type, s
         ];
         // Nur setzen, wenn es wirklich eine Gruppe gibt – kein null-Ballast
         // in den Datensätzen der Instanzen, die ohne Gruppen arbeiten
-        if ($group !== null && $group !== '') $links[$code]['group'] = $group;
-        $result = [true, $code];
-        return $links;
+        if ($group !== null && $group !== '') $new['group'] = $group;
+        return $new;
     });
-    return $result;
+
+    if ($taken) return [false, 'Dieser Code ist schon vergeben.'];
+    return $ok ? [true, $code] : [false, 'Anlegen fehlgeschlagen.'];
 }
 
 function link_update(string $code, string $url, ?string $expires = null): bool
 {
-    $ok = false;
-    json_update(links_file(), function (array $links) use ($code, $url, $expires, &$ok) {
-        if (!isset($links[$code])) return null;
-        $links[$code]['url'] = $url;
-        $links[$code]['expires'] = $expires;
-        $links[$code]['updated'] = date('c');
-        $ok = true;
-        return $links;
+    return link_write($code, function (?array $l) use ($url, $expires) {
+        if ($l === null) return false;
+        $l['url'] = $url;
+        $l['expires'] = $expires;
+        $l['updated'] = date('c');
+        return $l;
     });
-    return $ok;
 }
 
 /** Gruppenzuordnung eines Links setzen ($group = null hebt sie auf) */
 function link_set_group(string $code, ?string $group): bool
 {
-    $ok = false;
-    json_update(links_file(), function (array $links) use ($code, $group, &$ok) {
-        if (!isset($links[$code])) return null;
-        if ($group === null || $group === '') {
-            unset($links[$code]['group']);
-        } else {
-            $links[$code]['group'] = $group;
-        }
-        $links[$code]['updated'] = date('c');
-        $ok = true;
-        return $links;
+    return link_write($code, function (?array $l) use ($group) {
+        if ($l === null) return false;
+        if ($group === null || $group === '') unset($l['group']); else $l['group'] = $group;
+        $l['updated'] = date('c');
+        return $l;
     });
-    return $ok;
 }
 
 /** Anzahl aktiver Wunsch-Codes eines Kontos (für das Pro-Kontingent) */
@@ -221,50 +316,39 @@ function link_count(string $owner): int
 /** Passwortschutz setzen (Hash) oder entfernen (null) – Pro-Feature */
 function link_set_password(string $code, ?string $hash): bool
 {
-    $ok = false;
-    json_update(links_file(), function (array $links) use ($code, $hash, &$ok) {
-        if (!isset($links[$code])) return null;
-        if ($hash === null) {
-            unset($links[$code]['pass']);
-        } else {
-            $links[$code]['pass'] = $hash;
-        }
-        $links[$code]['updated'] = date('c');
-        $ok = true;
-        return $links;
+    return link_write($code, function (?array $l) use ($hash) {
+        if ($l === null) return false;
+        if ($hash === null) unset($l['pass']); else $l['pass'] = $hash;
+        $l['updated'] = date('c');
+        return $l;
     });
-    return $ok;
 }
 
 /** Link wegen Missbrauchs sperren/entsperren (gesperrte Links antworten mit 410) */
 function link_set_disabled(string $code, bool $disabled): bool
 {
-    $ok = false;
-    json_update(links_file(), function (array $links) use ($code, $disabled, &$ok) {
-        if (!isset($links[$code])) return null;
-        if ($disabled) {
-            $links[$code]['disabled'] = true;
-        } else {
-            unset($links[$code]['disabled']);
-        }
-        $links[$code]['updated'] = date('c');
-        $ok = true;
-        return $links;
+    return link_write($code, function (?array $l) use ($disabled) {
+        if ($l === null) return false;
+        if ($disabled) $l['disabled'] = true; else unset($l['disabled']);
+        $l['updated'] = date('c');
+        return $l;
     });
-    return $ok;
 }
 
 function link_delete(string $code): void
 {
-    json_update(links_file(), function (array $links) use ($code) {
-        unset($links[$code]);
-        return $links;
-    });
+    link_write($code, fn(?array $l) => null);
     @unlink(clicks_file($code));
 }
 
 /** Freien Zufallscode suchen (innerhalb des Locks aufgerufen), optional unter einem Prefix ("p/abc123") */
-function link_random_code(array $existing, string $prefix = ''): ?string
+/**
+ * Freien Zufallscode finden.
+ *
+ * Geprüft wird nur die Ablage des Kandidaten, nicht die gesamte Sammlung –
+ * ein Lesevorgang von wenigen Kilobyte statt der ganzen Datei.
+ */
+function link_random_code(string $prefix = ''): ?string
 {
     $alphabet = cfg('alphabet');
     $len = cfg('code_length');
@@ -276,7 +360,7 @@ function link_random_code(array $existing, string $prefix = ''): ?string
         }
         if (!valid_code($seg)) continue;
         $code = $prefix === '' ? $seg : $prefix . '/' . $seg;
-        if (!isset($existing[$code])) return $code;
+        if (link_get($code) === null) return $code;
     }
     return null;
 }

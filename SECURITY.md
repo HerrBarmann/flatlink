@@ -62,8 +62,9 @@ halber:
   instanzeigenen Geheimnis gebildet (`data/secret.key`) und sind damit ohne
   Serverzugriff nicht rückrechenbar – aber sie bleiben personenbezogene Daten
   im Sinne der DSGVO und gehören in die Datenschutzerklärung.
-- **Der Link-Lookup liest die vollständige `links.json`.** Bei sehr großen
-  Instanzen ist das die Leistungsgrenze; siehe README.
+- **Die Ablage ist dateibasiert.** Kurzlinks liegen auf 256 Ablagen verteilt,
+  der Lookup liest nur eine davon. Bei sehr vielen gleichzeitigen
+  Schreibzugriffen bleibt eine Datenbank trotzdem die bessere Wahl.
 
 ## Bisherige Meldungen
 
@@ -80,3 +81,4 @@ halber:
 | 13.08.2026 | Verteiltes Password-Spraying umgeht die Sperre | behoben (Instanz-Zähler) |
 | 13.08.2026 | `qr.php` liest aus `$_REQUEST` | behoben |
 | 13.08.2026 | Zu weite Dateirechte auf Shared Hosting | behoben (0700/0600) |
+| 13.08.2026 | Vollständiger Parse von `links.json` bei jedem Redirect | behoben (256 Ablagen) |

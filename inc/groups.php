@@ -156,12 +156,16 @@ function group_delete(string $id): void
         }
         return $users;
     });
-    json_update(links_file(), function (array $links) use ($id) {
-        foreach ($links as $c => $l) {
-            if (($l['group'] ?? null) === $id) unset($links[$c]['group']);
-        }
-        return $links;
-    });
+    // Über alle Ablagen: die Zuordnung entfernen, die Links selbst behalten
+    foreach (link_store_files() as $file) {
+        json_update($file, function (array $links) use ($id) {
+            $touched = false;
+            foreach ($links as $c => $l) {
+                if (($l['group'] ?? null) === $id) { unset($links[$c]['group']); $touched = true; }
+            }
+            return $touched ? $links : null;
+        });
+    }
 }
 
 // ---- Mitgliedschaften ----

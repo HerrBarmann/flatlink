@@ -853,6 +853,32 @@ sudo tar czf flatlink-$(date +%F).tar.gz -C /var/www/flatlink data inc/config.ph
 im Repository. Und weil sie das tut: Das Backup gehört an einen Ort, an dem
 nicht jeder mitliest.
 
+### Bestehende Instanz auf die aufgeteilte Ablage umstellen
+
+Ältere Instanzen halten alle Kurzlinks in einer einzigen `links.json`. Der
+Weiterleitungspfad musste sie damit bei jedem Scan vollständig einlesen – bei
+100.000 Links rund 28 MB und 50 ms. Die Umstellung auf 256 Ablagen bringt das
+auf 0,4 ms.
+
+Die Anwendung liest weiter aus der alten Datei, solange keine Ablagen
+existieren. Zwischen Dateiupload und Migration läuft die Instanz also normal
+weiter – es gibt keinen Moment, in dem Kurzlinks ins Leere gehen.
+
+```bash
+php migrate-links.php --dry-run   # zeigt nur, was passieren würde
+php migrate-links.php             # führt sie aus
+```
+
+Ohne Kommandozeile geht es auch im Browser, angemeldet als Administrator:
+`/migrate-links.php` für den Probelauf, `/migrate-links.php?run=1` für den
+echten Lauf.
+
+Die alte Datei wird nicht gelöscht, sondern zu `links.json.vor-aufteilung`
+umbenannt – und erst, nachdem die Migration nachgezählt hat, dass alle Links
+in den Ablagen angekommen sind. Stimmt die Zahl nicht, bricht sie ab und
+räumt die Ablagen wieder weg. Wenn die Instanz danach ein paar Tage
+unauffällig läuft, können die Sicherungsdatei und `migrate-links.php` weg.
+
 ### Aktualisieren
 
 ```bash

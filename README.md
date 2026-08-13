@@ -330,7 +330,7 @@ und atomarem Schreiben über Tempdatei plus `rename`:
 
 | Datei | Inhalt |
 | --- | --- |
-| `links.json` | Kurzlinks: Ziel, Besitzer, Gruppe, Typ, Ablauf, Passwort-Hash |
+| `links/<xx>.json` | Kurzlinks, auf 256 Ablagen verteilt: Ziel, Besitzer, Gruppe, Typ, Ablauf, Passwort-Hash |
 | `users.json` | Konten: Passwort-Hash, Rolle, E-Mail, Gruppen, Anmeldequelle |
 | `groups.json` | Gruppen: Anzeigename und Rechte |
 | `clicks/<code>.json` | Klickzähler, siehe oben |
@@ -341,6 +341,13 @@ und atomarem Schreiben über Tempdatei plus `rename`:
 | `pending/` | Offene Bestätigungs-Token (Registrierung, Reset) |
 
 Ein Backup ist damit ein simples Kopieren des `data/`-Ordners.
+
+Die Kurzlinks liegen dabei nicht in einer einzigen Datei, sondern auf 256
+Ablagen verteilt (zugeordnet über den Code-Hash). Der Grund ist der
+Weiterleitungspfad: Er läuft bei jedem Scan eines gedruckten Codes und liest
+so nur wenige Kilobyte statt der gesamten Sammlung. Gemessen bei 100.000
+Links: **0,4 statt 51 Millisekunden** pro Weiterleitung. Nebeneffekt:
+Schreibvorgänge sperren nur ihre eigene Ablage.
 
 Diese Bauweise ist bewusst für kleine bis mittlere Instanzen gedacht. Bei
 sehr vielen gleichzeitigen Schreibzugriffen ist eine Datenbank die bessere

@@ -38,6 +38,31 @@ $host = preg_replace('#^https?://#', '', base_url());
 ?>
 
 <div class="card">
+    <h2>Ablage</h2>
+    <?php
+    $dataPath = data_path();
+    $imWebroot = data_dir_in_webroot();
+    $links = count(link_store_files());
+    ?>
+    <p class="muted small">Laufzeitdaten liegen in<br>
+    <code style="word-break:break-all"><?= e($dataPath) ?></code></p>
+    <?php if ($imWebroot): ?>
+    <div class="flash flash-err" style="margin-top:0.8rem">
+        <strong>Das Verzeichnis liegt im Webroot.</strong> Geschützt ist es dort nur durch die
+        <code>.htaccess</code> – die nginx, Caddy und LiteSpeed ignorieren. Darin stehen
+        Passwort-Hashes und gültige Reset-Token. Wenn dein Hosting einen Pfad außerhalb zulässt,
+        trag ihn als <code>data_dir</code> in <code>inc/config.php</code> ein – den Inhalt vorher
+        kopieren, erst danach die Konfiguration umstellen.
+    </div>
+    <?php else: ?>
+    <p class="muted small">Außerhalb des Webroots – so soll es sein.</p>
+    <?php endif; ?>
+    <p class="muted small">Kurzlinks: <?= $links ?> <?= $links === 1 ? 'Datei' : 'Ablagen' ?><?php
+        if (!links_sharded()) echo ' – noch die alte Sammeldatei, <code>migrate-links.php</code> teilt sie auf';
+    ?></p>
+</div>
+
+<div class="card">
     <h2>Öffentliche Oberfläche</h2>
     <form method="post" action="">
         <?= csrf_field() ?>
