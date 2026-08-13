@@ -159,11 +159,12 @@ function pending_users(): array
  * kennt. So sieht die Verwaltung stattdessen Klarname und E-Mail und kann
  * mit einem Klick freischalten.
  */
-function pending_user_note(string $username, ?string $display, ?string $email, array $groups): void
+function pending_user_note(string $username, ?string $display, ?string $email, array $groups, string $reason = 'unbekannt'): void
 {
-    json_update(pending_users_file(), function (array $q) use ($username, $display, $email, $groups) {
+    json_update(pending_users_file(), function (array $q) use ($username, $display, $email, $groups, $reason) {
         $now = date('c');
         $q[$username] = [
+            'reason' => $reason,
             'display' => $display !== null && $display !== '' ? mb_substr($display, 0, 80) : ($q[$username]['display'] ?? null),
             'email' => $email !== null && $email !== '' ? strtolower($email) : ($q[$username]['email'] ?? null),
             'groups' => $groups,
@@ -198,8 +199,11 @@ function pending_user_approve(string $username, string $source): ?string
     $q = pending_users();
     if (!isset($q[$username])) return 'Diese Kennung steht nicht in der Warteschlange.';
     $e = $q[$username];
+    // $force: Die Freischaltung ist genau der Moment, in dem ein Administrator
+    // eine Verknüpfung bewusst bestätigt – auch die mit einem bestehenden
+    // lokalen Konto. Die Rolle wird dabei zurückgesetzt (siehe user_provision).
     $err = user_provision($username, $source, $e['email'] ?? null, (array)($e['groups'] ?? []),
-        true, $e['display'] ?? null);
+        true, $e['display'] ?? null, true);
     if ($err === null) pending_user_drop($username);
     return $err;
 }
@@ -225,10 +229,25 @@ function valid_external_id(string $username): bool
     return preg_match('/^[^\x00-\x1F\x7F\s]{1,190}$/u', $username) === 1;
 }
 
-function user_provision(string $username, string $source, ?string $email, array $groups, bool $autoCreate, ?string $display = null): ?string
+function user_provision(string $username, string $source, ?string $email, array $groups, bool $autoCreate, ?string $display = null, bool $force = false): ?string
 {
     if (!valid_external_id($username)) {
         return 'Ungültige Kennung aus der zentralen Anmeldung.';
+    }
+
+    // Ein bestehendes Konto anderer Herkunft darf NICHT stillschweigend
+    // übernommen werden. Sonst genügte es, im Verzeichnis eine Mail-Adresse
+    // einzutragen, unter der sich hier jemand lokal registriert hat – man
+    // erbte dessen Konto samt Rolle und sperrte ihn aus seinem Passwort aus.
+    // Selbstregistrierte Konten sind nach E-Mail geschlüsselt und sehen
+    // externen Kennungen damit zum Verwechseln ähnlich.
+    //
+    // Der legitime Umstieg eines lokalen Kontos auf zentrale Anmeldung läuft
+    // über die Warteschlange: Ein Administrator bestätigt die Verknüpfung
+    // bewusst ($force).
+    $current = users_all()[$username] ?? null;
+    if (!$force && $current !== null && ($current['auth'] ?? 'local') !== $source) {
+        return 'Für diese Kennung gibt es bereits ein Konto mit anderer Anmeldeart.';
     }
     $err = null;
     $display = $display === null ? null : trim((string)preg_replace('/[\x00-\x1F\x7F]/u', '', $display));
@@ -243,6 +262,12 @@ function user_provision(string $username, string $source, ?string $email, array 
                 'role' => $users === [] ? 'admin' : 'user',
                 'created' => date('c'),
             ];
+        } elseif (($users[$username]['auth'] ?? 'local') !== $source) {
+            // Bewusst freigegebene Verknüpfung eines bestehenden Kontos:
+            // die Rolle wird NICHT geerbt. Wer ein Administrator-Konto
+            // verknüpft, soll die Rolle danach ausdrücklich neu vergeben,
+            // statt sie versehentlich weiterzureichen.
+            $users[$username]['role'] = 'user';
         }
         $users[$username]['auth'] = $source;
         // Ein vorhandener lokaler Passwort-Hash wird entfernt: Das Konto wird
@@ -339,13 +364,20 @@ function sso_attempt(): ?string
     $deny = access_denied_reason($id['user'], $id['groups'], $c);
     if ($deny !== null) return $deny;
 
-    $known = isset(users_all()[$id['user']]);
-    if (!$known && !$c['auto_create']) {
+    $existing = users_all()[$id['user']] ?? null;
+    $fremd = $existing !== null && ($existing['auth'] ?? 'local') !== 'sso';
+    if ($existing === null && !$c['auto_create'] || $fremd) {
         if ($c['approval_queue']) {
-            pending_user_note($id['user'], $id['display'] ?? null, $id['email'], $id['groups']);
-            return 'Dein Zugang ist noch nicht freigeschaltet. Die Anfrage liegt jetzt zur Prüfung vor.';
+            pending_user_note($id['user'], $id['display'] ?? null, $id['email'], $id['groups'],
+                $fremd ? 'kollision' : 'unbekannt');
+            return $fremd
+                ? 'Unter dieser Kennung gibt es bereits ein Konto mit anderer Anmeldeart. '
+                  . 'Die Verknüpfung muss ein Administrator bestätigen.'
+                : 'Dein Zugang ist noch nicht freigeschaltet. Die Anfrage liegt jetzt zur Prüfung vor.';
         }
-        return 'Für diese Kennung gibt es hier kein Konto.';
+        return $fremd
+            ? 'Unter dieser Kennung gibt es bereits ein Konto mit anderer Anmeldeart.'
+            : 'Für diese Kennung gibt es hier kein Konto.';
     }
 
     $err = user_provision($id['user'], 'sso', $id['email'], $id['groups'],
@@ -473,13 +505,20 @@ function ldap_login(string $username, string $password): ?string
     $deny = access_denied_reason($id['user'], $id['groups'], $c);
     if ($deny !== null) return $deny;
 
-    $known = isset(users_all()[$id['user']]);
-    if (!$known && !$c['auto_create']) {
+    $existing = users_all()[$id['user']] ?? null;
+    $fremd = $existing !== null && ($existing['auth'] ?? 'local') !== 'ldap';
+    if ($existing === null && !$c['auto_create'] || $fremd) {
         if ($c['approval_queue']) {
-            pending_user_note($id['user'], $id['display'] ?? null, $id['email'], $id['groups']);
-            return 'Dein Zugang ist noch nicht freigeschaltet. Die Anfrage liegt jetzt zur Prüfung vor.';
+            pending_user_note($id['user'], $id['display'] ?? null, $id['email'], $id['groups'],
+                $fremd ? 'kollision' : 'unbekannt');
+            return $fremd
+                ? 'Unter dieser Kennung gibt es bereits ein Konto mit anderer Anmeldeart. '
+                  . 'Die Verknüpfung muss ein Administrator bestätigen.'
+                : 'Dein Zugang ist noch nicht freigeschaltet. Die Anfrage liegt jetzt zur Prüfung vor.';
         }
-        return 'Für diese Kennung gibt es hier kein Konto.';
+        return $fremd
+            ? 'Unter dieser Kennung gibt es bereits ein Konto mit anderer Anmeldeart.'
+            : 'Für diese Kennung gibt es hier kein Konto.';
     }
 
     $err = user_provision($id['user'], 'ldap', $id['email'], $id['groups'],

@@ -48,11 +48,13 @@ function links_sharded(): bool
         // würde die Prüfung damit immer bejahen
         $dir = (string)cfg('data_dir');
         $base = $dir !== '' ? rtrim($dir, '/') : dirname(__DIR__) . '/data';
-        // Aufgeteilt ist der Normalfall. Nur wenn eine alte Sammeldatei
-        // vorliegt und noch keine Ablagen, wird weiter aus ihr gelesen –
-        // bis migrate-links.php gelaufen ist. Frische Instanzen starten
-        // damit sofort aufgeteilt.
-        $yes = is_dir($base . '/links') || !is_file($base . '/links.json');
+        // Ausschlaggebend ist eine ausdrückliche Markierung, nicht die bloße
+        // Existenz des Verzeichnisses. Sonst würde ein versehentlich
+        // angelegtes data/links/ eine noch nicht migrierte Instanz auf leere
+        // Ablagen umschalten: Die alten Links wären unsichtbar, neue landeten
+        // daneben. Die Markierung setzen nur die Migration und die erste
+        // Schreiboperation einer frischen Instanz.
+        $yes = is_file($base . '/links/.aufgeteilt') || !is_file($base . '/links.json');
     }
     return $yes;
 }
@@ -113,6 +115,12 @@ function link_store_files(): array
 function link_write(string $code, callable $fn): bool
 {
     $file = links_sharded() ? link_shard_file($code) : links_file();
+    // Frische Instanz: Markierung anlegen, sobald zum ersten Mal geschrieben
+    // wird. Ab da ist der Zustand ausdrücklich festgehalten.
+    if (links_sharded()) {
+        $marker = links_dir() . '/.aufgeteilt';
+        if (!is_file($marker)) file_put_contents($marker, "aufgeteilte Ablage, siehe inc/store.php\n");
+    }
     $changed = false;
     json_update($file, function (array $links) use ($code, $fn, &$changed) {
         $new = $fn($links[$code] ?? null);
@@ -148,18 +156,25 @@ function link_expired(array $link): bool
  * von der Link-Erstellung. Gesperrte Links bleiben bewusst bestehen, damit
  * ihre Codes nicht neu vergeben werden.
  */
+/**
+ * Wöchentliche Wartung, angestoßen von der Link-Erstellung statt von einem
+ * Cronjob. Läuft unabhängig davon, ob das Aufräumen der Links eingeschaltet
+ * ist – manches muss auch dann passieren.
+ */
 function links_gc(): void
 {
-    $years = (int)cfg('link_gc_years');
-    if ($years < 1) return;
-    $yearsLong = max($years, (int)cfg('link_gc_years_unreachable'));
-
     $marker = data_path() . '/links-gc.json';
     if (is_file($marker) && filemtime($marker) > time() - 7 * 86400) return;
     json_write($marker, ['last_run' => date('c')]);
 
     require_once __DIR__ . '/auth.php';
     require_once __DIR__ . '/mail.php';
+
+    verified_ip_gc();
+
+    $years = (int)cfg('link_gc_years');
+    if ($years < 1) return;
+    $yearsLong = max($years, (int)cfg('link_gc_years_unreachable'));
 
     // Kurze Frist nur, wo eine Warnung möglich ist; sonst die lange
     $deleteCutoff = strtotime('-' . $years . ' years');
@@ -185,10 +200,11 @@ function links_gc(): void
     foreach (links_all() as $code => $l) {
         $code = (string)$code;
         if (!empty($l['disabled'])) continue;
-        $clicks = clicks_get($code);
-        $lastUse = $clicks['last'] !== null
-            ? strtotime((string)$clicks['last'])
-            : strtotime((string)($l['created'] ?? ''));
+        // Nur der Zeitpunkt zählt – dafür genügt das Änderungsdatum der
+        // Klickdatei. Ein stat() statt Öffnen, Lesen und Dekodieren; bei
+        // vielen Links macht das den Unterschied zwischen Sekunden und Minuten.
+        $cf = clicks_file($code);
+        $lastUse = is_file($cf) ? filemtime($cf) : strtotime((string)($l['created'] ?? ''));
         if ($lastUse === false || $lastUse >= $warnCutoff) {
             // Wieder genutzt: eventuelle Warn-Markierung zurücksetzen
             if (isset($warned[$code])) unset($warned[$code]);
@@ -389,7 +405,11 @@ function clicks_bump(string $code): void
             ksort($days);
             $days = array_slice($days, -400, null, true);
         }
-        return ['n' => ($c['n'] ?? 0) + 1, 'last' => date('c'), 'days' => $days];
+        // Bewusst nur tagesgenau: Bei einem Link mit wenigen Aufrufen wäre ein
+        // sekundengenauer Zeitpunkt der einzige Wert im gesamten Bestand, über
+        // den sich ein einzelner Besuch zeitlich verorten – und mit anderen
+        // Quellen zusammenführen – ließe. Für „letzter Aufruf" genügt der Tag.
+        return ['n' => ($c['n'] ?? 0) + 1, 'last' => date('Y-m-d'), 'days' => $days];
     }, ['n' => 0, 'last' => null, 'days' => []]);
 }
 

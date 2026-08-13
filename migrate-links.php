@@ -8,44 +8,72 @@ declare(strict_types=1);
  * bei 100.000 Links rund 28 MB und 50 ms. Nach der Aufteilung liest er gut
  * hundert Kilobyte.
  *
- * Gefahrlos: Die Sammeldatei wird nicht gelöscht, sondern nur umbenannt.
- * Solange keine Ablagen existieren, liest die Anwendung weiter aus ihr –
- * die Instanz funktioniert also auch zwischen Dateiupload und Migration.
+ * Gefahrlos: Die Sammeldatei wird nicht gelöscht, sondern erst umbenannt,
+ * nachdem nachgezählt wurde. Solange keine Ablagen existieren, liest die
+ * Anwendung weiter aus ihr – die Instanz funktioniert also auch zwischen
+ * Dateiupload und Migration.
  *
- * Aufruf auf der Kommandozeile:
+ * Kommandozeile:
  *     php migrate-links.php --dry-run     Probelauf, ändert nichts
  *     php migrate-links.php               führt sie aus
  *
- * Oder im Browser, angemeldet als Administrator:
- *     /migrate-links.php                  Probelauf
- *     /migrate-links.php?run=1            führt sie aus
+ * Browser (als Administrator angemeldet): /migrate-links.php aufrufen.
+ * Der Probelauf läuft von selbst, das Ausführen verlangt einen Klick –
+ * bewusst per POST, damit sich der Vorgang nicht über ein eingebettetes
+ * Bild auf einer fremden Seite auslösen lässt.
  */
 require_once __DIR__ . '/inc/store.php';
 require_once __DIR__ . '/inc/auth.php';
 
 $cli = PHP_SAPI === 'cli';
+$run = false;
+
 if ($cli) {
-    $dry = in_array('--dry-run', $argv ?? [], true);
+    $run = !in_array('--dry-run', $argv ?? [], true);
 } else {
     auth_require_admin();
-    header('Content-Type: text/plain; charset=UTF-8');
-    $dry = ($_GET['run'] ?? '') !== '1';
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        csrf_check();
+        $run = ($_POST['run'] ?? '') === '1';
+    }
+}
+
+/** Ausgabe je nach Umgebung: Klartext auf der Kommandozeile, Seite im Browser */
+function fertig(string $titel, string $text, bool $cli, bool $knopf = false): never
+{
+    if ($cli) {
+        echo $text . "\n";
+        exit;
+    }
+    page_header($titel, true);
+    echo '<div class="card narrow-wide"><h1>' . e($titel) . '</h1>'
+        . '<div class="term">' . e($text) . '</div>';
+    if ($knopf) {
+        echo '<form method="post" action="" style="margin-top:1.2rem">' . csrf_field()
+            . '<input type="hidden" name="run" value="1">'
+            . '<button class="btn btn-primary" type="submit">Jetzt aufteilen</button>'
+            . '</form>'
+            . '<p class="muted small">Die alte Datei bleibt als Sicherung liegen.</p>';
+    }
+    echo '<p style="margin-top:1.2rem"><a class="btn" href="admin/settings.php">Zu den Einstellungen</a></p></div>';
+    page_footer();
+    exit;
 }
 
 $old = links_file();
 $dir = data_path() . '/links';
 
 if (is_dir($dir) && glob($dir . '/*.json') !== []) {
-    exit("Diese Instanz läuft bereits auf der aufgeteilten Ablage. Nichts zu tun.\n");
+    fertig('Nichts zu tun', 'Diese Instanz läuft bereits auf der aufgeteilten Ablage.', $cli);
 }
 if (!is_file($old)) {
-    exit("Keine links.json gefunden – eine frische Instanz legt die Ablagen selbst an.\n");
+    fertig('Nichts zu tun', 'Keine links.json gefunden – eine frische Instanz legt die Ablagen selbst an.', $cli);
 }
 
 $links = json_read($old);
 $n = count($links);
 if ($n === 0) {
-    exit("Die links.json enthält keine Einträge. Nichts zu tun.\n");
+    fertig('Nichts zu tun', 'Die links.json enthält keine Einträge.', $cli);
 }
 
 // Nach Ablagen sortieren
@@ -54,19 +82,16 @@ foreach ($links as $code => $l) {
     $buckets[link_shard((string)$code)][(string)$code] = $l;
 }
 ksort($buckets);
+$sizes = array_map('count', $buckets);
 
-printf("%s%d Links → %d Ablagen (%s KB Sammeldatei)\n",
-    $dry ? '[Probelauf] ' : '', $n, count($buckets), number_format(filesize($old) / 1024, 0, ',', '.'));
+$bericht = sprintf("%d Links → %d Ablagen (%s KB Sammeldatei)\n", $n, count($buckets),
+        number_format(filesize($old) / 1024, 0, ',', '.'))
+    . sprintf("Einträge je Ablage: kleinste %d, größte %d, Schnitt %.1f", min($sizes), max($sizes),
+        array_sum($sizes) / count($sizes));
 
-$sizes = array_map(fn($b) => count($b), $buckets);
-printf("  Einträge je Ablage: kleinste %d, größte %d, Schnitt %.1f\n",
-    min($sizes), max($sizes), array_sum($sizes) / count($sizes));
-
-if ($dry) {
-    echo "\nEs wurde nichts geändert.\n";
-    echo $cli ? "Zum echten Lauf ohne --dry-run aufrufen.\n"
-              : "Zum echten Lauf ?run=1 an die Adresse hängen.\n";
-    exit;
+if (!$run) {
+    fertig('Probelauf', "[Probelauf – nichts geändert]\n\n" . $bericht
+        . ($cli ? "\n\nZum echten Lauf ohne --dry-run aufrufen." : ''), $cli, !$cli);
 }
 
 if (!is_dir($dir)) mkdir($dir, 0700, true);
@@ -83,14 +108,16 @@ if ($check !== $n) {
     // Ablagen wieder entfernen; die Sammeldatei ist unberührt, es geht nichts verloren
     foreach (glob($dir . '/*.json') as $f) unlink($f);
     @rmdir($dir);
-    exit("ABBRUCH: $check von $n Links in den Ablagen. Nichts geändert, links.json unverändert.\n");
+    fertig('Abgebrochen', "ABBRUCH: $check von $n Links in den Ablagen.\n"
+        . 'Es wurde nichts geändert, links.json ist unverändert.', $cli);
 }
 
-// Erst jetzt zur Seite legen – ab hier greift die aufgeteilte Ablage
-$backup = $old . '.vor-aufteilung';
-rename($old, $backup);
+// Erst jetzt umschalten – die Markierung entscheidet, ab wann gelesen wird
+file_put_contents($dir . '/.aufgeteilt', "aufgeteilte Ablage, siehe inc/store.php\n");
+rename($old, $old . '.vor-aufteilung');
 
-echo "\nFertig: $n Links auf " . count($buckets) . " Ablagen verteilt.\n";
-echo "Die alte Datei liegt als " . basename($backup) . " daneben.\n";
-echo "Wenn alles läuft, kann sie weg – vorher ein paar Kurzlinks im Browser prüfen.\n";
-echo "Diese Migrationsdatei kann anschließend vom Server gelöscht werden.\n";
+fertig('Fertig', $bericht . "\n\n"
+    . "Fertig: $n Links verteilt.\n"
+    . "Die alte Datei liegt als links.json.vor-aufteilung daneben.\n"
+    . "Wenn alles läuft, kann sie weg – vorher ein paar Kurzlinks prüfen.\n"
+    . 'Diese Migrationsdatei kann anschließend vom Server gelöscht werden.', $cli);

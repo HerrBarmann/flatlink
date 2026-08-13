@@ -61,7 +61,9 @@ function auth_require(): array
 {
     auth_boot();
     $u = auth_user();
-    if ($u === null) redirect_to('login.php');
+    // Absolut, nicht relativ: Dateien außerhalb von admin/ landeten sonst auf
+    // einem /login.php, das es nicht gibt
+    if ($u === null) redirect_to(base_url() . '/admin/login.php');
     return $u;
 }
 
@@ -70,6 +72,7 @@ function auth_require_admin(): array
     $u = auth_require();
     if ($u['role'] !== 'admin') {
         http_response_code(403);
+        nosniff_header();
         exit('Nur für Administratoren.');
     }
     return $u;
@@ -280,6 +283,28 @@ function user_set_display_name(string $username, string $name): ?string
         return $users;
     });
     return $err;
+}
+
+/**
+ * Den Double-Opt-In-Nachweis nach zwölf Monaten entfernen.
+ *
+ * Der Zeitpunkt der Bestätigung bleibt; nur der IP-Hash fällt weg. Er ist
+ * pseudonym, nicht anonym – ihn unbefristet aufzubewahren wäre für einen
+ * Nachweis, den niemand mehr anzweifelt, nicht zu rechtfertigen.
+ */
+function verified_ip_gc(): void
+{
+    $grenze = date('c', strtotime('-12 months'));
+    json_update(users_file(), function (array $users) use ($grenze) {
+        $touched = false;
+        foreach ($users as $k => $u) {
+            if (isset($u['verified_ip']) && (string)($u['verified'] ?? '') < $grenze) {
+                unset($users[$k]['verified_ip']);
+                $touched = true;
+            }
+        }
+        return $touched ? $users : null;
+    });
 }
 
 /** Anzahl der Administratoren – für den Schutz vor dem Aussperren */

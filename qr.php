@@ -164,6 +164,12 @@ $renderer = new QrRenderer($qr, [
     'brandGlyphSvg' => $glyphSvg, 'brandGlyphPng' => $glyphPng,
 ]);
 
+// Bilder brauchen keine Skripte, keine Formulare, keine Einbettung. Ein SVG
+// wird bei 'inline' als eigenes Dokument gerendert – die strenge Richtlinie
+// fängt dort einen künftigen Fehler auf, bevor er wirken kann.
+header("Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline'; img-src data:; sandbox");
+nosniff_header();
+
 $disposition = qin('download') !== null ? 'attachment' : 'inline';
 header('Cache-Control: public, max-age=300');
 if ($format === 'png') {

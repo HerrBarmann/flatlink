@@ -226,6 +226,7 @@ function csrf_check(): void
     $sent = $_POST['_csrf'] ?? '';
     if (!is_string($sent) || empty($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $sent)) {
         http_response_code(400);
+        nosniff_header();
         exit('Ungültiges Formular-Token. Bitte Seite neu laden und erneut versuchen.');
     }
 }
@@ -309,10 +310,26 @@ function instance_secret(): string
         $secret = trim((string)file_get_contents($file));
         if ($secret !== '') return $secret;
     }
+    // Atomar über Tempdatei plus rename – sonst könnten zwei gleichzeitige
+    // Erstaufrufe je ein Geheimnis erzeugen und das zweite das erste
+    // überschreiben; bereits geschriebene Hashes zeigten dann ins Leere.
     $secret = bin2hex(random_bytes(32));
-    file_put_contents($file, $secret, LOCK_EX);
-    @chmod($file, 0600);
-    return $secret;
+    $tmp = $file . '.tmp.' . bin2hex(random_bytes(4));
+    $written = file_put_contents($tmp, $secret);
+    if ($written === false || $written !== strlen($secret)) {
+        @unlink($tmp);
+        // Stillschweigend weiterzumachen hieße: bei jedem Aufruf ein neues
+        // Geheimnis, und Rate-Limit wie Login-Sperre fielen unbemerkt aus.
+        throw new RuntimeException('Geheimnis der Instanz lässt sich nicht schreiben – ist ' . basename(dirname($file)) . ' beschreibbar?');
+    }
+    @chmod($tmp, 0600);
+    // Gewinnt ein anderer Prozess das Rennen, gilt dessen Geheimnis
+    if (!rename($tmp, $file)) {
+        @unlink($tmp);
+        throw new RuntimeException('Geheimnis der Instanz lässt sich nicht ablegen.');
+    }
+    clearstatcache(true, $file);
+    return $secret = trim((string)file_get_contents($file));
 }
 
 /**
@@ -379,6 +396,16 @@ function bucket_rate_ok(string $bucket, int $limit): bool
  * style-Attribute im Markup; sie zu entfernen wäre viel Arbeit für wenig
  * Gewinn, denn ein style-Attribut kann keinen Code ausführen.
  */
+/**
+ * Die eine Kopfzeile, die auf JEDER Antwort stehen sollte – auch auf Bildern
+ * und kurzen Fehlerausgaben. Sie verhindert, dass der Browser den Inhaltstyp
+ * errät und etwas als HTML ausführt, das als Bild oder Text gemeint war.
+ */
+function nosniff_header(): void
+{
+    if (!headers_sent()) header('X-Content-Type-Options: nosniff');
+}
+
 function security_headers(): void
 {
     if (headers_sent()) return;

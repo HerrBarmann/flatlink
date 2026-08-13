@@ -61,7 +61,7 @@ page_header('Statistik', true);
     <div class="stat-row">
         <div class="stat"><strong><?= (int)$clicks['n'] ?></strong><span>Klicks gesamt</span></div>
         <div class="stat"><strong><?= array_sum($series) ?></strong><span>letzte 30 Tage</span></div>
-        <div class="stat"><strong><?= $clicks['last'] ? e(date('d.m.Y H:i', strtotime($clicks['last']))) : '–' ?></strong><span>letzter Klick</span></div>
+        <div class="stat"><strong><?= $clicks['last'] ? e(date('d.m.Y', strtotime($clicks['last']))) : '–' ?></strong><span>letzter Klick</span></div>
         <div class="stat"><strong><?= e(date('d.m.Y', strtotime($link['created']))) ?></strong><span>erstellt</span></div>
     </div>
 

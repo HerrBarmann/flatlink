@@ -23,13 +23,18 @@ Weil praktisch jeder andere protokolliert, wer klickt. flatlink speichert pro
 Kurzlink genau das hier – vollständig, nicht gekürzt:
 
 ```json
-{ "n": 42, "last": "2026-08-13T10:22:00+02:00", "days": { "2026-08-13": 7 } }
+{ "n": 42, "last": "2026-08-13", "days": { "2026-08-13": 7 } }
 ```
 
 Ein Zähler pro Tag. Kein Datensatz für einzelne Aufrufe, also auch keine
 IP-Adressen, keine Geräte- oder Browser-Kennungen und keine Referrer. Aus
 diesen Daten lässt sich kein einzelner Besucher rekonstruieren, weil nie ein
 einzelner Besucher gespeichert wird.
+
+Auch der letzte Aufruf steht nur tagesgenau da. Bei einem Link mit einer
+Handvoll Aufrufe wäre eine Uhrzeit sonst der einzige Wert im ganzen Bestand,
+über den sich ein einzelner Besuch zeitlich verorten – und mit anderen Quellen
+zusammenführen – ließe.
 
 Das ist keine Absichtserklärung, sondern in
 [`inc/store.php`](inc/store.php) in etwa zehn Zeilen nachlesbar

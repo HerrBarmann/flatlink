@@ -99,6 +99,17 @@ show_flash();
             <td>
                 <strong><?= e($e['display'] ?? '(kein Name übermittelt)') ?></strong>
                 <?php if (!empty($e['email'])): ?><br><span class="muted small"><?= e($e['email']) ?></span><?php endif; ?>
+                <?php if (($e['reason'] ?? '') === 'kollision'):
+                    $vorhanden = users_all()[$key] ?? null; ?>
+                <div class="flash flash-err small" style="margin:0.4rem 0 0">
+                    <strong>Achtung:</strong> Unter dieser Kennung gibt es hier bereits ein Konto
+                    (Anmeldung: <?= e(match ($vorhanden['auth'] ?? 'local') {
+                        'ldap' => 'LDAP', 'sso' => 'SSO', default => 'lokales Passwort' }) ?>,
+                    Rolle: <?= e($vorhanden['role'] ?? '?') ?>).
+                    Freischalten verknüpft beide: Das bisherige Passwort verfällt, und die Rolle
+                    wird auf <em>user</em> zurückgesetzt. Nur bestätigen, wenn es dieselbe Person ist.
+                </div>
+                <?php endif; ?>
             </td>
             <td class="small" style="font-family:var(--mono)" title="<?= e((string)$key) ?>">
                 <?= e(mb_strimwidth((string)$key, 0, 34, '…')) ?></td>

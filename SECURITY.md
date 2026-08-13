@@ -65,6 +65,31 @@ halber:
 - **Die Ablage ist dateibasiert.** Kurzlinks liegen auf 256 Ablagen verteilt,
   der Lookup liest nur eine davon. Bei sehr vielen gleichzeitigen
   Schreibzugriffen bleibt eine Datenbank trotzdem die bessere Wahl.
+- **Das Anlegen eines Kurzlinks liest alle 256 Ablagen.** Nur dort, wo Limits
+  zu prüfen sind – der Weiterleitungspfad, auf den es ankommt, bleibt bei einer
+  Datei. Bei sechsstelligen Beständen wird die Erstellung spürbar langsamer;
+  wer dorthin kommt, sollte auf Zählerdateien je Konto umstellen.
+- **Klick-Zeitstempel sind bewusst nur tagesgenau.** Der Zähler hält fest, wie
+  oft ein Link insgesamt und je Kalendertag aufgerufen wurde, dazu den Tag des
+  letzten Aufrufs – keine Uhrzeit, keine IP, keinen User-Agent, keinen Referrer
+  und keinen Datensatz je Aufruf. Ein sekundengenauer Zeitpunkt wäre bei einem
+  selten aufgerufenen Link der einzige Wert im Bestand, über den sich ein
+  einzelner Besuch zeitlich verorten ließe. Wer feinere Statistik braucht, baut
+  sie über `inc/local.php` an – und passt die Datenschutzerklärung an.
+
+## Aufbewahrung
+
+Was von selbst wieder verschwindet, ohne Cronjob – angestoßen von der
+Link-Erstellung, höchstens einmal pro Woche:
+
+| Daten | Frist |
+| --- | --- |
+| Tageswerte des Klickzählers | 400 Tage |
+| IP-Hash des Double-Opt-In (`verified_ip`) | 12 Monate |
+| Rate-Limit- und Login-Sperr-Einträge | 24 Stunden |
+| Offene Registrierungen, E-Mail-Wechsel | 24 Stunden |
+| Passwort-Reset-Vorgänge | 1 Stunde |
+| Lange ungenutzte Kurzlinks | `link_gc_years`, aus (Vorwarnung per Mail) |
 
 ## Bisherige Meldungen
 
@@ -82,3 +107,10 @@ halber:
 | 13.08.2026 | `qr.php` liest aus `$_REQUEST` | behoben |
 | 13.08.2026 | Zu weite Dateirechte auf Shared Hosting | behoben (0700/0600) |
 | 13.08.2026 | Vollständiger Parse von `links.json` bei jedem Redirect | behoben (256 Ablagen) |
+| 13.08.2026 | Externe Anmeldung übernimmt gleichnamiges lokales Konto | behoben (Freigabe nötig) |
+| 13.08.2026 | `migrate-links.php` ohne POST/CSRF auslösbar | behoben |
+| 13.08.2026 | Fehlendes `X-Content-Type-Options` auf `qr.php` | behoben |
+| 13.08.2026 | Wettlauf beim Anlegen von `data/secret.key` | behoben (atomar) |
+| 13.08.2026 | Leeres `data/links/` schaltet nicht migrierte Instanz um | behoben (Markierung) |
+| 13.08.2026 | Sekundengenauer Zeitstempel des letzten Klicks | behoben (tagesgenau) |
+| 13.08.2026 | `verified_ip` unbefristet gespeichert | behoben (12 Monate) |
