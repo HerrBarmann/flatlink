@@ -1,0 +1,141 @@
+/* ---------------------------------------------------------------------------
+   Eigenes Aussehen für diese flatlink-Instanz.
+
+   Diese Datei nach assets/custom.css kopieren:
+
+       cp assets/custom.example.css assets/custom.css
+
+   Sie wird nach dem Standard-Stylesheet geladen, überschreibt es damit und
+   ist vom Update ausgenommen – ein `git pull` fasst sie nie an.
+
+   Ausführliche Anleitung: CUSTOMIZATION.md
+   --------------------------------------------------------------------------- */
+
+
+/* === 1. Farben ============================================================
+   Der schnellste Weg zum eigenen Auftritt: Alle Farben der Oberfläche hängen
+   an diesen acht Variablen. Wer sie ersetzt, hat die Instanz umgefärbt, ohne
+   eine einzige Regel anzufassen.
+
+   Die Werte unten sind der Auslieferungszustand – ersetz sie durch deine.  */
+
+:root {
+    --paper:        #FBFBFC;   /* Seitengrund */
+    --surface:      #F3F4F6;   /* Karten und Flächen */
+    --ink:          #16181D;   /* Text und Ränder */
+    --muted:        #5C6270;   /* Sekundärtext, Beschriftungen */
+    --line:         #DFE1E6;   /* Trennlinien */
+    --accent:       #3B6EA8;   /* Signalfarbe: Hauptaktion, Erfolg */
+    --accent-deep:  #2C5480;   /* Akzent als Text auf hellem Grund */
+    --accent-tint:  #E8EFF7;   /* Hover, hervorgehobene Zeilen */
+    --on-accent:    #FFFFFF;   /* Text auf gefüllter Akzentfläche */
+
+    --radius: 6px;             /* Rundung von Karten und Feldern */
+}
+
+/* Dunkles Erscheinungsbild. Nicht einfach die hellen Werte umdrehen – dunkle
+   Flächen brauchen einen kräftigeren Akzent, damit er nicht absäuft. */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --paper:       #101216;
+        --surface:     #191C22;
+        --ink:         #E7E9EE;
+        --muted:       #949AA6;
+        --line:        #2A2E37;
+        --accent:      #5B9BD8;
+        --accent-deep: #8CBCE8;
+        --accent-tint: #1A222C;
+        --on-accent:   #101216;
+    }
+}
+
+/* Wer bewusst nur ein helles Erscheinungsbild anbietet, entfernt den Block
+   oben und setzt zusätzlich:
+
+   :root { color-scheme: light; }
+*/
+
+
+/* === 2. Schrift ===========================================================
+   Zwei Familien: --mono für alles Produkthafte (Kopfzeile, Kurzlinks, Codes,
+   Schaltflächen, Beschriftungen), die zweite für Fließtext.
+
+   Ohne eigene Schriftdatei bleibt es bei den Systemschriften – das ist
+   schnell, datensparsam und sieht auf jeder Plattform stimmig aus.        */
+
+/*
+:root {
+    --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+body {
+    font-family: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+}
+*/
+
+/* Eigene Schriftdatei einbinden (Datei nach assets/fonts/ legen).
+   Bitte selbst hosten statt über ein CDN einzubinden: Ein externer
+   Schrift-Dienst sieht die IP-Adresse jedes Besuchers – bei einem Dienst,
+   der mit Datensparsamkeit wirbt, wäre das ein Eigentor.                  */
+
+/*
+@font-face {
+    font-family: "Meine Schrift";
+    src: url("fonts/meine-schrift.woff2") format("woff2");
+    font-weight: 400;
+    font-display: swap;
+}
+*/
+
+
+/* === 3. Kopfzeile =========================================================
+   Ein eigenes Logo wird über 'logo' in inc/config.php eingebunden, nicht
+   hier. Diese Regeln bestimmen nur, wie groß es erscheint.                */
+
+/*
+.brand-logo { height: 2.2em; }
+.brand { font-size: 1.15rem; }
+*/
+
+/* Kopfzeile farbig hinterlegen */
+/*
+.site-head {
+    background: var(--accent);
+    border-bottom: 0;
+    padding-inline: 1rem;
+    margin-inline: -1rem;
+}
+.site-head .brand,
+.site-head nav a { color: var(--on-accent); }
+*/
+
+
+/* === 4. Form ==============================================================
+   Kantig statt rund, oder umgekehrt.                                      */
+
+/*
+:root { --radius: 0; }
+.btn { border-radius: 0; }
+*/
+
+/* Karten mit dezentem Schatten statt Rahmen */
+/*
+.card {
+    border-color: transparent;
+    box-shadow: 0 1px 3px rgb(0 0 0 / 0.08), 0 1px 2px rgb(0 0 0 / 0.04);
+}
+*/
+
+
+/* === 5. Einzelne Bereiche =================================================
+   Nützliche Klassen, falls du gezielt eingreifen willst:
+
+     .site-head / .site-foot   Kopf- und Fußzeile
+     .hero                     Titelbereich der Startseite
+     .card                     Karten (Formulare, Listen, Hinweise)
+     .card.highlight           hervorgehobene Karte
+     .btn / .btn-primary       Schaltflächen
+     .flash-ok / .flash-err    Rückmeldungen
+     .tag / .tag-on            Gruppen-Kennzeichen
+     .table-scroll table       Tabellen
+     .origin                   Herkunftszeile im Fuß
+     .designer                 zweispaltiges Layout des QR-Designers        */

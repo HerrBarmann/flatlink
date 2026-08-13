@@ -64,6 +64,9 @@ code, .prefix { font-family: var(--mono); }
 }
 .brand svg, .brand img { display: block; }
 .brand:hover { text-decoration: none; }
+/* Eigenes Logo aus der Konfiguration – die Höhe bestimmt die Größe,
+   die Breite ergibt sich aus dem Seitenverhältnis */
+.brand-logo { height: 1.7em; width: auto; max-width: 12rem; }
 .site-head nav { display: flex; align-items: center; gap: 0.9rem; flex-wrap: wrap; }
 .site-head nav a { color: var(--ink); }
 .who, .site-head nav a.who { color: var(--muted); font-family: var(--mono); font-size: 0.85rem; }

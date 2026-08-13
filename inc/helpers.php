@@ -247,9 +247,27 @@ function page_header(string $title, bool $admin = false, ?string $desc = null, ?
     if ($admin) {
         echo '<meta name="robots" content="noindex">';
     }
-    echo '<link rel="stylesheet" href="' . $root . '/assets/style.css">'
-        . '</head><body><div class="wrap">';
-    echo '<header class="site-head"><a class="brand" href="' . $root . '/">' . $site . '</a>';
+    echo '<link rel="stylesheet" href="' . $root . '/assets/style.css">';
+    // Eigenes Aussehen: assets/custom.css wird nach dem Standard-Stylesheet
+    // geladen und überschreibt es damit. Die Datei ist per .gitignore
+    // ausgenommen und übersteht jedes Update. Der Zeitstempel im
+    // Query-String sorgt dafür, dass Browser Änderungen sofort sehen.
+    $custom = dirname(__DIR__) . '/assets/custom.css';
+    if (is_file($custom)) {
+        echo '<link rel="stylesheet" href="' . $root . '/assets/custom.css?v=' . filemtime($custom) . '">';
+    }
+    $favicon = (string)cfg('favicon');
+    if ($favicon !== '') {
+        echo '<link rel="icon" href="' . $root . '/assets/' . e($favicon) . '">';
+    }
+    echo '</head><body><div class="wrap">';
+
+    // Wortmarke, optional mit eigenem Logo davor
+    $logo = (string)cfg('logo');
+    $mark = $logo !== ''
+        ? '<img class="brand-logo" src="' . $root . '/assets/' . e($logo) . '" alt="">' . $site
+        : $site;
+    echo '<header class="site-head"><a class="brand" href="' . $root . '/">' . $mark . '</a>';
     // Einheitliche, session-sensitive Navigation auf allen Seiten.
     // (Seiten ohne Session-Start – z. B. die 404-Seite des Redirect-Handlers –
     // zeigen die Gast-Variante; der heiße Redirect-Pfad bleibt Session-frei.)
@@ -313,9 +331,18 @@ function origin_note(): string
 function page_footer(): void
 {
     $root = $GLOBALS['_page_root'] ?? '.';
+    $links = '<a href="' . $root . '/report.php">Missbrauch melden</a>';
+    // Eigene Fußzeilen-Links aus der Konfiguration – hier gehören Impressum
+    // und Datenschutzerklärung hin, zu denen öffentliche Instanzen je nach
+    // Land verpflichtet sind. Relative Ziele werden auf den Webroot bezogen.
+    foreach ((array)cfg('footer_links') as $label => $url) {
+        $href = preg_match('#^(https?:)?//#', (string)$url) === 1
+            ? (string)$url
+            : $root . '/' . ltrim((string)$url, '/');
+        $links .= ' · <a href="' . e($href) . '">' . e((string)$label) . '</a>';
+    }
     echo '</main><footer class="site-foot"><p>' . e(cfg('site_name'))
-        . ' · <a href="' . $root . '/report.php">Missbrauch melden</a>'
-        . '</p>' . origin_note() . '</footer></div></body></html>';
+        . ' · ' . $links . '</p>' . origin_note() . '</footer></div></body></html>';
 }
 
 function flash(?string $msg = null, string $type = 'ok'): ?array

@@ -132,6 +132,10 @@ automatisch die Admin-Rolle.
 > Directory, die komplette Shibboleth-Einrichtung inklusive Apache und
 > Attributfreigabe – dazu Betrieb, Sicherung und eine Tabelle mit den
 > häufigsten Stolpersteinen.
+>
+> **Eigene Farben, eigenes Logo?** Das beschreibt die
+> **[Anpassungs-Anleitung](CUSTOMIZATION.md)** – updatesicher über
+> `assets/custom.css`, ohne den Quelltext anzufassen.
 
 ## Konfiguration
 

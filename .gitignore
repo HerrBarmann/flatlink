@@ -7,6 +7,9 @@ data/
 # Optionale Schrift für die PNG-Beschriftung (selbst hinzufügen, Lizenz beachten)
 assets/fonts/
 
+# Eigenes Aussehen der Instanz – bleibt beim Update unangetastet
+assets/custom.css
+
 .DS_Store
 *.tmp.*
 *.lock

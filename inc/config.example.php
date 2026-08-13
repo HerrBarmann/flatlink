@@ -65,6 +65,30 @@ return [
     // nicht – wer sie nicht möchte, setzt hier false.
     'show_origin' => true,
 
+    // ---- Aussehen ----
+    // Ausführlich beschrieben in CUSTOMIZATION.md.
+    //
+    // Farben, Schriften und Abstände ändert man nicht hier, sondern in
+    // assets/custom.css: Diese Datei wird nach dem Standard-Stylesheet geladen,
+    // überschreibt es damit und ist vom Update ausgenommen. Vorlage zum
+    // Kopieren: assets/custom.example.css
+
+    // Eigenes Logo in der Kopfzeile. Dateiname innerhalb von assets/,
+    // leer = nur der Name der Instanz. SVG oder PNG, etwa 'logo.svg'.
+    'logo' => '',
+
+    // Eigenes Favicon, ebenfalls ein Dateiname innerhalb von assets/.
+    'favicon' => '',
+
+    // Zusätzliche Links im Seitenfuß, Beschriftung => Ziel. Hier gehören
+    // Impressum und Datenschutzerklärung hin, zu denen öffentliche Instanzen
+    // je nach Land verpflichtet sind. Relative Ziele beziehen sich auf den
+    // Webroot, absolute (https://…) führen nach außen.
+    'footer_links' => [
+        // 'Impressum'   => 'impressum.html',
+        // 'Datenschutz' => 'https://example.org/datenschutz',
+    ],
+
     // ---- Automatisches Aufräumen ungenutzter Links ----
     // Löscht Links, die über den gesamten Zeitraum kein einziges Mal aufgerufen
     // wurden. Jeder Aufruf setzt die Frist zurück. Die kurze Frist gilt für
