@@ -101,6 +101,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ($action === 'display') {
         $err = user_set_display_name($user['name'], (string)($_POST['display_name'] ?? ''));
         flash($err ?? 'Anzeigename gespeichert.', $err === null ? 'ok' : 'err');
+    } elseif ($extern) {
+        // Zentral verwaltete Konten haben hier keinen Passwort-Hash. Ein lokal
+        // gesetztes Passwort brächte nichts: Die Anmeldung weist solche Konten
+        // ab, und die nächste Anmeldung über das Verzeichnis löscht den Hash
+        // ohnehin wieder.
+        flash('Dein Passwort verwaltet die zentrale Anmeldung – hier lässt es sich nicht ändern.', 'err');
     } else {
         $current = (string)($_POST['current'] ?? '');
         $new = (string)($_POST['new'] ?? '');
@@ -174,9 +180,17 @@ show_flash();
     <?php $email = users_all()[$user['name']]['email'] ?? null; ?>
     <?php if ($email !== null): ?>
         <p class="muted small">Hinterlegt: <strong><?= e($email) ?></strong> – wird für Login und Passwort-Reset verwendet.</p>
-    <?php else: ?>
+    <?php elseif (!$extern): ?>
         <p class="muted small"><strong>Keine E-Mail hinterlegt.</strong> Ohne bestätigte Adresse funktioniert
         der Passwort-Reset für dieses Konto nicht.</p>
+    <?php else: ?>
+        <p class="muted small"><strong>Keine E-Mail hinterlegt.</strong> Ohne Adresse erreichen dich
+        keine Hinweise des Dienstes – etwa die Vorwarnung, bevor ein lange ungenutzter Link
+        aufgeräumt wird.</p>
+    <?php endif; ?>
+    <?php if ($extern): ?>
+        <p class="muted small">Liefert die zentrale Anmeldung eine Adresse mit, überschreibt sie eine
+        hier eingetragene bei der nächsten Anmeldung. Tut sie das nicht, bleibt deine Eintragung stehen.</p>
     <?php endif; ?>
     <form method="post" action="">
         <?= csrf_field() ?>
@@ -189,7 +203,11 @@ show_flash();
         <p class="muted small">Wir schicken einen Link an die neue Adresse – erst nach dem Klick ist sie aktiv.</p>
     </form>
 
-    <h2>Passwort ändern</h2>
+    <h2>Passwort</h2>
+    <?php if ($extern): ?>
+        <p class="muted small">Dein Passwort verwaltet die zentrale Anmeldung – hier gibt es keins,
+        das sich ändern ließe. Wende dich dafür an die Stelle, über die du dich anmeldest.</p>
+    <?php else: ?>
     <form method="post" action="">
         <?= csrf_field() ?>
         <input type="hidden" name="action" value="password">
@@ -201,6 +219,7 @@ show_flash();
         <input id="p-repeat" type="password" name="repeat" required minlength="8" autocomplete="new-password">
         <p><button class="btn btn-primary" type="submit">Passwort ändern</button></p>
     </form>
+    <?php endif; ?>
 
     <h2>Deine Daten</h2>
     <p class="muted small">Alles, was über dieses Konto gespeichert ist, als JSON-Datei:

@@ -319,6 +319,16 @@ gemacht wurde, bleibt es. Und ein Konto, das zentral verwaltet wird, kann sich
 nicht mehr über das lokale Passwortformular anmelden – sonst wäre die zentrale
 Anmeldung über ein altes Passwort umgehbar.
 
+### Was zentral verwaltete Konten im Profil können
+
+Wer sich über LDAP oder den Webserver anmeldet, hat hier keinen Passwort-Hash –
+die Anmeldung weist solche Konten lokal ab, und jede Anmeldung über das
+Verzeichnis entfernt einen etwaigen Alt-Hash. Das Profil zeigt darum kein
+Passwortformular, sondern den Hinweis, wo das Passwort hingehört. Ebenso beim
+Anzeigenamen: Liefert das Verzeichnis einen, gewinnt er. Eine E-Mail-Adresse
+lässt sich dagegen eintragen – sie wird nur überschrieben, wenn das Verzeichnis
+selbst eine mitliefert.
+
 ### Auskunft, Mitnahme, Löschung
 
 Im Profil steht beides ohne Umweg über den Betreiber:
