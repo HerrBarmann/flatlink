@@ -34,6 +34,23 @@
         }
     });
 
+    // Die Verwaltungsklappe schließt sich, wenn daneben oder Escape geklickt
+    // wird. Ohne JavaScript bleibt sie offen, bis man sie wieder anklickt –
+    // funktioniert also auch dann, nur weniger geschmeidig.
+    document.addEventListener('click', function (e) {
+        document.querySelectorAll('details.nav-more[open]').forEach(function (d) {
+            if (!d.contains(e.target)) d.open = false;
+        });
+    });
+    document.addEventListener('keydown', function (e) {
+        if (e.key !== 'Escape') return;
+        document.querySelectorAll('details.nav-more[open]').forEach(function (d) {
+            d.open = false;
+            var s = d.querySelector('summary');
+            if (s) s.focus();
+        });
+    });
+
     // Wiederholbare Feldzeilen: <button data-add-row="#container"> hängt eine
     // Kopie der letzten Zeile an, <button data-remove-row> entfernt die eigene.
     // Die letzte Zeile bleibt immer stehen – ein Formular ganz ohne Felder wäre

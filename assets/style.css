@@ -84,6 +84,42 @@ code, .prefix { font-family: var(--mono); }
 .site-head nav { display: flex; align-items: center; gap: 0.9rem; flex-wrap: wrap; }
 .site-head nav a { color: var(--ink); }
 .who, .site-head nav a.who { color: var(--muted); font-family: var(--mono); font-size: 0.85rem; }
+/* Verwaltungsklappe in der Kopfzeile. <details> statt eines eigenen Menüs:
+   funktioniert ohne JavaScript, und die Content-Security-Policy braucht keine
+   Ausnahme. Das Skript schließt sie nur zusätzlich beim Klick daneben. */
+.nav-more { position: relative; display: inline-block; }
+.nav-more > summary {
+    list-style: none; cursor: pointer; color: var(--ink);
+    display: inline-flex; align-items: center; gap: 0.3rem;
+}
+.nav-more > summary::-webkit-details-marker { display: none; }
+.nav-more > summary::after { content: "▾"; color: var(--muted); font-size: 0.85em; }
+.nav-more > summary:hover { text-decoration: underline; }
+.nav-more > summary.here { font-weight: 600; }
+.nav-panel {
+    position: absolute; right: 0; top: calc(100% + 0.5rem); z-index: 20;
+    display: grid; min-width: 11rem;
+    background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius);
+    box-shadow: 0 6px 20px rgb(0 0 0 / 0.12);
+    padding: 0.3rem;
+}
+.nav-panel a { padding: 0.45rem 0.7rem; border-radius: 4px; white-space: nowrap; }
+.nav-panel a:hover { background: var(--accent-tint); text-decoration: none; }
+.nav-panel a.here { background: var(--accent-tint); font-weight: 600; }
+
+/* Auf schmalen Schirmen kein schwebendes Panel: Es hängt an der Klappe, und
+   sobald die nach dem Umbruch links steht, ragt es aus dem Bild. Dort klappt es
+   stattdessen in der Zeile auf – kann nicht überlaufen und ist mit dem Daumen
+   leichter zu treffen. */
+@media (max-width: 560px) {
+    .nav-more[open] { flex-basis: 100%; }
+    .nav-panel {
+        position: static; box-shadow: none; min-width: 0;
+        margin-top: 0.4rem; width: 100%;
+    }
+    .nav-panel a { padding: 0.6rem 0.7rem; }
+}
+
 .site-foot {
     margin-top: 3rem; padding-top: 1.2rem; border-top: 1px solid var(--line);
     color: var(--muted); font-size: 0.8rem; text-align: center;

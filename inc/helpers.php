@@ -525,7 +525,7 @@ function page_header(string $title, bool $admin = false, ?string $desc = null, ?
     $u = function_exists('auth_user') ? auth_user() : null;
     $adm = $admin ? '' : 'admin/'; // Pfad zum Login-Bereich
     $pub = $admin ? '../' : '';    // Pfad zu öffentlichen Seiten
-    echo '<nav>';
+    echo '<nav>';  // umbruchfähig; die Verwaltungsklappe darf auf schmalen Schirmen eine eigene Zeile bekommen
     // Zusätzliche Einträge dieser Instanz. 'nav_links' erscheint immer,
     // 'nav_links_guest' nur für Nichtangemeldete – nützlich für Seiten, die
     // im Login-Bereich ohnehin über einen eigenen Punkt erreichbar sind.
@@ -546,10 +546,24 @@ function page_header(string $title, bool $admin = false, ?string $desc = null, ?
             echo '<a href="' . $adm . 'bio.php">Link-in-Bio</a> ';
         }
         if ($u['role'] === 'admin') {
-            echo '<a href="' . $adm . 'users.php">Nutzer</a> '
-                . '<a href="' . $adm . 'groups.php">Gruppen</a> '
-                . '<a href="' . $adm . 'reports.php">Meldungen</a> '
-                . '<a href="' . $adm . 'settings.php">Einstellungen</a> ';
+            // Die vier Verwaltungspunkte hinter einer Klappe. Sie werden selten
+            // gebraucht, machten aber die Hälfte der Kopfzeile aus – auf dem
+            // Handy brach sie dadurch auf drei Zeilen um.
+            $verwaltung = [
+                'users.php' => 'Nutzer',
+                'groups.php' => 'Gruppen',
+                'reports.php' => 'Meldungen',
+                'settings.php' => 'Einstellungen',
+            ];
+            $hier = basename((string)($_SERVER['SCRIPT_NAME'] ?? ''));
+            $drin = isset($verwaltung[$hier]);
+            echo '<details class="nav-more"><summary' . ($drin ? ' class="here"' : '') . '>'
+                . ($drin ? e($verwaltung[$hier]) : 'Verwaltung') . '</summary><div class="nav-panel">';
+            foreach ($verwaltung as $datei => $label) {
+                echo '<a href="' . $adm . $datei . '"' . ($datei === $hier ? ' class="here"' : '') . '>'
+                    . e($label) . '</a>';
+            }
+            echo '</div></details> ';
         }
         echo '<a class="who" href="' . $adm . 'profile.php" title="Profil / Passwort ändern">'
             . e(mb_strimwidth($u['display'] ?? $u['name'], 0, 28, '…')) . '</a> '
