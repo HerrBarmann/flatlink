@@ -41,6 +41,33 @@ function users_exist(): bool
     return users_all() !== [];
 }
 
+/**
+ * Wer wartet gerade auf die zweite Stufe?
+ *
+ * Der Zustand verfällt nach zehn Minuten – wer die Anmeldung offen liegen
+ * lässt, soll sie nicht Stunden später an derselben Sitzung fortsetzen können.
+ */
+function auth_pending(): ?string
+{
+    $n = $_SESSION['pending_user'] ?? null;
+    if (!is_string($n)) return null;
+    if ((int)($_SESSION['pending_since'] ?? 0) < time() - 600) {
+        unset($_SESSION['pending_user'], $_SESSION['pending_since']);
+        return null;
+    }
+    return isset(users_all()[$n]) ? $n : null;
+}
+
+/** Zweite Stufe bestanden: aus dem wartenden wird ein angemeldeter Zustand */
+function auth_pending_complete(): void
+{
+    $n = auth_pending();
+    if ($n === null) return;
+    session_regenerate_id(true);
+    unset($_SESSION['pending_user'], $_SESSION['pending_since'], $_SESSION['csrf']);
+    $_SESSION['user'] = $n;
+}
+
 /** @return ?array{name:string,role:string,auth:string,display:string} */
 function auth_user(): ?array
 {
@@ -57,13 +84,30 @@ function auth_user(): ?array
     ];
 }
 
-function auth_require(): array
+/**
+ * Angemeldetes Konto verlangen.
+ *
+ * $frei nimmt Seiten aus, die auch ohne eingerichtete zweite Stufe erreichbar
+ * bleiben müssen – sonst führte der Zwang zu ihrer Einrichtung im Kreis.
+ */
+function auth_require(bool $frei = false): array
 {
     auth_boot();
     $u = auth_user();
     // Absolut, nicht relativ: Dateien außerhalb von admin/ landeten sonst auf
     // einem /login.php, das es nicht gibt
     if ($u === null) redirect_to(base_url() . '/admin/login.php');
+
+    // Verlangt die Instanz die zweite Stufe, führt der Weg zuerst dorthin.
+    // Nicht aussperren, sondern hinführen: Wer sie nicht eingerichtet hat, hat
+    // meist nur noch nichts davon gewusst.
+    if (!$frei) {
+        require_once __DIR__ . '/totp.php';
+        if (totp_required($u['role']) && !totp_active($u['name'])) {
+            flash('Diese Instanz verlangt eine Zwei-Faktor-Anmeldung – bitte hier einrichten.', 'err');
+            redirect_to(base_url() . '/admin/profile.php');
+        }
+    }
     return $u;
 }
 
@@ -103,8 +147,16 @@ function user_resolve(string $ident): ?string
 const DUMMY_HASH = '$2y$10$usesomesillystringfore7hnbRJHxXVLeakoG8K30oukPsA.ztMG';
 
 /** Login mit Throttling: nach 5 Fehlversuchen 60 s Sperre pro IP+Name */
-function auth_login(string $username, string $password): bool
+/**
+ * Anmeldung mit Kennung und Passwort.
+ *
+ * $needs2fa wird gesetzt, wenn Passwort und Kennung stimmen, aber noch die
+ * zweite Stufe fehlt. Das Konto ist dann NICHT angemeldet – die Sitzung merkt
+ * sich nur, wer gerade an der Tür steht.
+ */
+function auth_login(string $username, string $password, ?bool &$needs2fa = null): bool
 {
+    $needs2fa = false;
     rate_limit_gc();
     $throttleFile = data_path('ratelimit') . '/login-' . ip_hash(client_ip() . '|' . $username) . '.json';
     $t = json_read($throttleFile, ['fails' => 0, 'until' => 0]);
@@ -127,8 +179,19 @@ function auth_login(string $username, string $password): bool
     if ($u !== null && is_string($u['pass'] ?? null) && password_verify($password, $hash)) {
         @unlink($throttleFile);
         session_regenerate_id(true);
-        $_SESSION['user'] = $username;
         unset($_SESSION['csrf']);
+        // Zweite Stufe, falls eingerichtet: Das Konto gilt erst als angemeldet,
+        // wenn auch das Einmalkennwort stimmt. Die Weiche sitzt hier und nicht
+        // in der Anmeldeseite, damit sie kein künftiger zweiter Anmeldeweg
+        // versehentlich umgeht.
+        require_once __DIR__ . '/totp.php';
+        if (totp_active($username)) {
+            $_SESSION['pending_user'] = $username;
+            $_SESSION['pending_since'] = time();
+            $needs2fa = true;
+            return true;
+        }
+        $_SESSION['user'] = $username;
         return true;
     }
     $t['fails']++;

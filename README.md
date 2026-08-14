@@ -91,6 +91,8 @@ in der Konfiguration schaltet sie ab.
   unabhängig vom Dienst funktionieren
 - **Konten** mit Selbstregistrierung per Double-Opt-In, Passwort-Reset und
   Rollen (Nutzer/Admin), inklusive Nutzungs-Limits pro Konto
+- **Zwei-Faktor-Anmeldung** (TOTP) mit Wiederherstellungscodes, optional für
+  die ganze Instanz erzwingbar
 - **Auskunft und Löschung im Profil**: Datenexport als JSON und ein Knopf, der
   Konto und Links wirklich entfernt – Art. 15, 17 und 20 DSGVO ohne
   Ticketsystem
@@ -267,6 +269,40 @@ sich sofort – ein Leck bemerkt niemand. Gruppen, die vor dieser Unterscheidung
 angelegt wurden, gelten weiterhin als Arbeitsgruppen, damit bestehende Teams
 nicht ausgesperrt werden; die Spalte *Art* in der Gruppenverwaltung zeigt für
 jede Gruppe, woran man ist.
+
+## Zwei-Faktor-Anmeldung
+
+Einzurichten im Profil: QR-Code scannen, sechs Ziffern eintippen, fertig.
+Danach fragt die Anmeldung nach dem Passwort **und** einem Einmalkennwort.
+Acht Wiederherstellungscodes werden dabei einmal angezeigt; jeder gilt genau
+einmal, für den Fall, dass das Telefon weg ist.
+
+Warum das hier drin ist: Wer ein Konto übernimmt, kann das Ziel eines
+Kurzlinks ändern – auch das eines Codes, der längst gedruckt auf einem Schild
+klebt. Der Schaden trifft dann nicht den Kontoinhaber, sondern jeden, der
+scannt. Für einen Dienst, der gedruckte Codes ausgibt, ist ein Passwort allein
+eine dünne Tür.
+
+Umgesetzt nach RFC 6238 in reinem PHP – HMAC-SHA1 und base32 bringt die
+Sprache mit, den QR-Code erzeugt der eigene Encoder. Geprüft gegen die
+Testvektoren des Standards.
+
+Zwei Dinge, die nicht selbstverständlich sind:
+
+- **Der QR-Code wird eingebettet, nicht verlinkt.** Die `otpauth`-Adresse
+  enthält das Geheimnis; als URL landete es in Server-Protokollen, im Verlauf
+  des Browsers und im Referrer. Das SVG entsteht im selben Aufruf.
+- **Ein Kennwort gilt nur einmal.** Der zuletzt benutzte Zähler wird
+  festgehalten. Ohne diese Sperre könnte jemand, der einmal über die Schulter
+  geschaut hat, sich im selben halben Minutenfenster selbst anmelden.
+
+Über `'totp_required'` (`off` | `admins` | `all`, auch unter *Einstellungen*)
+lässt sich die zweite Stufe erzwingen. Wer sie noch nicht hat, wird nach der
+Anmeldung ins Profil geführt statt ausgesperrt.
+
+**API-Schlüssel sind davon nicht betroffen** – sie sind ein eigener Nachweis
+und tragen kein Passwort, das ein Zweitfaktor absichern könnte. Wer ein Konto
+besonders schützen will, prüft daher auch dessen Schlüsselliste.
 
 ## Zentrale Anmeldung
 

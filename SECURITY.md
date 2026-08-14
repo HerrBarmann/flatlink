@@ -77,6 +77,10 @@ halber:
   einzelner Besuch zeitlich verorten ließe. Wer feinere Statistik braucht, baut
   sie über `inc/local.php` an – und passt die Datenschutzerklärung an.
 
+- **Zwei-Faktor-Anmeldung** gibt es (TOTP, im Profil einzurichten, optional
+  erzwingbar). Sie schützt die Anmeldung mit Passwort – **nicht** die API:
+  Ein Zugangsschlüssel ist ein eigener Nachweis und gilt für sich.
+
 ## Aufbewahrung
 
 Was von selbst wieder verschwindet, ohne Cronjob – angestoßen von der

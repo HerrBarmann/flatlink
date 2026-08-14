@@ -46,6 +46,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             (array)($_POST['default_perms'] ?? []), array_keys(perms_all())));
         $neu['custom_code_min_len'] = max(1, min(64, (int)($_POST['custom_code_min_len'] ?? 5)));
         $neu['custom_code_quota'] = max(0, min(100000, (int)($_POST['custom_code_quota'] ?? 0)));
+        $modus = (string)($_POST['totp_required'] ?? 'off');
+        $neu['totp_required'] = in_array($modus, ['off', 'admins', 'all'], true) ? $modus : 'off';
     }
 
     if ($fehler !== null) {
@@ -121,6 +123,15 @@ $host = preg_replace('#^https?://#', '', base_url());
         </div>
         <p class="muted small">Was hier nicht angekreuzt ist, lässt sich einzelnen Konten über
         eine Gruppe geben – so entsteht aus einem Recht ein Tarif.</p>
+
+        <label for="s-totp">Zwei-Faktor-Anmeldung verlangen</label>
+        <select id="s-totp" name="totp_required" style="max-width:22rem">
+            <?php foreach (['off' => 'freiwillig', 'admins' => 'für Administratoren', 'all' => 'für alle Konten'] as $k => $lbl): ?>
+            <option value="<?= e($k) ?>"<?= ($s['totp_required'] ?? 'off') === $k ? ' selected' : '' ?>><?= e($lbl) ?></option>
+            <?php endforeach; ?>
+        </select>
+        <p class="muted small">Wer sie noch nicht eingerichtet hat, wird nach der Anmeldung
+        dorthin geführt statt ausgesperrt.</p>
         <button class="btn btn-primary" type="submit">Grundregeln speichern</button>
     </form>
 </div>

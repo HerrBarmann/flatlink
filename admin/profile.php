@@ -6,14 +6,59 @@ require_once __DIR__ . '/../inc/groups.php';
 require_once __DIR__ . '/../inc/store.php';
 require_once __DIR__ . '/../inc/account.php';
 require_once __DIR__ . '/../inc/token.php';
+require_once __DIR__ . '/../inc/totp.php';
 require_once __DIR__ . '/../inc/mail.php';
 
-$user = auth_require();
+// Ausgenommen vom Zwang zur zweiten Stufe – hier wird sie ja eingerichtet
+$user = auth_require(true);
 $extern = ($user['auth'] ?? 'local') !== 'local';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_check();
     $action = (string)($_POST['action'] ?? 'password');
+
+    if ($action === 'totp_start') {
+        // Ein neues Geheimnis überschreibt ein noch unbestätigtes – wer die
+        // Einrichtung abgebrochen hat, fängt sauber von vorn an.
+        if (totp_active($user['name'])) {
+            flash('Die zweite Stufe ist bereits eingerichtet.', 'err');
+        } else {
+            totp_begin($user['name']);
+        }
+        redirect_to('profile.php');
+    }
+
+    if ($action === 'totp_confirm') {
+        $codes = totp_confirm($user['name'], (string)($_POST['code'] ?? ''));
+        if ($codes === null) {
+            sleep(1);
+            flash('Der Code stimmt nicht – prüfe die Uhrzeit deines Geräts.', 'err');
+        } else {
+            // Nur einmal zu sehen, wie bei den API-Schlüsseln
+            $_SESSION['fresh_recovery'] = $codes;
+            flash('Zwei-Faktor-Anmeldung ist aktiv.');
+        }
+        redirect_to('profile.php');
+    }
+
+    if ($action === 'totp_off') {
+        // Abschalten verlangt denselben Nachweis wie das Löschen des Kontos:
+        // Wer kurz an einem offenen Rechner sitzt, soll den Schutz nicht mit
+        // einem Klick entfernen können.
+        $nachweis = $extern
+            ? trim((string)($_POST['confirm'] ?? '')) === $user['name']
+            : password_verify((string)($_POST['current'] ?? ''), users_all()[$user['name']]['pass'] ?? '');
+        if (!$nachweis) {
+            sleep(1);
+            flash('Nachweis fehlt – die zweite Stufe bleibt aktiv.', 'err');
+        } elseif (totp_required($user['role'])) {
+            flash('Diese Instanz verlangt die zweite Stufe – sie lässt sich nicht abschalten.', 'err');
+        } else {
+            totp_disable($user['name']);
+            flash('Zwei-Faktor-Anmeldung abgeschaltet.');
+        }
+        redirect_to('profile.php');
+    }
 
     if ($action === 'token_new') {
         if (!user_can($user['name'], 'api_access')) {
@@ -242,6 +287,70 @@ show_flash();
         <input id="p-repeat" type="password" name="repeat" required minlength="8" autocomplete="new-password">
         <p><button class="btn btn-primary" type="submit">Passwort ändern</button></p>
     </form>
+    <?php endif; ?>
+
+    <h2>Zwei-Faktor-Anmeldung</h2>
+    <?php
+    $t = totp_get($user['name']);
+    $aktiv = totp_active($user['name']);
+    $frischeCodes = $_SESSION['fresh_recovery'] ?? null;
+    unset($_SESSION['fresh_recovery']);
+    ?>
+    <?php if ($frischeCodes !== null): ?>
+    <div class="flash flash-ok">
+        <strong>Wiederherstellungscodes</strong> – jeder gilt einmal, falls dein Gerät weg ist.
+        Sie werden nicht noch einmal angezeigt.
+        <div class="term" style="margin-top:0.6rem"><?= e(implode("\n", $frischeCodes)) ?></div>
+    </div>
+    <?php endif; ?>
+
+    <?php if ($aktiv): ?>
+        <p class="muted small">Aktiv. Beim Anmelden fragt <?= e(cfg('site_name')) ?> nach einem
+        Code aus deiner App. Noch <?= totp_recovery_left($user['name']) ?> Wiederherstellungscodes übrig.</p>
+        <?php if (totp_required($user['role'])): ?>
+            <p class="muted small">Diese Instanz verlangt die zweite Stufe – abschalten geht nicht.</p>
+        <?php else: ?>
+        <form method="post" action="" data-confirm="Zweite Stufe wirklich abschalten?">
+            <?= csrf_field() ?>
+            <input type="hidden" name="action" value="totp_off">
+            <?php if ($extern): ?>
+                <label for="t-confirm">Zur Sicherheit deine Kennung eintippen:
+                    <span style="font-family:var(--mono)"><?= e($user['name']) ?></span></label>
+                <input id="t-confirm" type="text" name="confirm" required autocomplete="off">
+            <?php else: ?>
+                <label for="t-pass">Zur Sicherheit dein Passwort:</label>
+                <input id="t-pass" type="password" name="current" required autocomplete="current-password">
+            <?php endif; ?>
+            <p><button class="btn btn-danger" type="submit">Abschalten</button></p>
+        </form>
+        <?php endif; ?>
+
+    <?php elseif ($t !== null): ?>
+        <p class="muted small">Scanne den Code mit einer Authenticator-App und gib dann die
+        sechs Ziffern ein, die sie anzeigt.</p>
+        <div style="max-width:220px;margin:0 0 0.8rem"><?= totp_qr_svg($user['name'], (string)$t['secret']) ?></div>
+        <p class="muted small">Geht das Scannen nicht, trag den Schlüssel von Hand ein:<br>
+        <code style="word-break:break-all"><?= e(chunk_split((string)$t['secret'], 4, ' ')) ?></code></p>
+        <form method="post" action="" data-enter-submit>
+            <?= csrf_field() ?>
+            <input type="hidden" name="action" value="totp_confirm">
+            <label for="t-code">Code aus der App</label>
+            <div class="short-row">
+                <input id="t-code" type="text" name="code" required inputmode="numeric"
+                       autocomplete="one-time-code" placeholder="123456">
+                <button class="btn btn-primary" type="submit">Aktivieren</button>
+            </div>
+        </form>
+
+    <?php else: ?>
+        <p class="muted small">Ein zweiter Nachweis beim Anmelden – ein Code aus einer App auf
+        deinem Telefon. Wer dein Passwort kennt, kommt damit trotzdem nicht an deine Links.
+        <?php if (totp_required($user['role'])): ?><br><strong>Diese Instanz verlangt ihn.</strong><?php endif; ?></p>
+        <form method="post" action="">
+            <?= csrf_field() ?>
+            <input type="hidden" name="action" value="totp_start">
+            <p><button class="btn<?= totp_required($user['role']) ? ' btn-primary' : '' ?>" type="submit">Einrichten</button></p>
+        </form>
     <?php endif; ?>
 
     <h2>Programmierschnittstelle</h2>

@@ -122,6 +122,10 @@ return [
     // Seite dafür hat, trägt sie hier ein.
     'api_doc_url' => 'API.md',
 
+    // Zwei-Faktor-Anmeldung verlangen: 'off' | 'admins' | 'all'.
+    // Auch zur Laufzeit unter Einstellungen änderbar.
+    'totp_required' => 'off',
+
     // Anfragen je Stunde und Zugangsschlüssel für die Programmierschnittstelle.
     // Gezählt wird nach Schlüssel, nicht nach IP – ein Server, der die
     // Schnittstelle bedient, kommt immer von derselben Adresse.

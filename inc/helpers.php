@@ -204,6 +204,7 @@ function settings(): array
             'default_perms' => (array)cfg('default_perms'),
             'custom_code_min_len' => (int)cfg('custom_code_min_len'),
             'custom_code_quota' => (int)cfg('custom_code_quota'),
+            'totp_required' => (string)cfg('totp_required'),
         ];
         $s = array_merge($defaults, json_read(data_path() . '/settings.json'));
     }

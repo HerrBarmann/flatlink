@@ -3,9 +3,59 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../inc/auth.php';
 require_once __DIR__ . '/../inc/sso.php';
+require_once __DIR__ . '/../inc/totp.php';
 
 auth_boot();
 if (auth_user() !== null) redirect_to('index.php');
+
+// ---- Zweite Stufe -------------------------------------------------------
+// Passwort stimmt, jetzt fehlt noch das Einmalkennwort. Der Zustand steht in
+// der Sitzung; ohne ihn ist diese Maske nicht erreichbar.
+$wartet = auth_pending();
+if ($wartet !== null) {
+    $fehler = null;
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        csrf_check();
+        if (($_POST['abbruch'] ?? '') === '1') {
+            unset($_SESSION['pending_user'], $_SESSION['pending_since']);
+            redirect_to('login.php');
+        }
+        // Auch die zweite Stufe wird gebremst – sechs Stellen sind sonst in
+        // überschaubarer Zeit durchprobiert.
+        if (!bucket_rate_ok('totp', 20, $wartet)) {
+            $fehler = 'Zu viele Versuche – bitte später erneut.';
+        } elseif (totp_check($wartet, (string)($_POST['code'] ?? ''))) {
+            auth_pending_complete();
+            redirect_to('index.php');
+        } else {
+            sleep(1);
+            $fehler = 'Der Code stimmt nicht.';
+        }
+    }
+    page_header('Bestätigung', true);
+    ?>
+    <div class="card narrow">
+        <h1>Noch ein Schritt</h1>
+        <p class="muted">Gib den sechsstelligen Code aus deiner Authenticator-App ein.
+        Ein Wiederherstellungscode geht auch.</p>
+        <?php if ($fehler !== null): ?><div class="flash flash-err"><?= e($fehler) ?></div><?php endif; ?>
+        <form method="post" action="" data-enter-submit>
+            <?= csrf_field() ?>
+            <label for="code">Code</label>
+            <input id="code" type="text" name="code" required autofocus autocomplete="one-time-code"
+                   inputmode="numeric" placeholder="123456">
+            <p><button class="btn btn-primary" type="submit">Bestätigen</button></p>
+        </form>
+        <form method="post" action="">
+            <?= csrf_field() ?>
+            <input type="hidden" name="abbruch" value="1">
+            <p class="muted small"><button class="btn btn-small" type="submit">Abbrechen</button></p>
+        </form>
+    </div>
+    <?php
+    page_footer();
+    exit;
+}
 
 $firstRun = !users_exist();
 $error = null;
@@ -35,8 +85,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             flash('Willkommen! Admin-Konto angelegt.');
             redirect_to('index.php');
         }
-    } elseif (auth_login($username, $password)) {
-        redirect_to('index.php');
+    } elseif (auth_login($username, $password, $braucht2fa)) {
+        redirect_to($braucht2fa ? 'login.php' : 'index.php');
     } elseif (ldap_enabled() && ldap_login($username, $password) === null) {
         // Lokales Passwort hat nicht gepasst – jetzt das Verzeichnis fragen
         redirect_to('index.php');
