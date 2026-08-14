@@ -75,8 +75,8 @@ in der Konfiguration schaltet sie ab.
 
 ## Was drin ist
 
-- **Kurzlinks** mit zufälligem oder selbst gewähltem Code, optionalem
-  Ablaufdatum und optionalem Passwortschutz
+- **Kurzlinks** mit zufälligem oder selbst gewähltem Code, optionalem Namen,
+  optionalem Ablaufdatum und optionalem Passwortschutz
 - **QR-Codes** aus einem eigenen Encoder (ISO/IEC 18004, Byte-Mode,
   Versionen 1–10, Fehlerkorrektur L/M/Q/H) – ohne jede Fremdbibliothek
 - **QR-Designer**: Modul- und Augenformen, freie Farben, eigenes Logo in der
@@ -94,7 +94,8 @@ in der Konfiguration schaltet sie ab.
   (Shibboleth, SAML, OpenID Connect) – siehe unten
 - **Gruppen** für geteilte Links und für Rechte: Ein Link kann einer Gruppe
   gehören, dann verwaltet ihn das ganze Team
-- **CSV-Import** für viele Links auf einmal
+- **CSV-Import** für viele Links auf einmal – die Ausfuhren von Bitly und
+  YOURLS lassen sich unverändert einlesen
 - **Missbrauchsschutz**: Rate-Limits pro IP (gespeichert wird nur ein
   Schlüssel-Hash, kein Klartext), Meldeformular, Sperrfunktion, optional
   Google Safe Browsing
@@ -362,6 +363,25 @@ Datenschutzerklärung angeben.
 **Der Webserver protokolliert weiter.** flatlink speichert keine IP-Adressen,
 die Zugriffs-Logs von Apache oder nginx tun es in aller Regel schon. Wer den
 Anspruch ernst nimmt, kürzt oder deaktiviert sie dort.
+
+## Umzug von einem anderen Dienst
+
+Der CSV-Import unter *Links → CSV-Import* erkennt die Spalten an der Kopfzeile
+statt an ihrer Reihenfolge. Die Ausfuhr von **Bitly** (`Bitlink`, `Long URL`,
+`Title`) und die von **YOURLS** (`keyword`, `url`, `title`) lassen sich damit
+unverändert hochladen. Steht in der Code-Spalte eine vollständige Adresse wie
+`bit.ly/3xYz9`, wird der letzte Teil übernommen – die Kurzcodes bleiben also
+erhalten, und gedruckte Codes zeigen nach dem Umschalten der Domain weiter
+dorthin, wo sie sollen.
+
+Erkannt werden unter anderem `long url` / `url` / `ziel` für das Ziel,
+`keyword` / `bitlink` / `slug` / `code` für den Kurzcode, `title` / `name` für
+den Namen und `expires` / `ablaufdatum` für das Ablaufdatum. Fehlt eine
+Kopfzeile, gilt die feste Reihenfolge `url;code;ablaufdatum;name`.
+
+Wie viele Zeilen ein Durchgang annimmt, steht in `'import_max_rows'`
+(Vorgabe 100). Wer einen größeren Bestand übernimmt, erhöht den Wert und lässt
+den Import in Ruhe laufen – jede Zeile schreibt in ihre eigene Ablage.
 
 ## Wie die Daten liegen
 

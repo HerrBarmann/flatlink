@@ -22,8 +22,57 @@ if (!user_can($user['name'], 'csv_import')) {
 $assignable = $isAdmin ? array_keys(groups_all()) : user_groups($user['name']);
 $mayCustom = user_can($user['name'], 'custom_code');
 
-const IMPORT_MAX_ROWS = 100;
+$maxRows = max(1, (int)cfg('import_max_rows'));
 $results = null;
+
+/**
+ * Spalten einer Kopfzeile auf unsere Felder abbilden.
+ *
+ * Statt eine feste Reihenfolge zu verlangen, wird die Kopfzeile gelesen. Damit
+ * lassen sich die Ausfuhren von Bitly und YOURLS unverändert einlesen – und
+ * jede andere Tabelle, deren Spalten vernünftig heißen. Fehlt eine Kopfzeile,
+ * gilt weiterhin die alte Reihenfolge url;code;ablauf;name.
+ *
+ * @return array{url:int,code:int,title:int,expires:int} Spaltennummern, -1 = nicht vorhanden
+ */
+function import_spalten(array $kopf): array
+{
+    $bekannt = [
+        'url' => ['long url', 'long_url', 'longurl', 'url', 'original url', 'original_url',
+                  'destination', 'target', 'ziel', 'ziel-url', 'ziel url', 'lange url'],
+        'code' => ['keyword', 'custom bitlink', 'bitlink', 'short url', 'short_url', 'shortlink',
+                   'short link', 'slug', 'alias', 'code', 'kurzcode', 'wunsch-code', 'kurzlink'],
+        'title' => ['title', 'titel', 'name', 'description', 'beschreibung'],
+        'expires' => ['expires', 'expires_at', 'expiry', 'expiration', 'ablauf', 'ablaufdatum'],
+    ];
+    $map = ['url' => -1, 'code' => -1, 'title' => -1, 'expires' => -1];
+    foreach ($kopf as $i => $name) {
+        $name = strtolower(trim($name));
+        foreach ($bekannt as $feld => $namen) {
+            // Die erste passende Spalte gewinnt: Bitly führt „Bitlink" und
+            // „Custom Bitlink"; die vordere ist die, die immer gefüllt ist.
+            if ($map[$feld] === -1 && in_array($name, $namen, true)) $map[$feld] = $i;
+        }
+    }
+    return $map;
+}
+
+/**
+ * Kurzcode aus einer Spalte holen, die auch eine ganze Adresse enthalten darf.
+ *
+ * Bitly exportiert „bit.ly/3xYz9", YOURLS nur „3xYz9". Wir wollen in beiden
+ * Fällen den letzten Pfadteil – so behält ein Umziehender seine Codes.
+ */
+function import_code(string $wert): string
+{
+    $wert = trim($wert);
+    if ($wert === '') return '';
+    if (str_contains($wert, '/')) {
+        $teile = explode('/', rtrim($wert, '/'));
+        $wert = (string)end($teile);
+    }
+    return $wert;
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_check();
@@ -41,8 +90,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $raw = str_replace("\xEF\xBB\xBF", '', $raw); // BOM entfernen
 
     $lines = array_values(array_filter(array_map('trim', preg_split('/\r\n|\r|\n/', $raw)), fn($l) => $l !== ''));
-    // Kopfzeile („url;…") überspringen
+
+    // Kopfzeile erkennen und auswerten. Eine Zeile, die mit http beginnt, ist
+    // schon ein Datensatz – dann gilt die alte feste Reihenfolge.
+    $map = ['url' => 0, 'code' => 1, 'expires' => 2, 'title' => 3];
     if ($lines !== [] && stripos($lines[0], 'http') !== 0) {
+        $kopf = $lines[0];
+        $sep = substr_count($kopf, ';') >= substr_count($kopf, ',') ? ';' : ',';
+        $erkannt = import_spalten(array_map('strval', str_getcsv($kopf, $sep)));
+        // Ohne erkannte Ziel-Spalte bleibt es bei der festen Reihenfolge –
+        // sonst würde eine unverstandene Kopfzeile alle Zeilen verwerfen.
+        if ($erkannt['url'] !== -1) $map = $erkannt;
         array_shift($lines);
     }
 
@@ -50,8 +108,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         flash('Keine Zeilen gefunden – Format: eine URL pro Zeile, optional „;wunsch-code;ablaufdatum“.', 'err');
         redirect_to('import.php');
     }
-    if (count($lines) > IMPORT_MAX_ROWS) {
-        flash('Maximal ' . IMPORT_MAX_ROWS . ' Zeilen pro Import (gefunden: ' . count($lines) . ') – bitte aufteilen.', 'err');
+    if (count($lines) > $maxRows) {
+        flash('Maximal ' . $maxRows . ' Zeilen pro Import (gefunden: ' . count($lines) . ') – bitte aufteilen'
+            . ($isAdmin ? ' oder import_max_rows in der Konfiguration erhöhen.' : '.'), 'err');
         redirect_to('import.php');
     }
 
@@ -60,11 +119,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     foreach ($lines as $i => $line) {
         $sep = substr_count($line, ';') >= substr_count($line, ',') ? ';' : ',';
         $cols = array_map('trim', str_getcsv($line, $sep));
-        $url = (string)($cols[0] ?? '');
+        $holen = fn(string $feld) => ($map[$feld] ?? -1) >= 0 ? (string)($cols[$map[$feld]] ?? '') : '';
+        $url = $holen('url');
         if (!str_starts_with($url, 'http://') && !str_starts_with($url, 'https://') && $url !== '') {
             $url = 'https://' . $url;
         }
-        $rows[] = ['zeile' => $i + 1, 'url' => $url, 'code' => (string)($cols[1] ?? ''), 'expires' => (string)($cols[2] ?? '')];
+        $rows[] = [
+            'zeile' => $i + 1,
+            'url' => $url,
+            'code' => import_code($holen('code')),
+            'expires' => $holen('expires'),
+            'title' => $holen('title'),
+        ];
     }
 
     // Eine Safe-Browsing-Anfrage für alle URLs zusammen
@@ -105,7 +171,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if ($err === null) {
-            [$ok, $result] = link_create($r['url'], $r['code'] === '' ? null : $r['code'], $user['name'], $r['code'] === '' ? 'random' : 'custom', '', $expires, $group);
+            [$ok, $result] = link_create($r['url'], $r['code'] === '' ? null : $r['code'], $user['name'],
+                $r['code'] === '' ? 'random' : 'custom',
+                ['expires' => $expires, 'group' => $group, 'title' => $r['title']]);
             if ($ok) {
                 $created++;
                 if ($r['code'] !== '') $usedCustom++;
@@ -123,11 +191,17 @@ show_flash();
 ?>
 
 <div class="card">
-    <h2>CSV-Import <span class="muted">(bis zu <?= IMPORT_MAX_ROWS ?> Links auf einmal)</span></h2>
-    <p class="muted small">Eine Zeile pro Link: <code>url;wunsch-code;ablaufdatum</code> —
-    Wunsch-Code und Ablaufdatum (JJJJ-MM-TT) sind optional, als Trennzeichen geht Semikolon
-    oder Komma, eine Kopfzeile wird erkannt und übersprungen. Alle Ziel-URLs werden vor dem
-    Anlegen gesammelt auf Phishing/Malware geprüft.</p>
+    <h2>CSV-Import <span class="muted">(bis zu <?= (int)$maxRows ?> Links auf einmal)</span></h2>
+    <p class="muted small">Eine Zeile pro Link: <code>url;wunsch-code;ablaufdatum;name</code> —
+    alles außer der URL ist optional, als Trennzeichen geht Semikolon oder Komma. Alle
+    Ziel-URLs werden vor dem Anlegen gesammelt auf Phishing/Malware geprüft.</p>
+    <p class="muted small"><strong>Umzug von einem anderen Dienst?</strong> Die Ausfuhren von
+    <strong>Bitly</strong> und <strong>YOURLS</strong> lassen sich unverändert einlesen: Steht
+    eine Kopfzeile darüber, werden die Spalten daran erkannt statt an ihrer Reihenfolge
+    (<code>Long URL</code>, <code>Bitlink</code>, <code>Title</code> bzw. <code>url</code>,
+    <code>keyword</code>, <code>title</code>). Enthält die Code-Spalte eine ganze Adresse wie
+    <code>bit.ly/3xYz9</code>, wird der letzte Teil übernommen &ndash; die Kurzcodes bleiben
+    also erhalten.</p>
 
     <form method="post" action="" enctype="multipart/form-data" class="grid-form">
         <?= csrf_field() ?>

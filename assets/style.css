@@ -224,6 +224,10 @@ th, td { padding: 0.55rem 0.6rem; border-bottom: 1px solid var(--line); vertical
 tr:last-child td { border-bottom: 0; }
 td a { font-family: var(--mono); }
 .row-hl td { background: var(--accent-tint); }
+/* Der selbstvergebene Name steht unter dem Code: Er hilft beim Wiederfinden,
+   ist aber nicht die Kennung – deshalb kleiner und zurückgenommen. */
+.link-title { display: block; color: var(--muted); font-size: 0.82rem; max-width: 22rem;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .url-cell { max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); }
 .actions { display: flex; gap: 0.35rem; align-items: center; flex-wrap: wrap; }
 .actions form.inline { display: flex; gap: 0.35rem; margin: 0; }

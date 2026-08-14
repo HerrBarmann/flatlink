@@ -255,9 +255,27 @@ function links_gc(): void
     json_write($warnFile, $warned);
 }
 
-function link_create(string $url, ?string $code, ?string $owner, string $type, string $prefix = '', ?string $expires = null, ?string $group = null): array
+/**
+ * Kurzlink anlegen.
+ *
+ * Alles außer Ziel, Code, Besitzer und Art steht in $opts. Die Alternative
+ * wären inzwischen acht Stellungsparameter, bei denen der Aufrufer vier
+ * `null` hintereinander schreiben müsste, um an den fünften zu kommen –
+ * und bei jeder neuen Eigenschaft würde es schlimmer.
+ *
+ * Erkannte Schlüssel: prefix (nur für die Codesuche, wird nicht gespeichert),
+ * expires, group, title, tags.
+ *
+ * @param array{prefix?:string,expires?:?string,group?:?string,title?:?string,tags?:string[]} $opts
+ * @return array{0:bool,1:string} [Erfolg, Code oder Fehlermeldung]
+ */
+function link_create(string $url, ?string $code, ?string $owner, string $type, array $opts = []): array
 {
     links_gc();
+
+    $prefix = (string)($opts['prefix'] ?? '');
+    $expires = $opts['expires'] ?? null;
+    $group = $opts['group'] ?? null;
 
     if ($code === null) {
         $code = link_random_code($prefix);
@@ -267,7 +285,7 @@ function link_create(string $url, ?string $code, ?string $owner, string $type, s
     }
 
     $taken = false;
-    $ok = link_write($code, function (?array $existing) use ($url, $owner, $type, $expires, $group, &$taken) {
+    $ok = link_write($code, function (?array $existing) use ($url, $owner, $type, $expires, $group, $opts, &$taken) {
         if ($existing !== null) { $taken = true; return false; }
         $new = [
             'url' => $url,
@@ -280,22 +298,45 @@ function link_create(string $url, ?string $code, ?string $owner, string $type, s
         // Nur setzen, wenn es wirklich eine Gruppe gibt – kein null-Ballast
         // in den Datensätzen der Instanzen, die ohne Gruppen arbeiten
         if ($group !== null && $group !== '') $new['group'] = $group;
-        return $new;
+        return link_apply_meta($new, $opts);
     });
 
     if ($taken) return [false, 'Dieser Code ist schon vergeben.'];
     return $ok ? [true, $code] : [false, 'Anlegen fehlgeschlagen.'];
 }
 
-function link_update(string $code, string $url, ?string $expires = null): bool
+/**
+ * Ziel und Zusatzangaben eines Links ändern.
+ *
+ * @param array{expires?:?string,title?:?string,tags?:string[]} $opts
+ */
+function link_update(string $code, string $url, array $opts = []): bool
 {
-    return link_write($code, function (?array $l) use ($url, $expires) {
+    return link_write($code, function (?array $l) use ($url, $opts) {
         if ($l === null) return false;
         $l['url'] = $url;
-        $l['expires'] = $expires;
+        $l['expires'] = $opts['expires'] ?? null;
         $l['updated'] = date('c');
-        return $l;
+        return link_apply_meta($l, $opts);
     });
+}
+
+/**
+ * Titel und Schlagworte in einen Datensatz übernehmen.
+ *
+ * Leere Angaben löschen das Feld, statt einen leeren String abzulegen: Ein
+ * Datensatz soll nur enthalten, was auch gesetzt ist – das hält die Ablagen
+ * klein, die bei jeder Weiterleitung gelesen werden.
+ */
+function link_apply_meta(array $l, array $opts): array
+{
+    if (array_key_exists('title', $opts)) {
+        $t = trim((string)($opts['title'] ?? ''));
+        // Steuerzeichen raus: Der Titel landet in Listen, CSV und JSON-Export
+        $t = trim((string)preg_replace('/[\x00-\x1F\x7F]/u', '', $t));
+        if ($t === '') unset($l['title']); else $l['title'] = mb_substr($t, 0, 120);
+    }
+    return $l;
 }
 
 /** Gruppenzuordnung eines Links setzen ($group = null hebt sie auf) */

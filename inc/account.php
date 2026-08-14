@@ -48,6 +48,7 @@ function account_export(string $username): array
         $links[] = [
             'kurzlink' => base_url() . '/' . $code,
             'code' => (string)$code,
+            'name' => $l['title'] ?? null,
             'ziel' => $l['url'] ?? null,
             'art' => ($l['type'] ?? '') === 'custom' ? 'Wunsch-Name' : 'Zufallscode',
             'gruppe' => $l['group'] ?? null,

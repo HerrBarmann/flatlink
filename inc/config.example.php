@@ -117,6 +117,11 @@ return [
     // überschreibt es damit und ist vom Update ausgenommen. Vorlage zum
     // Kopieren: assets/custom.example.css
 
+    // Wie viele Zeilen der CSV-Import auf einmal annimmt. Die Grenze schützt vor
+    // sehr langen Laufzeiten auf schwachen Servern; wer aus Bitly oder YOURLS
+    // umzieht, darf sie beherzt erhöhen und den Import in Ruhe laufen lassen.
+    'import_max_rows' => 100,
+
     // Klasse am <body>-Element. Daran lassen sich in assets/custom.css ganze
     // Gestaltungsvarianten aufhängen (alles unter `body.variante { … }`), die
     // sich hier mit einem leeren Wert wieder abschalten lassen – ohne eine

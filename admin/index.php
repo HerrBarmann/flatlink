@@ -33,6 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         $group = trim((string)($_POST['group'] ?? ''));
         $group = $group === '' ? null : $group;
+        $title = (string)($_POST['title'] ?? '');
         [$expOk, $expires] = parse_expiry((string)($_POST['expires'] ?? ''));
         if (!str_starts_with($url, 'http://') && !str_starts_with($url, 'https://') && $url !== '') {
             $url = 'https://' . $url;
@@ -60,7 +61,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             // Wunsch-Name unter das Präfix hängen; Zufallscodes erledigt link_create
             $full = $code === '' ? null : ($prefix === '' ? $code : $prefix . '/' . $code);
-            [$ok, $result] = link_create($url, $full, $user['name'], $code === '' ? 'random' : 'custom', $prefix, $expires, $group);
+            [$ok, $result] = link_create($url, $full, $user['name'], $code === '' ? 'random' : 'custom',
+                ['prefix' => $prefix, 'expires' => $expires, 'group' => $group, 'title' => $title]);
             if ($ok) {
                 $linkpass = (string)($_POST['linkpass'] ?? '');
                 if ($linkpass !== '') {
@@ -95,7 +97,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif (!$expOk) {
             flash('Ungültiges Ablaufdatum (frühestens heute, leer = kein Ablauf).', 'err');
         } else {
-            link_update($code, $url, $expires);
+            link_update($code, $url, ['expires' => $expires, 'title' => (string)($_POST['title'] ?? '')]);
             // Gruppe nur anfassen, wenn das Formular sie überhaupt anbieten konnte
             if ($assignable !== [] || ($link['group'] ?? null) !== null) {
                 link_set_group($code, $group);
@@ -130,7 +132,9 @@ if ($gFilter === '-') {
     $links = array_filter($links, fn($l) => ($l['group'] ?? null) === $gFilter);
 }
 if ($q !== '') {
-    $links = array_filter($links, fn($l, $c) => stripos($c, $q) !== false || stripos($l['url'], $q) !== false, ARRAY_FILTER_USE_BOTH);
+    $links = array_filter($links, fn($l, $c) => stripos($c, $q) !== false
+        || stripos($l['url'], $q) !== false
+        || stripos((string)($l['title'] ?? ''), $q) !== false, ARRAY_FILTER_USE_BOTH);
 }
 uasort($links, fn($a, $b) => strcmp($b['created'], $a['created']));
 
@@ -155,6 +159,8 @@ show_flash();
         <div>
             <label for="c-url">Ziel-URL</label>
             <input id="c-url" type="text" name="url" placeholder="https://example.com/…" required>
+            <label for="c-title">Name <span class="muted">(optional – nur für dich, damit du den Link in der Liste wiederfindest)</span></label>
+            <input id="c-title" type="text" name="title" maxlength="120" placeholder="z. B. Speisekarte Sommer">
         </div>
         <?php if ($isAdmin): ?>
         <div>
@@ -234,6 +240,8 @@ show_flash();
         <div>
             <label for="e-url">Ziel-URL</label>
             <input id="e-url" type="text" name="url" value="<?= e($editLink['url']) ?>" required>
+            <label for="e-title">Name <span class="muted">(optional)</span></label>
+            <input id="e-title" type="text" name="title" maxlength="120" value="<?= e((string)($editLink['title'] ?? '')) ?>">
         </div>
         <div>
             <label for="e-expires">Ablaufdatum <span class="muted">(leer = kein Ablauf)</span></label>
@@ -297,11 +305,12 @@ show_flash();
         <p class="muted">Noch keine Links<?= $q !== '' ? ' für diese Suche' : '' ?>.</p>
     <?php else: ?>
     <div class="table-scroll"><table>
-        <tr><th>Code</th><th>Ziel</th><th>Klicks</th><th>Gruppe</th><?php if ($isAdmin): ?><th>Besitzer</th><?php endif; ?><th>Läuft ab</th><th>Erstellt</th><th></th></tr>
+        <tr><th>Link</th><th>Ziel</th><th>Klicks</th><th>Gruppe</th><?php if ($isAdmin): ?><th>Besitzer</th><?php endif; ?><th>Läuft ab</th><th>Erstellt</th><th></th></tr>
         <?php foreach ($links as $code => $link): $clicks = clicks_get((string)$code); ?>
         <tr<?= $code === $highlight ? ' class="row-hl"' : '' ?>>
             <td><a href="<?= e(short_url((string)$code)) ?>" target="_blank" rel="noopener"><?= e((string)$code) ?></a><?=
-                !empty($link['pass']) ? ' <span class="badge badge-quiet" title="passwortgeschützt">PW</span>' : '' ?></td>
+                !empty($link['pass']) ? ' <span class="badge badge-quiet" title="passwortgeschützt">PW</span>' : '' ?>
+                <?php if (($link['title'] ?? '') !== ''): ?><br><span class="link-title"><?= e((string)$link['title']) ?></span><?php endif; ?></td>
             <td class="url-cell" title="<?= e($link['url']) ?>"><?= e(mb_strimwidth($link['url'], 0, 60, '…')) ?></td>
             <td><a href="stats.php?c=<?= e(rawurlencode((string)$code)) ?>" title="Statistik"><?= (int)$clicks['n'] ?></a></td>
             <td><?php

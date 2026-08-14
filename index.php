@@ -44,7 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = 'Diese Ziel-URL ist als schädlich gemeldet und kann nicht verkürzt werden.';
         } else {
             $prefix = $mode === 'prefix' ? settings()['public_prefix'] : '';
-            [$ok, $result] = link_create($url, null, $user['name'] ?? null, 'random', $prefix);
+            [$ok, $result] = link_create($url, null, $user['name'] ?? null, 'random', ['prefix' => $prefix]);
             if ($ok) $created = $result; else $error = $result;
         }
     }
