@@ -377,6 +377,15 @@ $statischText = trim((string)($_GET['u'] ?? ''));
         </select>
         <label>Logo-Größe: <span id="ls-val">22</span> %</label>
         <input id="opt-ls" type="range" min="10" max="35" value="22">
+        <label for="opt-lshape">Freie Fläche hinter dem Logo</label>
+        <select id="opt-lshape">
+            <option value="rounded">abgerundet</option>
+            <option value="square">eckig</option>
+            <option value="circle">rund</option>
+            <option value="none">keine</option>
+        </select>
+        <p class="muted small">Ein Logo, das Module nur halb verdeckt, verwirrt die Erkennung
+        mehr als eine sauber ausgesparte Fläche – die steckt die Fehlerkorrektur weg.</p>
         <p class="muted small">SVG-Logos erscheinen nur im SVG-Export (PNG kann sie nicht rastern).</p>
 
         <form method="post" action="" enctype="multipart/form-data">
@@ -410,6 +419,7 @@ $statischText = trim((string)($_GET['u'] ?? ''));
         <div id="preview-stage" style="display:inline-block; padding:1.2rem; border-radius:6px; background:#FAFCF6;">
             <img id="qr-preview" src="" alt="QR-Code-Vorschau" width="320">
         </div>
+        <div id="lesbarkeit" class="lesbarkeit" aria-live="polite"></div>
         <div class="qr-links">
             <a id="dl-svg" class="btn" href="#">SVG</a>
             <a id="dl-png" class="btn" href="#">PNG</a>

@@ -690,6 +690,41 @@ Hälfte davon wegschneidet, verlässt den Bereich, in dem sich ein Scanner
 auskennt. Der Radius ist deshalb auf 2,0 zurückgenommen. Gestaltung darf einen
 Code nicht unlesbar machen.
 
+## Lesbarkeit
+
+Je mehr sich gestalten lässt, desto leichter entsteht ein Code, der auf dem
+Bildschirm gut aussieht und auf dem Aufsteller versagt. Der Designer prüft
+deshalb bei jeder Änderung mit und zeigt Hinweise neben der Vorschau:
+
+- **Kontrast** zwischen Vordergrund und Hintergrund, einzeln auch für die
+  zweite Verlaufsfarbe und die Augenfarben – ein Verlauf ist an einem Ende oft
+  kräftig und am anderen zu blass. Warnung auch, wenn der Code heller als sein
+  Grund ist.
+- **Ruhezone** unter den vier Modulen der Norm.
+- **Logo-Anteil** gegen das, was die eingestellte Fehlerkorrektur trägt.
+- **Ausgabegröße**: Pixel je Modul beim PNG, Millimeter je Modul bei PDF und
+  EPS.
+
+Geprüft wird **auf dem Server** ([`inc/qrcheck.php`](inc/qrcheck.php)), nicht
+im Browser: Die Schwellen gehören zu den Regeln des Dienstes und sollen nicht
+davon abhängen, was ein Browser gerade ausführt – und beim Serien-Download gibt
+es gar kein Skript.
+
+**Woher die Zahlen kommen, und woher nicht.** Rand, Logo-Anteil und Modulgröße
+folgen der Norm beziehungsweise der Kapazität der Fehlerkorrektur; die sind
+nachrechenbar. Die Kontrast-Schwellen sind es nicht: Ein Software-Decoder liest
+auf einem sauberen PNG noch hellgrau auf weiß (1,3:1) fehlerfrei und kann sie
+gar nicht belegen. Was einen Code scheitern lässt, ist die Kamera – Rauschen,
+schiefes Licht, Papier, in das die Farbe läuft. Die Werte orientieren sich am
+Symbolkontrast der Prüfnormen für gedruckte Codes und liegen bewusst auf der
+vorsichtigen Seite.
+
+Hinter dem Logo liegt eine **freigestellte Fläche** (abgerundet, eckig, rund
+oder keine, Abstand einstellbar). Sie ist kein Zierrat: Ein Logo, das Module
+nur halb verdeckt, verwirrt die Erkennung mehr als eine sauber ausgesparte
+Fläche, die die Fehlerkorrektur wegsteckt. Im Vektor-Export fehlte sie bis
+zuletzt – dort saß das Logo unmittelbar auf den Modulen.
+
 ## Farbverläufe
 
 Linear mit frei wählbarer Richtung oder radial von innen nach außen, dazu vier

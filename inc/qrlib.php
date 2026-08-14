@@ -515,6 +515,12 @@ final class QrRenderer
             'eyeCore'   => '',         // '' | square | rounded | circle | leaf
             'eyeFg'     => '',         // '' | #rrggbb
             'eyeCoreFg' => '',         // '' | #rrggbb
+            // Freistellung hinter dem Logo: Abstand als Anteil der Logobreite,
+            // Form der freien Fläche. Sie ist kein Zierrat – ein Logo, das
+            // Module nur halb verdeckt, verwirrt die Erkennung mehr als eine
+            // sauber ausgesparte Fläche, die die Fehlerkorrektur wegsteckt.
+            'logoPad'   => 0.12,
+            'logoShape' => 'rounded',  // rounded | square | circle | none
         ], $options);
     }
 
@@ -840,6 +846,20 @@ final class QrRenderer
 
         if ($o['logo'] !== null && is_file($o['logo'])) {
             $lw = $total * $o['logoScale'];
+            $pad = $lw * (float)$o['logoPad'];
+            $bw = $lw + 2 * $pad;
+            $bx = ($total - $bw) / 2;
+            // Freie Fläche zuerst, Logo darauf – im Vektor-Export fehlte sie
+            // bisher ganz, dort saß das Logo unmittelbar auf den Modulen.
+            $form = (string)$o['logoShape'];
+            if ($form !== 'none') {
+                $r = match ($form) {
+                    'circle' => $bw / 2,
+                    'square' => 0.0,
+                    default  => $lw * 0.12,
+                };
+                $ops[] = ['path', [vec_rect($bx, $bx, $bw, $bw, $r)], $bg, false];
+            }
             $ops[] = ['image', ($total - $lw) / 2, ($total - $lw) / 2, $lw, $lw, $o['logo']];
         }
         return $ops;
@@ -1094,10 +1114,13 @@ final class QrRenderer
         if ($mime === null) return '';
         $data = base64_encode((string)file_get_contents($o['logo']));
         $w = $total * $o['logoScale'];
-        $pad = $w * 0.12;
+        $pad = $w * (float)$o['logoPad'];
         $bx = ($total - $w) / 2 - $pad;
         $bw = $w + 2 * $pad;
-        return '<rect x="' . $bx . '" y="' . $bx . '" width="' . $bw . '" height="' . $bw . '" rx="' . ($w * 0.12) . '" fill="' . htmlspecialchars($o['bg']) . '"/>'
+        $form = (string)$o['logoShape'];
+        $rx = match ($form) { 'circle' => $bw / 2, 'square' => 0.0, default => $w * 0.12 };
+        return ($form === 'none' ? '' :
+            '<rect x="' . $bx . '" y="' . $bx . '" width="' . $bw . '" height="' . $bw . '" rx="' . $rx . '" fill="' . htmlspecialchars($o['bg']) . '"/>')
             . '<image x="' . (($total - $w) / 2) . '" y="' . (($total - $w) / 2) . '" width="' . $w . '" height="' . $w . '"'
             . ' preserveAspectRatio="xMidYMid meet" href="data:' . $mime . ';base64,' . $data . '"/>';
     }
@@ -1445,9 +1468,14 @@ final class QrRenderer
         imagesavealpha($img, true);
 
         $w = (int)round($px * $o['logoScale']);
-        $pad = (int)round($w * 0.12);
+        $pad = (int)round($w * (float)$o['logoPad']);
         $bx = intdiv($px - $w, 2) - $pad;
-        self::gdRoundedRect($img, $bx, $bx, $w + 2 * $pad, (int)round($w * 0.12), self::gdColor($img, $o['bg']));
+        $bw = $w + 2 * $pad;
+        $form = (string)$o['logoShape'];
+        if ($form !== 'none') {
+            $r = match ($form) { 'circle' => intdiv($bw, 2), 'square' => 0, default => (int)round($w * 0.12) };
+            self::gdRoundedRect($img, $bx, $bx, $bw, $r, self::gdColor($img, $o['bg']));
+        }
 
         $lw = imagesx($logo); $lh = imagesy($logo);
         // Seitenverhältnis erhalten, in w×w einpassen

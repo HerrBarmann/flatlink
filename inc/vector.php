@@ -192,7 +192,6 @@ function vec_logo_pixels(string $datei, VecColor $grund, int $kante = 256): ?arr
     [$r, $g, $b] = [hexdec(substr($hex, 1, 2)), hexdec(substr($hex, 3, 2)), hexdec(substr($hex, 5, 2))];
     imagefilledrectangle($flach, 0, 0, $k - 1, $k - 1, imagecolorallocate($flach, (int)$r, (int)$g, (int)$b));
     imagecopyresampled($flach, $bild, 0, 0, 0, 0, $k, $k, $w, $h);
-    imagedestroy($bild);
 
     $daten = '';
     for ($y = 0; $y < $k; $y++) {
@@ -201,7 +200,6 @@ function vec_logo_pixels(string $datei, VecColor $grund, int $kante = 256): ?arr
             $daten .= chr(($c >> 16) & 0xFF) . chr(($c >> 8) & 0xFF) . chr($c & 0xFF);
         }
     }
-    imagedestroy($flach);
     return ['w' => $k, 'h' => $k, 'rgb' => $daten];
 }
 

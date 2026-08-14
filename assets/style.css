@@ -458,3 +458,15 @@ details.druckfarben[open] > summary { margin-bottom: 0.4rem; color: var(--ink); 
    Ohne diese Regel drückt der Farbwähler die Auswahl auf Pfeilbreite. */
 .grad-row select { flex: 1 1 auto; min-width: 0; }
 .grad-row input[type="color"] { flex: 0 0 3.2rem; width: 3.2rem; }
+
+/* Hinweise zur Lesbarkeit neben der Vorschau. Warnungen tragen einen kräftigen
+   Balken, Anmerkungen einen ruhigen – wer nur hinschaut, soll den Unterschied
+   sehen, ohne zu lesen. */
+.lesbarkeit { margin: 0.8rem 0 0; text-align: left; }
+.pruef {
+    margin: 0 0 0.5rem; padding: 0.5rem 0.7rem; font-size: 0.88rem; line-height: 1.5;
+    border-left: 3px solid var(--line); border-radius: 0 var(--radius) var(--radius) 0;
+    background: var(--surface); color: var(--ink);
+}
+.pruef-warn { border-left-color: #B4571F; }
+.pruef-info { border-left-color: var(--muted); color: var(--muted); }

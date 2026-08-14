@@ -214,6 +214,8 @@ $glyphPng = $glyphPng !== '' ? __DIR__ . '/assets/' . basename($glyphPng) : null
 
 $logo = null;
 $logoId = qp('logo', '', '/^[a-f0-9]{16}\.(png|jpe?g|webp|svg)$/');
+$logoPad = max(0.0, min(0.5, (float)(qin('lpad') ?? 0.12)));
+$logoShape = qp('lshape', 'rounded', '/^(rounded|square|circle|none)$/');
 if ($logoId !== '') {
     $file = data_path('logos') . '/' . $logoId;
     if (is_file($file)) $logo = $file;
@@ -237,11 +239,35 @@ $renderer = new QrRenderer($qr, [
     'fgColor' => $fgCmyk !== null ? VecColor::fromCmyk($fgCmyk) : null,
     'bgColor' => $bgCmyk !== null ? VecColor::fromCmyk($bgCmyk) : null,
     'grad' => $grad === '' ? null : $grad, 'gradTo' => $gradTo, 'gradAngle' => $gradAngle,
+    'logoPad' => $logoPad, 'logoShape' => $logoShape,
     'eyeCore' => $eyeCore, 'eyeFg' => $eyeFg, 'eyeCoreFg' => $eyeCoreFg,
     'size' => $size, 'margin' => $margin, 'logo' => $logo, 'logoScale' => $ls,
     'frameText' => $ftext, 'brandText' => $brand,
     'brandGlyphSvg' => $glyphSvg, 'brandGlyphPng' => $glyphPng,
 ]);
+
+// Der Designer fragt dieselbe Gestaltung zusätzlich als Prüfung ab und zeigt
+// die Hinweise neben der Vorschau. Bewusst hier und nicht im Browser: Die
+// Schwellen gehören zu den Regeln des Dienstes, nicht in ein Skript, das jeder
+// abschalten kann – und beim Serien-Download gibt es gar kein Skript.
+if ((qin('check') ?? '') !== '') {
+    require_once __DIR__ . '/inc/qrcheck.php';
+    header('Content-Type: application/json; charset=utf-8');
+    header('Cache-Control: no-store');
+    echo json_encode([
+        'module' => $qr->size + 2 * $margin,
+        'version' => $qr->version,
+        'hinweise' => qr_readability([
+            'fg' => $fg, 'bg' => $bg, 'margin' => $margin,
+            'grad' => $grad === '' ? null : $grad, 'gradTo' => $gradTo,
+            'eyeFg' => $eyeFg, 'eyeCoreFg' => $eyeCoreFg,
+            'logo' => $logo, 'logoScale' => $ls, 'logoPad' => $logoPad, 'ecc' => $ecc,
+            'sizePx' => $format === 'png' ? $size : 0,
+            'printMm' => in_array($format, ['pdf', 'eps'], true) ? $druckMm : 0,
+        ], $qr->size + 2 * $margin),
+    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    exit;
+}
 
 // Bilder brauchen keine Skripte, keine Formulare, keine Einbettung. Ein SVG
 // wird bei 'inline' als eigenes Dokument gerendert – die strenge Richtlinie

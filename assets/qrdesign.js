@@ -28,7 +28,10 @@
             if (v !== null) p.set(k, v);
         });
         var logo = wert('opt-logo');
-        if (logo) p.set('logo', logo);
+        if (logo) {
+            p.set('logo', logo);
+            if (wert('opt-lshape')) p.set('lshape', wert('opt-lshape'));
+        }
         var ftext = wert('opt-ftext');
         if (ftext && ftext.trim()) p.set('ftext', ftext.trim());
         // CMYK nur mitschicken, wenn alle vier Felder gefüllt sind – drei
@@ -79,12 +82,45 @@
         setzeHref('dl-png', { format: 'png', size: wert('opt-size') || 1024, download: 1 });
         setzeHref('dl-pdf', { format: 'pdf', download: 1 });
         setzeHref('dl-eps', { format: 'eps', download: 1 });
+        pruefe();
+    }
+
+    /* Lesbarkeit prüfen lassen und die Hinweise neben der Vorschau zeigen.
+     *
+     * Die Bewertung kommt vom Server, nicht von hier: Die Schwellen gehören zu
+     * den Regeln des Dienstes und sollen nicht davon abhängen, was ein Browser
+     * gerade ausführt. Läuft die Abfrage ins Leere, bleibt der Bereich still –
+     * eine Warnung, die nicht kommt, ist besser als eine Fehlermeldung über
+     * eine Prüfung, die niemand angefordert hat.
+     */
+    var laeuft = null;
+    function pruefe() {
+        var box = $('lesbarkeit');
+        if (!box) return;
+        if (laeuft) laeuft.abort();
+        var c = new AbortController();
+        laeuft = c;
+        // Das Format mitgeben: Für PNG zählt die Pixelgröße, für PDF und EPS
+        // die Breite auf dem Papier – sonst prüften wir die falsche Größe.
+        var fmt = { format: 'png', size: wert('opt-size') || 1024 };
+        fetch(basis + '?' + params(fmt) + '&check=1', { signal: c.signal })
+            .then(function (r) { return r.json(); })
+            .then(function (d) {
+                box.innerHTML = '';
+                (d.hinweise || []).forEach(function (h) {
+                    var p = document.createElement('p');
+                    p.className = 'pruef pruef-' + h.stufe;
+                    p.textContent = h.text;
+                    box.appendChild(p);
+                });
+            })
+            .catch(function () { /* abgebrochen oder nicht erreichbar */ });
     }
 
     ['opt-u', 'opt-style', 'opt-eye', 'opt-fg', 'opt-bg', 'opt-ecc', 'opt-margin',
      'opt-logo', 'opt-ls', 'opt-size', 'opt-ftext', 'opt-mm',
      'opt-grad', 'opt-fg2', 'opt-ga',
-     'opt-eyecore', 'opt-eyeown', 'opt-eyefg', 'opt-eyecorefg',
+     'opt-eyecore', 'opt-eyeown', 'opt-eyefg', 'opt-eyecorefg', 'opt-lshape',
      'opt-fgc-c', 'opt-fgc-m', 'opt-fgc-y', 'opt-fgc-k',
      'opt-bgc-c', 'opt-bgc-m', 'opt-bgc-y', 'opt-bgc-k'].forEach(function (id) {
         var el = $(id);
