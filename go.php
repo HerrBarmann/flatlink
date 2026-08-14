@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/inc/store.php';
+require_once __DIR__ . '/inc/bio.php';
 
 $code = $_GET['c'] ?? '';
 if (!is_string($code) || $code === '') {
@@ -42,6 +43,18 @@ if (link_expired($link)) {
     exit;
 }
 
+// Link-in-Bio-Seiten leiten nicht weiter, sondern zeigen ihre Ziele. Die
+// Abzweigung steht bewusst hinter Sperre und Ablauf – auch eine Seite kann
+// gesperrt sein oder auslaufen – und vor dem Passwortschutz, damit sich auch
+// eine ganze Seite schützen lässt.
+if (bio_is($link) && empty($link['pass'])) {
+    $i = $_GET['i'] ?? null;
+    if (is_string($i) && $i !== '' && ctype_digit($i)) {
+        bio_follow($code, $link, (int)$i);
+    }
+    bio_render($code, $link);
+}
+
 // Passwortgeschützte Links (Pro-Feature): erst nach richtigem Passwort weiterleiten
 if (!empty($link['pass'])) {
     $fail = null;
@@ -50,6 +63,13 @@ if (!empty($link['pass'])) {
         if (!bucket_rate_ok('golock', 20)) {
             $fail = 'Zu viele Versuche – bitte später erneut.';
         } elseif ($given !== '' && password_verify($given, (string)$link['pass'])) {
+            // Auch eine geschützte Bio-Seite wird nach dem Passwort gezeigt,
+            // statt weiterzuleiten – sie hat ja kein einzelnes Ziel.
+            if (bio_is($link)) {
+                $i = $_GET['i'] ?? null;
+                if (is_string($i) && $i !== '' && ctype_digit($i)) bio_follow($code, $link, (int)$i);
+                bio_render($code, $link);
+            }
             clicks_bump($code);
             header('Location: ' . $link['url'], true, 302);
             exit;

@@ -82,6 +82,9 @@ in der Konfiguration schaltet sie ab.
 - **QR-Designer**: Modul- und Augenformen, freie Farben, eigenes Logo in der
   Mitte, Rahmen mit frei wählbarem Text, Export als SVG, PNG und druckfertiges
   PDF
+- **Link-in-Bio-Seiten**: eine Seite mit mehreren Zielen unter einem Kurzcode,
+  gezählt wie alles andere – je Tag, für die Seite und je Ziel, ohne
+  Besucher-Datensatz
 - **Statische QR-Codes** für WLAN-Zugänge, Kontakte (vCard) und Termine
   (iCalendar) – die Eingaben werden nirgends gespeichert, sondern direkt in den
   Code kodiert, sodass diese Grafiken völlig unabhängig vom Dienst funktionieren
@@ -397,6 +400,29 @@ Datenschutzerklärung angeben.
 **Der Webserver protokolliert weiter.** flatlink speichert keine IP-Adressen,
 die Zugriffs-Logs von Apache oder nginx tun es in aller Regel schon. Wer den
 Anspruch ernst nimmt, kürzt oder deaktiviert sie dort.
+
+## Link-in-Bio
+
+Eine Seite mit mehreren Zielen unter einem Kurzcode – für das Profil im
+sozialen Netz, den Aufkleber am Schaufenster, die Fußzeile einer Speisekarte.
+Anzulegen unter *Link-in-Bio* im Verwaltungsbereich, sofern das Konto das Recht
+`bio_page` hat.
+
+Technisch ist eine solche Seite **ein Eintrag im Kurzlink-Bestand**, der statt
+einer Zieladresse eine Liste davon trägt (`kind: "bio"`). Dadurch erbt sie
+Code-Vergabe, Besitz, Gruppenzugehörigkeit, Zugriffsprüfung, Ablaufdatum,
+Sperre, Löschung und QR-Code – es gibt keine zweite Ablage und kein zweites
+Rechtemodell. Gehört sie einer Arbeitsgruppe, pflegen sie alle Mitglieder.
+
+Gezählt wird wie überall: ein Zähler je Tag für die Seite und einer je Ziel.
+Damit Letzteres möglich ist, zeigen die Schaltflächen auf den eigenen Code mit
+einer laufenden Nummer (`/abc123?i=2`) statt unmittelbar auf die Zieladresse.
+Ein Besucher-Datensatz entsteht dabei nicht — die Nummer sagt nur, *welches*
+Ziel geklickt wurde, nicht *von wem*.
+
+Suchmaschinen sind standardmäßig ausgeschlossen (`noindex`); wer die Seite
+gefunden haben möchte, hakt das ausdrücklich an. Eine Seite, die als QR-Code an
+einer Tür klebt, muss nicht auch im Index stehen.
 
 ## Umzug von einem anderen Dienst
 

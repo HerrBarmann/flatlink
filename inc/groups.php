@@ -27,6 +27,7 @@ function perms_all(): array
         'logo_upload' => 'Eigene Logos hochladen',
         'qr_unbranded' => 'QR-Codes ohne Absenderzeile',
         'api_access' => 'Zugriff über die Programmierschnittstelle (API)',
+        'bio_page' => 'Link-in-Bio-Seiten anlegen',
     ];
 }
 

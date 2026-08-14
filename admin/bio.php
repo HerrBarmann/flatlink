@@ -1,0 +1,234 @@
+<?php
+declare(strict_types=1);
+/**
+ * Verwaltung der Link-in-Bio-Seiten.
+ *
+ * Anlegen und Ändern laufen über dieselben Regeln wie bei Kurzlinks
+ * (inc/linkrules.php): Limits, Wunsch-Namen, Namensräume und Gruppen gelten
+ * unverändert. Hier steht nur, was eine Seite zusätzlich hat – Überschrift,
+ * Einleitung, Zielliste und die Sichtbarkeit für Suchmaschinen.
+ */
+require_once __DIR__ . '/../inc/store.php';
+require_once __DIR__ . '/../inc/auth.php';
+require_once __DIR__ . '/../inc/groups.php';
+require_once __DIR__ . '/../inc/linkrules.php';
+require_once __DIR__ . '/../inc/bio.php';
+
+$user = auth_require();
+$isAdmin = $user['role'] === 'admin';
+
+if (!user_can($user['name'], 'bio_page')) {
+    page_header('Link-in-Bio', true);
+    echo '<div class="card center"><h1>Link-in-Bio</h1>'
+        . '<p>Für Link-in-Bio-Seiten fehlt deinem Konto die Berechtigung.</p>'
+        . '<p class="muted small">Sie hängt an einer Gruppe – ein Administrator kann sie freischalten.</p>'
+        . '<p><a class="btn" href="index.php">Zurück zu den Links</a></p></div>';
+    page_footer();
+    exit;
+}
+
+$assignable = link_rules_assignable($user);
+$editCode = (string)($_GET['edit'] ?? '');
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    csrf_check();
+    $action = (string)($_POST['action'] ?? '');
+    $code = (string)($_POST['code'] ?? '');
+
+    [$itemErr, $items] = bio_parse_items((string)($_POST['items'] ?? ''));
+    $titel = trim((string)($_POST['title'] ?? ''));
+    $text = mb_substr(trim((string)($_POST['bio_text'] ?? '')), 0, 500);
+    $index = ($_POST['bio_index'] ?? '') === '1';
+
+    if ($action === 'create') {
+        // Das Ziel eines Kurzlinks entfällt hier; die Regeln erwarten aber
+        // eines. Der eigene Code ist die ehrlichste Angabe: Die Seite zeigt auf
+        // sich selbst, und die Prüfung auf schädliche Ziele läuft ohnehin über
+        // die einzelnen Einträge.
+        [$err, $full, $opts] = link_rules_create($user, [
+            'url' => base_url() . '/',
+            'code' => (string)($_POST['wunsch'] ?? ''),
+            'prefix' => (string)($_POST['prefix'] ?? ''),
+            'group' => (string)($_POST['group'] ?? ''),
+            'expires' => (string)($_POST['expires'] ?? ''),
+            'title' => $titel,
+        ]);
+        if ($itemErr !== null) {
+            flash($itemErr, 'err');
+        } elseif ($err !== null) {
+            flash($err, 'err');
+        } else {
+            [$ok, $ergebnis] = link_create($opts['url'], $full, $user['name'],
+                $full === null ? 'random' : 'custom', $opts);
+            if (!$ok) {
+                flash($ergebnis, 'err');
+            } else {
+                bio_write($ergebnis, $items, $text, $index);
+                flash('Seite ' . short_url($ergebnis) . ' angelegt.');
+                redirect_to('bio.php?edit=' . urlencode($ergebnis));
+            }
+        }
+    } elseif ($action === 'update') {
+        $l = link_get($code);
+        if ($l === null || !bio_is($l) || !link_access($user, $l)) {
+            flash('Kein Zugriff auf diese Seite.', 'err');
+        } elseif ($itemErr !== null) {
+            flash($itemErr, 'err');
+        } else {
+            [$err, $opts] = link_rules_update($user, $l, [
+                'url' => (string)($l['url'] ?? base_url() . '/'),
+                'expires' => (string)($_POST['expires'] ?? ''),
+                'group' => (string)($_POST['group'] ?? ''),
+                'title' => $titel,
+            ]);
+            if ($err !== null) {
+                flash($err, 'err');
+            } else {
+                link_update($code, $opts['url'], $opts);
+                if ($assignable !== [] || ($l['group'] ?? null) !== null) {
+                    link_set_group($code, $opts['group']);
+                }
+                bio_write($code, $items, $text, $index);
+                flash('Seite aktualisiert.');
+            }
+        }
+        redirect_to('bio.php?edit=' . urlencode($code));
+    } elseif ($action === 'delete') {
+        $l = link_get($code);
+        if ($l === null || !bio_is($l) || !link_access($user, $l)) {
+            flash('Kein Zugriff auf diese Seite.', 'err');
+        } else {
+            link_delete($code);
+            flash('Seite ' . $code . ' gelöscht.');
+        }
+    }
+    redirect_to('bio.php');
+}
+
+$seiten = array_filter(links_visible($user), 'bio_is');
+uasort($seiten, fn($a, $b) => strcmp((string)($b['created'] ?? ''), (string)($a['created'] ?? '')));
+
+$edit = $editCode !== '' ? link_get($editCode) : null;
+if ($edit !== null && (!bio_is($edit) || !link_access($user, $edit))) $edit = null;
+
+$myPrefixes = $isAdmin ? [] : user_prefixes($user['name']);
+$mayCustom = user_can($user['name'], 'custom_code');
+
+page_header('Link-in-Bio', true);
+show_flash();
+?>
+<div class="card">
+    <h1>Link-in-Bio</h1>
+    <p class="muted">Eine Seite mit mehreren Zielen unter einem Kurzcode – für das Profil im
+    sozialen Netz, den Aufkleber am Schaufenster, die Fußzeile der Speisekarte. Gezählt wird
+    wie überall bei uns: ein Zähler je Tag, für die Seite und je Ziel. Kein Datensatz über
+    Besucher.</p>
+</div>
+
+<?php if ($seiten !== []): ?>
+<div class="card">
+    <h2>Deine Seiten</h2>
+    <div class="table-scroll"><table>
+        <tr><th>Seite</th><th>Ziele</th><th>Aufrufe</th><th>Gruppe</th><th>Angelegt</th><th></th></tr>
+        <?php foreach ($seiten as $c => $l): $k = clicks_get((string)$c); ?>
+        <tr<?= (string)$c === $editCode ? ' class="row-hl"' : '' ?>>
+            <td><a href="<?= e(short_url((string)$c)) ?>" target="_blank" rel="noopener"><?= e((string)$c) ?></a>
+                <?php if (($l['title'] ?? '') !== ''): ?><br><span class="link-title"><?= e((string)$l['title']) ?></span><?php endif; ?></td>
+            <td><?= count((array)($l['items'] ?? [])) ?></td>
+            <td><a href="stats.php?c=<?= e(rawurlencode((string)$c)) ?>"><?= (int)($k['n'] ?? 0) ?></a></td>
+            <td><?php $g = $l['group'] ?? null;
+                echo $g === null ? '<span class="muted">–</span>'
+                    : '<span class="tag tag-on">' . e(group_label($g)) . '</span>'; ?></td>
+            <td class="small"><?= e(date('d.m.Y', strtotime((string)$l['created']))) ?></td>
+            <td class="actions">
+                <a class="btn btn-small" href="bio.php?edit=<?= e(rawurlencode((string)$c)) ?>">Bearbeiten</a>
+                <a class="btn btn-small" href="qr.php?c=<?= e(rawurlencode((string)$c)) ?>&amp;format=svg&amp;download=1">QR</a>
+                <form method="post" action="" class="inline" data-confirm="Seite endgültig löschen?">
+                    <?= csrf_field() ?>
+                    <input type="hidden" name="action" value="delete">
+                    <input type="hidden" name="code" value="<?= e((string)$c) ?>">
+                    <button class="btn btn-small btn-danger" type="submit">Löschen</button>
+                </form>
+            </td>
+        </tr>
+        <?php endforeach; ?>
+    </table></div>
+</div>
+<?php endif; ?>
+
+<div class="card">
+    <h2><?= $edit !== null ? 'Seite bearbeiten: ' . e($editCode) : 'Neue Seite' ?></h2>
+    <form method="post" action="" class="grid-form">
+        <?= csrf_field() ?>
+        <input type="hidden" name="action" value="<?= $edit !== null ? 'update' : 'create' ?>">
+        <?php if ($edit !== null): ?><input type="hidden" name="code" value="<?= e($editCode) ?>"><?php endif; ?>
+
+        <label for="b-title">Überschrift</label>
+        <input id="b-title" type="text" name="title" maxlength="120" required
+               value="<?= e((string)($edit['title'] ?? '')) ?>" placeholder="Café Kiwi">
+
+        <label for="b-text">Einleitung <span class="muted">(optional, max. 500 Zeichen)</span></label>
+        <textarea id="b-text" name="bio_text" rows="2" maxlength="500"
+                  placeholder="Alles Wichtige auf einen Blick."><?= e((string)($edit['bio_text'] ?? '')) ?></textarea>
+
+        <label for="b-items">Ziele <span class="muted">(ein Ziel je Zeile: <code>Beschriftung | https://…</code>)</span></label>
+        <textarea id="b-items" name="items" rows="8" required
+                  placeholder="Speisekarte | https://example.org/karte
+Tisch reservieren | https://example.org/reservierung
+Instagram | https://instagram.com/…"><?= e($edit !== null ? bio_items_text($edit) : '') ?></textarea>
+        <p class="muted small">Ohne Beschriftung genügt die Adresse allein – dann steht sie selbst
+        als Text da. Höchstens <?= BIO_MAX_ITEMS ?> Ziele. Umsortieren heißt Zeilen verschieben.</p>
+
+        <?php if ($edit === null): ?>
+            <?php if ($myPrefixes !== []): ?>
+            <div>
+                <label>Namensraum</label>
+                <select name="prefix">
+                    <?php foreach ($myPrefixes as $p): ?>
+                    <option value="<?= e($p) ?>"><?= e($p) ?>/</option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <?php endif; ?>
+            <?php if ($mayCustom): ?>
+            <div>
+                <label for="b-wunsch">Wunsch-Adresse <span class="muted">(leer = zufällig)</span></label>
+                <input id="b-wunsch" type="text" name="wunsch" placeholder="cafe-kiwi"
+                       pattern="[A-Za-z0-9_-]{<?= (int)settings()['custom_code_min_len'] ?>,64}">
+            </div>
+            <?php endif; ?>
+        <?php endif; ?>
+
+        <?php if ($assignable !== [] || ($edit['group'] ?? null) !== null): ?>
+        <div>
+            <label for="b-group">Gruppe <span class="muted">(optional – alle Mitglieder verwalten die Seite)</span></label>
+            <select id="b-group" name="group">
+                <option value="">– keine, nur für dich –</option>
+                <?php foreach ($assignable as $gid): ?>
+                <option value="<?= e($gid) ?>"<?= ($edit['group'] ?? null) === $gid ? ' selected' : '' ?>><?= e(group_label($gid)) ?></option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+        <?php endif; ?>
+
+        <div>
+            <label for="b-expires">Ablaufdatum <span class="muted">(optional)</span></label>
+            <input id="b-expires" type="date" name="expires" min="<?= e(date('Y-m-d')) ?>"
+                   value="<?= e((string)($edit['expires'] ?? '')) ?>">
+        </div>
+
+        <label class="check">
+            <input type="checkbox" name="bio_index" value="1"<?= !empty($edit['bio_index']) ? ' checked' : '' ?>>
+            In Suchmaschinen auffindbar machen
+        </label>
+        <p class="muted small">Aus, solange nichts anderes gewählt ist: Eine Seite, die als
+        QR-Code an einer Tür klebt, muss nicht zwingend auch gefunden werden. Wer das möchte,
+        sagt es ausdrücklich.</p>
+
+        <button class="btn btn-primary" type="submit"><?= $edit !== null ? 'Speichern' : 'Seite anlegen' ?></button>
+        <?php if ($edit !== null): ?>
+        <p class="muted small"><a href="bio.php">Abbrechen und neue Seite anlegen</a></p>
+        <?php endif; ?>
+    </form>
+</div>
+<?php page_footer(); ?>

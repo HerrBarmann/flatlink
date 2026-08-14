@@ -296,6 +296,14 @@ td a { font-family: var(--mono); }
 }
 .tag-on { border-color: var(--accent); color: var(--accent-deep); background: var(--accent-tint); }
 
+/* Link-in-Bio-Seite: eine Spalte, große Ziele, nichts sonst. Sie wird meist
+   vom Handy aus einem QR-Code heraus geöffnet – der Daumen entscheidet. */
+.bio { text-align: center; }
+.bio-title { margin: 0 0 0.4rem; font-size: 1.5rem; }
+.bio-text { color: var(--muted); margin: 0 0 1.4rem; }
+.bio-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.6rem; }
+.bio-link { display: block; width: 100%; padding: 0.8rem 1rem; white-space: normal; }
+
 @media (max-width: 720px) {
     .designer { grid-template-columns: 1fr; }
     .designer .preview { position: static; }

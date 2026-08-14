@@ -539,6 +539,11 @@ function page_header(string $title, bool $admin = false, ?string $desc = null, ?
     if ($u !== null) {
         echo '<a href="' . $adm . 'index.php">Links</a> '
             . '<a href="' . $adm . 'qrdesign.php">QR-Designer</a> ';
+        // Nur zeigen, wo es auch benutzbar ist – ein Punkt, der zur Absage
+        // führt, ist keine Werbung, sondern eine Sackgasse.
+        if (function_exists('user_can') && user_can($u['name'], 'bio_page')) {
+            echo '<a href="' . $adm . 'bio.php">Link-in-Bio</a> ';
+        }
         if ($u['role'] === 'admin') {
             echo '<a href="' . $adm . 'users.php">Nutzer</a> '
                 . '<a href="' . $adm . 'groups.php">Gruppen</a> '

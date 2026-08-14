@@ -435,22 +435,39 @@ function clicks_get(string $code): array
     return json_read(clicks_file($code), ['n' => 0, 'last' => null, 'days' => []]);
 }
 
-function clicks_bump(string $code): void
+/**
+ * Aufruf zählen.
+ *
+ * Ohne $item ist der Kurzlink selbst gemeint – bei einer Link-in-Bio-Seite also
+ * der Seitenaufruf. Mit $item ist ein einzelnes Ziel dieser Seite gemeint; die
+ * Zählweise bleibt dieselbe, nur eine Ebene tiefer.
+ */
+function clicks_bump(string $code, ?int $item = null): void
 {
-    json_update(clicks_file($code), function (array $c) {
+    json_update(clicks_file($code), function (array $c) use ($item) {
         $today = date('Y-m-d');
-        $days = $c['days'] ?? [];
-        $days[$today] = ($days[$today] ?? 0) + 1;
-        // Historie begrenzen: älteste Tage raus (400 deckt die 12-Monats-Statistik des Pro-Tarifs)
-        if (count($days) > 400) {
-            ksort($days);
-            $days = array_slice($days, -400, null, true);
+        $zaehle = function (array $z) use ($today): array {
+            $days = $z['days'] ?? [];
+            $days[$today] = ($days[$today] ?? 0) + 1;
+            // Historie begrenzen: älteste Tage raus (400 deckt die 12-Monats-Statistik)
+            if (count($days) > 400) {
+                ksort($days);
+                $days = array_slice($days, -400, null, true);
+            }
+            // Bewusst nur tagesgenau: Bei einem Link mit wenigen Aufrufen wäre ein
+            // sekundengenauer Zeitpunkt der einzige Wert im gesamten Bestand, über
+            // den sich ein einzelner Besuch zeitlich verorten – und mit anderen
+            // Quellen zusammenführen – ließe. Für „letzter Aufruf" genügt der Tag.
+            return ['n' => ($z['n'] ?? 0) + 1, 'last' => $today, 'days' => $days];
+        };
+        if ($item === null) {
+            // Die Ziel-Zähler bleiben unangetastet – deshalb wird ergänzt und
+            // nicht ersetzt.
+            return $zaehle($c) + $c;
         }
-        // Bewusst nur tagesgenau: Bei einem Link mit wenigen Aufrufen wäre ein
-        // sekundengenauer Zeitpunkt der einzige Wert im gesamten Bestand, über
-        // den sich ein einzelner Besuch zeitlich verorten – und mit anderen
-        // Quellen zusammenführen – ließe. Für „letzter Aufruf" genügt der Tag.
-        return ['n' => ($c['n'] ?? 0) + 1, 'last' => date('Y-m-d'), 'days' => $days];
+        $c['items'] ??= [];
+        $c['items'][(string)$item] = $zaehle((array)($c['items'][(string)$item] ?? []));
+        return $c;
     }, ['n' => 0, 'last' => null, 'days' => []]);
 }
 

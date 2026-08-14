@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../inc/store.php';
 require_once __DIR__ . '/../inc/auth.php';
+require_once __DIR__ . '/../inc/bio.php';
 require_once __DIR__ . '/../inc/groups.php';
 
 $user = auth_require();
@@ -57,13 +58,40 @@ page_header('Statistik', true);
 ?>
 <div class="card">
     <h2>Statistik <span class="muted">für</span> <?= e(short_url($code)) ?></h2>
+    <?php if (bio_is($link)): ?>
+    <p class="muted">Link-in-Bio-Seite <strong><?= e((string)($link['title'] ?? $code)) ?></strong>
+    mit <?= count((array)($link['items'] ?? [])) ?> Zielen · <a href="bio.php?edit=<?= e(rawurlencode($code)) ?>">bearbeiten</a></p>
+    <?php else: ?>
     <p class="muted">Ziel: <a href="<?= e($link['url']) ?>" target="_blank" rel="noopener"><?= e(mb_strimwidth($link['url'], 0, 80, '…')) ?></a></p>
+    <?php endif; ?>
     <div class="stat-row">
         <div class="stat"><strong><?= (int)$clicks['n'] ?></strong><span>Klicks gesamt</span></div>
         <div class="stat"><strong><?= array_sum($series) ?></strong><span>letzte 30 Tage</span></div>
         <div class="stat"><strong><?= $clicks['last'] ? e(date('d.m.Y', strtotime($clicks['last']))) : '–' ?></strong><span>letzter Klick</span></div>
         <div class="stat"><strong><?= e(date('d.m.Y', strtotime($link['created']))) ?></strong><span>erstellt</span></div>
     </div>
+
+    <?php if (bio_is($link)):
+        $items = array_values((array)($link['items'] ?? []));
+        $je = (array)($clicks['items'] ?? []);
+        $summe = 0;
+        foreach ($je as $z) $summe += (int)($z['n'] ?? 0);
+    ?>
+    <h3>Klicks je Ziel</h3>
+    <p class="muted small">Oben stehen die Aufrufe der Seite, hier die Klicks auf die einzelnen
+    Ziele – beides als Zahl je Tag, wie überall.</p>
+    <div class="table-scroll"><table>
+        <tr><th>Ziel</th><th>Adresse</th><th>Klicks</th><th>Anteil</th></tr>
+        <?php foreach ($items as $i => $item): $n = (int)($je[(string)$i]['n'] ?? 0); ?>
+        <tr>
+            <td><?= e((string)($item['label'] ?? '')) ?></td>
+            <td class="url-cell" title="<?= e((string)$item['url']) ?>"><?= e(mb_strimwidth((string)$item['url'], 0, 50, '…')) ?></td>
+            <td><?= $n ?></td>
+            <td class="small"><?= $summe > 0 ? round($n * 100 / $summe) . '&nbsp;%' : '<span class="muted">–</span>' ?></td>
+        </tr>
+        <?php endforeach; ?>
+    </table></div>
+    <?php endif; ?>
 
     <h3>Klicks der letzten 30 Tage</h3>
     <?php
