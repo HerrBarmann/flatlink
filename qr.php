@@ -29,7 +29,7 @@ function qp(string $key, string $default, string $pattern): string
     return is_string($v) && preg_match($pattern, $v) ? $v : $default;
 }
 
-$type = qp('t', 'link', '/^(link|wifi|vcard|event)$/');
+$type = qp('t', 'link', '/^(link|wifi|vcard|event|gs1)$/');
 
 if ($type !== 'link') {
     // Statische Codes: Payload direkt aus Formularfeldern, nichts wird gespeichert.
@@ -73,7 +73,7 @@ if ($type !== 'link') {
             . ($web !== '' ? 'URL:' . $vesc($web) . "\r\n" : '')
             . 'END:VCARD';
         $filename = 'kontakt';
-    } else { // event
+    } elseif ($type === 'event') {
         $titel = $in('titel', 64);
         $ort = $in('ort', 64);
         $dt = function (string $k): ?string {
@@ -94,6 +94,23 @@ if ($type !== 'link') {
             . ($ende !== null ? 'DTEND:' . $ende . "\r\n" : '')
             . "END:VEVENT\r\nEND:VCALENDAR";
         $filename = 'termin';
+    } else { // gs1
+        require_once __DIR__ . '/inc/gs1.php';
+        [$gErr, $payload] = gs1_digital_link(
+            (string)(qin('gtin') ?? ''),
+            [
+                '10' => $in('lot', 20),
+                '21' => $in('serial', 20),
+                '22' => $in('cpv', 20),
+                '17' => $in('mhd', 10),
+            ],
+            $in('resolver', 200)
+        );
+        if ($gErr !== null) {
+            http_response_code(400);
+            exit($gErr);
+        }
+        $filename = 'gs1-' . preg_replace('/[^0-9]/', '', (string)(qin('gtin') ?? ''));
     }
     $owner = null; // statischer Code, kein Konto-Bezug
 } else {

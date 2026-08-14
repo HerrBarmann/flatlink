@@ -85,9 +85,10 @@ in der Konfiguration schaltet sie ab.
 - **Link-in-Bio-Seiten**: eine Seite mit mehreren Zielen unter einem Kurzcode,
   gezählt wie alles andere – je Tag, für die Seite und je Ziel, ohne
   Besucher-Datensatz
-- **Statische QR-Codes** für WLAN-Zugänge, Kontakte (vCard) und Termine
-  (iCalendar) – die Eingaben werden nirgends gespeichert, sondern direkt in den
-  Code kodiert, sodass diese Grafiken völlig unabhängig vom Dienst funktionieren
+- **Statische QR-Codes** für WLAN-Zugänge, Kontakte (vCard), Termine
+  (iCalendar) und **GS1 Digital Link** – die Eingaben werden nirgends
+  gespeichert, sondern direkt in den Code kodiert, sodass diese Grafiken völlig
+  unabhängig vom Dienst funktionieren
 - **Konten** mit Selbstregistrierung per Double-Opt-In, Passwort-Reset und
   Rollen (Nutzer/Admin), inklusive Nutzungs-Limits pro Konto
 - **Auskunft und Löschung im Profil**: Datenexport als JSON und ein Knopf, der
@@ -427,6 +428,34 @@ Ziel geklickt wurde, nicht *von wem*.
 Suchmaschinen sind standardmäßig ausgeschlossen (`noindex`); wer die Seite
 gefunden haben möchte, hakt das ausdrücklich an. Eine Seite, die als QR-Code an
 einer Tür klebt, muss nicht auch im Index stehen.
+
+## GS1 Digital Link
+
+`qr.php` erzeugt neben Kurzlink-, WLAN-, vCard- und Termin-Codes auch
+**GS1 Digital Links** – die Adressform, die ab „Sunrise 2027" auf Verpackungen
+neben oder statt des Strichcodes stehen soll:
+
+```
+POST qr.php
+  t=gs1
+  gtin=4006381333931       Artikelnummer, 8/12/13/14 Ziffern
+  lot=LOT-42               Charge (optional)
+  serial=SN-0001           Seriennummer (optional)
+  mhd=2027-12-31           Haltbarkeitsdatum (optional)
+  resolver=https://…       eigener Auflösungsdienst (optional)
+```
+
+Daraus wird `https://id.gs1.org/01/04006381333931/10/LOT-42?17=271231`. Die
+Reihenfolge der Bestandteile ist in der GS1-Syntax festgelegt und keine
+Geschmackssache; Lesegeräte verlassen sich darauf. Die **Prüfziffer der GTIN
+wird nachgerechnet** – stimmt sie nicht, kommt eine Fehlermeldung statt eines
+Codes, der auf einer Palette auffällt.
+
+Was flatlink **nicht** tut: einen Resolver betreiben. Was beim Scannen
+erscheint, entscheidet der Betreiber der eingetragenen Adresse; ohne Angabe
+zeigt der Code auf den Dienst von GS1 selbst. Die Logik steht in
+[`inc/gs1.php`](inc/gs1.php), eine Bedienoberfläche dafür bringt flatlink nicht
+mit – sie ist als eigene Seite schnell gebaut.
 
 ## Umzug von einem anderen Dienst
 
