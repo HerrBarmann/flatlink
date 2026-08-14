@@ -14,7 +14,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($action === 'save') {
         $err = group_save($id, (string)($_POST['name'] ?? ''), (array)($_POST['perms'] ?? []),
-            (array)($_POST['limits'] ?? []), (string)($_POST['prefix'] ?? ''));
+            (array)($_POST['limits'] ?? []), (string)($_POST['prefix'] ?? ''),
+            ($_POST['art'] ?? '') === 'shared');
         flash($err ?? 'Gruppe „' . $id . '“ gespeichert.', $err === null ? 'ok' : 'err');
     } elseif ($action === 'delete') {
         if (group_get($id) === null) {
@@ -62,6 +63,32 @@ show_flash();
             <input id="g-name" type="text" name="name" required maxlength="64"
                    value="<?= e($edit['name'] ?? '') ?>" placeholder="Marketing">
         </div>
+        <div>
+            <label>Art der Gruppe</label>
+            <?php
+            // Beim Bearbeiten gilt der gespeicherte Wert; Bestandsgruppen ohne
+            // Angabe sind Arbeitsgruppen (siehe group_shared). Beim Anlegen ist
+            // die engere Variante vorausgewählt.
+            $istGeteilt = $edit !== null ? (bool)($edit['shared'] ?? true) : false;
+            ?>
+            <div class="radio-group">
+                <label class="radio">
+                    <input type="radio" name="art" value="perms"<?= $istGeteilt ? '' : ' checked' ?>>
+                    <span><strong>Nur Rechte</strong><br>
+                    <span class="muted small">Die Mitglieder bekommen die unten gewählten
+                    Berechtigungen und Limits. Ihre Links bleiben privat. Richtig für Tarife,
+                    Rollen und Kontingente.</span></span>
+                </label>
+                <label class="radio">
+                    <input type="radio" name="art" value="shared"<?= $istGeteilt ? ' checked' : '' ?>>
+                    <span><strong>Rechte und gemeinsame Linkverwaltung</strong><br>
+                    <span class="muted small">Zusätzlich lassen sich Links dieser Gruppe zuordnen;
+                    <strong>jedes Mitglied kann sie dann sehen, ändern und löschen</strong>.
+                    Richtig für Teams, die zusammenarbeiten – nicht für Tarife.</span></span>
+                </label>
+            </div>
+        </div>
+
         <div>
             <label>Rechte der Mitglieder</label>
             <?php foreach ($perms as $key => $label): ?>
@@ -112,11 +139,16 @@ show_flash();
         <p class="muted">Noch keine Gruppen. Ohne Gruppen sieht jedes Konto nur seine eigenen Links.</p>
     <?php else: ?>
     <div class="table-scroll"><table>
-        <tr><th>Kennung</th><th>Name</th><th>Namensraum</th><th>Rechte</th><th>Limits</th><th>Mitglieder</th><th>Links</th><th></th></tr>
+        <tr><th>Kennung</th><th>Name</th><th>Art</th><th>Namensraum</th><th>Rechte</th><th>Limits</th><th>Mitglieder</th><th>Links</th><th></th></tr>
         <?php foreach ($groups as $id => $g): $members = group_members((string)$id); ?>
         <tr>
             <td><code><?= e((string)$id) ?></code></td>
             <td><?= e($g['name']) ?></td>
+            <td class="small"><?php
+                echo group_shared((string)$id)
+                    ? '<span class="tag tag-on" title="Mitglieder verwalten die Links dieser Gruppe gemeinsam">geteilt</span>'
+                    : '<span class="tag" title="Vergibt nur Rechte und Limits – Links bleiben privat">nur Rechte</span>';
+            ?></td>
             <td class="small"><?php
                 $pfx = (string)($g['prefix'] ?? '');
                 echo $pfx === '' ? '<span class="muted">frei</span>'

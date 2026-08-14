@@ -14,7 +14,9 @@ $myGroups = user_groups($user['name']);
 // Namensraum-Präfixe: leer = frei, sonst darf nur darunter angelegt werden
 $myPrefixes = $isAdmin ? [] : user_prefixes($user['name']);
 // Zuweisbar sind die eigenen Gruppen; Admins dürfen jeder Gruppe zuordnen
-$assignable = $isAdmin ? array_keys(groups_all()) : $myGroups;
+// Zuordnen lassen sich nur Arbeitsgruppen – eine Rechtegruppe wie ein Tarif
+// hat mit der Verwaltung eines einzelnen Links nichts zu tun.
+$assignable = $isAdmin ? array_values(array_filter(array_keys(groups_all()), 'group_shared')) : user_shared_groups($user['name']);
 $mayCustom = user_can($user['name'], 'custom_code');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -149,9 +151,7 @@ show_flash();
 <div class="card">
     <div class="list-head">
         <h2>Neuer Kurzlink</h2>
-        <?php if (user_can($user['name'], 'csv_import')): ?>
         <a class="btn btn-small" href="import.php">CSV-Import</a>
-        <?php endif; ?>
     </div>
     <form method="post" action="" class="grid-form">
         <?= csrf_field() ?>

@@ -9,20 +9,41 @@ require_once __DIR__ . '/../inc/groups.php';
 $user = auth_require();
 $isAdmin = $user['role'] === 'admin';
 
-if (!user_can($user['name'], 'csv_import')) {
-    page_header('CSV-Import', true);
-    echo '<div class="card center"><h1>CSV-Import</h1>'
-        . '<p>Für den Massen-Import fehlt deinem Konto die Berechtigung.</p>'
-        . '<p class="muted small">Sie hängt an einer Gruppe – ein Administrator kann sie freischalten.</p>'
-        . '<p><a class="btn" href="index.php">Zurück zu den Links</a></p></div>';
-    page_footer();
-    exit;
+/**
+ * Der Import ist zugleich die Brücke, über die jemand von einem anderen Dienst
+ * herüberkommt. Sie ganz hinter eine Berechtigung zu stellen hieße: Wer
+ * wechseln will – der Interessent mit der höchsten Absicht überhaupt – steht
+ * im Moment dieser Absicht vor einer Wand.
+ *
+ * Deshalb zwei Stufen. Ohne das Recht `csv_import` darf jedes Konto so viele
+ * Zeilen einlesen, wie sein Link-Limit ohnehin zulässt; das Limit greift beim
+ * Anlegen sowieso, Zeile für Zeile, und kostet uns also nichts. Erst der
+ * Massenbetrieb darüber hinaus hängt am Recht.
+ */
+$darfMasse = user_can($user['name'], 'csv_import');
+if (!$darfMasse && !$isAdmin) {
+    $frei = user_limit($user['name'], 'links') - link_count($user['name']);
+    if ($frei < 1) {
+        page_header('CSV-Import', true);
+        echo '<div class="card center"><h1>CSV-Import</h1>'
+            . '<p>Dein Link-Kontingent ist ausgeschöpft – es ist kein Platz für weitere Links.</p>'
+            . '<p class="muted small">Lösche zuerst nicht mehr benötigte Links, oder lass dir '
+            . 'vom Administrator mehr Platz einräumen.</p>'
+            . '<p><a class="btn" href="index.php">Zurück zu den Links</a></p></div>';
+        page_footer();
+        exit;
+    }
 }
 
-$assignable = $isAdmin ? array_keys(groups_all()) : user_groups($user['name']);
+$assignable = $isAdmin ? array_values(array_filter(array_keys(groups_all()), 'group_shared')) : user_shared_groups($user['name']);
 $mayCustom = user_can($user['name'], 'custom_code');
 
 $maxRows = max(1, (int)cfg('import_max_rows'));
+// Ohne das Recht auf Massen-Import reicht der Durchgang so weit wie der noch
+// freie Platz im eigenen Kontingent – mehr könnte ohnehin nicht angelegt werden.
+if (!$darfMasse && !$isAdmin) {
+    $maxRows = min($maxRows, max(1, user_limit($user['name'], 'links') - link_count($user['name'])));
+}
 $results = null;
 
 /**
@@ -192,6 +213,11 @@ show_flash();
 
 <div class="card">
     <h2>CSV-Import <span class="muted">(bis zu <?= (int)$maxRows ?> Links auf einmal)</span></h2>
+    <?php if (!$darfMasse && !$isAdmin): ?>
+    <p class="muted small">Dein Konto kann so viele Links auf einmal einlesen, wie in dein
+    Kontingent passen (<?= (int)$maxRows ?> frei). Für größere Durchgänge gibt es die
+    Berechtigung zum Massen-Import.</p>
+    <?php endif; ?>
     <p class="muted small">Eine Zeile pro Link: <code>url;wunsch-code;ablaufdatum;name</code> —
     alles außer der URL ist optional, als Trennzeichen geht Semikolon oder Komma. Alle
     Ziel-URLs werden vor dem Anlegen gesammelt auf Phishing/Malware geprüft.</p>

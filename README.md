@@ -92,8 +92,9 @@ in der Konfiguration schaltet sie ab.
   Ticketsystem
 - **Zentrale Anmeldung** über LDAP/Active Directory oder über den Webserver
   (Shibboleth, SAML, OpenID Connect) – siehe unten
-- **Gruppen** für geteilte Links und für Rechte: Ein Link kann einer Gruppe
-  gehören, dann verwaltet ihn das ganze Team
+- **Gruppen** in zwei Betriebsarten: als Rechtegruppe (Berechtigungen und
+  Limits, Links bleiben privat) oder als Arbeitsgruppe, deren Links das ganze
+  Team gemeinsam verwaltet
 - **CSV-Import** für viele Links auf einmal – die Ausfuhren von Bitly und
   YOURLS lassen sich unverändert einlesen
 - **Missbrauchsschutz**: Rate-Limits pro IP (gespeichert wird nur ein
@@ -229,6 +230,28 @@ entweder allen oder niemandem zu erlauben.
 Angelegt werden Gruppen im Admin-Bereich unter **Gruppen**, zugeordnet werden
 Konten unter **Nutzer**. Bei zentraler Anmeldung kann die Zuordnung auch aus
 dem Verzeichnis kommen (siehe unten).
+
+### Zwei Arten von Gruppen
+
+Eine Gruppe kann zweierlei bedeuten, und die beiden haben nichts miteinander zu
+tun. Beim Anlegen wird es deshalb ausdrücklich gewählt:
+
+| Art | Was sie tut | Wofür |
+| --- | --- | --- |
+| **Nur Rechte** | Vergibt Berechtigungen und Limits an ihre Mitglieder. Deren Links bleiben privat. | Tarife, Rollen, Kontingente |
+| **Rechte und gemeinsame Linkverwaltung** | Zusätzlich lassen sich Links der Gruppe zuordnen; jedes Mitglied kann sie sehen, ändern und löschen. | Teams, die zusammenarbeiten |
+
+Der Unterschied ist keine Feinheit. Hängt ein kostenpflichtiger Tarif an einer
+Gruppe und ist diese als Arbeitsgruppe angelegt, taucht sie im Zuordnungsfeld
+jedes Kunden auf – und wer sie versehentlich auswählt, gibt seinen Link für
+sämtliche anderen Kunden zum Bearbeiten und Löschen frei.
+
+Neue Gruppen legt die Oberfläche deshalb als **Rechtegruppe** an. Der
+umgekehrte Irrtum ist billiger: Ein Team, das seine Links nicht sieht, meldet
+sich sofort – ein Leck bemerkt niemand. Gruppen, die vor dieser Unterscheidung
+angelegt wurden, gelten weiterhin als Arbeitsgruppen, damit bestehende Teams
+nicht ausgesperrt werden; die Spalte *Art* in der Gruppenverwaltung zeigt für
+jede Gruppe, woran man ist.
 
 ## Zentrale Anmeldung
 
@@ -379,7 +402,12 @@ Erkannt werden unter anderem `long url` / `url` / `ziel` für das Ziel,
 den Namen und `expires` / `ablaufdatum` für das Ablaufdatum. Fehlt eine
 Kopfzeile, gilt die feste Reihenfolge `url;code;ablaufdatum;name`.
 
-Wie viele Zeilen ein Durchgang annimmt, steht in `'import_max_rows'`
+Der Import steht **jedem Konto** offen, damit ein Umzug nicht an einer
+Berechtigung scheitert: Ohne das Recht `csv_import` reicht ein Durchgang so
+weit, wie noch Platz im eigenen Link-Kontingent ist – das greift beim Anlegen
+ohnehin. Erst der Massenbetrieb darüber hinaus hängt am Recht.
+
+Wie viele Zeilen ein Durchgang dann annimmt, steht in `'import_max_rows'`
 (Vorgabe 100). Wer einen größeren Bestand übernimmt, erhöht den Wert und lässt
 den Import in Ruhe laufen – jede Zeile schreibt in ihre eigene Ablage.
 

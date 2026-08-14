@@ -61,7 +61,13 @@ function valid_group_id(string $id): bool
  * @param string[] $perms
  * @return ?string Fehlermeldung oder null bei Erfolg
  */
-function group_save(string $id, string $name, array $perms, array $limits = [], string $prefix = ''): ?string
+/**
+ * Gruppe anlegen oder ändern.
+ *
+ * $shared entscheidet über die Betriebsart und ist die wichtigste Angabe
+ * überhaupt – siehe group_shared().
+ */
+function group_save(string $id, string $name, array $perms, array $limits = [], string $prefix = '', bool $shared = false): ?string
 {
     if (!valid_group_id($id)) {
         return 'Gruppen-Kennung: 2–32 Zeichen, nur Kleinbuchstaben, Ziffern, Punkt, Minus, Unterstrich.';
@@ -83,12 +89,13 @@ function group_save(string $id, string $name, array $perms, array $limits = [], 
         return 'Präfix: 1–32 Zeichen, nur Kleinbuchstaben, Ziffern, Punkt, Minus, Unterstrich.';
     }
 
-    json_update(groups_file(), function (array $groups) use ($id, $name, $perms, $clean, $prefix) {
+    json_update(groups_file(), function (array $groups) use ($id, $name, $perms, $clean, $prefix, $shared) {
         $groups[$id] = [
             'name' => $name,
             'perms' => $perms,
             'limits' => $clean,
             'prefix' => $prefix,
+            'shared' => $shared,
             'created' => $groups[$id]['created'] ?? date('c'),
         ];
         return $groups;
@@ -302,11 +309,45 @@ function link_access(array $user, array $link): bool
     if (($user['role'] ?? '') === 'admin') return true;
     if (($link['owner'] ?? null) === $user['name']) return true;
     $g = $link['group'] ?? null;
-    return is_string($g) && in_array($g, user_groups($user['name']), true);
+    // Rechtegruppen gewähren bewusst keinen Zugriff auf fremde Links
+    return is_string($g) && in_array($g, user_shared_groups($user['name']), true);
 }
 
 /**
- * Alle Links, auf die ein Konto Zugriff hat (eigene + die seiner Gruppen).
+ * Teilt diese Gruppe auch Links, oder vergibt sie nur Rechte?
+ *
+ * Eine Gruppe kann zweierlei bedeuten, und die beiden haben nichts miteinander
+ * zu tun:
+ *
+ *   - **Arbeitsgruppe** (`shared`): Was ihr zugeordnet wird, verwaltet das
+ *     ganze Team gemeinsam. Für die Bibliothek, die Fachschaft, die Redaktion.
+ *   - **Rechtegruppe**: Vergibt nur Berechtigungen und Limits an ihre
+ *     Mitglieder. Für Tarife („Pro"), Rollen, Kontingente.
+ *
+ * Werden beide in einen Topf geworfen, entsteht ein handfestes Leck: Hängt ein
+ * kostenpflichtiger Tarif an einer Gruppe, taucht diese im Zuordnungsfeld auf –
+ * und ein Kunde, der sie versehentlich auswählt, gibt seinen Link für sämtliche
+ * anderen zahlenden Kunden zum Bearbeiten und Löschen frei.
+ *
+ * Bestandsgruppen ohne Angabe gelten als Arbeitsgruppen: Sie wurden unter der
+ * alten Bedeutung angelegt, und ihnen nachträglich den Zugriff zu entziehen
+ * würde Teams aussperren. Neue Gruppen legt die Oberfläche als Rechtegruppe an,
+ * weil der umgekehrte Irrtum teurer ist: Ein Team, das seine Links nicht sieht,
+ * meldet sich sofort – ein Leck bemerkt niemand.
+ */
+function group_shared(string $id): bool
+{
+    return (bool)(groups_all()[$id]['shared'] ?? true);
+}
+
+/** @return string[] Nur die Gruppen eines Kontos, die Links gemeinsam verwalten */
+function user_shared_groups(string $username): array
+{
+    return array_values(array_filter(user_groups($username), 'group_shared'));
+}
+
+/**
+ * Alle Links, auf die ein Konto Zugriff hat (eigene + die seiner Arbeitsgruppen).
  * @param array{name:string,role:string} $user
  */
 function links_visible(array $user): array
