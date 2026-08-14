@@ -1,77 +1,130 @@
-# flatlink
+<h1 align="center">flatlink</h1>
 
-**Der offene Kern von [1337.kiwi](https://1337.kiwi).**
+<p align="center">
+  <strong>Kurzlinks und QR-Codes, die ihre Besucher nicht vermessen.</strong><br>
+  Reines PHP. Keine Datenbank, kein Composer, kein Build-Schritt –<br>
+  Dateien auf einen Webspace kopieren, fertig.
+</p>
 
-Ein Kurzlink-Dienst mit QR-Code-Generator, der seine Besucher nicht vermisst.
-Reines PHP, keine Datenbank, keine Abhängigkeiten – läuft auf jedem
-Feld-Wald-und-Wiesen-Webspace.
+<p align="center">
+  <a href="LICENSE"><img alt="MIT-Lizenz" src="https://img.shields.io/badge/Lizenz-MIT-1a7f37"></a>
+  <img alt="PHP 8.1+" src="https://img.shields.io/badge/PHP-8.1%2B-777bb4">
+  <img alt="Keine Abhängigkeiten" src="https://img.shields.io/badge/Abh%C3%A4ngigkeiten-0-0a7ea4">
+  <img alt="Keine Datenbank" src="https://img.shields.io/badge/Datenbank-keine-555">
+</p>
 
-📦 Projektseite: **[1337.kiwi/flatlink](https://1337.kiwi/flatlink)** ·
-🥝 Öffentliche Instanz: **[1337.kiwi](https://1337.kiwi)**
+<p align="center">
+  <img src="docs/screenshots/linkliste.png" alt="Die Linkliste mit Schlagworten, Gruppen und Klickzahlen" width="820">
+</p>
 
-> **In English:** a self-hosted URL shortener and QR code generator written in
-> dependency-free PHP. No database, no Composer, no build step – just copy the
-> files onto any PHP 8.1 web space. Click statistics are a per-day counter and
-> nothing else: no IP addresses, no user agents, no referrers, no per-visit
-> records. This is the open core of the German service
-> [1337.kiwi](https://1337.kiwi), run by its author. Code comments and UI are
-> in German. MIT licensed.
+---
 
-## Warum noch ein Shortener?
+## Der Punkt
 
-Weil praktisch jeder andere protokolliert, wer klickt. flatlink speichert pro
-Kurzlink genau das hier – vollständig, nicht gekürzt:
+Praktisch jeder Kurzlink-Dienst protokolliert, **wer** klickt. flatlink
+speichert je Link genau das hier – vollständig, nicht gekürzt:
 
 ```json
-{ "n": 42, "last": "2026-08-13", "days": { "2026-08-13": 7 } }
+{ "n": 1840, "last": "2026-08-14", "days": { "2026-08-14": 72 } }
 ```
 
 Ein Zähler pro Tag. Kein Datensatz für einzelne Aufrufe, also auch keine
-IP-Adressen, keine Geräte- oder Browser-Kennungen und keine Referrer. Aus
-diesen Daten lässt sich kein einzelner Besucher rekonstruieren, weil nie ein
-einzelner Besucher gespeichert wird.
+IP-Adressen, keine Geräte- oder Browser-Kennungen, keine Referrer. Aus diesen
+Daten lässt sich kein einzelner Besucher rekonstruieren, weil nie ein einzelner
+Besucher gespeichert wird.
 
 Auch der letzte Aufruf steht nur tagesgenau da. Bei einem Link mit einer
 Handvoll Aufrufe wäre eine Uhrzeit sonst der einzige Wert im ganzen Bestand,
 über den sich ein einzelner Besuch zeitlich verorten – und mit anderen Quellen
 zusammenführen – ließe.
 
-Das ist keine Absichtserklärung, sondern in
-[`inc/store.php`](inc/store.php) in etwa zehn Zeilen nachlesbar
-(`clicks_bump()`). Prüf es nach – genau dafür liegt der Code offen.
+Das ist keine Absichtserklärung, sondern in [`inc/store.php`](inc/store.php) in
+etwa zehn Zeilen nachlesbar (`clicks_bump()`). Prüf es nach – genau dafür liegt
+der Code offen. Der Weiterleitungspfad (`go.php`) startet nicht einmal eine
+Session, solange kein Passwortschutz auf dem Link liegt.
 
-Der Weiterleitungspfad (`go.php`) startet nicht einmal eine Session, solange
-kein Passwortschutz auf dem Link liegt.
+<p align="center">
+  <img src="docs/screenshots/statistik.png" alt="Statistik eines Links: Tageswerte, Monatsübersicht, CSV-Export" width="760">
+</p>
 
-## Herkunft: Woher flatlink kommt
+## Wie es aussieht
 
-flatlink ist kein Nebenprojekt, sondern der Motor eines laufenden Dienstes.
-Unter **[1337.kiwi](https://1337.kiwi)** betreibt der Autor damit einen
-öffentlichen Kurzlink- und QR-Dienst; was dort funktioniert, steht hier im
-Quelltext.
+<table>
+<tr>
+<td width="50%" valign="top">
+<a href="docs/screenshots/qr-designer.png"><img src="docs/screenshots/qr-designer.png" alt="QR-Designer mit Modul- und Augenformen, Farben und Live-Vorschau"></a>
+<p><strong>QR-Designer.</strong> Modul- und Augenformen, freie Farben, Logo in
+der Mitte, Rahmen mit Text. Export als SVG, PNG und druckfertiges PDF – aus
+einem eigenen Encoder, ohne Fremdbibliothek.</p>
+</td>
+<td width="50%" valign="top">
+<a href="docs/screenshots/qr-serie.png"><img src="docs/screenshots/qr-serie.png" alt="QR-Serie: mehrere Links auswählen und als ZIP herunterladen"></a>
+<p><strong>QR-Serien.</strong> Zwanzig Tischaufsteller in einem Archiv, mit
+Übersicht als CSV für die Druckerei. Das ZIP schreibt flatlink selbst – auch
+ohne die PHP-Erweiterung <code>zip</code>.</p>
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+<a href="docs/screenshots/neuer-link.png"><img src="docs/screenshots/neuer-link.png" alt="Formular für einen neuen Kurzlink mit Name, Schlagworten und UTM-Baukasten"></a>
+<p><strong>Anlegen.</strong> Wunsch-Name, Name für die eigene Übersicht,
+Schlagworte zum Filtern, Ablaufdatum, Passwortschutz und ein Baukasten für
+Kampagnen-Parameter.</p>
+</td>
+<td width="50%" valign="top" align="center">
+<a href="docs/screenshots/link-in-bio.png"><img src="docs/screenshots/link-in-bio.png" alt="Link-in-Bio-Seite mit fünf Zielen" width="260"></a>
+<p align="left"><strong>Link-in-Bio.</strong> Eine Seite mit mehreren Zielen
+unter einem Kurzcode. Gezählt wie alles andere: je Tag, für die Seite und je
+Ziel, ohne Besucher-Datensatz.</p>
+</td>
+</tr>
+</table>
 
-Der Unterschied zwischen beiden ist bewusst gezogen:
+## In fünf Minuten läuft es
 
-| | 1337.kiwi | flatlink |
-| --- | --- | --- |
-| Was es ist | die öffentliche Instanz | die Software dahinter |
-| Aussehen | eigenes Design, Kiwi-Logo | neutrales Standard-Theme zum Überschreiben |
-| Inhalte | Ratgeber-Seiten, Rechtstexte, Tarife | nichts davon – nur das Werkzeug |
-| Konten | Selbstregistrierung per E-Mail | zusätzlich LDAP, Shibboleth, Gruppen |
+```bash
+git clone https://github.com/HerrBarmann/flatlink.git
+cd flatlink
+cp inc/config.example.php inc/config.php
+php -S localhost:8080
+```
 
-Marke und Marketing bleiben also draußen: Wer flatlink installiert, bekommt
-kein 1337.kiwi-Imitat, sondern eine leere Instanz, die er selbst benennt und
-einfärbt. Umgekehrt sind die Funktionen für Organisationen – zentrale
-Anmeldung, Gruppen, Rechte – nur hier zu finden; der öffentliche Dienst
-braucht sie nicht.
+Im Browser `http://localhost:8080/admin/` öffnen – der erste Aufruf legt das
+Admin-Konto an. Für den Dauerbetrieb: Dateien auf den Webspace kopieren,
+`data/` beschreibbar machen, `base_url` in der Konfiguration eintragen.
+Ausführlich unter [Installation](#installation).
 
-Warum das offenliegt: Der Satz „wir tracken nicht" ist auf einer Website
-bloß eine Behauptung. Mit dem Quelltext daneben wird er überprüfbar – und das
-ist der einzige Weg, ihn ernsthaft zu belegen.
+> **In English:** a self-hosted URL shortener and QR code generator written in
+> dependency-free PHP. No database, no Composer, no build step – just copy the
+> files onto any PHP 8.1 web space. Click statistics are a per-day counter and
+> nothing else: no IP addresses, no user agents, no referrers, no per-visit
+> records. Code comments and UI are in German. MIT licensed.
 
-Im Seitenfuß jeder Instanz steht dafür eine dezente Herkunftszeile mit
-Kiwi-Zeichen. Sie ist reine Höflichkeit, keine Lizenzbedingung: `show_origin`
-in der Konfiguration schaltet sie ab.
+## Für wen das gedacht ist
+
+- **Vereine, Praxen, Restaurants, kleine Betriebe**, die einen QR-Code drucken
+  und das Ziel später ändern wollen, ohne den Aufkleber zu tauschen.
+- **Bibliotheken, Schulen, Hochschulen, Verwaltungen**, die Kurzlinks nicht an
+  einen Dienst außerhalb Europas geben dürfen. Anmeldung über LDAP oder
+  Shibboleth, Gruppen mit eigenen Rechten und Limits, Namensräume je Abteilung.
+- **Agenturen**, die mehrere Marken bedienen: eigene Domains je Kunde,
+  gemeinsame Arbeitsgruppen, Schnittstelle für die Automatisierung.
+- **Alle, die einen Satz belegen wollen statt ihn zu behaupten.** „Wir tracken
+  nicht" ist auf einer Website eine Behauptung. Mit dem Quelltext daneben wird
+  sie überprüfbar.
+
+## Wo es im Einsatz ist
+
+Der Autor betreibt mit flatlink den öffentlichen Dienst
+[1337.kiwi](https://1337.kiwi) – dieselbe Software, nur mit eigenem Design und
+den Inhalten, die ein öffentliches Angebot braucht. Was dort läuft, steht hier
+im Quelltext; was hier für Organisationen dazukommt (zentrale Anmeldung,
+Gruppen, Rechte), braucht der öffentliche Dienst nicht.
+
+Wer flatlink installiert, bekommt **kein Imitat davon**: ein neutrales Theme,
+das eigene Kürzel, die eigene Domain. Im Seitenfuß steht eine dezente
+Herkunftszeile – reine Höflichkeit, keine Lizenzbedingung, abschaltbar über
+`show_origin` in der Konfiguration.
 
 ## Was drin ist
 
@@ -518,11 +571,15 @@ Ein Besucher-Datensatz entsteht dabei nicht — die Nummer sagt nur, *welches*
 Ziel geklickt wurde, nicht *von wem*.
 
 Die Seite wird **als eigenes Dokument ausgeliefert**, nicht im Theme der
-Instanz: keine Kopfnavigation, kein Hinweis auf Anmeldung oder Tarife. Sie
-gehört dem, der sie angelegt hat – wer den QR-Code am Schaufenster scannt, will
-die Speisekarte und nicht das Menü des Kurzlink-Dienstes. Vom Betreiber bleibt
-eine Zeile im Fuß, einstellbar über `bio_footer_text` und `bio_footer_glyph`;
-ein leerer Text lässt sie ganz weg.
+Instanz: keine Kopfnavigation, kein Hinweis auf Anmeldung oder Tarife, und ab
+Werk auch keine Absenderzeile im Fuß. Sie gehört dem, der sie angelegt hat –
+wer den QR-Code am Schaufenster scannt, will die Speisekarte und nicht das
+Menü des Kurzlink-Dienstes.
+
+Wer eine öffentliche Instanz mit kostenlosen Konten betreibt, hat gute Gründe
+für eine Herkunftszeile und setzt sie über `bio_footer_text` (Vorspann) und
+`bio_footer_glyph` (Bildzeichen); `''` lässt nur die Wortmarke stehen, `null`
+– die Vorgabe – die ganze Zeile weg.
 
 Die Reihenfolge der Ziele lässt sich mit Pfeiltasten je Zeile ändern – ohne
 JavaScript bleibt sie die Reihenfolge der Felder, was ebenfalls funktioniert,

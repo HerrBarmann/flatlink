@@ -151,13 +151,14 @@ return [
     // eigene Gestaltung eine Seite, die nach nichts aussieht.
     'bio_default_colors' => [],   // z. B. ['bg' => '#ffffff', 'ink' => '#111111', …]
 
-    // Fuß der Link-in-Bio-Seiten. Diese Seiten tragen sonst nichts vom
-    // Betreiber – kein Menü, keine Marke –, deshalb steht hier die einzige
-    // Zeile, die bleibt. Leerer Text lässt sie ganz weg; das Zeichen ist eine
-    // Bilddatei in assets/ und ebenfalls freiwillig.
-    // Vorspann vor der Wortmarke; '' lässt nur die Marke stehen, null die
-    // ganze Zeile weg. Die Marke selbst wird aus 'site_name' aufgebaut.
-    'bio_footer_text' => 'powered by',
+    // Fuß der Link-in-Bio-Seiten. Ab Werk aus: Eine Bio-Seite gehört dem, der
+    // sie eingerichtet hat – die Kundin einer Bibliothek oder eines Cafés soll
+    // dort den Namen dieser Einrichtung sehen und nicht den der Software.
+    // Wer eine öffentliche Instanz mit kostenlosen Konten betreibt, hat gute
+    // Gründe für eine Absenderzeile und setzt hier einen Vorspann; '' lässt
+    // nur die Wortmarke aus 'site_name' stehen, null die ganze Zeile weg.
+    // Das Zeichen ist eine Bilddatei in assets/ und ebenfalls freiwillig.
+    'bio_footer_text' => null,
     'bio_footer_accent' => '',   // Farbe der Endung und des Cursors, leer = wie die Zeile
     'bio_footer_glyph' => '',
 
