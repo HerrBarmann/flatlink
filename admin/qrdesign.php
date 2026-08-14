@@ -4,6 +4,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../inc/store.php';
 require_once __DIR__ . '/../inc/auth.php';
 require_once __DIR__ . '/../inc/groups.php';
+require_once __DIR__ . '/../inc/linkrules.php';
 
 $user = auth_require();
 $isAdmin = $user['role'] === 'admin';
@@ -14,6 +15,28 @@ $logosDir = data_path('logos');
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_check();
     $action = $_POST['action'] ?? '';
+
+    // Neuer Kurzlink direkt von hier aus. Ohne das konnte diese Seite nur
+    // gestalten, was schon da war – wer nur einen QR-Code wollte, musste erst
+    // an anderer Stelle einen Link anlegen und dann hierher zurückfinden.
+    // Dieselbe Beschriftung in der Navigation führte damit angemeldet zu
+    // weniger als abgemeldet.
+    if ($action === 'create') {
+        [$err, $full, $opts] = link_rules_create($user, [
+            'url' => (string)($_POST['url'] ?? ''),
+            'title' => (string)($_POST['title'] ?? ''),
+        ]);
+        if ($err !== null) {
+            flash($err, 'err');
+            redirect_to('qrdesign.php');
+        }
+        [$ok, $ergebnis] = link_create($opts['url'], $full, $user['name'], 'random', $opts);
+        if (!$ok) {
+            flash($ergebnis, 'err');
+            redirect_to('qrdesign.php');
+        }
+        redirect_to('qrdesign.php?c=' . urlencode($ergebnis));
+    }
 
     if ($action === 'upload-logo' && isset($_FILES['logo']) && $_FILES['logo']['error'] === UPLOAD_ERR_OK) {
         $tmp = $_FILES['logo']['tmp_name'];
@@ -86,8 +109,28 @@ asort($logos, SORT_NATURAL | SORT_FLAG_CASE);
 page_header('QR-Designer', true);
 show_flash();
 
-if ($code === ''): ?>
-    <div class="card"><p>Noch keine Links vorhanden – <a href="index.php">leg erst einen an</a>.</p></div>
+?>
+<div class="card">
+    <h2>Neuer QR-Code</h2>
+    <p class="muted small">Adresse eintragen – wir legen den Kurzlink an und öffnen ihn gleich
+    im Designer. Das Ziel lässt sich später ändern, ohne den gedruckten Code auszutauschen.</p>
+    <form method="post" action="" class="grid-form">
+        <?= csrf_field() ?>
+        <input type="hidden" name="action" value="create">
+        <label for="d-url">Wohin soll der QR-Code führen?</label>
+        <div class="short-row">
+            <input id="d-url" type="text" name="url" placeholder="https://example.com/…" required
+                   <?= $code === '' ? 'autofocus' : '' ?>>
+            <button class="btn btn-primary" type="submit">Anlegen</button>
+        </div>
+        <label for="d-title">Name <span class="muted">(optional, nur für deine Übersicht)</span></label>
+        <input id="d-title" type="text" name="title" maxlength="120" placeholder="z. B. Speisekarte Sommer">
+    </form>
+</div>
+
+<?php if ($code === ''): ?>
+    <div class="card"><p class="muted">Sobald ein Kurzlink da ist, erscheint hier der Designer –
+    mit Farben, Formen, Logo, Rahmen und Druck-PDF.</p></div>
 <?php page_footer(); exit; endif; ?>
 
 <div class="card">

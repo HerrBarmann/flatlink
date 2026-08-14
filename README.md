@@ -81,7 +81,7 @@ in der Konfiguration schaltet sie ab.
   Versionen 1–10, Fehlerkorrektur L/M/Q/H) – ohne jede Fremdbibliothek
 - **QR-Designer**: Modul- und Augenformen, freie Farben, eigenes Logo in der
   Mitte, Rahmen mit frei wählbarem Text, Export als SVG, PNG und druckfertiges
-  PDF
+  PDF – ein Kurzlink lässt sich dort auch gleich anlegen
 - **Link-in-Bio-Seiten**: eine Seite mit mehreren Zielen unter einem Kurzcode,
   gezählt wie alles andere – je Tag, für die Seite und je Ziel, ohne
   Besucher-Datensatz
