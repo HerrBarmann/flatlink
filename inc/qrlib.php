@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// flatlink · Zusatzbedingung zur Namensnennung nach §7(b) AGPL: siehe LICENSE
 /**
  * Purer PHP-QR-Code-Generator, keine Abhängigkeiten.
  * Byte-Mode, Versionen 1-10, ECC L/M/Q/H, Maskenwahl per Penalty-Score.

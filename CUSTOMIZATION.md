@@ -171,14 +171,22 @@ Pflicht. flatlink liefert dafür bewusst keine Vorlagen – sie hängen von
 Betreiber, Zweck und Nutzung ab, und eine mitgelieferte Vorlage würde mehr
 Schaden anrichten als helfen.
 
-Die Herkunftszeile mit dem kleinen Kiwi lässt sich abschalten:
+### Die Herkunftszeile
+
+Die Zeile mit dem kleinen Kiwi im Seitenfuß **verlangt die Lizenz** – als
+Zusatzbedingung nach § 7(b) der AGPL. Sie darf übersetzt, umformuliert und
+dezent gesetzt werden; das gehört ausdrücklich dazu. Wer sie an die eigene
+Gestaltung anpassen will, überschreibt `.origin` in `assets/custom.css` oder
+ersetzt `origin_note()` über [`inc/local.php`](#8-eigene-erweiterungen) – solange
+„flatlink" genannt und auf <https://1337.kiwi/flatlink> verlinkt bleibt.
 
 ```php
 'show_origin' => false,
 ```
 
-Die Lizenz verlangt sie nicht. Über ein Sternchen für das Projekt freuen wir
-uns trotzdem.
+Diesen Schalter gibt es für Tests und für den Fall unten. **Er allein erlaubt
+nicht, ohne die Zeile zu betreiben.** Für eine Fassung ohne sie – etwa als
+White-Label – gibt es eine schriftliche Freistellung: <dennis@1337.hamburg>.
 
 ---
 
@@ -462,7 +470,7 @@ Ohne Eingriff in den Quelltext lässt sich **nicht** ändern:
   entscheidet das jeweilige PHP-Skript.
 - **Die Reihenfolge der Navigationspunkte.** Eigene Einträge stehen immer vorn.
 
-Wer daran muss, kommt um einen Fork nicht herum – die MIT-Lizenz erlaubt das
+Wer daran muss, kommt um einen Fork nicht herum – die Lizenz erlaubt das
 ausdrücklich. Rechne dann damit, bei Updates gelegentlich von Hand
 zusammenführen zu müssen.
 

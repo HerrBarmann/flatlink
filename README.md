@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <a href="LICENSE"><img alt="MIT-Lizenz" src="https://img.shields.io/badge/Lizenz-MIT-1a7f37"></a>
+  <a href="LICENSE"><img alt="AGPL-3.0-Lizenz" src="https://img.shields.io/badge/Lizenz-AGPL--3.0-1a7f37"></a>
   <img alt="PHP 8.1+" src="https://img.shields.io/badge/PHP-8.1%2B-777bb4">
   <img alt="Keine Abhängigkeiten" src="https://img.shields.io/badge/Abh%C3%A4ngigkeiten-0-0a7ea4">
   <img alt="Keine Datenbank" src="https://img.shields.io/badge/Datenbank-keine-555">
@@ -98,7 +98,9 @@ Ausführlich unter [Installation](#installation).
 > dependency-free PHP. No database, no Composer, no build step – just copy the
 > files onto any PHP 8.1 web space. Click statistics are a per-day counter and
 > nothing else: no IP addresses, no user agents, no referrers, no per-visit
-> records. Code comments and UI are in German. MIT licensed.
+> records. Code comments and UI are in German. Licensed under the GNU AGPL
+> v3 with an attribution term under section 7(b): every interface must keep a
+> visible notice naming flatlink and linking to the project.
 
 ## Für wen das gedacht ist
 
@@ -122,9 +124,9 @@ im Quelltext; was hier für Organisationen dazukommt (zentrale Anmeldung,
 Gruppen, Rechte), braucht der öffentliche Dienst nicht.
 
 Wer flatlink installiert, bekommt **kein Imitat davon**: ein neutrales Theme,
-das eigene Kürzel, die eigene Domain. Im Seitenfuß steht eine dezente
-Herkunftszeile – reine Höflichkeit, keine Lizenzbedingung, abschaltbar über
-`show_origin` in der Konfiguration.
+das eigene Kürzel, die eigene Domain. Was bleibt, ist eine dezente
+Herkunftszeile im Seitenfuß – die verlangt die [Lizenz](#lizenz), und sie ist
+auch alles, was sie verlangt.
 
 ## Was drin ist
 
@@ -823,4 +825,27 @@ nicht übernommen – auch wenn er die Sache eleganter macht.
 
 ## Lizenz
 
-[MIT](LICENSE) – frei verwendbar, auch kommerziell.
+**[GNU AGPL v3](LICENSE)** mit einer Zusatzbedingung zur Namensnennung nach
+§ 7(b) der Lizenz. Was das praktisch heißt:
+
+**Erlaubt, ohne zu fragen** – auch kommerziell, auch für zahlende Kundschaft:
+benutzen, selbst betreiben, ändern, weitergeben, umbenennen, einfärben, für
+eigene Zwecke erweitern.
+
+**Zwei Bedingungen:**
+
+1. **Die Herkunftszeile bleibt sichtbar.** Jede Oberfläche muss auf „flatlink"
+   hinweisen und auf <https://1337.kiwi/flatlink> verlinken. Übersetzen,
+   umformulieren, klein und dezent setzen – alles erlaubt. Verstecken oder
+   weglassen nicht. Der Bezugspunkt ist `origin_note()` in
+   [`inc/helpers.php`](inc/helpers.php).
+2. **Änderungen bleiben offen.** Wer eine *geänderte* Fassung als Dienst im
+   Netz anbietet, muss seinen Nutzern den Quelltext dieser Fassung zugänglich
+   machen (AGPL § 13). Wer unverändert betreibt, muss nichts veröffentlichen.
+
+Warum nicht MIT: Weil MIT erlaubt, den Quelltext zu schließen und daraus einen
+Dienst zu machen, bei dem niemand mehr nachsehen kann, was mit den Klickdaten
+passiert. Der ganze Punkt dieses Projekts ist, dass man das nachsehen kann.
+
+Für eine Fassung ohne Herkunftszeile – etwa als White-Label – gibt es eine
+schriftliche Freistellung: <dennis@1337.hamburg>.

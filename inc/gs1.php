@@ -1,5 +1,7 @@
 <?php
 declare(strict_types=1);
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// flatlink · Zusatzbedingung zur Namensnennung nach §7(b) AGPL: siehe LICENSE
 /**
  * GS1 Digital Link: aus einer Artikelnummer eine Webadresse bauen.
  *

@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// flatlink · Zusatzbedingung zur Namensnennung nach §7(b) AGPL: siehe LICENSE
 /**
  * Konfiguration.
  *
@@ -104,9 +106,13 @@ return [
     // Die Auskunft (Datenexport im Profil) bleibt davon unberührt.
     'self_delete' => true,
 
-    // Herkunftszeile im Seitenfuß: kleines Kiwi-Zeichen und der Hinweis, dass
-    // flatlink der offene Kern von 1337.kiwi ist. Die Lizenz verlangt sie
-    // nicht – wer sie nicht möchte, setzt hier false.
+    // Herkunftszeile im Seitenfuß: kleines Kiwi-Zeichen und der Hinweis auf
+    // flatlink. Sie ist KEINE Höflichkeit, sondern Bedingung der Lizenz
+    // (Zusatzbedingung nach §7(b) AGPL, siehe LICENSE). Übersetzen,
+    // umformulieren und dezent gestalten ist erlaubt – weglassen nicht.
+    // Dieser Schalter existiert für Tests und für den Fall einer schriftlichen
+    // Freistellung durch den Rechteinhaber; er allein erlaubt den Betrieb
+    // ohne die Zeile nicht. Anfragen: dennis@1337.hamburg
     'show_origin' => true,
 
     // ---- Aussehen ----

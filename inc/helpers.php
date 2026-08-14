@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// flatlink · Zusatzbedingung zur Namensnennung nach §7(b) AGPL: siehe LICENSE
 require_once __DIR__ . '/qrlib.php';
 
 function cfg(?string $key = null): mixed
@@ -599,8 +601,13 @@ function page_header(string $title, bool $admin = false, ?string $desc = null, ?
  *
  * flatlink ist der offene Kern von 1337.kiwi. Die Zeile weist das aus, ohne
  * die Instanz zu vereinnahmen – der Kiwi steht hier für die Herkunft, nicht
- * für den Betreiber. Wer sie nicht möchte, setzt 'show_origin' auf false;
- * die Lizenz verlangt sie nicht.
+ * für den Betreiber.
+ *
+ * **Diese Funktion ist der Bezugspunkt der Lizenz-Zusatzbedingung** nach
+ * §7(b) AGPL (siehe LICENSE): Jede Oberfläche muss „flatlink" nennen und auf
+ * das Projekt verlinken. Wer die Zeile umgestaltet oder übersetzt, bleibt im
+ * Rahmen – wer sie entfernt, braucht eine schriftliche Freistellung. Der
+ * Schalter 'show_origin' erteilt sie nicht.
  */
 function origin_note(): string
 {
