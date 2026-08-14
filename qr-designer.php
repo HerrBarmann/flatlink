@@ -296,7 +296,31 @@ $statischText = trim((string)($_GET['u'] ?? ''));
         <label>Rand (Quiet-Zone): <span id="margin-val">4</span> Module</label>
         <input id="opt-margin" type="range" min="0" max="10" value="4">
 
-        <?php if ($user !== null): ?>
+                <details class="druckfarben">
+            <summary>Druckfarben (CMYK)</summary>
+            <p class="muted small">Für Druckereien. Was hier steht, geht unverändert in PDF und
+            EPS. Bildschirm, PNG und die Vorschau zeigen eine Umrechnung – ohne Farbprofil kann
+            das nur eine Näherung sein, verbindlich ist die Druckdatei. Leer lassen heißt: die
+            Bildschirmfarben oben gelten auch im Druck.</p>
+            <label>Vordergrund <span class="muted">C / M / Y / K in Prozent</span></label>
+            <div class="cmyk-row">
+                <input id="opt-fgc-c" type="number" min="0" max="100" placeholder="C" aria-label="Vordergrund Cyan">
+                <input id="opt-fgc-m" type="number" min="0" max="100" placeholder="M" aria-label="Vordergrund Magenta">
+                <input id="opt-fgc-y" type="number" min="0" max="100" placeholder="Y" aria-label="Vordergrund Gelb">
+                <input id="opt-fgc-k" type="number" min="0" max="100" placeholder="K" aria-label="Vordergrund Schwarz">
+            </div>
+            <label>Hintergrund</label>
+            <div class="cmyk-row">
+                <input id="opt-bgc-c" type="number" min="0" max="100" placeholder="C" aria-label="Hintergrund Cyan">
+                <input id="opt-bgc-m" type="number" min="0" max="100" placeholder="M" aria-label="Hintergrund Magenta">
+                <input id="opt-bgc-y" type="number" min="0" max="100" placeholder="Y" aria-label="Hintergrund Gelb">
+                <input id="opt-bgc-k" type="number" min="0" max="100" placeholder="K" aria-label="Hintergrund Schwarz">
+            </div>
+            <label for="opt-mm">Breite auf dem Papier <span class="muted">(mm, für PDF und EPS)</span></label>
+            <input id="opt-mm" type="number" min="10" max="1000" value="80" style="max-width:8rem">
+        </details>
+
+<?php if ($user !== null): ?>
         <h3>Rahmen</h3>
         <label for="opt-ftext">Text unter dem Code <span class="muted">(leer = kein Rahmen, max. 24 Zeichen)</span></label>
         <div class="short-row">
@@ -351,8 +375,9 @@ $statischText = trim((string)($_GET['u'] ?? ''));
         <div class="qr-links">
             <a id="dl-svg" class="btn" href="#">SVG</a>
             <a id="dl-png" class="btn" href="#">PNG</a>
+            <a id="dl-pdf" class="btn" href="#" title="Vektor-PDF für den Druck">PDF</a>
+            <a id="dl-eps" class="btn" href="#" title="EPS für Satz und Belichtung">EPS</a>
             <?php if ($user !== null): ?>
-            <a id="dl-pdf" class="btn" href="#" title="80 mm breit, ~650 dpi">PDF (Druck)</a>
             <select id="opt-size" title="PNG-Auflösung">
                 <option value="512">512 px</option>
                 <option value="1024" selected>1024 px</option>

@@ -445,3 +445,11 @@ details.utm label { margin-top: 0.5rem; }
    Reitern: Der Wechsel lädt die Seite neu, weil sich beide Wege in mehr als
    nur einem Feld unterscheiden. */
 .modus-wahl { display: flex; gap: 0.4rem; margin: 0 0 0.9rem; flex-wrap: wrap; }
+
+/* Druckfarben: vier schmale Zahlenfelder nebeneinander */
+details.druckfarben { margin: 0.4rem 0 0.8rem; padding: 0.55rem 0.7rem;
+    border: 1px dashed var(--line); border-radius: var(--radius); }
+details.druckfarben > summary { cursor: pointer; color: var(--muted); font-size: 0.92rem; }
+details.druckfarben[open] > summary { margin-bottom: 0.4rem; color: var(--ink); }
+.cmyk-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.4rem; margin-bottom: 0.5rem; }
+.cmyk-row input { text-align: center; }

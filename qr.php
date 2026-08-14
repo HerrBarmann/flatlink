@@ -152,11 +152,29 @@ if ($type !== 'link') {
     $owner = $link['owner'] ?? null;
 }
 
-$format = qp('format', 'svg', '/^(svg|png|pdf)$/');
+$format = qp('format', 'svg', '/^(svg|png|pdf|eps)$/');
 $style  = qp('style', 'square', '/^(square|rounded|dot)$/');
 $eye    = qp('eye', 'square', '/^(square|rounded|circle)$/');
 $fg     = qp('fg', '#16181D', '/^#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/');
 $bg     = qp('bg', '#ffffff', '/^#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/');
+
+// Druckfarben in CMYK, je vier Zahlen 0–100. Sie ersetzen die Bildschirmfarbe
+// nicht, sondern treten neben sie: In EPS und PDF steht der CMYK-Wert genau so,
+// wie er hier ankommt; SVG, PNG und die Vorschau zeigen eine Umrechnung, die
+// ohne Farbprofil nur eine Näherung sein kann. Verbindlich ist die Druckdatei.
+require_once __DIR__ . '/inc/vector.php';
+$cmykIn = function (string $key): ?array {
+    $v = qin($key);
+    if (!is_string($v) || preg_match('/^\d{1,3}(,\d{1,3}){3}$/', $v) !== 1) return null;
+    $t = array_map(fn($x) => min(100, (int)$x) / 100, explode(',', $v));
+    return $t;
+};
+$fgCmyk = $cmykIn('fgc');
+$bgCmyk = $cmykIn('bgc');
+if ($fgCmyk !== null) $fg = VecColor::cmykToHex($fgCmyk);
+if ($bgCmyk !== null) $bg = VecColor::cmykToHex($bgCmyk);
+// Breite auf dem Papier – nur für die Vektorformate von Belang
+$druckMm = max(10.0, min(1000.0, (float)(qin('mm') ?? 80)));
 $ecc    = qp('ecc', 'M', '/^[LMQH]$/');
 $size   = max(64, min(2048, (int)(qin('size') ?? 512)));
 $margin = max(0, min(10, (int)(qin('margin') ?? 4)));
@@ -204,6 +222,8 @@ if (strlen($payload) > QrCode::maxBytes($eccLevel)) {
 $qr = QrCode::encode($payload, $eccLevel);
 $renderer = new QrRenderer($qr, [
     'style' => $style, 'eye' => $eye, 'fg' => $fg, 'bg' => $bg,
+    'fgColor' => $fgCmyk !== null ? VecColor::fromCmyk($fgCmyk) : null,
+    'bgColor' => $bgCmyk !== null ? VecColor::fromCmyk($bgCmyk) : null,
     'size' => $size, 'margin' => $margin, 'logo' => $logo, 'logoScale' => $ls,
     'frameText' => $ftext, 'brandText' => $brand,
     'brandGlyphSvg' => $glyphSvg, 'brandGlyphPng' => $glyphPng,
@@ -222,19 +242,15 @@ if ($format === 'png') {
     header("Content-Disposition: $disposition; filename=\"qr-$filename.png\"");
     echo $renderer->png();
 } elseif ($format === 'pdf') {
-    require_once __DIR__ . '/inc/pdf.php';
-    $img = $renderer->image();
-    // JPEG kennt kein Alpha: transparente Ecken auf Papierweiß flatten
-    $flat = imagecreatetruecolor(imagesx($img), imagesy($img));
-    imagefilledrectangle($flat, 0, 0, imagesx($img) - 1, imagesy($img) - 1, imagecolorallocate($flat, 255, 255, 255));
-    imagecopy($flat, $img, 0, 0, 0, 0, imagesx($img), imagesy($img));
-    ob_start();
-    imagejpeg($flat, null, 92);
-    $jpeg = (string)ob_get_clean();
-    $img = $flat;
+    // Echte Vektoren statt eines eingebetteten Bildes: Das PDF lässt sich
+    // beliebig groß ziehen, bleibt winzig und trägt bei Bedarf CMYK.
     header('Content-Type: application/pdf');
     header("Content-Disposition: $disposition; filename=\"qr-$filename.pdf\"");
-    echo pdf_single_image($jpeg, imagesx($img), imagesy($img), 80.0);
+    echo vec_pdf($renderer->vectorOps(), $druckMm);
+} elseif ($format === 'eps') {
+    header('Content-Type: application/postscript');
+    header("Content-Disposition: $disposition; filename=\"qr-$filename.eps\"");
+    echo vec_eps($renderer->vectorOps(), $druckMm);
 } else {
     header('Content-Type: image/svg+xml');
     header("Content-Disposition: $disposition; filename=\"qr-$filename.svg\"");

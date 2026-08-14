@@ -31,6 +31,15 @@
         if (logo) p.set('logo', logo);
         var ftext = wert('opt-ftext');
         if (ftext && ftext.trim()) p.set('ftext', ftext.trim());
+        // CMYK nur mitschicken, wenn alle vier Felder gefüllt sind – drei
+        // Werte ergeben keine Farbe, und eine halb gesetzte Angabe wäre eine
+        // stille Falle für die Druckerei.
+        ['fgc', 'bgc'].forEach(function (n) {
+            var v = ['c', 'm', 'y', 'k'].map(function (k) { return wert('opt-' + n + '-' + k); });
+            if (v.every(function (x) { return x !== null && x !== ''; })) p.set(n, v.join(','));
+        });
+        var mm = wert('opt-mm');
+        if (mm) p.set('mm', mm);
         for (var k2 in extra) p.set(k2, extra[k2]);
         return p.toString();
     }
@@ -49,10 +58,13 @@
         setzeHref('dl-svg', { format: 'svg', download: 1 });
         setzeHref('dl-png', { format: 'png', size: wert('opt-size') || 1024, download: 1 });
         setzeHref('dl-pdf', { format: 'pdf', download: 1 });
+        setzeHref('dl-eps', { format: 'eps', download: 1 });
     }
 
     ['opt-u', 'opt-style', 'opt-eye', 'opt-fg', 'opt-bg', 'opt-ecc', 'opt-margin',
-     'opt-logo', 'opt-ls', 'opt-size', 'opt-ftext'].forEach(function (id) {
+     'opt-logo', 'opt-ls', 'opt-size', 'opt-ftext', 'opt-mm',
+     'opt-fgc-c', 'opt-fgc-m', 'opt-fgc-y', 'opt-fgc-k',
+     'opt-bgc-c', 'opt-bgc-m', 'opt-bgc-y', 'opt-bgc-k'].forEach(function (id) {
         var el = $(id);
         if (!el) return;
         el.addEventListener('input', refresh);

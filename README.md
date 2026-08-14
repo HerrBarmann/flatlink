@@ -136,9 +136,10 @@ auch alles, was sie verlangt.
   **Versionen 1–40**, Fehlerkorrektur L/M/Q/H) – ohne jede Fremdbibliothek.
   Bis zu 2953 Zeichen, also auch lange Adressen mit Kampagnen-Parametern
 - **QR-Designer** unter `qr-designer.php`: Modul- und Augenformen, freie
-  Farben, Export als SVG und PNG. Angemeldete bekommen auf derselben Seite
-  zusätzlich eigenes Logo, Rahmen mit Text, druckfertiges PDF und die Auswahl
-  ihrer Links – ein Kurzlink lässt sich dort auch gleich anlegen
+  Farben, **Druckfarben in CMYK**, Export als SVG, PNG, **Vektor-PDF und EPS**.
+  Angemeldete bekommen auf derselben Seite zusätzlich eigenes Logo, Rahmen mit
+  Text und die Auswahl ihrer Links – ein Kurzlink lässt sich dort auch gleich
+  anlegen
 - **Link-in-Bio-Seiten**: eine Seite mit mehreren Zielen unter einem Kurzcode,
   gezählt wie alles andere – je Tag, für die Seite und je Ziel, ohne
   Besucher-Datensatz
@@ -631,6 +632,37 @@ erscheint, entscheidet der Betreiber der eingetragenen Adresse; ohne Angabe
 zeigt der Code auf den Dienst von GS1 selbst. Die Logik steht in
 [`inc/gs1.php`](inc/gs1.php), eine Bedienoberfläche dafür bringt flatlink nicht
 mit – sie ist als eigene Seite schnell gebaut.
+
+## Export für den Druck
+
+Fünf Formate aus derselben Vorlage:
+
+| Format | Wofür |
+| --- | --- |
+| SVG | Web und Weiterverarbeitung, mit eingebettetem Logo |
+| PNG | Bildschirm, Office, alles Pixelige |
+| **PDF** | echte Vektoren, eine Seite in der gewünschten Größe |
+| **EPS** | Satz und Belichtung – das Format, nach dem Druckereien fragen |
+
+PDF und EPS enthalten **keine Pixelgrafik**: Der Code besteht aus Pfaden und
+lässt sich auf Plakatgröße ziehen, ohne weich zu werden. Das PDF eines
+gewöhnlichen Codes ist dabei rund 4 kB groß – ein Bruchteil der eingebetteten
+Grafik, die vorher darin steckte.
+
+**CMYK.** Wer die vier Druckfarben angibt, bekommt sie *unverändert* in PDF und
+EPS. Umgerechnet wird nur in die andere Richtung: SVG, PNG und die Vorschau
+zeigen eine Näherung, weil ein Bildschirm kein CMYK kann. Ohne Farbprofil gibt
+es dafür keine richtige Antwort – verbindlich ist die Druckdatei, und die
+Oberfläche sagt das auch.
+
+Beide Formate holen ihre Geometrie aus derselben Quelle wie das SVG
+([`QrRenderer::vectorOps()`](inc/qrlib.php)); der Text nutzt Courier aus dem
+Standardvorrat beider Formate, also ohne eingebettete Schriftdatei und ohne
+Lizenzfrage.
+
+Nachgewiesen wird das ohne Ghostscript: Ein Prüfprogramm liest die erzeugten
+Dateien zurück, zeichnet die enthaltenen Pfade und lässt `zbarimg` sie scannen –
+über alle Modul- und Augenformen, mit Rahmen, mit Absenderzeile und in CMYK.
 
 ## Zwei Arten von QR-Code
 

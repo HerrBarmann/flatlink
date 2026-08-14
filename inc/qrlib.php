@@ -499,6 +499,10 @@ final class QrRenderer
             // eine PNG-Maske fürs Raster, die auf die Textfarbe eingefärbt wird.
             'brandGlyphSvg' => null,   // Dateipfad
             'brandGlyphPng' => null,   // Dateipfad
+            // Druckfarben. Wenn gesetzt, gehen sie unverändert in EPS und PDF;
+            // 'fg'/'bg' bleiben die Bildschirm-Näherung für SVG und PNG.
+            'fgColor'   => null,       // ?VecColor
+            'bgColor'   => null,       // ?VecColor
         ], $options);
     }
 
@@ -652,6 +656,171 @@ final class QrRenderer
             $out .= $this->svgBrandLine($w / 2, $b + $total + $band - 1.0, 1.0, $brand, $o['bg'], 0.75);
         }
         return $out . '</svg>';
+    }
+
+    // ---- Vektor-Vorlage für EPS und PDF ---------------------------------
+
+    /**
+     * Die Zeichnung als Liste geometrischer Anweisungen, in Modul-Einheiten.
+     *
+     * Dieselbe Geometrie wie im SVG, nur ohne Dateiformat drumherum. EPS und
+     * PDF setzen sie jeweils um; so kann eine neue Form nicht in einem Format
+     * auftauchen und im anderen fehlen.
+     *
+     * Anweisungen:
+     *   ['path', [Teilpfade], Farbe, evenOdd]
+     *   ['text', cx, cy, Größe, Text, Farbe, fett]
+     *   ['image', x, y, w, h, Dateipfad]
+     *
+     * Durchsichtigkeit gibt es hier nicht: Wo das SVG die Absenderzeile mit
+     * 75 % Deckkraft setzt, wird die Farbe stattdessen gegen den Untergrund
+     * gemischt. Auf einer deckenden Fläche sieht das gleich aus – und erspart
+     * beiden Formaten die Zusatzmaschinerie für Alpha, die PostScript in
+     * Level 2 ohnehin nicht hat.
+     *
+     * @return array{w:float,h:float,ops:array<int,array>}
+     */
+    public function vectorOps(): array
+    {
+        require_once __DIR__ . '/vector.php';
+        $o = $this->opt;
+        $total = $this->qr->size + 2 * $o['margin'];
+
+        $fg = $o['fgColor'] ?? VecColor::fromHex((string)$o['fg']);
+        $bg = $o['bgColor'] ?? VecColor::fromHex((string)$o['bg']);
+
+        if ($o['frameText'] !== null) {
+            $brand = $o['brandText'] !== null ? (string)$o['brandText'] : null;
+            $b = 1.4; $rad = 1.8;
+            $band = $brand === null ? 4.4 : 5.4;
+            $w = $total + 2 * $b;
+            $h = $total + 2 * $b + $band;
+            $len = max(1, mb_strlen((string)$o['frameText']));
+            $fs = min(3.0, ($w * 0.88) / ($len * 0.62));
+            $textY = $brand === null ? $b + $total + $band / 2 : $b + $total + 2.0;
+
+            $ops = [
+                ['path', [vec_rect(0, 0, $w, $h, $rad)], $fg, false],
+                ['path', [vec_rect($b, $b, $total, $total, 0.8)], $bg, false],
+            ];
+            foreach ($this->codeOps($total, $fg, $bg) as $op) {
+                $ops[] = self::shiftOp($op, $b, $b);
+            }
+            $ops[] = ['text', $w / 2, $textY, $fs, (string)$o['frameText'], $bg, true];
+            if ($brand !== null) {
+                $ops[] = ['text', $w / 2, $b + $total + $band - 1.0, 1.0, $brand, $bg->mix($fg, 0.25), false];
+            }
+            return ['w' => $w, 'h' => $h, 'ops' => $ops];
+        }
+
+        if ($o['brandText'] !== null) {
+            $strip = 2.2;
+            $h = $total + $strip;
+            $ops = [['path', [vec_rect(0, 0, $total, $h)], $bg, false]];
+            foreach ($this->codeOps($total, $fg, $bg) as $op) $ops[] = $op;
+            $ops[] = ['text', $total / 2, $total + $strip / 2, 1.05,
+                (string)$o['brandText'], $fg->mix($bg, 0.45), false];
+            return ['w' => (float)$total, 'h' => $h, 'ops' => $ops];
+        }
+
+        return ['w' => (float)$total, 'h' => (float)$total, 'ops' => $this->codeOps($total, $fg, $bg)];
+    }
+
+    /** Eine Anweisung um dx/dy verschieben */
+    private static function shiftOp(array $op, float $dx, float $dy): array
+    {
+        if ($op[0] === 'path') {
+            foreach ($op[1] as $i => $tp) {
+                $op[1][$i]['start'] = [$tp['start'][0] + $dx, $tp['start'][1] + $dy];
+                foreach ($tp['segments'] as $j => $seg) {
+                    $art = array_shift($seg);
+                    foreach ($seg as $k => $v) $seg[$k] = $v + ($k % 2 === 0 ? $dx : $dy);
+                    $op[1][$i]['segments'][$j] = array_merge([$art], array_values($seg));
+                }
+            }
+            return $op;
+        }
+        if ($op[0] === 'text')  { $op[1] += $dx; $op[2] += $dy; return $op; }
+        if ($op[0] === 'image') { $op[1] += $dx; $op[2] += $dy; return $op; }
+        return $op;
+    }
+
+    /**
+     * Grund, Module, Augen und Logo – der Code selbst, ohne Rahmen und Band.
+     *
+     * @return array<int,array>
+     */
+    private function codeOps(int $total, VecColor $fg, VecColor $bg): array
+    {
+        $o = $this->opt;
+        $n = $this->qr->size;
+        $m = $o['margin'];
+        $ops = [['path', [vec_rect(0, 0, $total, $total)], $bg, false]];
+
+        $formen = [];
+        foreach ($this->modulePositions() as [$x, $y]) {
+            $px = $x + $m; $py = $y + $m;
+            switch ($o['style']) {
+                case 'dot':     $formen[] = vec_circle($px + 0.5, $py + 0.5, 0.42); break;
+                case 'rounded': $formen[] = vec_rect($px + 0.04, $py + 0.04, 0.92, 0.92, 0.28); break;
+                default:        $formen[] = vec_rect($px, $py, 1, 1); break;
+            }
+        }
+        if ($formen !== []) $ops[] = ['path', $formen, $fg, false];
+
+        foreach ($this->eyeOrigins() as [$ex, $ey]) {
+            foreach ($this->eyeOps($ex + $m, $ey + $m) as $teil) {
+                $ops[] = ['path', $teil, $fg, count($teil) > 1];
+            }
+        }
+
+        if ($o['logo'] !== null && is_file($o['logo'])) {
+            $lw = $total * $o['logoScale'];
+            $ops[] = ['image', ($total - $lw) / 2, ($total - $lw) / 2, $lw, $lw, $o['logo']];
+        }
+        return $ops;
+    }
+
+    /**
+     * Alle dunklen Datenmodule (ohne die Augenbereiche).
+     *
+     * Eigene Methode, damit SVG und Vektor-Ausgabe dieselbe Auswahl treffen.
+     *
+     * @return array<int,array{0:int,1:int}>
+     */
+    private function modulePositions(): array
+    {
+        $out = [];
+        $n = $this->qr->size;
+        for ($y = 0; $y < $n; $y++) {
+            for ($x = 0; $x < $n; $x++) {
+                if ($this->qr->modules[$y][$x] && !$this->inEye($x, $y)) $out[] = [$x, $y];
+            }
+        }
+        return $out;
+    }
+
+    /**
+     * Ein Auge als Pfadgruppen: Ring (mit Loch, deshalb even-odd) und Kern.
+     *
+     * @return array<int,array<int,array>>
+     */
+    private function eyeOps(int $x, int $y): array
+    {
+        $eye = $this->opt['eye'];
+        if ($eye === 'circle') {
+            $cx = $x + 3.5; $cy = $y + 3.5;
+            return [
+                [vec_circle($cx, $cy, 3.5), vec_circle($cx, $cy, 2.5)],
+                [vec_circle($cx, $cy, 1.5)],
+            ];
+        }
+        $rOut = $eye === 'rounded' ? 2.0 : 0.0;
+        $rIn = $eye === 'rounded' ? 0.85 : 0.0;
+        return [
+            [vec_rect($x, $y, 7, 7, $rOut), vec_rect($x + 1, $y + 1, 5, 5, max(0.0, $rOut - 1))],
+            [vec_rect($x + 2, $y + 2, 3, 3, $rIn)],
+        ];
     }
 
     /** Alles zwischen den äußeren SVG-Tags (Grund, Module, Augen, Logo) */
