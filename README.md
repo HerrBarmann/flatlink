@@ -980,6 +980,28 @@ erste gefundene wird genommen. Ohne Datei greift ein grober GD-Systemfont.
 Es ist bewusst keine Schrift mitgeliefert, damit dem Projekt keine fremde
 Font-Lizenz anhängt.
 
+## Tests
+
+Keine Test-Bibliothek, keine Konfiguration – zwei PHP-Dateien, die man mit dem
+eingebauten Server laufen lässt:
+
+```bash
+php -S localhost:8080 -t . &
+php tests/optionen.php http://localhost:8080
+```
+
+[`tests/optionen.php`](tests/optionen.php) prüft, ob jede Gestaltungsoption bei
+`qr.php` auch ankommt. Der Anlass war ein Fehler, den ein anderer Test nicht
+finden konnte: Vier Modulformen waren im Renderer gebaut und im Designer
+angeboten, aber die Prüfliste in `qr.php` kannte sie nicht – und ein unbekannter
+Wert wird dort stillschweigend auf die Vorgabe zurückgesetzt. Wer „Raute"
+wählte, bekam ein Quadrat, ohne ein Wort dazu.
+
+Der frühere Test fragte nur, ob sich das Ergebnis **scannen** lässt. Ein Code,
+dessen Form unterwegs verworfen wurde, lässt sich ebenfalls scannen – die Frage
+war falsch gestellt. Jetzt wird dasselbe Bild zweimal erzeugt, einmal über den
+Renderer und einmal über die Adresse, und Byte für Byte verglichen.
+
 ## Mitmachen
 
 Fehlerberichte und Pull Requests sind willkommen. Eine Bitte vorab: Die
