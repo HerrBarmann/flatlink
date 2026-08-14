@@ -278,7 +278,7 @@ function user_limit(string $username, string $key): int
     $u = users_all()[$username] ?? null;
     if ($u !== null && ($u['role'] ?? '') === 'admin') return PHP_INT_MAX;
 
-    $best = (int)(cfg('limits')[$key] ?? 0);
+    $best = (int)(settings()['limits'][$key] ?? 0);
     if ($best === 0) return PHP_INT_MAX;   // global unbegrenzt schlägt alles
 
     $groups = groups_all();
@@ -369,7 +369,7 @@ function group_limit(string $group, string $key): int
 {
     $eigen = (int)(groups_all()[$group]['limits'][$key] ?? 0);
     if ($eigen > 0) return $eigen;
-    $global = (int)((array)cfg('limits'))[$key] ?? 0;
+    $global = (int)((array)settings()['limits'])[$key] ?? 0;
     return $global > 0 ? $global : PHP_INT_MAX;
 }
 
@@ -380,7 +380,7 @@ function user_perms(string $username): array
     if ($u === null) return [];
     if (($u['role'] ?? '') === 'admin') return array_keys(perms_all());
 
-    $perms = (array)(cfg('default_perms') ?? []);
+    $perms = (array)(settings()['default_perms'] ?? []);
     $groups = groups_all();
     foreach (user_groups($username) as $g) {
         $perms = array_merge($perms, $groups[$g]['perms'] ?? []);

@@ -10,7 +10,7 @@ require_once __DIR__ . '/../inc/linkrules.php';
 $user = auth_require();
 $isAdmin = $user['role'] === 'admin';
 // Kontingent für Wunsch-Codes; 0 in der Konfiguration = unbegrenzt
-$codeQuota = (int)cfg('custom_code_quota');
+$codeQuota = (int)settings()['custom_code_quota'];
 $myGroups = user_groups($user['name']);
 // Namensraum-Präfixe: leer = frei, sonst darf nur darunter angelegt werden
 $myPrefixes = $isAdmin ? [] : user_prefixes($user['name']);
@@ -143,7 +143,7 @@ show_flash();
         <?php elseif ($mayCustom): ?>
         <div>
             <?php $used = custom_code_count($user['name']); ?>
-            <label for="c-code">Wunsch-Name <span class="muted">(leer = zufällig · mind. <?= (int)cfg('custom_code_min_len') ?> Zeichen<?= $codeQuota > 0 ? ' · ' . $used . '/' . $codeQuota . ' belegt' : '' ?>)</span></label>
+            <label for="c-code">Wunsch-Name <span class="muted">(leer = zufällig · mind. <?= (int)settings()['custom_code_min_len'] ?> Zeichen<?= $codeQuota > 0 ? ' · ' . $used . '/' . $codeQuota . ' belegt' : '' ?>)</span></label>
             <div class="short-row">
                 <span class="prefix"><?= e(preg_replace('#^https?://#', '', base_url())) ?>/</span>
                 <?php if (count($myPrefixes) === 1): ?>
@@ -154,7 +154,7 @@ show_flash();
                         <?php foreach ($myPrefixes as $p): ?><option value="<?= e($p) ?>"><?= e($p) ?>/</option><?php endforeach; ?>
                     </select>
                 <?php endif; ?>
-                <input id="c-code" type="text" name="code" placeholder="wunschname" pattern="[A-Za-z0-9_-]{<?= (int)cfg('custom_code_min_len') ?>,64}">
+                <input id="c-code" type="text" name="code" placeholder="wunschname" pattern="[A-Za-z0-9_-]{<?= (int)settings()['custom_code_min_len'] ?>,64}">
             </div>
             <?php if ($myPrefixes !== []): ?>
             <p class="muted small">Deine Links liegen im Namensraum

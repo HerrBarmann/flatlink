@@ -190,11 +190,20 @@ function settings(): array
 {
     static $s = null;
     if ($s === null) {
+        // Vorgaben kommen aus der Konfigurationsdatei; was hier zur Laufzeit
+        // geändert wird, überschreibt sie. So lässt sich der Grundrahmen einer
+        // Instanz in der Oberfläche anpassen, ohne per FTP an eine PHP-Datei zu
+        // müssen – und die Datei bleibt trotzdem die Quelle für eine frische
+        // Installation.
         $defaults = [
             'public_mode' => 'on',          // on | prefix | off
             'public_prefix' => 'p',         // Namensraum für öffentliche Links im Prefix-Modus
             'public_rate_limit' => cfg('public_rate_limit'),
             'registration' => 'on',         // Selbst-Registrierung: on | off
+            'limits' => (array)cfg('limits'),
+            'default_perms' => (array)cfg('default_perms'),
+            'custom_code_min_len' => (int)cfg('custom_code_min_len'),
+            'custom_code_quota' => (int)cfg('custom_code_quota'),
         ];
         $s = array_merge($defaults, json_read(data_path() . '/settings.json'));
     }

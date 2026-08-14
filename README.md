@@ -233,6 +233,15 @@ Angelegt werden Gruppen im Admin-Bereich unter **Gruppen**, zugeordnet werden
 Konten unter **Nutzer**. Bei zentraler Anmeldung kann die Zuordnung auch aus
 dem Verzeichnis kommen (siehe unten).
 
+### Grundregeln und Gruppen
+
+Was **jedes** Konto darf, steht unter *Einstellungen → Grundregeln*: Limits für
+Links, Statistik-Tiefe und Logos, das Kontingent für Wunsch-Codes und die
+Rechte, die alle bekommen. Die Vorgaben dafür stehen in `inc/config.php`; was
+in der Oberfläche geändert wird, überschreibt sie und landet in
+`data/settings.json`. Wer mehr bekommen soll als der Grundrahmen, bekommt es
+über eine Gruppe.
+
 ### Zwei Arten von Gruppen
 
 Eine Gruppe kann zweierlei bedeuten, und die beiden haben nichts miteinander zu

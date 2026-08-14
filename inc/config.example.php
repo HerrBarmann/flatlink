@@ -117,6 +117,11 @@ return [
     // überschreibt es damit und ist vom Update ausgenommen. Vorlage zum
     // Kopieren: assets/custom.example.css
 
+    // Wohin der Hinweis im Profil zur Anleitung der Schnittstelle zeigt.
+    // Vorgabe ist die mitgelieferte API.md im Webverzeichnis; wer eine eigene
+    // Seite dafür hat, trägt sie hier ein.
+    'api_doc_url' => 'API.md',
+
     // Anfragen je Stunde und Zugangsschlüssel für die Programmierschnittstelle.
     // Gezählt wird nach Schlüssel, nicht nach IP – ein Server, der die
     // Schnittstelle bedient, kommt immer von derselben Adresse.

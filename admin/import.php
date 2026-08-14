@@ -158,8 +158,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $flagged = urls_flagged(array_column($rows, 'url'));
 
     $quotaLinks = user_limit($user['name'], 'links');
-    $quotaCustom = (int)cfg('custom_code_quota');
-    $minLen = (int)cfg('custom_code_min_len');
+    $quotaCustom = (int)settings()['custom_code_quota'];
+    $minLen = (int)settings()['custom_code_min_len'];
     $usedLinks = link_count($user['name']);
     $usedCustom = custom_code_count($user['name']);
 

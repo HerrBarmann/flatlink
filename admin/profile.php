@@ -172,10 +172,10 @@ show_flash();
     <p class="muted">Angemeldet als <strong><?= e(user_display($user['name'])) ?></strong>
         <?php if (user_has_display($user['name'])): ?><br><span class="small" style="font-family:var(--mono)"><?= e($user['name']) ?></span><?php endif; ?>
         <br>Rolle: <?= e($user['role']) ?></p>
-    <?php $codeQuota = (int)cfg('custom_code_quota'); ?>
+    <?php $codeQuota = (int)settings()['custom_code_quota']; ?>
     <p><span class="muted small">Links: <?= link_count($user['name']) ?>/<?= e(limit_label(user_limit($user['name'], 'links'))) ?> ·
         Wunsch-Codes: <?= custom_code_count($user['name']) ?><?= $codeQuota > 0 ? '/' . $codeQuota : '' ?>
-        (mind. <?= (int)cfg('custom_code_min_len') ?> Zeichen) ·
+        (mind. <?= (int)settings()['custom_code_min_len'] ?> Zeichen) ·
         Logos: <?= e(limit_label(user_limit($user['name'], 'logos'))) ?> ·
         Statistik: <?= (int)user_limit($user['name'], 'stats_days') === PHP_INT_MAX ? 'unbegrenzt' : (int)user_limit($user['name'], 'stats_days') . ' Tage' ?> ·
         <a href="import.php">CSV-Import</a></span></p>
@@ -258,9 +258,10 @@ show_flash();
             später nicht noch einmal anzeigen.</span>
         </div>
         <?php endif; ?>
+        <?php $doku = trim((string)cfg('api_doc_url')); ?>
         <p class="muted small">Ein Schlüssel meldet ein Programm unter deinem Konto an. Er kann
-        nie mehr, als du selbst darfst. Anleitung: <a href="<?= e(base_url()) ?>/api.php/me">API-Wurzel</a>
-        und der Abschnitt in der Dokumentation.</p>
+        nie mehr, als du selbst darfst.<?php if ($doku !== ''): ?>
+        <a href="<?= e(str_contains($doku, '://') ? $doku : base_url() . '/' . ltrim($doku, '/')) ?>">Zur Anleitung</a>.<?php endif; ?></p>
         <?php $meine = tokens_of($user['name']); ?>
         <?php if ($meine !== []): ?>
         <div class="table-scroll"><table>

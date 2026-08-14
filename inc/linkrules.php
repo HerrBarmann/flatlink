@@ -48,8 +48,8 @@ function link_rules_create(array $user, array $in): array
     }
 
     $assignable = link_rules_assignable($user);
-    $codeQuota = (int)cfg('custom_code_quota');
-    $minLen = (int)cfg('custom_code_min_len');
+    $codeQuota = (int)settings()['custom_code_quota'];
+    $minLen = (int)settings()['custom_code_min_len'];
 
     [$expOk, $expires] = parse_expiry((string)($in['expires'] ?? ''));
 

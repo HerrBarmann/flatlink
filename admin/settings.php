@@ -3,30 +3,55 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../inc/store.php';
 require_once __DIR__ . '/../inc/auth.php';
+require_once __DIR__ . '/../inc/groups.php';
 
 $user = auth_require_admin();
 $s = settings();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_check();
-    $mode = (string)($_POST['public_mode'] ?? 'on');
-    $prefix = trim((string)($_POST['public_prefix'] ?? 'p'), '/ ');
-    $rate = (int)($_POST['public_rate_limit'] ?? 15);
-    $registration = ($_POST['registration'] ?? '') === 'on' ? 'on' : 'off';
 
-    if (!in_array($mode, ['on', 'prefix', 'off'], true)) {
-        flash('Ungültiger Modus.', 'err');
-    } elseif ($mode === 'prefix' && !valid_code($prefix)) {
-        flash('Ungültiger Prefix: 1–64 Zeichen (a-z, A-Z, 0-9, _ und -), nicht reserviert.', 'err');
-    } elseif ($rate < 1 || $rate > 1000) {
-        flash('Rate-Limit: 1–1000 pro Stunde.', 'err');
+    // Die Seite trägt mehrere Formulare, die alle hierher schicken. Deshalb wird
+    // der bestehende Stand als Grundlage genommen und nur überschrieben, was in
+    // dieser Anfrage tatsächlich vorkommt – sonst löschte jedes Formular beim
+    // Speichern die Felder der anderen.
+    $neu = settings();
+    $fehler = null;
+
+    if (isset($_POST['public_mode'])) {
+        $mode = (string)$_POST['public_mode'];
+        $prefix = trim((string)($_POST['public_prefix'] ?? 'p'), '/ ');
+        $rate = (int)($_POST['public_rate_limit'] ?? 15);
+        if (!in_array($mode, ['on', 'prefix', 'off'], true)) {
+            $fehler = 'Ungültiger Modus.';
+        } elseif ($mode === 'prefix' && !valid_code($prefix)) {
+            $fehler = 'Ungültiger Prefix: 1–64 Zeichen (a-z, A-Z, 0-9, _ und -), nicht reserviert.';
+        } elseif ($rate < 1 || $rate > 1000) {
+            $fehler = 'Rate-Limit: 1–1000 pro Stunde.';
+        } else {
+            $neu['public_mode'] = $mode;
+            $neu['public_prefix'] = $prefix === '' ? 'p' : $prefix;
+            $neu['public_rate_limit'] = $rate;
+            $neu['registration'] = ($_POST['registration'] ?? '') === 'on' ? 'on' : 'off';
+        }
+    }
+
+    if ($fehler === null && isset($_POST['grundregeln'])) {
+        // 0 heißt „unbegrenzt", deshalb wird nicht auf größer null geprüft,
+        // sondern nur auf sinnvolle Obergrenzen.
+        foreach (['links' => 1000000, 'stats_days' => 100000, 'logos' => 10000] as $k => $max) {
+            $neu['limits'][$k] = max(0, min($max, (int)($_POST['limit_' . $k] ?? 0)));
+        }
+        $neu['default_perms'] = array_values(array_intersect(
+            (array)($_POST['default_perms'] ?? []), array_keys(perms_all())));
+        $neu['custom_code_min_len'] = max(1, min(64, (int)($_POST['custom_code_min_len'] ?? 5)));
+        $neu['custom_code_quota'] = max(0, min(100000, (int)($_POST['custom_code_quota'] ?? 0)));
+    }
+
+    if ($fehler !== null) {
+        flash($fehler, 'err');
     } else {
-        settings_save([
-            'public_mode' => $mode,
-            'public_prefix' => $prefix === '' ? 'p' : $prefix,
-            'public_rate_limit' => $rate,
-            'registration' => $registration,
-        ]);
+        settings_save($neu);
         flash('Einstellungen gespeichert.');
     }
     redirect_to('settings.php');
@@ -36,6 +61,64 @@ page_header('Einstellungen', true);
 show_flash();
 $host = preg_replace('#^https?://#', '', base_url());
 ?>
+
+<div class="card">
+    <h2>Grundregeln für alle Konten</h2>
+    <p class="muted small">Gilt für jedes angemeldete Konto. Mehr gibt es über
+    <a href="groups.php">Gruppen</a> – deren Werte gewinnen, wo sie gesetzt sind.
+    Die Vorgaben stehen in <code>inc/config.php</code>; was hier geändert wird,
+    überschreibt sie.</p>
+    <form method="post" action="" class="grid-form">
+        <?= csrf_field() ?>
+        <input type="hidden" name="grundregeln" value="1">
+
+        <label>Limits <span class="muted">(0 = unbegrenzt)</span></label>
+        <div class="two-col">
+            <div>
+                <label for="s-links">Aktive Links</label>
+                <input id="s-links" type="number" name="limit_links" min="0" max="1000000"
+                       value="<?= (int)($s['limits']['links'] ?? 0) ?>">
+            </div>
+            <div>
+                <label for="s-stats">Statistik-Tiefe in Tagen</label>
+                <input id="s-stats" type="number" name="limit_stats_days" min="0" max="100000"
+                       value="<?= (int)($s['limits']['stats_days'] ?? 0) ?>">
+            </div>
+        </div>
+        <div class="two-col">
+            <div>
+                <label for="s-logos">Logos in der Bibliothek</label>
+                <input id="s-logos" type="number" name="limit_logos" min="0" max="10000"
+                       value="<?= (int)($s['limits']['logos'] ?? 0) ?>">
+            </div>
+            <div>
+                <label for="s-quota">Wunsch-Codes je Konto</label>
+                <input id="s-quota" type="number" name="custom_code_quota" min="0" max="100000"
+                       value="<?= (int)($s['custom_code_quota'] ?? 0) ?>">
+            </div>
+        </div>
+        <div>
+            <label for="s-minlen">Mindestlänge für Wunsch-Codes
+                <span class="muted">(kürzere bleiben Administratoren vorbehalten)</span></label>
+            <input id="s-minlen" type="number" name="custom_code_min_len" min="1" max="64"
+                   style="max-width:8rem" value="<?= (int)($s['custom_code_min_len'] ?? 5) ?>">
+        </div>
+
+        <label>Rechte, die jedes Konto hat</label>
+        <div class="check-row">
+            <?php foreach (perms_all() as $key => $label): ?>
+            <label class="check">
+                <input type="checkbox" name="default_perms[]" value="<?= e($key) ?>"
+                    <?= in_array($key, (array)($s['default_perms'] ?? []), true) ? ' checked' : '' ?>>
+                <?= e($label) ?>
+            </label>
+            <?php endforeach; ?>
+        </div>
+        <p class="muted small">Was hier nicht angekreuzt ist, lässt sich einzelnen Konten über
+        eine Gruppe geben – so entsteht aus einem Recht ein Tarif.</p>
+        <button class="btn btn-primary" type="submit">Grundregeln speichern</button>
+    </form>
+</div>
 
 <div class="card">
     <h2>Ablage</h2>
