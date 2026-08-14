@@ -123,7 +123,8 @@ return [
     'api_doc_url' => 'API.md',
 
     // Zwei-Faktor-Anmeldung verlangen: 'off' | 'admins' | 'all'.
-    // Auch zur Laufzeit unter Einstellungen änderbar.
+    // Erfüllt wird die Auflage durch einen Passkey ODER ein Einmalkennwort aus
+    // einer App. Auch zur Laufzeit unter Einstellungen änderbar.
     'totp_required' => 'off',
 
     // Anfragen je Stunde und Zugangsschlüssel für die Programmierschnittstelle.

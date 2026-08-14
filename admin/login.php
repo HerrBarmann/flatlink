@@ -4,6 +4,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../inc/auth.php';
 require_once __DIR__ . '/../inc/sso.php';
 require_once __DIR__ . '/../inc/totp.php';
+require_once __DIR__ . '/../inc/webauthn.php';
 
 auth_boot();
 if (auth_user() !== null) redirect_to('index.php');
@@ -14,17 +15,37 @@ if (auth_user() !== null) redirect_to('index.php');
 $wartet = auth_pending();
 if ($wartet !== null) {
     $fehler = null;
+    $keys = passkeys_of($wartet);
+    $mitApp = totp_active($wartet);
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         csrf_check();
         if (($_POST['abbruch'] ?? '') === '1') {
             unset($_SESSION['pending_user'], $_SESSION['pending_since']);
             redirect_to('login.php');
         }
+        // Passkey-Weg: antwortet mit JSON, wird vom Skript im Browser gerufen
+        if (($_POST['action'] ?? '') === 'pk_challenge') {
+            if ($keys === []) wa_json(['error' => 'Für dieses Konto ist kein Passkey hinterlegt.'], 400);
+            wa_json(passkey_request_options($wartet));
+        }
+        if (($_POST['action'] ?? '') === 'pk_verify') {
+            // Auch dieser Weg wird gebremst. Zwar ist eine Unterschrift nicht
+            // zu erraten, aber ein Fehlversuch kostet uns Rechenzeit.
+            if (!bucket_rate_ok('totp', 20, $wartet)) {
+                wa_json(['error' => 'Zu viele Versuche – bitte später erneut.'], 429);
+            }
+            $daten = json_decode((string)($_POST['daten'] ?? ''), true);
+            if (!is_array($daten)) wa_json(['error' => 'Antwort unlesbar.'], 400);
+            $err = passkey_verify($wartet, $daten);
+            if ($err !== null) { sleep(1); wa_json(['error' => $err], 403); }
+            auth_pending_complete();
+            wa_json(['ok' => true, 'redirect' => 'index.php']);
+        }
         // Auch die zweite Stufe wird gebremst – sechs Stellen sind sonst in
         // überschaubarer Zeit durchprobiert.
         if (!bucket_rate_ok('totp', 20, $wartet)) {
             $fehler = 'Zu viele Versuche – bitte später erneut.';
-        } elseif (totp_check($wartet, (string)($_POST['code'] ?? ''))) {
+        } elseif ($mitApp && totp_check($wartet, (string)($_POST['code'] ?? ''))) {
             auth_pending_complete();
             redirect_to('index.php');
         } else {
@@ -36,16 +57,31 @@ if ($wartet !== null) {
     ?>
     <div class="card narrow">
         <h1>Noch ein Schritt</h1>
-        <p class="muted">Gib den sechsstelligen Code aus deiner Authenticator-App ein.
-        Ein Wiederherstellungscode geht auch.</p>
         <?php if ($fehler !== null): ?><div class="flash flash-err"><?= e($fehler) ?></div><?php endif; ?>
+
+        <?php if ($keys !== []): ?>
+        <p class="muted">Bestätige mit deinem Passkey – Fingerabdruck, Gesicht oder Geräte-PIN.</p>
+        <p><button class="btn btn-primary" type="button" style="width:100%"
+                   data-passkey="login" data-url="login.php" data-csrf="<?= e(csrf_token()) ?>"
+                   data-status="pk-status">Mit Passkey bestätigen</button></p>
+        <div id="pk-status" class="flash" style="display:none"></div>
+        <?php endif; ?>
+
+        <?php if ($mitApp): ?>
+            <?php if ($keys !== []): ?>
+            <p class="muted small" style="text-align:center">oder mit einem Code aus der App:</p>
+            <?php else: ?>
+            <p class="muted">Gib den sechsstelligen Code aus deiner Authenticator-App ein.
+            Ein Wiederherstellungscode geht auch.</p>
+            <?php endif; ?>
         <form method="post" action="" data-enter-submit>
             <?= csrf_field() ?>
             <label for="code">Code</label>
-            <input id="code" type="text" name="code" required autofocus autocomplete="one-time-code"
-                   inputmode="numeric" placeholder="123456">
-            <p><button class="btn btn-primary" type="submit">Bestätigen</button></p>
+            <input id="code" type="text" name="code" required<?= $keys === [] ? ' autofocus' : '' ?>
+                   autocomplete="one-time-code" inputmode="numeric" placeholder="123456">
+            <p><button class="btn<?= $keys === [] ? ' btn-primary' : '' ?>" type="submit">Bestätigen</button></p>
         </form>
+        <?php endif; ?>
         <form method="post" action="">
             <?= csrf_field() ?>
             <input type="hidden" name="abbruch" value="1">
@@ -53,6 +89,7 @@ if ($wartet !== null) {
         </form>
     </div>
     <?php
+    if ($keys !== []) page_script('assets/passkey.js');
     page_footer();
     exit;
 }

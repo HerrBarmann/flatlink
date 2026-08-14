@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../inc/store.php';
 require_once __DIR__ . '/../inc/auth.php';
+require_once __DIR__ . '/../inc/totp.php';
+require_once __DIR__ . '/../inc/webauthn.php';
 require_once __DIR__ . '/../inc/groups.php';
 require_once __DIR__ . '/../inc/sso.php';
 
@@ -44,6 +46,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             $err = user_set_role($name, $role);
             flash($err ?? 'Rolle von ' . $name . ': ' . $role . '.', $err === null ? 'ok' : 'err');
+        }
+    } elseif ($action === 'reset2fa') {
+        // Der Weg zurück, wenn jemand sein Gerät verloren hat. Ein Passkey
+        // lässt sich nicht abschreiben und in den Safe legen – anders als die
+        // Wiederherstellungscodes der App gibt es hier nichts nachzuschlagen.
+        // Bleibt: jemand, der die Person kennt, schaltet den Schutz ab.
+        if ($name === $user['name']) {
+            flash('Den eigenen Schutz bitte im Profil verwalten – dort ist ein Nachweis fällig.', 'err');
+        } elseif (!isset(users_all()[$name])) {
+            flash('Nutzer nicht gefunden.', 'err');
+        } else {
+            totp_disable($name);
+            passkeys_drop_user($name);
+            flash('Zweite Stufe für ' . $name . ' zurückgesetzt. Vergewissere dich, dass die '
+                . 'Anfrage wirklich von dieser Person kam – danach schützt nur noch das Passwort.');
         }
     } elseif ($action === 'approve') {
         $err = pending_user_approve($name, (string)($_POST['source'] ?? 'sso'));
@@ -205,6 +222,12 @@ show_flash();
                 <span class="user-meta">
                     <span class="tag"><?= e(match ($src) { 'ldap' => 'LDAP', 'sso' => 'SSO', default => 'lokal' }) ?></span>
                     <?php if ($u['role'] === 'admin'): ?><span class="tag tag-on">Admin</span><?php endif; ?>
+                    <?php
+                    $zf = [];
+                    if (passkeys_active((string)$name)) $zf[] = count(passkeys_of((string)$name)) . '× Passkey';
+                    if (totp_active((string)$name)) $zf[] = 'App';
+                    ?>
+                    <?php if ($zf !== []): ?><span class="tag tag-on" title="Zweite Stufe beim Anmelden">🔒 <?= e(implode(' + ', $zf)) ?></span><?php endif; ?>
                     <?php foreach ($mine as $g): $bis = user_group_until((string)$name, $g); ?>
                         <span class="tag tag-on" <?= $bis !== null ? 'title="befristet bis ' . e(date('d.m.Y', strtotime($bis))) . '"' : '' ?>>
                             <?= e(group_label($g)) ?><?= $bis !== null ? ' ⏱' : '' ?></span>
@@ -275,6 +298,14 @@ show_flash();
                         <input type="hidden" name="role" value="<?= $u['role'] === 'admin' ? 'user' : 'admin' ?>">
                         <button class="btn btn-small" type="submit">Rolle → <?= $u['role'] === 'admin' ? 'user' : 'admin' ?></button>
                     </form>
+                    <?php if ($zf !== []): ?>
+                    <form method="post" action="" class="inline" data-confirm="Zweite Stufe für „<?= e((string)$name) ?>“ wirklich zurücksetzen? Danach schützt nur noch das Passwort.">
+                        <?= csrf_field() ?>
+                        <input type="hidden" name="action" value="reset2fa">
+                        <input type="hidden" name="username" value="<?= e((string)$name) ?>">
+                        <button class="btn btn-small" type="submit">Zweite Stufe zurücksetzen</button>
+                    </form>
+                    <?php endif; ?>
                     <form method="post" action="" class="inline" data-confirm="Nutzer „<?= e((string)$name) ?>“ wirklich löschen?">
                         <?= csrf_field() ?>
                         <input type="hidden" name="action" value="delete">

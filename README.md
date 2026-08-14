@@ -92,7 +92,8 @@ in der Konfiguration schaltet sie ab.
   unabhängig vom Dienst funktionieren
 - **Konten** mit Selbstregistrierung per Double-Opt-In, Passwort-Reset und
   Rollen (Nutzer/Admin), inklusive Nutzungs-Limits pro Konto
-- **Zwei-Faktor-Anmeldung** (TOTP) mit Wiederherstellungscodes, optional für
+- **Zwei-Faktor-Anmeldung**: Passkeys (WebAuthn) oder Einmalkennwörter aus
+  einer App, mit Wiederherstellungscodes, optional für
   die ganze Instanz erzwingbar
 - **Auskunft und Löschung im Profil**: Datenexport als JSON und ein Knopf, der
   Konto und Links wirklich entfernt – Art. 15, 17 und 20 DSGVO ohne
@@ -273,16 +274,64 @@ jede Gruppe, woran man ist.
 
 ## Zwei-Faktor-Anmeldung
 
-Einzurichten im Profil: QR-Code scannen, sechs Ziffern eintippen, fertig.
-Danach fragt die Anmeldung nach dem Passwort **und** einem Einmalkennwort.
-Acht Wiederherstellungscodes werden dabei einmal angezeigt; jeder gilt genau
-einmal, für den Fall, dass das Telefon weg ist.
-
 Warum das hier drin ist: Wer ein Konto übernimmt, kann das Ziel eines
 Kurzlinks ändern – auch das eines Codes, der längst gedruckt auf einem Schild
 klebt. Der Schaden trifft dann nicht den Kontoinhaber, sondern jeden, der
 scannt. Für einen Dienst, der gedruckte Codes ausgibt, ist ein Passwort allein
 eine dünne Tür.
+
+Zwei Verfahren stehen zur Wahl, beide im Profil einzurichten. Sie schließen
+sich nicht aus – wer beide hinterlegt, hat beim Anmelden die Wahl.
+
+### Passkeys (WebAuthn)
+
+Fingerabdruck, Gesicht oder Geräte-PIN, hinterlegt im Telefon, im Rechner oder
+auf einem Sicherheitsschlüssel. Bis zu zehn Geräte je Konto.
+
+Der Unterschied zum Einmalkennwort ist nicht die Bequemlichkeit, sondern die
+**Bindung an die Domain**. Ein sechsstelliger Code lässt sich auf einer
+nachgebauten Anmeldeseite eintippen und binnen Sekunden weiterreichen; einen
+Passkey gibt der Browser dort gar nicht erst heraus, weil die Herkunft nicht
+stimmt. Das ist der eigentliche Gewinn.
+
+Umgesetzt in [`inc/webauthn.php`](inc/webauthn.php) – reines PHP, wie alles
+hier: Der CBOR-Leser ist selbst geschrieben, die Unterschrift prüft das
+OpenSSL, das PHP ohnehin mitbringt. Unterstützt werden ES256 (was Telefone und
+Sicherheitsschlüssel praktisch immer liefern) und RS256 (ältere
+Windows-Hello-Installationen). `assets/passkey.js` packt nur zwischen JSON und
+der Binärschnittstelle des Browsers um; **geprüft wird ausschließlich auf dem
+Server** – das Skript lässt sich ohne Sicherheitsverlust lesen, ändern und
+umgehen.
+
+Vier Prüfungen machen den Schutz aus, und keine davon darf wegfallen:
+
+1. Die Aufgabe (*Challenge*) muss die sein, die der Server gestellt hat. Sie
+   gilt fünf Minuten und genau einmal.
+2. Die Herkunft (*Origin*) muss die eigene sein – hier hängt die
+   Phishing-Abwehr.
+3. Der Abdruck der Domain im Gerätedatensatz muss zur eigenen Domain passen.
+4. Die Unterschrift muss zum hinterlegten Schlüssel passen.
+
+Dazu der Signaturzähler: Läuft er zurück, wurde der Schlüssel vermutlich
+kopiert, und die Anmeldung wird abgelehnt. Viele Geräte zählen gar nicht – nur
+ein echter Rückschritt gilt als verdächtig.
+
+Passkeys brauchen HTTPS (`localhost` ausgenommen). Auf einer Instanz ohne TLS
+blendet das Profil den Knopf nicht ein, statt ein Versprechen zu geben, das der
+Browser nicht einlöst.
+
+**Es gibt keine Wiederherstellungscodes.** Ein Passkey lässt sich nicht
+abschreiben und in den Safe legen. Deshalb zwei Wege zurück: ein zweites Gerät
+hinterlegen – oder ein Administrator setzt die zweite Stufe unter *Nutzer*
+zurück. Diese Möglichkeit ist Absicht und zugleich der schwächste Punkt der
+Kette; wer sie benutzt, sollte sicher sein, mit wem er spricht.
+
+### Einmalkennwörter aus einer App (TOTP)
+
+QR-Code scannen, sechs Ziffern eintippen, fertig. Acht Wiederherstellungscodes
+werden dabei einmal angezeigt; jeder gilt genau einmal, für den Fall, dass das
+Telefon weg ist. Funktioniert auf jedem Gerät und in jedem Browser – aber es
+lässt sich abtippen, und damit auch auf einer nachgebauten Seite eingeben.
 
 Umgesetzt nach RFC 6238 in reinem PHP – HMAC-SHA1 und base32 bringt die
 Sprache mit, den QR-Code erzeugt der eigene Encoder. Geprüft gegen die
@@ -297,9 +346,14 @@ Zwei Dinge, die nicht selbstverständlich sind:
   festgehalten. Ohne diese Sperre könnte jemand, der einmal über die Schulter
   geschaut hat, sich im selben halben Minutenfenster selbst anmelden.
 
+### Erzwingen
+
 Über `'totp_required'` (`off` | `admins` | `all`, auch unter *Einstellungen*)
-lässt sich die zweite Stufe erzwingen. Wer sie noch nicht hat, wird nach der
-Anmeldung ins Profil geführt statt ausgesperrt.
+lässt sich die zweite Stufe verlangen. **Erfüllt wird die Auflage durch eines
+der beiden Verfahren** – der Schlüsselname ist aus der Zeit vor den Passkeys
+und bleibt, damit bestehende Konfigurationen weiterlaufen. Wer noch keines
+eingerichtet hat, wird nach der Anmeldung ins Profil geführt statt ausgesperrt;
+das letzte verbliebene Verfahren lässt sich dann nicht mehr entfernen.
 
 **API-Schlüssel sind davon nicht betroffen** – sie sind ein eigener Nachweis
 und tragen kein Passwort, das ein Zweitfaktor absichern könnte. Wer ein Konto

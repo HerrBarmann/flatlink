@@ -130,8 +130,9 @@ $host = preg_replace('#^https?://#', '', base_url());
             <option value="<?= e($k) ?>"<?= ($s['totp_required'] ?? 'off') === $k ? ' selected' : '' ?>><?= e($lbl) ?></option>
             <?php endforeach; ?>
         </select>
-        <p class="muted small">Wer sie noch nicht eingerichtet hat, wird nach der Anmeldung
-        dorthin geführt statt ausgesperrt.</p>
+        <p class="muted small">Ein Passkey oder ein Einmalkennwort aus einer App – beides zählt.
+        Wer noch keines eingerichtet hat, wird nach der Anmeldung dorthin geführt statt
+        ausgesperrt.</p>
         <button class="btn btn-primary" type="submit">Grundregeln speichern</button>
     </form>
 </div>

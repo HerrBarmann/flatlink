@@ -610,6 +610,18 @@ function origin_note(): string
  * Impressum und Datenschutzerklärung verpflichtet – eigene Seiten anlegen
  * und hier verlinken.
  */
+/**
+ * Ein weiteres Skript für diese Seite anfordern.
+ *
+ * Wird vor dem schließenden </body> ausgegeben. Vor dieser Stelle hängten
+ * einzelne Seiten ihr <script> hinter page_footer() – also hinter </html>,
+ * wo es zwar noch lief, aber nichts mehr zu suchen hatte.
+ */
+function page_script(string $datei): void
+{
+    $GLOBALS['_page_js'][] = $datei;
+}
+
 function page_footer(): void
 {
     $root = $GLOBALS['_page_root'] ?? '.';
@@ -624,7 +636,11 @@ function page_footer(): void
         $links .= ' · <a href="' . e($href) . '">' . e((string)$label) . '</a>';
     }
     echo '</main><footer class="site-foot"><p>' . e(cfg('site_name'))
-        . ' · ' . $links . '</p>' . origin_note() . '</footer></div></body></html>';
+        . ' · ' . $links . '</p>' . origin_note() . '</footer></div>';
+    foreach ((array)($GLOBALS['_page_js'] ?? []) as $js) {
+        echo '<script src="' . e($root . '/' . ltrim($js, '/')) . '" defer></script>';
+    }
+    echo '</body></html>';
 }
 
 function flash(?string $msg = null, string $type = 'ok'): ?array

@@ -7,6 +7,7 @@ require_once __DIR__ . '/../inc/store.php';
 require_once __DIR__ . '/../inc/account.php';
 require_once __DIR__ . '/../inc/token.php';
 require_once __DIR__ . '/../inc/totp.php';
+require_once __DIR__ . '/../inc/webauthn.php';
 require_once __DIR__ . '/../inc/mail.php';
 
 // Ausgenommen vom Zwang zur zweiten Stufe – hier wird sie ja eingerichtet
@@ -16,6 +17,36 @@ $extern = ($user['auth'] ?? 'local') !== 'local';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_check();
     $action = (string)($_POST['action'] ?? 'password');
+
+    // ---- Passkeys ----
+    // Diese drei Fälle antworten mit JSON statt mit einer Seite: Sie werden
+    // vom Skript im Browser aufgerufen, nicht von einem Formular.
+    if ($action === 'pk_challenge') {
+        wa_json(passkey_create_options($user));
+    }
+
+    if ($action === 'pk_register') {
+        $daten = json_decode((string)($_POST['daten'] ?? ''), true);
+        if (!is_array($daten)) wa_json(['error' => 'Antwort unlesbar.'], 400);
+        $err = passkey_register($user['name'], $daten, (string)($_POST['label'] ?? ''));
+        if ($err !== null) wa_json(['error' => $err], 422);
+        flash('Passkey hinterlegt.');
+        wa_json(['ok' => true, 'redirect' => 'profile.php']);
+    }
+
+    if ($action === 'pk_remove') {
+        // Den letzten Passkey nur entfernen, wenn danach noch etwas übrig ist –
+        // sonst stünde das Konto ohne zweite Stufe da, obwohl sie verlangt wird.
+        $rest = count(passkeys_of($user['name'])) - 1;
+        if (totp_required($user['role']) && $rest < 1 && !totp_active($user['name'])) {
+            flash('Diese Instanz verlangt eine zweite Stufe – richte zuerst eine andere ein.', 'err');
+        } elseif (passkey_remove($user['name'], (string)($_POST['id'] ?? ''))) {
+            flash('Passkey entfernt.');
+        } else {
+            flash('Dieser Passkey war nicht (mehr) hinterlegt.', 'err');
+        }
+        redirect_to('profile.php');
+    }
 
     if ($action === 'totp_start') {
         // Ein neues Geheimnis überschreibt ein noch unbestätigtes – wer die
@@ -51,8 +82,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!$nachweis) {
             sleep(1);
             flash('Nachweis fehlt – die zweite Stufe bleibt aktiv.', 'err');
-        } elseif (totp_required($user['role'])) {
-            flash('Diese Instanz verlangt die zweite Stufe – sie lässt sich nicht abschalten.', 'err');
+        } elseif (totp_required($user['role']) && !passkeys_active($user['name'])) {
+            flash('Diese Instanz verlangt eine zweite Stufe – richte zuerst einen Passkey ein.', 'err');
         } else {
             totp_disable($user['name']);
             flash('Zwei-Faktor-Anmeldung abgeschaltet.');
@@ -293,9 +324,64 @@ show_flash();
     <?php
     $t = totp_get($user['name']);
     $aktiv = totp_active($user['name']);
+    $keys = passkeys_of($user['name']);
+    $pflicht = totp_required($user['role']);
     $frischeCodes = $_SESSION['fresh_recovery'] ?? null;
     unset($_SESSION['fresh_recovery']);
     ?>
+    <p class="muted small">Ein zweiter Nachweis beim Anmelden. Wer dein Passwort kennt, kommt
+    damit trotzdem nicht an deine Links – und an die Ziele der Codes, die längst irgendwo
+    gedruckt hängen.<?php if ($pflicht): ?> <strong>Diese Instanz verlangt ihn.</strong><?php endif; ?></p>
+
+    <h3>Passkey <span class="muted small">(empfohlen)</span></h3>
+    <?php if (!webauthn_possible()): ?>
+        <p class="muted small">Passkeys brauchen eine gesicherte Verbindung (HTTPS). Auf dieser
+        Instanz ist das gerade nicht der Fall – nimm so lange die App unten.</p>
+    <?php else: ?>
+        <p class="muted small">Fingerabdruck, Gesicht oder Geräte-PIN – hinterlegt in deinem
+        Telefon, deinem Rechner oder auf einem Sicherheitsschlüssel. Anders als ein Code aus einer
+        App ist ein Passkey <strong>an diese Adresse gebunden</strong>: Auf einer nachgebauten
+        Anmeldeseite gibt ihn dein Gerät gar nicht erst heraus. Genau davor schützt ein
+        abtippbarer Code nicht.</p>
+
+        <?php if ($keys !== []): ?>
+        <ul class="key-list">
+            <?php foreach ($keys as $k): ?>
+            <li>
+                <div>
+                    <strong><?= e((string)$k['label']) ?></strong><br>
+                    <span class="muted small">eingerichtet <?= e(date('d.m.Y', strtotime((string)$k['created']))) ?>
+                    <?php if (!empty($k['last_used'])): ?> · zuletzt benutzt <?= e(date('d.m.Y', strtotime((string)$k['last_used']))) ?>
+                    <?php else: ?> · noch nicht benutzt<?php endif; ?></span>
+                </div>
+                <form method="post" action="" data-confirm="Diesen Passkey wirklich entfernen?">
+                    <?= csrf_field() ?>
+                    <input type="hidden" name="action" value="pk_remove">
+                    <input type="hidden" name="id" value="<?= e((string)$k['id']) ?>">
+                    <button class="btn btn-small btn-danger" type="submit">Entfernen</button>
+                </form>
+            </li>
+            <?php endforeach; ?>
+        </ul>
+        <?php endif; ?>
+
+        <?php if (count($keys) < 10): ?>
+        <label for="pk-label">Name für das Gerät <span class="muted">(optional)</span></label>
+        <div class="short-row">
+            <input id="pk-label" type="text" maxlength="60" placeholder="<?= $keys === [] ? 'Mein Telefon' : 'Zweites Gerät' ?>">
+            <button class="btn<?= ($pflicht && !$aktiv && $keys === []) ? ' btn-primary' : '' ?>" type="button"
+                    data-passkey="register" data-url="profile.php" data-csrf="<?= e(csrf_token()) ?>"
+                    data-label="pk-label" data-status="pk-status"><?= $keys === [] ? 'Passkey einrichten' : 'Weiteren einrichten' ?></button>
+        </div>
+        <div id="pk-status" class="flash" style="display:none"></div>
+        <?php if ($keys !== []): ?>
+        <p class="muted small">Ein zweites Gerät ist keine Umständlichkeit, sondern der
+        Ersatzschlüssel: Passkeys lassen sich nicht abschreiben und aufheben.</p>
+        <?php endif; ?>
+        <?php endif; ?>
+    <?php endif; ?>
+
+    <h3>Einmalkennwort aus einer App</h3>
     <?php if ($frischeCodes !== null): ?>
     <div class="flash flash-ok">
         <strong>Wiederherstellungscodes</strong> – jeder gilt einmal, falls dein Gerät weg ist.
@@ -307,22 +393,26 @@ show_flash();
     <?php if ($aktiv): ?>
         <p class="muted small">Aktiv. Beim Anmelden fragt <?= e(cfg('site_name')) ?> nach einem
         Code aus deiner App. Noch <?= totp_recovery_left($user['name']) ?> Wiederherstellungscodes übrig.</p>
-        <?php if (totp_required($user['role'])): ?>
-            <p class="muted small">Diese Instanz verlangt die zweite Stufe – abschalten geht nicht.</p>
+        <?php if ($pflicht && $keys === []): ?>
+            <p class="muted small">Diese Instanz verlangt eine zweite Stufe – abschalten geht erst,
+            wenn ein Passkey eingerichtet ist.</p>
         <?php else: ?>
-        <form method="post" action="" data-confirm="Zweite Stufe wirklich abschalten?">
-            <?= csrf_field() ?>
-            <input type="hidden" name="action" value="totp_off">
-            <?php if ($extern): ?>
-                <label for="t-confirm">Zur Sicherheit deine Kennung eintippen:
-                    <span style="font-family:var(--mono)"><?= e($user['name']) ?></span></label>
-                <input id="t-confirm" type="text" name="confirm" required autocomplete="off">
-            <?php else: ?>
-                <label for="t-pass">Zur Sicherheit dein Passwort:</label>
-                <input id="t-pass" type="password" name="current" required autocomplete="current-password">
-            <?php endif; ?>
-            <p><button class="btn btn-danger" type="submit">Abschalten</button></p>
-        </form>
+        <details>
+            <summary class="muted small">Abschalten</summary>
+            <form method="post" action="" data-confirm="Einmalkennwort wirklich abschalten?">
+                <?= csrf_field() ?>
+                <input type="hidden" name="action" value="totp_off">
+                <?php if ($extern): ?>
+                    <label for="t-confirm">Zur Sicherheit deine Kennung eintippen:
+                        <span style="font-family:var(--mono)"><?= e($user['name']) ?></span></label>
+                    <input id="t-confirm" type="text" name="confirm" required autocomplete="off">
+                <?php else: ?>
+                    <label for="t-pass">Zur Sicherheit dein Passwort:</label>
+                    <input id="t-pass" type="password" name="current" required autocomplete="current-password">
+                <?php endif; ?>
+                <p><button class="btn btn-danger" type="submit">Abschalten</button></p>
+            </form>
+        </details>
         <?php endif; ?>
 
     <?php elseif ($t !== null): ?>
@@ -343,13 +433,13 @@ show_flash();
         </form>
 
     <?php else: ?>
-        <p class="muted small">Ein zweiter Nachweis beim Anmelden – ein Code aus einer App auf
-        deinem Telefon. Wer dein Passwort kennt, kommt damit trotzdem nicht an deine Links.
-        <?php if (totp_required($user['role'])): ?><br><strong>Diese Instanz verlangt ihn.</strong><?php endif; ?></p>
+        <p class="muted small">Sechs Ziffern, die alle 30 Sekunden wechseln. Funktioniert auf
+        jedem Gerät und in jedem Browser – aber es lässt sich abtippen, und damit auch auf einer
+        nachgebauten Seite eingeben. Der richtige Weg, wenn Passkeys nicht in Frage kommen.</p>
         <form method="post" action="">
             <?= csrf_field() ?>
             <input type="hidden" name="action" value="totp_start">
-            <p><button class="btn<?= totp_required($user['role']) ? ' btn-primary' : '' ?>" type="submit">Einrichten</button></p>
+            <p><button class="btn<?= ($pflicht && $keys === []) ? ' btn-primary' : '' ?>" type="submit">Einrichten</button></p>
         </form>
     <?php endif; ?>
 
@@ -444,4 +534,5 @@ show_flash();
     </form>
     <?php endif; ?>
 </div>
-<?php page_footer(); ?>
+<?php page_script('assets/passkey.js');
+page_footer(); ?>

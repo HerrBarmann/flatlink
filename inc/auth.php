@@ -47,6 +47,20 @@ function users_exist(): bool
  * Der Zustand verfällt nach zehn Minuten – wer die Anmeldung offen liegen
  * lässt, soll sie nicht Stunden später an derselben Sitzung fortsetzen können.
  */
+/**
+ * Hat dieses Konto eine zweite Stufe – gleich welcher Art?
+ *
+ * Passkey und Einmalkennwort sind gleichwertige Antworten auf dieselbe Frage.
+ * Diese eine Stelle entscheidet, damit die Anmeldung, der Zwang aus den
+ * Einstellungen und die Anzeige nicht auseinanderlaufen können.
+ */
+function second_factor_active(string $user): bool
+{
+    require_once __DIR__ . '/totp.php';
+    require_once __DIR__ . '/webauthn.php';
+    return totp_active($user) || passkeys_active($user);
+}
+
 function auth_pending(): ?string
 {
     $n = $_SESSION['pending_user'] ?? null;
@@ -103,7 +117,7 @@ function auth_require(bool $frei = false): array
     // meist nur noch nichts davon gewusst.
     if (!$frei) {
         require_once __DIR__ . '/totp.php';
-        if (totp_required($u['role']) && !totp_active($u['name'])) {
+        if (totp_required($u['role']) && !second_factor_active($u['name'])) {
             flash('Diese Instanz verlangt eine Zwei-Faktor-Anmeldung – bitte hier einrichten.', 'err');
             redirect_to(base_url() . '/admin/profile.php');
         }
@@ -185,7 +199,7 @@ function auth_login(string $username, string $password, ?bool &$needs2fa = null)
         // in der Anmeldeseite, damit sie kein künftiger zweiter Anmeldeweg
         // versehentlich umgeht.
         require_once __DIR__ . '/totp.php';
-        if (totp_active($username)) {
+        if (second_factor_active($username)) {
             $_SESSION['pending_user'] = $username;
             $_SESSION['pending_since'] = time();
             $needs2fa = true;

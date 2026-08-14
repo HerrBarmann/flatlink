@@ -77,9 +77,17 @@ halber:
   einzelner Besuch zeitlich verorten ließe. Wer feinere Statistik braucht, baut
   sie über `inc/local.php` an – und passt die Datenschutzerklärung an.
 
-- **Zwei-Faktor-Anmeldung** gibt es (TOTP, im Profil einzurichten, optional
-  erzwingbar). Sie schützt die Anmeldung mit Passwort – **nicht** die API:
-  Ein Zugangsschlüssel ist ein eigener Nachweis und gilt für sich.
+- **Zwei-Faktor-Anmeldung** gibt es in zwei Formen, im Profil einzurichten und
+  optional erzwingbar: Passkeys (WebAuthn) und Einmalkennwörter aus einer App
+  (TOTP). Passkeys sind an die Domain gebunden und deshalb gegen nachgebaute
+  Anmeldeseiten wirksam, wogegen ein abtippbarer Code nicht schützt. Beide
+  schützen die Anmeldung mit Passwort – **nicht** die API: Ein Zugangsschlüssel
+  ist ein eigener Nachweis und gilt für sich.
+
+- **Zurücksetzen der zweiten Stufe** kann ein Administrator unter *Nutzer*.
+  Für Passkeys gibt es keine Wiederherstellungscodes, also braucht es diesen
+  Weg – er ist zugleich der schwächste Punkt der Kette. Wer ihn benutzt, muss
+  wissen, mit wem er spricht.
 
 ## Aufbewahrung
 
