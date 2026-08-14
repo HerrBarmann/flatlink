@@ -414,6 +414,10 @@ Code-Vergabe, Besitz, Gruppenzugehörigkeit, Zugriffsprüfung, Ablaufdatum,
 Sperre, Löschung und QR-Code – es gibt keine zweite Ablage und kein zweites
 Rechtemodell. Gehört sie einer Arbeitsgruppe, pflegen sie alle Mitglieder.
 
+Die Ziele werden als Feldpaare gepflegt – Anzeigename und Adresse, weitere über
+*Link hinzufügen*. Ohne JavaScript stehen immer drei leere Zeilen bereit, sodass
+sich die Seite auch dann bedienen lässt.
+
 Gezählt wird wie überall: ein Zähler je Tag für die Seite und einer je Ziel.
 Damit Letzteres möglich ist, zeigen die Schaltflächen auf den eigenen Code mit
 einer laufenden Nummer (`/abc123?i=2`) statt unmittelbar auf die Zieladresse.

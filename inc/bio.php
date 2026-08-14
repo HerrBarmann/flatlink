@@ -31,38 +31,39 @@ function bio_is(?array $l): bool
 }
 
 /**
- * Zeilen aus dem Eingabefeld in eine Zielliste übersetzen.
+ * Aus den Feldpaaren des Formulars eine Zielliste bauen.
  *
- * Ein Ziel je Zeile, Beschriftung und Adresse durch einen senkrechten Strich
- * getrennt: `Speisekarte | https://…`. Bewusst ein Textfeld statt einer Reihe
- * von Eingabepaaren: Umsortieren heißt dann Zeilen verschieben, und es
- * funktioniert ohne eine Zeile JavaScript.
+ * Beide Reihen kommen als gleich lange Listen aus dem Formular; leere Paare
+ * werden übersprungen, damit stehengebliebene Leerzeilen niemanden aufhalten.
  *
+ * @param string[] $labels
+ * @param string[] $urls
  * @return array{0:?string,1:array<int,array{label:string,url:string}>}
  */
-function bio_parse_items(string $roh): array
+function bio_items_from_fields(array $labels, array $urls): array
 {
     $items = [];
-    foreach (preg_split('/\r\n|\r|\n/', $roh) ?: [] as $nr => $zeile) {
-        $zeile = trim($zeile);
-        if ($zeile === '') continue;
+    foreach (array_values($urls) as $i => $url) {
+        $url = trim((string)$url);
+        $label = trim((string)(array_values($labels)[$i] ?? ''));
+        if ($url === '' && $label === '') continue;
 
-        if (str_contains($zeile, '|')) {
-            [$label, $url] = array_map('trim', explode('|', $zeile, 2));
-        } else {
-            // Ohne Beschriftung: die Adresse selbst, ohne Schema und Schrägstrich
-            $url = $zeile;
-            $label = preg_replace('#^https?://(www\.)?#', '', $url) ?? $url;
-            $label = rtrim((string)$label, '/');
+        if ($url === '') {
+            return ['Zeile ' . ($i + 1) . ': „' . mb_strimwidth($label, 0, 40, '…')
+                . '" hat keine Adresse.', []];
         }
-        if ($url !== '' && !str_starts_with($url, 'http://') && !str_starts_with($url, 'https://')) {
+        if (!str_starts_with($url, 'http://') && !str_starts_with($url, 'https://')) {
             $url = 'https://' . $url;
         }
         if (!valid_url($url)) {
-            return ['Zeile ' . ($nr + 1) . ': „' . mb_strimwidth($zeile, 0, 40, '…')
+            return ['Zeile ' . ($i + 1) . ': „' . mb_strimwidth($url, 0, 40, '…')
                 . '" ist keine gültige Adresse (nur http/https).', []];
         }
-        if ($label === '') $label = $url;
+        // Ohne Anzeigenamen die Adresse selbst, ohne Schema und Schrägstrich –
+        // besser als eine leere Schaltfläche.
+        if ($label === '') {
+            $label = rtrim((string)preg_replace('#^https?://(www\.)?#', '', $url), '/');
+        }
         $items[] = [
             'label' => mb_substr((string)preg_replace('/[\x00-\x1F\x7F]/u', '', $label), 0, 80),
             'url' => $url,
@@ -73,16 +74,6 @@ function bio_parse_items(string $roh): array
     }
     if ($items === []) return ['Mindestens ein Ziel angeben.', []];
     return [null, $items];
-}
-
-/** Zielliste zurück in die Textform, wie sie im Formular steht */
-function bio_items_text(array $l): string
-{
-    $zeilen = [];
-    foreach ((array)($l['items'] ?? []) as $i) {
-        $zeilen[] = (string)($i['label'] ?? '') . ' | ' . (string)($i['url'] ?? '');
-    }
-    return implode("\n", $zeilen);
 }
 
 /**

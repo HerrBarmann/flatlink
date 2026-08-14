@@ -34,6 +34,37 @@
         }
     });
 
+    // Wiederholbare Feldzeilen: <button data-add-row="#container"> hängt eine
+    // Kopie der letzten Zeile an, <button data-remove-row> entfernt die eigene.
+    // Die letzte Zeile bleibt immer stehen – ein Formular ganz ohne Felder wäre
+    // eine Sackgasse.
+    document.addEventListener('click', function (e) {
+        var add = e.target.closest('[data-add-row]');
+        if (add) {
+            var box = document.querySelector(add.getAttribute('data-add-row'));
+            if (!box) return;
+            var rows = box.querySelectorAll('[data-row]');
+            if (!rows.length) return;
+            var copy = rows[rows.length - 1].cloneNode(true);
+            copy.querySelectorAll('input').forEach(function (i) { i.value = ''; });
+            box.appendChild(copy);
+            var first = copy.querySelector('input');
+            if (first) first.focus();
+            return;
+        }
+        var rm = e.target.closest('[data-remove-row]');
+        if (rm) {
+            var row = rm.closest('[data-row]');
+            if (!row) return;
+            var parent = row.parentNode;
+            if (parent.querySelectorAll('[data-row]').length > 1) {
+                row.remove();
+            } else {
+                row.querySelectorAll('input').forEach(function (i) { i.value = ''; });
+            }
+        }
+    });
+
     // Absicherung: Enter in einem Eingabefeld schickt das Formular ab, auch
     // wenn Autofill oder Erweiterungen die implizite Übermittlung schlucken.
     document.addEventListener('keydown', function (e) {

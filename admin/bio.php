@@ -35,7 +35,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = (string)($_POST['action'] ?? '');
     $code = (string)($_POST['code'] ?? '');
 
-    [$itemErr, $items] = bio_parse_items((string)($_POST['items'] ?? ''));
+    [$itemErr, $items] = bio_items_from_fields(
+        array_map('strval', (array)($_POST['label'] ?? [])),
+        array_map('strval', (array)($_POST['url'] ?? []))
+    );
     $titel = trim((string)($_POST['title'] ?? ''));
     $text = mb_substr(trim((string)($_POST['bio_text'] ?? '')), 0, 500);
     $index = ($_POST['bio_index'] ?? '') === '1';
@@ -171,13 +174,30 @@ show_flash();
         <textarea id="b-text" name="bio_text" rows="2" maxlength="500"
                   placeholder="Alles Wichtige auf einen Blick."><?= e((string)($edit['bio_text'] ?? '')) ?></textarea>
 
-        <label for="b-items">Ziele <span class="muted">(ein Ziel je Zeile: <code>Beschriftung | https://…</code>)</span></label>
-        <textarea id="b-items" name="items" rows="8" required
-                  placeholder="Speisekarte | https://example.org/karte
-Tisch reservieren | https://example.org/reservierung
-Instagram | https://instagram.com/…"><?= e($edit !== null ? bio_items_text($edit) : '') ?></textarea>
-        <p class="muted small">Ohne Beschriftung genügt die Adresse allein – dann steht sie selbst
-        als Text da. Höchstens <?= BIO_MAX_ITEMS ?> Ziele. Umsortieren heißt Zeilen verschieben.</p>
+        <label>Ziele</label>
+        <?php
+        $vorhanden = (array)($edit['items'] ?? []);
+        // Immer ein paar leere Zeilen mitliefern: Ohne JavaScript ist das der
+        // einzige Weg, weitere Ziele einzutragen – der Knopf darunter fügt
+        // dann nur noch bequemer nach.
+        $zeilen = array_merge($vorhanden, array_fill(0, 3, ['label' => '', 'url' => '']));
+        ?>
+        <div id="bio-rows" class="pair-rows">
+            <?php foreach ($zeilen as $z): ?>
+            <div class="pair-row" data-row>
+                <input type="text" name="label[]" maxlength="80" placeholder="Anzeigename"
+                       value="<?= e((string)($z['label'] ?? '')) ?>">
+                <input type="text" name="url[]" inputmode="url" placeholder="https://…"
+                       value="<?= e((string)($z['url'] ?? '')) ?>">
+                <button type="button" class="btn btn-small btn-danger" data-remove-row
+                        title="Diese Zeile entfernen" aria-label="Diese Zeile entfernen">&times;</button>
+            </div>
+            <?php endforeach; ?>
+        </div>
+        <p><button type="button" class="btn btn-small" data-add-row="#bio-rows">Link hinzufügen</button></p>
+        <p class="muted small">Ohne Anzeigenamen steht die Adresse selbst auf der Schaltfläche.
+        Leere Zeilen werden übergangen. Die Reihenfolge auf der Seite ist die hier – höchstens
+        <?= BIO_MAX_ITEMS ?> Ziele.</p>
 
         <?php if ($edit === null): ?>
             <?php if ($myPrefixes !== []): ?>
