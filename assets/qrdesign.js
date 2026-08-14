@@ -23,7 +23,7 @@
         } else {
             p = new URLSearchParams({ c: code });
         }
-        ['style', 'eye', 'fg', 'bg', 'ecc', 'margin', 'ls'].forEach(function (k) {
+        ['style', 'eye', 'eyecore', 'fg', 'bg', 'ecc', 'margin', 'ls'].forEach(function (k) {
             var v = wert('opt-' + k);
             if (v !== null) p.set(k, v);
         });
@@ -40,6 +40,13 @@
         });
         var mm = wert('opt-mm');
         if (mm) p.set('mm', mm);
+        // Augenfarben nur, wenn ausdrücklich gewünscht – sonst erben sie die
+        // Farbe der Module, und genau das soll die Vorgabe bleiben.
+        var eigen = $('opt-eyeown');
+        if (eigen && eigen.checked) {
+            if (wert('opt-eyefg')) p.set('eyefg', wert('opt-eyefg'));
+            if (wert('opt-eyecorefg')) p.set('eyecorefg', wert('opt-eyecorefg'));
+        }
         var grad = wert('opt-grad');
         if (grad) {
             p.set('grad', grad);
@@ -59,6 +66,8 @@
         // Der Winkel ist nur beim linearen Verlauf eine Frage
         var gw = $('grad-winkel');
         if (gw) gw.hidden = wert('opt-grad') !== 'linear';
+        var af = $('augenfarben'), ao = $('opt-eyeown');
+        if (af && ao) af.hidden = !ao.checked;
         var gv = $('ga-val');
         if (gv && $('opt-ga')) gv.textContent = $('opt-ga').value;
         var m = $('margin-val'), l = $('ls-val');
@@ -75,6 +84,7 @@
     ['opt-u', 'opt-style', 'opt-eye', 'opt-fg', 'opt-bg', 'opt-ecc', 'opt-margin',
      'opt-logo', 'opt-ls', 'opt-size', 'opt-ftext', 'opt-mm',
      'opt-grad', 'opt-fg2', 'opt-ga',
+     'opt-eyecore', 'opt-eyeown', 'opt-eyefg', 'opt-eyecorefg',
      'opt-fgc-c', 'opt-fgc-m', 'opt-fgc-y', 'opt-fgc-k',
      'opt-bgc-c', 'opt-bgc-m', 'opt-bgc-y', 'opt-bgc-k'].forEach(function (id) {
         var el = $(id);

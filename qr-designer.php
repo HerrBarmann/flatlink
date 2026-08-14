@@ -274,7 +274,24 @@ $statischText = trim((string)($_GET['u'] ?? ''));
             <option value="square">Quadratisch</option>
             <option value="rounded">Abgerundet</option>
             <option value="circle">Kreis</option>
+            <option value="leaf">Blatt</option>
         </select>
+        <label for="opt-eyecore">Augen-Kern</label>
+        <select id="opt-eyecore">
+            <option value="">wie der Ring</option>
+            <option value="square">Quadratisch</option>
+            <option value="rounded">Abgerundet</option>
+            <option value="circle">Kreis</option>
+            <option value="leaf">Blatt</option>
+        </select>
+        <label class="check" style="margin:0.5rem 0 0.2rem">
+            <input id="opt-eyeown" type="checkbox">
+            <span>Augen eigene Farben geben</span>
+        </label>
+        <div id="augenfarben" class="two-col" hidden>
+            <div><label for="opt-eyefg">Augen-Ring</label><input id="opt-eyefg" type="color" value="#C0392B"></div>
+            <div><label for="opt-eyecorefg">Augen-Kern</label><input id="opt-eyecorefg" type="color" value="#16181D"></div>
+        </div>
         <div class="two-col">
             <div><label>Vordergrund</label><input id="opt-fg" type="color" value="#16181D"></div>
             <div><label>Hintergrund</label><input id="opt-bg" type="color" value="#ffffff"></div>

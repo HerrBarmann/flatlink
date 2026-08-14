@@ -665,6 +665,22 @@ Nachgewiesen wird das ohne Ghostscript: Ein Prüfprogramm liest die erzeugten
 Dateien zurück, zeichnet die enthaltenen Pfade und lässt `zbarimg` sie scannen –
 über alle Modul- und Augenformen, mit Rahmen, mit Absenderzeile und in CMYK.
 
+## Augen
+
+Der äußere Ring und der innere Kern lassen sich getrennt formen (quadratisch,
+abgerundet, rund, Blatt) und getrennt einfärben. Leer heißt jeweils „wie das
+darüber": Der Kern nimmt Form und Farbe des Rings, der Ring die Farbe der
+Datenmodule – die Vorgabe bleibt damit genau das, was sie vorher war.
+
+**Zur Blattform eine Anmerkung, die den Umgang mit Gestaltung hier zeigt.**
+Sie hatte zunächst einen Radius von 3,5 Modulen, also eine halb weggeschnittene
+Ecke – hübsch, aber der Code fiel bei mehreren Rastergrößen durch, während die
+übrigen Formen bei denselben Größen sauber lasen. Das Suchmuster muss entlang
+jeder Abtastlinie durch seine Mitte das Verhältnis 1:1:3:1:1 halten; wer die
+Hälfte davon wegschneidet, verlässt den Bereich, in dem sich ein Scanner
+auskennt. Der Radius ist deshalb auf 2,0 zurückgenommen. Gestaltung darf einen
+Code nicht unlesbar machen.
+
 ## Farbverläufe
 
 Linear mit frei wählbarer Richtung oder radial von innen nach außen, dazu vier

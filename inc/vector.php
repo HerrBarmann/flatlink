@@ -378,3 +378,36 @@ function vec_pdf(array $vec, float $breiteMm = 80.0): string
     $pdf .= "trailer\n<< /Size " . ($inhaltNr + 1) . " /Root 1 0 R >>\nstartxref\n$xref\n%%EOF\n";
     return $pdf;
 }
+
+/**
+ * Rechteck mit Radius nur an bestimmten Ecken.
+ *
+ * Gebraucht für die Blattform der Augen: zwei gegenüberliegende Ecken rund,
+ * zwei spitz. Die Ecken werden im Uhrzeigersinn ab oben links gezählt.
+ *
+ * @param array<int,int> $ecken vier Werte 0 oder 1
+ */
+function vec_rect_corners(float $x, float $y, float $w, float $h, float $r, array $ecken): array
+{
+    $r = max(0.0, min($r, min($w, $h) / 2));
+    $k = $r * 0.5522847498;
+    [$tl, $tr, $br, $bl] = array_map('intval', array_pad(array_slice($ecken, 0, 4), 4, 0));
+    if ($r <= 0.0 || ($tl + $tr + $br + $bl) === 0) return vec_rect($x, $y, $w, $h, 0.0);
+
+    $seg = [];
+    $start = [$x + ($tl ? $r : 0), $y];
+    // oben nach rechts
+    $seg[] = ['l', $x + $w - ($tr ? $r : 0), $y];
+    if ($tr) $seg[] = ['c', $x + $w - $r + $k, $y, $x + $w, $y + $r - $k, $x + $w, $y + $r];
+    // rechts nach unten
+    $seg[] = ['l', $x + $w, $y + $h - ($br ? $r : 0)];
+    if ($br) $seg[] = ['c', $x + $w, $y + $h - $r + $k, $x + $w - $r + $k, $y + $h, $x + $w - $r, $y + $h];
+    // unten nach links
+    $seg[] = ['l', $x + ($bl ? $r : 0), $y + $h];
+    if ($bl) $seg[] = ['c', $x + $r - $k, $y + $h, $x, $y + $h - $r + $k, $x, $y + $h - $r];
+    // links nach oben
+    $seg[] = ['l', $x, $y + ($tl ? $r : 0)];
+    if ($tl) $seg[] = ['c', $x, $y + $r - $k, $x + $r - $k, $y, $x + $r, $y];
+
+    return ['start' => $start, 'segments' => $seg];
+}

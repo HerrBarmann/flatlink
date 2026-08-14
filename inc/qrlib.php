@@ -508,6 +508,13 @@ final class QrRenderer
             'grad'      => null,       // null | 'linear' | 'radial'
             'gradTo'    => '#3B6EA8',
             'gradAngle' => 45,         // Grad, nur bei 'linear'
+            // Augen: Ring und Kern lassen sich getrennt formen und färben.
+            // Leer heißt jeweils „wie das darüber": Der Kern nimmt die Form und
+            // Farbe des Rings, der Ring die Farbe der Datenmodule. So bleibt
+            // die Vorgabe genau das, was sie vorher war.
+            'eyeCore'   => '',         // '' | square | rounded | circle | leaf
+            'eyeFg'     => '',         // '' | #rrggbb
+            'eyeCoreFg' => '',         // '' | #rrggbb
         ], $options);
     }
 
@@ -823,12 +830,12 @@ final class QrRenderer
         foreach ($einzeln as $e) $ops[] = $e;
 
         foreach ($this->eyeOrigins() as [$ex, $ey]) {
-            $ef = $verlauf
-                ? VecColor::fromHex($this->colorAt($ex + $m + 3.5, $ey + $m + 3.5, $total))
-                : $fg;
-            foreach ($this->eyeOps($ex + $m, $ey + $m) as $teil) {
-                $ops[] = ['path', $teil, $ef, count($teil) > 1];
-            }
+            $mx = $ex + $m + 3.5; $my = $ey + $m + 3.5;
+            $ringF = VecColor::fromHex($this->eyeRingColor($mx, $my, $total));
+            $kernF = VecColor::fromHex($this->eyeCoreColor($mx, $my, $total));
+            [$ring, $kern] = $this->eyeOps($ex + $m, $ey + $m);
+            $ops[] = ['path', $ring, $ringF, true];
+            $ops[] = ['path', $kern, $kernF, false];
         }
 
         if ($o['logo'] !== null && is_file($o['logo'])) {
@@ -858,26 +865,77 @@ final class QrRenderer
     }
 
     /**
+     * Maße einer Augenform: Radien für Ring außen, Ring innen und Kern, dazu
+     * die Ecken, an denen der Radius überhaupt greift.
+     *
+     * Der innere Radius ist immer der äußere minus die Wandstärke von einem
+     * Modul – dadurch bleibt der Ring überall gleich dick, und für den Kreis
+     * fällt genau 3,5 und 2,5 heraus. Die Werte für die drei alten Formen
+     * stehen ausgeschrieben statt hergeleitet, damit ihre Ausgabe Zeichen für
+     * Zeichen die bisherige bleibt.
+     *
+     * @return array{0:float,1:float,2:float,3:array<int,int>} [außen, innen, Kern, Ecken oben-links im Uhrzeigersinn]
+     */
+    private static function eyeShape(string $name): array
+    {
+        return match ($name) {
+            'rounded' => [2.0, 1.0, 0.85, [1, 1, 1, 1]],
+            'circle'  => [3.5, 2.5, 1.5,  [1, 1, 1, 1]],
+            // Blattform: zwei gegenüberliegende Ecken rund, zwei spitz.
+            // Der Radius ist bewusst derselbe wie bei der abgerundeten Form
+            // und nicht der halbe Ring: Das Suchmuster muss entlang jeder
+            // Abtastlinie durch seine Mitte das Verhältnis 1:1:3:1:1 halten.
+            // Mit einem Radius von 3,5 – also einer halb weggeschnittenen Ecke –
+            // fiel der Code bei mehreren Rastergrößen durch, während die
+            // übrigen Formen bei denselben Größen sauber lasen. Gestaltung darf
+            // einen Code nicht unlesbar machen.
+            'leaf'    => [2.0, 1.0, 0.85, [1, 0, 1, 0]],
+            default   => [0.0, 0.0, 0.0,  [0, 0, 0, 0]],
+        };
+    }
+
+    /** Farbe des Augenrings an dieser Stelle */
+    private function eyeRingColor(float $cx, float $cy, int $total): string
+    {
+        $e = trim((string)$this->opt['eyeFg']);
+        return $e !== '' ? $e : $this->colorAt($cx, $cy, $total);
+    }
+
+    /** Farbe des Augenkerns – erbt vom Ring, wenn nichts gesetzt ist */
+    private function eyeCoreColor(float $cx, float $cy, int $total): string
+    {
+        $e = trim((string)$this->opt['eyeCoreFg']);
+        return $e !== '' ? $e : $this->eyeRingColor($cx, $cy, $total);
+    }
+
+    /** Welche Form hat der Kern? Leer heißt: dieselbe wie der Ring. */
+    private function coreShapeName(): string
+    {
+        $c = trim((string)$this->opt['eyeCore']);
+        return $c !== '' ? $c : (string)$this->opt['eye'];
+    }
+
+    /**
      * Ein Auge als Pfadgruppen: Ring (mit Loch, deshalb even-odd) und Kern.
      *
      * @return array<int,array<int,array>>
      */
     private function eyeOps(int $x, int $y): array
     {
-        $eye = $this->opt['eye'];
-        if ($eye === 'circle') {
-            $cx = $x + 3.5; $cy = $y + 3.5;
-            return [
-                [vec_circle($cx, $cy, 3.5), vec_circle($cx, $cy, 2.5)],
-                [vec_circle($cx, $cy, 1.5)],
-            ];
-        }
-        $rOut = $eye === 'rounded' ? 2.0 : 0.0;
-        $rIn = $eye === 'rounded' ? 0.85 : 0.0;
-        return [
-            [vec_rect($x, $y, 7, 7, $rOut), vec_rect($x + 1, $y + 1, 5, 5, max(0.0, $rOut - 1))],
-            [vec_rect($x + 2, $y + 2, 3, 3, $rIn)],
-        ];
+        $cx = $x + 3.5; $cy = $y + 3.5;
+        [$ra, $ri, , $ecken] = self::eyeShape((string)$this->opt['eye']);
+        [, , $rk, $keck] = self::eyeShape($this->coreShapeName());
+
+        $ring = $this->opt['eye'] === 'circle'
+            ? [vec_circle($cx, $cy, 3.5), vec_circle($cx, $cy, 2.5)]
+            : [vec_rect_corners($x, $y, 7, 7, $ra, $ecken),
+               vec_rect_corners($x + 1, $y + 1, 5, 5, $ri, $ecken)];
+
+        $kern = $this->coreShapeName() === 'circle'
+            ? [vec_circle($cx, $cy, 1.5)]
+            : [vec_rect_corners($x + 2, $y + 2, 3, 3, $rk, $keck)];
+
+        return [$ring, $kern];
     }
 
     /** Alles zwischen den äußeren SVG-Tags (Grund, Module, Augen, Logo) */
@@ -922,13 +980,18 @@ final class QrRenderer
         if ($path !== '') $parts[] = '<path d="' . $path . '"/>';
         $parts[] = implode('', $shapes);
 
-        // Augen
+        // Augen. Ohne eigene Farben und ohne Verlauf bleiben sie in der Gruppe
+        // und erben deren Füllung – dann sieht die Datei aus wie bisher.
+        $eigen = trim((string)$o['eyeFg']) !== '' || trim((string)$o['eyeCoreFg']) !== '';
         foreach ($this->eyeOrigins() as [$ex, $ey]) {
-            $ef = $verlauf
-                ? ' fill="' . htmlspecialchars($this->colorAt($ex + $m + 3.5, $ey + $m + 3.5, $total)) . '"'
-                : '';
-            $parts[] = $ef === '' ? $this->svgEye($ex + $m, $ey + $m)
-                : '<g' . $ef . '>' . $this->svgEye($ex + $m, $ey + $m) . '</g>';
+            $mx = $ex + $m + 3.5; $my = $ey + $m + 3.5;
+            [$ring, $kern] = $this->svgEyeParts($ex + $m, $ey + $m);
+            if (!$verlauf && !$eigen) {
+                $parts[] = $ring . $kern;
+                continue;
+            }
+            $parts[] = '<g fill="' . htmlspecialchars($this->eyeRingColor($mx, $my, $total)) . '">' . $ring . '</g>'
+                . '<g fill="' . htmlspecialchars($this->eyeCoreColor($mx, $my, $total)) . '">' . $kern . '</g>';
         }
         $parts[] = '</g>';
 
@@ -940,23 +1003,64 @@ final class QrRenderer
         return implode('', $parts);
     }
 
-    private function svgEye(int $x, int $y): string
+    /**
+     * Ring und Kern eines Auges getrennt, damit beide eigene Farben bekommen
+     * können. Äußerer Ring 7×7 mit Wandstärke 1, Kern 3×3.
+     *
+     * @return array{0:string,1:string} [Ring, Kern]
+     */
+    private function svgEyeParts(int $x, int $y): array
     {
-        $eye = $this->opt['eye'];
-        // Äußerer Ring 7x7 (Wandstärke 1) + innerer Kern 3x3
+        $eye = (string)$this->opt['eye'];
+        $kernForm = $this->coreShapeName();
+        $cx = $x + 3.5; $cy = $y + 3.5;
+
         if ($eye === 'circle') {
-            $cx = $x + 3.5; $cy = $y + 3.5;
-            return '<path fill-rule="evenodd" d="'
-                . self::circlePath($cx, $cy, 3.5) . self::circlePath($cx, $cy, 2.5) . '"/>'
-                . '<circle cx="' . $cx . '" cy="' . $cy . '" r="1.5"/>';
+            $ring = '<path fill-rule="evenodd" d="'
+                . self::circlePath($cx, $cy, 3.5) . self::circlePath($cx, $cy, 2.5) . '"/>';
+        } else {
+            [$ra, $ri, , $ecken] = self::eyeShape($eye);
+            $ring = '<path fill-rule="evenodd" d="'
+                . self::cornerRectPath($x, $y, 7, $ra, $ecken)
+                . self::cornerRectPath($x + 1, $y + 1, 5, $ri, $ecken) . '"/>';
         }
-        $rxOuter = $eye === 'rounded' ? 2.0 : 0;
-        $rxInner = $eye === 'rounded' ? 0.85 : 0;
-        $ring = '<path fill-rule="evenodd" d="'
-            . self::roundedRectPath($x, $y, 7, $rxOuter)
-            . self::roundedRectPath($x + 1, $y + 1, 5, max(0, $rxOuter - 1)) . '"/>';
-        $core = '<rect x="' . ($x + 2) . '" y="' . ($y + 2) . '" width="3" height="3" rx="' . $rxInner . '"/>';
-        return $ring . $core;
+
+        if ($kernForm === 'circle') {
+            $kern = '<circle cx="' . $cx . '" cy="' . $cy . '" r="1.5"/>';
+        } else {
+            [, , $rk, $keck] = self::eyeShape($kernForm);
+            $kern = $keck === [1, 1, 1, 1] || $rk <= 0
+                ? '<rect x="' . ($x + 2) . '" y="' . ($y + 2) . '" width="3" height="3" rx="' . $rk . '"/>'
+                : '<path d="' . self::cornerRectPath($x + 2, $y + 2, 3, $rk, $keck) . '"/>';
+        }
+        return [$ring, $kern];
+    }
+
+    /**
+     * Quadrat mit Radius nur an ausgewählten Ecken.
+     *
+     * Für den Sonderfall „alle vier Ecken" fällt genau der Pfad heraus, den
+     * roundedRectPath() bisher erzeugt hat – deshalb bleibt die Ausgabe der
+     * bekannten Formen unverändert.
+     *
+     * @param array<int,int> $ecken oben-links im Uhrzeigersinn
+     */
+    private static function cornerRectPath(float $x, float $y, float $w, float $r, array $ecken): string
+    {
+        if ($ecken === [1, 1, 1, 1] || $r <= 0) return self::roundedRectPath($x, $y, $w, $r);
+        [$tl, $tr, $br, $bl] = $ecken;
+        $b = fn(float $x1, float $y1, float $x2, float $y2): string =>
+            'a' . $r . ' ' . $r . ' 0 0 1 ' . ($x2 - $x1) . ' ' . ($y2 - $y1);
+        $p = 'M' . ($x + ($tl ? $r : 0)) . ' ' . $y;
+        $p .= 'L' . ($x + $w - ($tr ? $r : 0)) . ' ' . $y;
+        if ($tr) $p .= $b($x + $w - $r, $y, $x + $w, $y + $r);
+        $p .= 'L' . ($x + $w) . ' ' . ($y + $w - ($br ? $r : 0));
+        if ($br) $p .= $b($x + $w, $y + $w - $r, $x + $w - $r, $y + $w);
+        $p .= 'L' . ($x + ($bl ? $r : 0)) . ' ' . ($y + $w);
+        if ($bl) $p .= $b($x + $r, $y + $w, $x, $y + $w - $r);
+        $p .= 'L' . $x . ' ' . ($y + ($tl ? $r : 0));
+        if ($tl) $p .= $b($x, $y + $r, $x + $r, $y);
+        return $p . 'z';
     }
 
     private static function circlePath(float $cx, float $cy, float $r): string
@@ -1061,8 +1165,12 @@ final class QrRenderer
             }
         }
         foreach ($this->eyeOrigins() as [$ex, $ey]) {
+            $mx = $ex + $m + 3.5; $my = $ey + $m + 3.5;
+            $ringHex = $this->eyeRingColor($mx, $my, $totalModules);
+            $kernHex = $this->eyeCoreColor($mx, $my, $totalModules);
             $this->gdEye($img, ($ex + $m) * $scale, ($ey + $m) * $scale, $scale,
-                $farbe($ex + $m + 3.5, $ey + $m + 3.5), $bg);
+                $cache[$ringHex] ??= self::gdColor($img, $ringHex),
+                $cache[$kernHex] ??= self::gdColor($img, $kernHex), $bg);
         }
         if ($o['logo'] !== null && is_file($o['logo'])) {
             $this->gdLogo($img, $px);
@@ -1235,21 +1343,67 @@ final class QrRenderer
         }
     }
 
-    private function gdEye(\GdImage $img, int $x, int $y, int $s, int $fg, int $bg): void
+    private function gdEye(\GdImage $img, int $x, int $y, int $s, int $ringFg, int $kernFg, int $bg): void
     {
-        $eye = $this->opt['eye'];
+        $eye = (string)$this->opt['eye'];
+        $kernForm = $this->coreShapeName();
+        $cx = $x + intdiv(7 * $s, 2); $cy = $y + intdiv(7 * $s, 2);
+
+        // Ring
         if ($eye === 'circle') {
-            $cx = $x + intdiv(7 * $s, 2); $cy = $y + intdiv(7 * $s, 2);
-            imagefilledellipse($img, $cx, $cy, 7 * $s, 7 * $s, $fg);
+            imagefilledellipse($img, $cx, $cy, 7 * $s, 7 * $s, $ringFg);
             imagefilledellipse($img, $cx, $cy, 5 * $s, 5 * $s, $bg);
-            imagefilledellipse($img, $cx, $cy, 3 * $s, 3 * $s, $fg);
+        } else {
+            [$ra, $ri, , $ecken] = self::eyeShape($eye);
+            if ($ecken === [1, 1, 1, 1] || $ra <= 0) {
+                self::gdRoundedRect($img, $x, $y, 7 * $s, (int)round($ra * $s), $ringFg);
+                self::gdRoundedRect($img, $x + $s, $y + $s, 5 * $s, (int)round($ri * $s), $bg);
+            } else {
+                self::gdCornerRect($img, $x, $y, 7 * $s, $ra * $s, $ecken, $ringFg);
+                self::gdCornerRect($img, $x + $s, $y + $s, 5 * $s, $ri * $s, $ecken, $bg);
+            }
+        }
+
+        // Kern
+        if ($kernForm === 'circle') {
+            imagefilledellipse($img, $cx, $cy, 3 * $s, 3 * $s, $kernFg);
             return;
         }
-        $rOuter = $eye === 'rounded' ? 2 * $s : 0;
-        $rInner = $eye === 'rounded' ? (int)round(0.85 * $s) : 0;
-        self::gdRoundedRect($img, $x, $y, 7 * $s, $rOuter, $fg);
-        self::gdRoundedRect($img, $x + $s, $y + $s, 5 * $s, max(0, $rOuter - $s), $bg);
-        self::gdRoundedRect($img, $x + 2 * $s, $y + 2 * $s, 3 * $s, $rInner, $fg);
+        [, , $rk, $keck] = self::eyeShape($kernForm);
+        if ($keck === [1, 1, 1, 1] || $rk <= 0) {
+            self::gdRoundedRect($img, $x + 2 * $s, $y + 2 * $s, 3 * $s, (int)round($rk * $s), $kernFg);
+        } else {
+            self::gdCornerRect($img, $x + 2 * $s, $y + 2 * $s, 3 * $s, $rk * $s, $keck, $kernFg);
+        }
+    }
+
+    /**
+     * Quadrat mit Radius nur an ausgewählten Ecken, als Vieleck gefüllt.
+     *
+     * Für die gleichmäßigen Formen bleibt der alte Weg über Rechtecke und
+     * Ellipsen bestehen – dessen Ausgabe ist bekannt und soll sich nicht
+     * ändern. Dieser Weg kommt nur für die Blattform dazu.
+     *
+     * @param array<int,int> $ecken oben-links im Uhrzeigersinn
+     */
+    private static function gdCornerRect(\GdImage $img, int $x, int $y, int $w, float $r, array $ecken, int $color): void
+    {
+        $r = max(0.0, min($r, $w / 2));
+        [$tl, $tr, $br, $bl] = $ecken;
+        $pts = [];
+        $bogen = function (float $cx, float $cy, float $von, float $bis) use (&$pts, $r) {
+            for ($i = 0; $i <= 8; $i++) {
+                $w2 = $von + ($bis - $von) * $i / 8;
+                $pts[] = $cx + $r * cos($w2);
+                $pts[] = $cy + $r * sin($w2);
+            }
+        };
+        $x2 = $x + $w; $y2 = $y + $w;
+        if ($tl) $bogen($x + $r, $y + $r, M_PI, 1.5 * M_PI); else { $pts[] = $x; $pts[] = $y; }
+        if ($tr) $bogen($x2 - $r, $y + $r, 1.5 * M_PI, 2 * M_PI); else { $pts[] = $x2; $pts[] = $y; }
+        if ($br) $bogen($x2 - $r, $y2 - $r, 0, 0.5 * M_PI); else { $pts[] = $x2; $pts[] = $y2; }
+        if ($bl) $bogen($x + $r, $y2 - $r, 0.5 * M_PI, M_PI); else { $pts[] = $x; $pts[] = $y2; }
+        imagefilledpolygon($img, array_map('intval', $pts), $color);
     }
 
     private static function gdRoundedRect(\GdImage $img, int $x, int $y, int $w, int $r, int $color): void

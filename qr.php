@@ -154,7 +154,10 @@ if ($type !== 'link') {
 
 $format = qp('format', 'svg', '/^(svg|png|pdf|eps)$/');
 $style  = qp('style', 'square', '/^(square|rounded|dot)$/');
-$eye    = qp('eye', 'square', '/^(square|rounded|circle)$/');
+$eye    = qp('eye', 'square', '/^(square|rounded|circle|leaf)$/');
+$eyeCore = qp('eyecore', '', '/^(square|rounded|circle|leaf)$/');
+$eyeFg  = qp('eyefg', '', '/^#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/');
+$eyeCoreFg = qp('eyecorefg', '', '/^#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/');
 $fg     = qp('fg', '#16181D', '/^#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/');
 $bg     = qp('bg', '#ffffff', '/^#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/');
 
@@ -234,6 +237,7 @@ $renderer = new QrRenderer($qr, [
     'fgColor' => $fgCmyk !== null ? VecColor::fromCmyk($fgCmyk) : null,
     'bgColor' => $bgCmyk !== null ? VecColor::fromCmyk($bgCmyk) : null,
     'grad' => $grad === '' ? null : $grad, 'gradTo' => $gradTo, 'gradAngle' => $gradAngle,
+    'eyeCore' => $eyeCore, 'eyeFg' => $eyeFg, 'eyeCoreFg' => $eyeCoreFg,
     'size' => $size, 'margin' => $margin, 'logo' => $logo, 'logoScale' => $ls,
     'frameText' => $ftext, 'brandText' => $brand,
     'brandGlyphSvg' => $glyphSvg, 'brandGlyphPng' => $glyphPng,
