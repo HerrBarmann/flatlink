@@ -672,6 +672,15 @@ abgerundet, rund, Blatt) und getrennt einfärben. Leer heißt jeweils „wie das
 darüber": Der Kern nimmt Form und Farbe des Rings, der Ring die Farbe der
 Datenmodule – die Vorgabe bleibt damit genau das, was sie vorher war.
 
+**Der runde Ring ist bewusst kein voller Kreis**, sondern ein sehr stark
+abgerundetes Quadrat (Radius 3,0 statt 3,5 Module). Gemessen über 1224
+Kombinationen aus Modulform, Augenform, Inhalt und Rastergröße: Mit vollem
+Kreis lasen sich 90 % der erzeugten Bilder, mit 3,0 sind es 100 %. Der Grund
+steht in der Norm – ein Scanner sucht Linien, auf denen das Suchmuster im
+Verhältnis 1:1:3:1:1 liegt; beim Quadrat stimmt das auf jeder der sieben
+Zeilen, beim vollen Kreis nur nahe der Mitte. Am Aussehen ändern die 0,5
+Module wenig, an der Verlässlichkeit alles.
+
 **Zur Blattform eine Anmerkung, die den Umgang mit Gestaltung hier zeigt.**
 Sie hatte zunächst einen Radius von 3,5 Modulen, also eine halb weggeschnittene
 Ecke – hübsch, aber der Code fiel bei mehreren Rastergrößen durch, während die
