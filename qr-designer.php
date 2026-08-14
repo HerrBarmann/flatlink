@@ -267,7 +267,11 @@ $statischText = trim((string)($_GET['u'] ?? ''));
         <select id="opt-style">
             <option value="square">Quadratisch</option>
             <option value="rounded">Abgerundet</option>
+            <option value="smooth">Stark abgerundet</option>
             <option value="dot">Punkte</option>
+            <option value="diamond">Raute</option>
+            <option value="bars-v">Senkrechte Balken</option>
+            <option value="bars-h">Waagerechte Balken</option>
         </select>
         <label>Augen-Form</label>
         <select id="opt-eye">
@@ -295,6 +299,12 @@ $statischText = trim((string)($_GET['u'] ?? ''));
         <div class="two-col">
             <div><label>Vordergrund</label><input id="opt-fg" type="color" value="#16181D"></div>
             <div><label>Hintergrund</label><input id="opt-bg" type="color" value="#ffffff"></div>
+        </div>
+        <label class="check">
+            <input id="opt-bgnone" type="checkbox">
+            <span>Hintergrund durchsichtig <span class="muted">(SVG und PNG)</span></span>
+        </label>
+        <div style="display:none">
         </div>
         <label for="opt-grad">Farbverlauf</label>
         <div class="short-row grad-row">

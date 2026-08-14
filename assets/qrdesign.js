@@ -27,6 +27,9 @@
             var v = wert('opt-' + k);
             if (v !== null) p.set(k, v);
         });
+        // Ein Farbfeld kann nicht „nichts" sein – deshalb ein eigener Schalter
+        var ohne = $('opt-bgnone');
+        if (ohne && ohne.checked) p.set('bg', 'none');
         var logo = wert('opt-logo');
         if (logo) {
             p.set('logo', logo);
@@ -120,7 +123,7 @@
     ['opt-u', 'opt-style', 'opt-eye', 'opt-fg', 'opt-bg', 'opt-ecc', 'opt-margin',
      'opt-logo', 'opt-ls', 'opt-size', 'opt-ftext', 'opt-mm',
      'opt-grad', 'opt-fg2', 'opt-ga',
-     'opt-eyecore', 'opt-eyeown', 'opt-eyefg', 'opt-eyecorefg', 'opt-lshape',
+     'opt-eyecore', 'opt-eyeown', 'opt-eyefg', 'opt-eyecorefg', 'opt-lshape', 'opt-bgnone',
      'opt-fgc-c', 'opt-fgc-m', 'opt-fgc-y', 'opt-fgc-k',
      'opt-bgc-c', 'opt-bgc-m', 'opt-bgc-y', 'opt-bgc-k'].forEach(function (id) {
         var el = $(id);

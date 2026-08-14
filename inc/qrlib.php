@@ -519,6 +519,9 @@ final class QrRenderer
             // Form der freien Fläche. Sie ist kein Zierrat – ein Logo, das
             // Module nur halb verdeckt, verwirrt die Erkennung mehr als eine
             // sauber ausgesparte Fläche, die die Fehlerkorrektur wegsteckt.
+            // Durchsichtiger Hintergrund: 'bg' auf 'none'. Nur SVG und PNG
+            // können das wirklich; in PDF und EPS heißt „kein Hintergrund"
+            // schlicht, dass das Papier durchscheint – was dasselbe ist.
             'logoPad'   => 0.12,
             'logoShape' => 'rounded',  // rounded | square | circle | none
         ], $options);
@@ -562,6 +565,12 @@ final class QrRenderer
     private function hasGrad(): bool
     {
         return $this->opt['grad'] !== null;
+    }
+
+    /** Steht dieser Farbwert für „kein Hintergrund"? */
+    private static function transparent(?string $farbe): bool
+    {
+        return strtolower(trim((string)$farbe)) === 'none';
     }
 
     /** Die drei 7x7-Finder-Bereiche (oben links / oben rechts / unten links) */
@@ -813,23 +822,40 @@ final class QrRenderer
         $o = $this->opt;
         $n = $this->qr->size;
         $m = $o['margin'];
-        $ops = [['path', [vec_rect(0, 0, $total, $total)], $bg, false]];
+        // Ohne Hintergrund bleibt die Fläche leer – im Druck heißt das Papier
+        $ops = self::transparent($o['bg']) ? [] : [['path', [vec_rect(0, 0, $total, $total)], $bg, false]];
 
         $verlauf = $this->hasGrad();
         $formen = [];
         $einzeln = [];
-        foreach ($this->modulePositions() as [$x, $y]) {
-            $px = $x + $m; $py = $y + $m;
-            switch ($o['style']) {
-                case 'dot':     $form = vec_circle($px + 0.5, $py + 0.5, 0.42); break;
-                case 'rounded': $form = vec_rect($px + 0.04, $py + 0.04, 0.92, 0.92, 0.28); break;
-                default:        $form = vec_rect($px, $py, 1, 1); break;
+        $stil = (string)$o['style'];
+        $balken = $stil === 'bars-v' || $stil === 'bars-h';
+
+        if ($balken) {
+            $senk = $stil === 'bars-v';
+            foreach ($this->moduleRuns($senk) as [$x, $y, $len]) {
+                $px = $x + $m; $py = $y + $m;
+                $bw = $senk ? 0.76 : $len - 0.24;
+                $bh = $senk ? $len - 0.24 : 0.76;
+                $form = vec_rect($px + ($senk ? 0.12 : 0.12), $py + ($senk ? 0.12 : 0.12), $bw, $bh, 0.38);
+                $cx = $px + ($senk ? 0.5 : $len / 2);
+                $cy = $py + ($senk ? $len / 2 : 0.5);
+                if ($verlauf) {
+                    $einzeln[] = ['path', [$form], VecColor::fromHex($this->colorAt($cx, $cy, $total)), false];
+                } else {
+                    $formen[] = $form;
+                }
             }
-            if ($verlauf) {
-                $einzeln[] = ['path', [$form],
-                    VecColor::fromHex($this->colorAt($px + 0.5, $py + 0.5, $total)), false];
-            } else {
-                $formen[] = $form;
+        } else {
+            foreach ($this->modulePositions() as [$x, $y]) {
+                $px = $x + $m; $py = $y + $m;
+                $form = self::moduleShape($stil, $px, $py);
+                if ($verlauf) {
+                    $einzeln[] = ['path', [$form],
+                        VecColor::fromHex($this->colorAt($px + 0.5, $py + 0.5, $total)), false];
+                } else {
+                    $formen[] = $form;
+                }
             }
         }
         if ($formen !== []) $ops[] = ['path', $formen, $fg, false];
@@ -863,6 +889,61 @@ final class QrRenderer
             $ops[] = ['image', ($total - $lw) / 2, ($total - $lw) / 2, $lw, $lw, $o['logo']];
         }
         return $ops;
+    }
+
+    /**
+     * Zusammenhängende Läufe dunkler Module, senkrecht oder waagerecht.
+     *
+     * Für die Balken-Formen: Statt jedes Modul einzeln zu zeichnen, wird ein
+     * Lauf zu einem durchgehenden Balken mit runden Enden. Das ist der einzige
+     * Teil der Formen, der über ein einzelnes Modul hinausschaut – deshalb
+     * steht er hier einmal und nicht dreimal in den Zeichenroutinen.
+     *
+     * @return array<int,array{0:int,1:int,2:int}> [x, y, Länge] in Modulen
+     */
+    private function moduleRuns(bool $senkrecht): array
+    {
+        $n = $this->qr->size;
+        $out = [];
+        $aussen = $senkrecht ? 'x' : 'y';
+        for ($a = 0; $a < $n; $a++) {
+            $lauf = 0;
+            for ($b = 0; $b <= $n; $b++) {
+                $x = $senkrecht ? $a : $b;
+                $y = $senkrecht ? $b : $a;
+                $an = $b < $n && $this->qr->modules[$y][$x] && !$this->inEye($x, $y);
+                if ($an) { $lauf++; continue; }
+                if ($lauf > 0) {
+                    $sx = $senkrecht ? $a : $b - $lauf;
+                    $sy = $senkrecht ? $b - $lauf : $a;
+                    $out[] = [$sx, $sy, $lauf];
+                    $lauf = 0;
+                }
+            }
+        }
+        return $out;
+    }
+
+    /**
+     * Geometrie eines einzelnen Moduls für die Vektor-Ausgabe.
+     *
+     * Eine Stelle für alle Formen, die sich innerhalb eines Moduls abspielen.
+     * Die Balken laufen darüber hinaus und haben ihren eigenen Weg.
+     */
+    private static function moduleShape(string $stil, float $px, float $py): array
+    {
+        return match ($stil) {
+            'dot'      => vec_circle($px + 0.5, $py + 0.5, 0.42),
+            'rounded'  => vec_rect($px + 0.04, $py + 0.04, 0.92, 0.92, 0.28),
+            // Stark abgerundet: fast ein Kreis, aber die Module berühren sich
+            // noch – das hält den Code kompakter als reine Punkte.
+            'smooth'   => vec_rect($px, $py, 1, 1, 0.5),
+            // Raute: das um 45 Grad gedrehte Quadrat, als Vieleck
+            'diamond'  => ['start' => [$px + 0.5, $py + 0.02], 'segments' => [
+                ['l', $px + 0.98, $py + 0.5], ['l', $px + 0.5, $py + 0.98], ['l', $px + 0.02, $py + 0.5],
+            ]],
+            default    => vec_rect($px, $py, 1, 1),
+        };
     }
 
     /**
@@ -976,25 +1057,48 @@ final class QrRenderer
         $fg = htmlspecialchars($o['fg']);
 
         $parts = [];
-        $parts[] = '<rect width="' . $total . '" height="' . $total . '" fill="' . htmlspecialchars($o['bg']) . '"/>';
+        if (!self::transparent($o['bg'])) {
+            $parts[] = '<rect width="' . $total . '" height="' . $total . '" fill="' . htmlspecialchars($o['bg']) . '"/>';
+        }
 
         // Datenmodule (Finder-Bereiche werden separat als Augen gezeichnet).
         // Ohne Verlauf hängen alle in einer Gruppe mit gemeinsamer Farbe – das
         // hält die Datei klein. Mit Verlauf trägt jedes Modul seine eigene.
         $verlauf = $this->hasGrad();
+        $stil = (string)$o['style'];
         $path = '';
         $shapes = [];
+        if ($stil === 'bars-v' || $stil === 'bars-h') {
+            $senk = $stil === 'bars-v';
+            foreach ($this->moduleRuns($senk) as [$x, $y, $len]) {
+                $px = $x + $m; $py = $y + $m;
+                $bw = $senk ? 0.76 : $len - 0.24;
+                $bh = $senk ? $len - 0.24 : 0.76;
+                $cx = $px + ($senk ? 0.5 : $len / 2);
+                $cy = $py + ($senk ? $len / 2 : 0.5);
+                $f = $verlauf ? ' fill="' . htmlspecialchars($this->colorAt($cx, $cy, $total)) . '"' : '';
+                $shapes[] = '<rect x="' . ($px + 0.12) . '" y="' . ($py + 0.12) . '" width="' . round($bw, 3)
+                    . '" height="' . round($bh, 3) . '" rx="0.38"' . $f . '/>';
+            }
+        } else {
         for ($y = 0; $y < $n; $y++) {
             for ($x = 0; $x < $n; $x++) {
                 if (!$this->qr->modules[$y][$x] || $this->inEye($x, $y)) continue;
                 $px = $x + $m; $py = $y + $m;
                 $f = $verlauf ? ' fill="' . htmlspecialchars($this->colorAt($px + 0.5, $py + 0.5, $total)) . '"' : '';
-                switch ($o['style']) {
+                switch ($stil) {
                     case 'dot':
                         $shapes[] = '<circle cx="' . ($px + 0.5) . '" cy="' . ($py + 0.5) . '" r="0.42"' . $f . '/>';
                         break;
                     case 'rounded':
                         $shapes[] = '<rect x="' . ($px + 0.04) . '" y="' . ($py + 0.04) . '" width="0.92" height="0.92" rx="0.28"' . $f . '/>';
+                        break;
+                    case 'smooth':
+                        $shapes[] = '<rect x="' . $px . '" y="' . $py . '" width="1" height="1" rx="0.5"' . $f . '/>';
+                        break;
+                    case 'diamond':
+                        $shapes[] = '<path d="M' . ($px + 0.5) . ' ' . ($py + 0.02) . 'L' . ($px + 0.98) . ' ' . ($py + 0.5)
+                            . 'L' . ($px + 0.5) . ' ' . ($py + 0.98) . 'L' . ($px + 0.02) . ' ' . ($py + 0.5) . 'z"' . $f . '/>';
                         break;
                     default:
                         if ($verlauf) {
@@ -1004,6 +1108,7 @@ final class QrRenderer
                         }
                 }
             }
+        }
         }
         $parts[] = '<g fill="' . $fg . '">';
         if ($path !== '') $parts[] = '<path d="' . $path . '"/>';
@@ -1159,7 +1264,17 @@ final class QrRenderer
         $px = $totalModules * $scale;
 
         $img = imagecreatetruecolor($px, $px);
-        $bg = self::gdColor($img, $o['bg']);
+        $durchsichtig = self::transparent($o['bg']);
+        if ($durchsichtig) {
+            // Ohne Mischung gezeichnet: Jede Form ersetzt die Pixel, statt sich
+            // mit dem Durchsichtigen zu vermengen – sonst blieben die Module
+            // halbdurchsichtig und der Code unlesbar.
+            imagealphablending($img, false);
+            imagesavealpha($img, true);
+            $bg = imagecolorallocatealpha($img, 255, 255, 255, 127);
+        } else {
+            $bg = self::gdColor($img, $o['bg']);
+        }
         $fg = self::gdColor($img, $o['fg']);
         imagefilledrectangle($img, 0, 0, $px - 1, $px - 1, $bg);
 
@@ -1172,13 +1287,25 @@ final class QrRenderer
             $hex = $this->colorAt($mx, $my, $totalModules);
             return $cache[$hex] ??= self::gdColor($img, $hex);
         };
+        $stil = (string)$o['style'];
+        if ($stil === 'bars-v' || $stil === 'bars-h') {
+            $senk = $stil === 'bars-v';
+            foreach ($this->moduleRuns($senk) as [$x, $y, $len]) {
+                $x0 = (int)round(($x + $m + 0.12) * $scale);
+                $y0 = (int)round(($y + $m + 0.12) * $scale);
+                $bw = (int)round(($senk ? 0.76 : $len - 0.24) * $scale);
+                $bh = (int)round(($senk ? $len - 0.24 : 0.76) * $scale);
+                self::gdRoundedRectWH($img, $x0, $y0, $bw, $bh, (int)round(0.38 * $scale),
+                    $farbe($x + $m + ($senk ? 0.5 : $len / 2), $y + $m + ($senk ? $len / 2 : 0.5)));
+            }
+        } else {
         for ($y = 0; $y < $n; $y++) {
             for ($x = 0; $x < $n; $x++) {
                 if (!$this->qr->modules[$y][$x] || $this->inEye($x, $y)) continue;
                 $x0 = ($x + $m) * $scale;
                 $y0 = ($y + $m) * $scale;
                 $fg = $farbe($x + $m + 0.5, $y + $m + 0.5);
-                switch ($o['style']) {
+                switch ($stil) {
                     case 'dot':
                         $d = (int)round($scale * 0.84);
                         imagefilledellipse($img, $x0 + intdiv($scale, 2), $y0 + intdiv($scale, 2), $d, $d, $fg);
@@ -1186,10 +1313,23 @@ final class QrRenderer
                     case 'rounded':
                         self::gdRoundedRect($img, $x0, $y0, $scale, (int)round($scale * 0.28), $fg);
                         break;
+                    case 'smooth':
+                        self::gdRoundedRect($img, $x0, $y0, $scale, intdiv($scale, 2), $fg);
+                        break;
+                    case 'diamond':
+                        $h = $scale / 2;
+                        imagefilledpolygon($img, [
+                            (int)round($x0 + $h), (int)round($y0),
+                            (int)round($x0 + $scale), (int)round($y0 + $h),
+                            (int)round($x0 + $h), (int)round($y0 + $scale),
+                            (int)round($x0), (int)round($y0 + $h),
+                        ], $fg);
+                        break;
                     default:
                         imagefilledrectangle($img, $x0, $y0, $x0 + $scale - 1, $y0 + $scale - 1, $fg);
                 }
             }
+        }
         }
         foreach ($this->eyeOrigins() as [$ex, $ey]) {
             $mx = $ex + $m + 3.5; $my = $ey + $m + 3.5;
@@ -1200,7 +1340,11 @@ final class QrRenderer
                 $cache[$kernHex] ??= self::gdColor($img, $kernHex), $bg);
         }
         if ($o['logo'] !== null && is_file($o['logo'])) {
+            // Das Logo wird eingerechnet, nicht ersetzt – sonst verlöre ein
+            // Logo mit weichen Kanten genau diese.
+            if ($durchsichtig) imagealphablending($img, true);
             $this->gdLogo($img, $px);
+            if ($durchsichtig) imagealphablending($img, false);
         }
         if ($o['frameText'] !== null) {
             return $this->gdFramed($img, $px, $scale);

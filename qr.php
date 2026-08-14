@@ -159,7 +159,9 @@ $eyeCore = qp('eyecore', '', '/^(square|rounded|circle|leaf)$/');
 $eyeFg  = qp('eyefg', '', '/^#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/');
 $eyeCoreFg = qp('eyecorefg', '', '/^#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/');
 $fg     = qp('fg', '#16181D', '/^#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/');
-$bg     = qp('bg', '#ffffff', '/^#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/');
+// 'none' ist erlaubt und heißt: kein Hintergrund. Im PNG wird die Fläche
+// durchsichtig, im SVG bleibt sie leer, in PDF und EPS scheint das Papier durch.
+$bg     = qp('bg', '#ffffff', '/^(#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?|none)$/');
 
 // Druckfarben in CMYK, je vier Zahlen 0–100. Sie ersetzen die Bildschirmfarbe
 // nicht, sondern treten neben sie: In EPS und PDF steht der CMYK-Wert genau so,

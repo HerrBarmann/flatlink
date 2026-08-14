@@ -90,6 +90,17 @@ function qr_readability(array $o, int $module): array
     $fg = (string)($o['fg'] ?? '#000000');
     $bg = (string)($o['bg'] ?? '#ffffff');
 
+    // ---- Durchsichtiger Hintergrund ----
+    // Hier lässt sich nichts rechnen: Der Kontrast entsteht erst gegen das,
+    // worauf der Code später liegt. Statt eine Zahl zu erfinden, wird gesagt,
+    // worauf zu achten ist.
+    if (strtolower(trim($bg)) === 'none') {
+        $hin[] = ['stufe' => 'info', 'text' => 'Der Hintergrund ist durchsichtig. Ob der Code '
+            . 'liest, entscheidet die Fläche darunter – sie muss hell und ruhig sein, kein Foto '
+            . 'und kein Muster. Prüfen lässt sich das von hier aus nicht.'];
+        $bg = '#ffffff';   // für die folgenden Rechnungen der günstigste Fall
+    }
+
     // ---- Kontrast ----
     // Alle Farben, die auf dem Hintergrund liegen, einzeln prüfen: Ein Verlauf
     // ist an einem Ende oft kräftig und am anderen zu blass.

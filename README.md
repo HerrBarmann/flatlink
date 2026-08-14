@@ -690,6 +690,21 @@ Hälfte davon wegschneidet, verlässt den Bereich, in dem sich ein Scanner
 auskennt. Der Radius ist deshalb auf 2,0 zurückgenommen. Gestaltung darf einen
 Code nicht unlesbar machen.
 
+## Modulformen und Hintergrund
+
+Sieben Formen für die Datenmodule: quadratisch, abgerundet, stark abgerundet,
+Punkte, Raute sowie senkrechte und waagerechte **Balken**. Die Balken sind der
+einzige Fall, in dem eine Form über ein Modul hinausreicht: Aufeinanderfolgende
+dunkle Module verschmelzen zu einem durchgehenden Strich mit runden Enden. Die
+Läufe berechnet [`moduleRuns()`](inc/qrlib.php) einmal für alle drei
+Zeichenwege, damit SVG, PNG und Vektor nicht auseinanderlaufen.
+
+Der **Hintergrund lässt sich durchsichtig** schalten (`bg=none`). Im PNG wird
+die Fläche wirklich transparent, im SVG bleibt das Grundrechteck weg, in PDF
+und EPS scheint das Papier durch – was dasselbe ist. Die Lesbarkeitsprüfung
+sagt dazu, was sie sagen kann: Ob der Code liest, entscheidet dann die Fläche
+darunter, und das lässt sich von hier aus nicht prüfen.
+
 ## Lesbarkeit
 
 Je mehr sich gestalten lässt, desto leichter entsteht ein Code, der auf dem
