@@ -440,3 +440,8 @@ details.utm label { margin-top: 0.5rem; }
 .check-list .check:last-child { border-bottom: 0; }
 .check-list .check:hover { background: var(--accent-tint); }
 .check-list .check > span { min-width: 0; }
+
+/* Umschaltung zwischen Kurzlink und statischem Code. Zwei Schaltflächen statt
+   Reitern: Der Wechsel lädt die Seite neu, weil sich beide Wege in mehr als
+   nur einem Feld unterscheiden. */
+.modus-wahl { display: flex; gap: 0.4rem; margin: 0 0 0.9rem; flex-wrap: wrap; }

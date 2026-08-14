@@ -133,7 +133,8 @@ auch alles, was sie verlangt.
 - **Kurzlinks** mit zufälligem oder selbst gewähltem Code, optionalem Namen,
   Schlagworten zum Filtern, optionalem Ablaufdatum und optionalem Passwortschutz
 - **QR-Codes** aus einem eigenen Encoder (ISO/IEC 18004, Byte-Mode,
-  Versionen 1–10, Fehlerkorrektur L/M/Q/H) – ohne jede Fremdbibliothek
+  **Versionen 1–40**, Fehlerkorrektur L/M/Q/H) – ohne jede Fremdbibliothek.
+  Bis zu 2953 Zeichen, also auch lange Adressen mit Kampagnen-Parametern
 - **QR-Designer** unter `qr-designer.php`: Modul- und Augenformen, freie
   Farben, Export als SVG und PNG. Angemeldete bekommen auf derselben Seite
   zusätzlich eigenes Logo, Rahmen mit Text, druckfertiges PDF und die Auswahl
@@ -141,8 +142,8 @@ auch alles, was sie verlangt.
 - **Link-in-Bio-Seiten**: eine Seite mit mehreren Zielen unter einem Kurzcode,
   gezählt wie alles andere – je Tag, für die Seite und je Ziel, ohne
   Besucher-Datensatz
-- **Statische QR-Codes** für WLAN-Zugänge, Kontakte (vCard), Termine
-  (iCalendar) und **GS1 Digital Link** – die Eingaben werden nirgends
+- **Statische QR-Codes** für eine **ungekürzte Adresse oder freien Text**,
+  WLAN-Zugänge, Kontakte (vCard), Termine (iCalendar) und **GS1 Digital Link** – die Eingaben werden nirgends
   gespeichert, sondern direkt in den Code kodiert, sodass diese Grafiken völlig
   unabhängig vom Dienst funktionieren
 - **Konten** mit Selbstregistrierung per Double-Opt-In, Passwort-Reset und
@@ -630,6 +631,42 @@ erscheint, entscheidet der Betreiber der eingetragenen Adresse; ohne Angabe
 zeigt der Code auf den Dienst von GS1 selbst. Die Logik steht in
 [`inc/gs1.php`](inc/gs1.php), eine Bedienoberfläche dafür bringt flatlink nicht
 mit – sie ist als eigene Seite schnell gebaut.
+
+## Zwei Arten von QR-Code
+
+Der Designer bietet beide Wege, und der Unterschied ist die eine Entscheidung,
+die vor dem Drucken zu treffen ist:
+
+**Mit Kurzlink.** Der Code zeigt auf die eigene Instanz. Das Ziel lässt sich
+jederzeit ändern, ohne den gedruckten Code auszutauschen, und es gibt eine
+Klickzahl. Der Code braucht die Instanz, solange er im Umlauf ist.
+
+**Ohne Kürzen** (`qr-designer.php?m=statisch`). Die Adresse steht unmittelbar
+im Code. Gespeichert wird nichts, der Code läuft über niemanden und
+funktioniert auch dann noch, wenn es die Instanz nicht mehr gibt. Dafür steht
+das Ziel fest.
+
+Der statische Weg nimmt auch `mailto:`, `tel:` oder schlicht einen Text. Fehlt
+bei etwas Domain-Förmigem das Schema, wird `https://` ergänzt – sonst bleibt
+die Eingabe unangetastet.
+
+## Der Encoder
+
+Reines PHP nach ISO/IEC 18004, Byte-Mode, Versionen 1–40, alle vier
+Fehlerkorrektur-Stufen, Maskenwahl über den Penalty-Score der Norm.
+
+Aus der Norm abgetippt sind nur **zwei Zahlenreihen je Stufe** – ECC-Codewörter
+je Block und Anzahl Blöcke aus Tabelle 9. Alles andere ergibt sich daraus
+rechnerisch: die Gesamtzahl der Codewörter aus der Geometrie der Matrix, die
+Aufteilung in kurze und lange Blöcke aus einer Division mit Rest, die Lage der
+Ausrichtungsmuster aus der Schrittweiten-Regel. Eine Tabelle mit 320
+handgetippten Werten wäre die wahrscheinlichere Fehlerquelle gewesen.
+
+Geprüft wird das nicht durch Hinsehen: Alle **160 Kombinationen** aus Version
+und Fehlerkorrektur werden randvoll gefüllt, gerendert und mit einem fremden
+Decoder (`zbarimg`) byteweise zurückgelesen. Die Höchstlängen, die dabei
+herauskommen – 2953 / 2331 / 1663 / 1273 Byte für L/M/Q/H – sind genau die der
+Norm.
 
 ## QR-Serien als ZIP
 

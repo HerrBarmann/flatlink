@@ -183,8 +183,35 @@ if (function_exists('designer_intro')) echo designer_intro();
 echo '<div class="designer-stage">';
 if (function_exists('qr_type_nav')) echo qr_type_nav('link');
 
+// Zwei Wege zum selben Designer. Der Unterschied ist keine Spielerei, sondern
+// die Entscheidung, die man vor dem Drucken einmal treffen muss:
+//   statisch – die Adresse steht im Code. Er braucht uns danach nicht mehr,
+//              aber das Ziel steht fest, solange der Aufkleber klebt.
+//   Kurzlink – der Code zeigt auf uns, das Ziel ist jederzeit änderbar, und
+//              es gibt eine Klickzahl.
+$statisch = ($_GET['m'] ?? '') === 'statisch' || isset($_GET['u']);
+$statischText = trim((string)($_GET['u'] ?? ''));
 ?>
 <div class="card">
+    <div class="modus-wahl">
+        <a class="btn btn-small<?= $statisch ? '' : ' btn-primary' ?>" href="qr-designer.php">Mit Kurzlink</a>
+        <a class="btn btn-small<?= $statisch ? ' btn-primary' : '' ?>" href="qr-designer.php?m=statisch">Ohne Kürzen</a>
+    </div>
+    <?php if ($statisch): ?>
+    <h2>QR-Code für eine Adresse</h2>
+    <p class="muted small">Die Adresse steht unmittelbar im Code. Nichts wird gespeichert, nichts
+    läuft über uns – der Code funktioniert auch dann noch, wenn es diesen Dienst nicht mehr gibt.
+    Dafür steht das Ziel fest: Ändern lässt es sich später nur mit einem
+    <a href="qr-designer.php">Kurzlink</a>, und eine Klickzahl gibt es hier nicht.</p>
+    <label for="opt-u">Adresse oder Text</label>
+    <input id="opt-u" type="text" value="<?= e($statischText) ?>" autofocus
+           placeholder="https://example.com/eine/sehr/lange/adresse"
+           aria-describedby="u-hinweis">
+    <p class="muted small" id="u-hinweis">Auch <code>mailto:</code>, <code>tel:</code> oder
+    einfach ein Text. Bis zu <?= number_format(QrCode::maxBytes(QrCode::ECC_L), 0, ',', '.') ?> Zeichen –
+    lange Adressen mit Kampagnen-Parametern passen also hinein.</p>
+    </div>
+    <?php else: ?>
     <h2>Neuer QR-Code</h2>
     <p class="muted small">Adresse eintragen – wir legen den Kurzlink an und öffnen ihn gleich
     im Designer. Das Ziel lässt sich später ändern, ohne den gedruckten Code auszutauschen.</p>
@@ -203,23 +230,25 @@ if (function_exists('qr_type_nav')) echo qr_type_nav('link');
         <input id="d-title" type="text" name="title" maxlength="120" placeholder="z. B. Speisekarte Sommer">
         <?php endif; ?>
     </form>
-    <?php if ($user === null): ?>
+    <?php endif; ?>
+    <?php if ($user === null && !$statisch): ?>
     <p class="muted small">Ohne Konto ist das Ziel dauerhaft fest. Mit
     <a href="register.php">kostenlosem Konto</a> lässt es sich später ändern, ohne den
     gedruckten Code auszutauschen – dazu kommen eigenes Logo, Rahmentext und Druck-PDF.</p>
     <?php endif; ?>
-</div>
+<?php if (!$statisch): ?></div><?php endif; ?>
 
-<?php if ($code === ''): ?>
+<?php if ($code === '' && !$statisch): ?>
     <div class="card"><p class="muted">Sobald ein Kurzlink da ist, erscheint hier der Designer –
     mit Farben, Formen<?= $user !== null ? ', Logo, Rahmen und Druck-PDF' : '' ?>.</p></div>
 </div><!-- /.designer-stage -->
 <?php if (function_exists('designer_outro')) echo designer_outro(); ?>
 <?php page_footer(); exit; endif; ?>
 
+<?php if (!$statisch): ?>
 <div class="card">
     <h2>QR-Designer <span class="muted">für</span> <?= e(short_url($code, (string)($link['domain'] ?? ''))) ?></h2>
-    <?php if ($links !== []): ?>
+    <?php if ($links !== [] && !$statisch): ?>
     <form method="get" action="" class="short-row">
         <select name="c" data-autosubmit>
             <?php foreach ($links as $c => $l): ?>
@@ -229,6 +258,7 @@ if (function_exists('qr_type_nav')) echo qr_type_nav('link');
     </form>
     <?php endif; ?>
 </div>
+<?php endif; ?>
 
 <div class="designer">
     <div class="card controls">
@@ -310,7 +340,7 @@ if (function_exists('qr_type_nav')) echo qr_type_nav('link');
         <?php endif; ?>
     </div>
 
-    <div class="card preview" id="qr-stage" data-code="<?= e($code) ?>" data-base="qr.php">
+    <div class="card preview" id="qr-stage" data-code="<?= e($code) ?>" data-base="qr.php"<?= $statisch ? ' data-mode="url"' : '' ?>>
         <h3>Vorschau <span class="muted small">auf</span>
             <button class="btn btn-small" type="button" data-pbg="#FAFCF6">Hell</button>
             <button class="btn btn-small" type="button" data-pbg="#16181D">Dunkel</button>

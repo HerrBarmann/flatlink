@@ -31,7 +31,7 @@ function qp(string $key, string $default, string $pattern): string
     return is_string($v) && preg_match($pattern, $v) ? $v : $default;
 }
 
-$type = qp('t', 'link', '/^(link|wifi|vcard|event|gs1)$/');
+$type = qp('t', 'link', '/^(link|url|wifi|vcard|event|gs1)$/');
 
 if ($type !== 'link') {
     // Statische Codes: Payload direkt aus Formularfeldern, nichts wird gespeichert.
@@ -40,7 +40,32 @@ if ($type !== 'link') {
     // Escaping für vCard/iCal (Backslash, Semikolon, Komma, Zeilenumbruch)
     $vesc = fn(string $s): string => strtr($s, ['\\' => '\\\\', ';' => '\\;', ',' => '\\,', "\n" => '\\n']);
 
-    if ($type === 'wifi') {
+    if ($type === 'url') {
+        // Eine Adresse oder ein beliebiger Text, unmittelbar im Code.
+        //
+        // Der Gegenentwurf zum Kurzlink: Nichts wird gespeichert, nichts läuft
+        // über diesen Dienst, der Code funktioniert auch dann noch, wenn es uns
+        // nicht mehr gibt. Der Preis ist, dass das Ziel feststeht – wer es
+        // später ändern will, braucht einen Kurzlink.
+        //
+        // Steuerzeichen fliegen raus, sonst bleibt der Text unangetastet: Ein
+        // mailto:, ein tel: oder eine Zeile Text sind ebenso gültige Inhalte
+        // wie eine Webadresse.
+        $payload = trim((string)preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/u',
+            '', (string)(qin('u') ?? '')));
+        if ($payload === '') {
+            http_response_code(400);
+            exit('Bitte eine Adresse oder einen Text angeben.');
+        }
+        // Fehlendes Schema ergänzen, aber nur wenn es nach einer Domain aussieht
+        if (preg_match('#^[a-z0-9][a-z0-9.-]*\.[a-z]{2,}(/|$|\?)#i', $payload) === 1) {
+            $payload = 'https://' . $payload;
+        }
+        $filename = 'code';
+        if (preg_match('~^https?://([^/?\#]+)~i', $payload, $m) === 1) {
+            $filename = preg_replace('/[^a-z0-9.-]/i', '', $m[1]) ?: 'code';
+        }
+    } elseif ($type === 'wifi') {
         $ssid = (string)(qin('ssid') ?? '');
         $pw = (string)(qin('pw') ?? '');
         $enc = qp('enc', 'WPA', '/^(WPA|WEP|nopass)$/');
@@ -169,10 +194,11 @@ if ($logo !== null) $ecc = 'H';
 $eccLevel = ['L' => QrCode::ECC_L, 'M' => QrCode::ECC_M, 'Q' => QrCode::ECC_Q, 'H' => QrCode::ECC_H][$ecc];
 
 // Byte-Kapazität unserer Versionen 1–10 je Fehlerkorrektur-Level
-$byteCap = ['L' => 271, 'M' => 213, 'Q' => 151, 'H' => 119];
-if (strlen($payload) > $byteCap[$ecc]) {
+// Grenze der Norm bei Version 40, je nach Fehlerkorrektur-Stufe
+if (strlen($payload) > QrCode::maxBytes($eccLevel)) {
     http_response_code(400);
-    exit('Zu viele Zeichen für einen QR-Code – bitte Angaben kürzen.');
+    exit('Zu viele Zeichen für einen QR-Code: ' . strlen($payload) . ' Byte, möglich sind '
+        . QrCode::maxBytes($eccLevel) . ' bei dieser Fehlerkorrektur.');
 }
 
 $qr = QrCode::encode($payload, $eccLevel);

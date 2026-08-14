@@ -5,8 +5,15 @@ declare(strict_types=1);
 // flatlink · Zusatzbedingung zur Namensnennung nach §7(b) AGPL: siehe LICENSE
 /**
  * Purer PHP-QR-Code-Generator, keine Abhängigkeiten.
- * Byte-Mode, Versionen 1-10, ECC L/M/Q/H, Maskenwahl per Penalty-Score.
+ * Byte-Mode, Versionen 1–40, ECC L/M/Q/H, Maskenwahl per Penalty-Score.
  * Algorithmus nach ISO/IEC 18004.
+ *
+ * Aus der Norm abgetippt sind nur zwei Zahlenreihen je Fehlerkorrektur-Stufe:
+ * ECC-Codewörter je Block und Anzahl Blöcke (Tabelle 9). Alles andere ergibt
+ * sich daraus rechnerisch – Gesamtzahl der Codewörter aus der Geometrie der
+ * Matrix, die Aufteilung in kurze und lange Blöcke aus der Division, die Lage
+ * der Ausrichtungsmuster aus der Schrittweiten-Regel. Eine Tabelle mit 320
+ * handgetippten Werten wäre die wahrscheinlichere Fehlerquelle gewesen.
  */
 final class QrCode
 {
@@ -24,48 +31,91 @@ final class QrCode
     // Format-Info-Bits je ECC-Level (L,M,Q,H)
     private const ECC_FORMAT = [1, 0, 3, 2];
 
-    // Gesamt-Codewörter je Version (Index = Version)
-    private const TOTAL_CW = [0, 26, 44, 70, 100, 134, 172, 196, 242, 292, 346];
+    /** Höchste unterstützte Version – 40 ist das Ende der Norm */
+    public const MAX_VERSION = 40;
 
-    // Je Version+ECC: [ECC-Codewörter pro Block, [[Anzahl Blöcke, Daten-Codewörter], ...]]
-    private const BLOCKS = [
-        1 => [
-            [7,  [[1, 19]]], [10, [[1, 16]]], [13, [[1, 13]]], [17, [[1, 9]]],
-        ],
-        2 => [
-            [10, [[1, 34]]], [16, [[1, 28]]], [22, [[1, 22]]], [28, [[1, 16]]],
-        ],
-        3 => [
-            [15, [[1, 55]]], [26, [[1, 44]]], [18, [[2, 17]]], [22, [[2, 13]]],
-        ],
-        4 => [
-            [20, [[1, 80]]], [18, [[2, 32]]], [26, [[2, 24]]], [16, [[4, 9]]],
-        ],
-        5 => [
-            [26, [[1, 108]]], [24, [[2, 43]]], [18, [[2, 15], [2, 16]]], [22, [[2, 11], [2, 12]]],
-        ],
-        6 => [
-            [18, [[2, 68]]], [16, [[4, 27]]], [24, [[4, 19]]], [28, [[4, 15]]],
-        ],
-        7 => [
-            [20, [[2, 78]]], [18, [[4, 31]]], [18, [[2, 14], [4, 15]]], [26, [[4, 13], [1, 14]]],
-        ],
-        8 => [
-            [24, [[2, 97]]], [22, [[2, 38], [2, 39]]], [22, [[4, 18], [2, 19]]], [26, [[4, 14], [2, 15]]],
-        ],
-        9 => [
-            [30, [[2, 116]]], [22, [[3, 36], [2, 37]]], [20, [[4, 16], [4, 17]]], [24, [[4, 12], [4, 13]]],
-        ],
-        10 => [
-            [18, [[2, 68], [2, 69]]], [26, [[4, 43], [1, 44]]], [24, [[6, 19], [2, 20]]], [28, [[6, 15], [2, 16]]],
-        ],
+    // ---- Die beiden Reihen aus ISO/IEC 18004, Tabelle 9 (Index = Version) ----
+
+    /** ECC-Codewörter je Block, je Fehlerkorrektur-Stufe */
+    private const ECC_PER_BLOCK = [
+        [0, 7,10,15,20,26,18,20,24,30,18,20,24,26,30,22,24,28,30,28,28,28,28,30,30,26,28,30,30,30,30,30,30,30,30,30,30,30,30,30,30],
+        [0,10,16,26,18,24,16,18,22,22,26,30,22,22,24,24,28,28,26,26,26,26,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28],
+        [0,13,22,18,26,18,24,18,22,20,24,28,26,24,20,30,24,28,28,26,30,28,30,30,30,30,28,30,30,30,30,30,30,30,30,30,30,30,30,30,30],
+        [0,17,28,22,16,22,28,26,26,24,28,24,28,22,24,24,30,28,28,26,28,30,24,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30],
     ];
 
-    // Zentren der Alignment-Patterns je Version
-    private const ALIGN = [
-        1 => [], 2 => [6, 18], 3 => [6, 22], 4 => [6, 26], 5 => [6, 30],
-        6 => [6, 34], 7 => [6, 22, 38], 8 => [6, 24, 42], 9 => [6, 26, 46], 10 => [6, 28, 50],
+    /** Anzahl Blöcke, je Fehlerkorrektur-Stufe */
+    private const BLOCK_COUNT = [
+        [0,1,1,1,1,1,2,2,2,2,4,4,4,4,4,6,6,6,6,7,8,8,9,9,10,12,12,12,13,14,15,16,17,18,19,19,20,21,22,24,25],
+        [0,1,1,1,2,2,4,4,4,5,5,5,8,9,9,10,10,11,13,14,16,17,17,18,20,21,23,25,26,28,29,31,33,35,37,38,40,43,45,47,49],
+        [0,1,1,2,2,4,4,6,6,8,8,8,10,12,16,12,17,16,18,21,20,23,23,25,27,29,34,34,35,38,40,43,45,48,51,53,56,59,62,65,68],
+        [0,1,1,2,4,4,4,5,6,8,8,11,11,16,16,18,16,19,21,25,25,25,34,30,32,35,37,40,42,45,48,51,54,57,60,63,66,70,74,77,81],
     ];
+
+    /**
+     * Rohe Datenmodule einer Version, in Bit.
+     *
+     * Fläche der Matrix abzüglich aller Funktionsmuster: Sucher mit Trennern,
+     * Timing-Linien, Ausrichtungsmuster (mit ihren Überschneidungen) und ab
+     * Version 7 die zweimal 18 Bit Versionsinformation.
+     */
+    private static function rawDataBits(int $v): int
+    {
+        $bits = (16 * $v + 128) * $v + 64;
+        if ($v >= 2) {
+            $n = intdiv($v, 7) + 2;
+            $bits -= (25 * $n - 10) * $n - 55;
+            if ($v >= 7) $bits -= 36;
+        }
+        return $bits;
+    }
+
+    /** Gesamtzahl der Codewörter einer Version */
+    private static function totalCodewords(int $v): int
+    {
+        return intdiv(self::rawDataBits($v), 8);
+    }
+
+    /**
+     * Blockaufteilung: kurze Blöcke zuerst, danach die um eins längeren.
+     *
+     * Die Norm gibt nur Blockzahl und ECC-Länge vor; wie sich die Datenbytes
+     * darauf verteilen, ist schlicht eine Division mit Rest.
+     *
+     * @return array{0:int,1:array<int,array{0:int,1:int}>} [ECC je Block, [[Anzahl, Datenbytes], …]]
+     */
+    private static function blockLayout(int $v, int $ecc): array
+    {
+        $count = self::BLOCK_COUNT[$ecc][$v];
+        $eccLen = self::ECC_PER_BLOCK[$ecc][$v];
+        $data = self::totalCodewords($v) - $eccLen * $count;
+        $short = intdiv($data, $count);
+        $numShort = $count - $data % $count;
+        $groups = [];
+        if ($numShort > 0) $groups[] = [$numShort, $short];
+        if ($count - $numShort > 0) $groups[] = [$count - $numShort, $short + 1];
+        return [$eccLen, $groups];
+    }
+
+    /**
+     * Mittelpunkte der Ausrichtungsmuster.
+     *
+     * Erstes bei 6, letztes sieben Module vor dem Rand, dazwischen gleichmäßig
+     * mit gerader Schrittweite. Version 32 fällt aus der Regel und steht auch
+     * in der Norm als Ausnahme.
+     *
+     * @return int[]
+     */
+    private static function alignPositions(int $v): array
+    {
+        if ($v === 1) return [];
+        $n = intdiv($v, 7) + 2;
+        $step = $v === 32 ? 26 : intdiv($v * 4 + $n * 2 + 1, $n * 2 - 2) * 2;
+        $out = [];
+        for ($p = 17 + 4 * $v - 7; count($out) < $n - 1; $p -= $step) array_unshift($out, $p);
+        array_unshift($out, 6);
+        return $out;
+    }
 
     private static array $gfExp = [];
     private static array $gfLog = [];
@@ -77,12 +127,13 @@ final class QrCode
 
         // Kleinste Version wählen, die die Daten fasst
         $version = 0;
-        for ($v = 1; $v <= 10; $v++) {
+        for ($v = 1; $v <= self::MAX_VERSION; $v++) {
             $needed = 4 + ($v <= 9 ? 8 : 16) + 8 * $len;
             if ($needed <= self::dataCodewordCount($v, $ecc) * 8) { $version = $v; break; }
         }
         if ($version === 0) {
-            throw new InvalidArgumentException('Text zu lang für QR-Version <= 10');
+            throw new InvalidArgumentException('Text zu lang für einen QR-Code (Grenze: '
+                . self::maxBytes($ecc) . ' Byte bei dieser Fehlerkorrektur).');
         }
 
         // Bitstrom: Mode 0100, Zeichenzahl, Daten
@@ -122,11 +173,20 @@ final class QrCode
 
     private static function dataCodewordCount(int $version, int $ecc): int
     {
-        $n = 0;
-        foreach (self::BLOCKS[$version][$ecc][1] as [$count, $dataLen]) {
-            $n += $count * $dataLen;
-        }
-        return $n;
+        return self::totalCodewords($version)
+            - self::ECC_PER_BLOCK[$ecc][$version] * self::BLOCK_COUNT[$ecc][$version];
+    }
+
+    /**
+     * Wie viele Byte passen bei dieser Fehlerkorrektur höchstens hinein?
+     *
+     * Gebraucht für Fehlermeldungen und für die Oberfläche, die eine zu lange
+     * Eingabe abfangen soll, bevor der Encoder sie ablehnt.
+     */
+    public static function maxBytes(int $ecc = self::ECC_M): int
+    {
+        // Version 40 hat 16 Bit Zeichenzahl, dazu 4 Bit Modus
+        return intdiv(self::dataCodewordCount(self::MAX_VERSION, $ecc) * 8 - 4 - 16, 8);
     }
 
     // ---- Reed-Solomon über GF(256), Polynom 0x11D ----
@@ -181,7 +241,7 @@ final class QrCode
     /** @param int[] $data @return int[] */
     private function addEccAndInterleave(array $data): array
     {
-        [$eccLen, $groups] = self::BLOCKS[$this->version][$this->ecc];
+        [$eccLen, $groups] = self::blockLayout($this->version, $this->ecc);
         $blocks = [];
         $pos = 0;
         foreach ($groups as [$count, $dataLen]) {
@@ -227,7 +287,7 @@ final class QrCode
         $this->drawFinder($n - 4, 3);
         $this->drawFinder(3, $n - 4);
         // Alignment-Patterns (die drei Ecken mit Findern auslassen)
-        $align = self::ALIGN[$this->version];
+        $align = self::alignPositions($this->version);
         $last = count($align) - 1;
         foreach ($align as $i => $r) {
             foreach ($align as $j => $c) {

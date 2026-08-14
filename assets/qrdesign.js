@@ -11,11 +11,18 @@
     if (!stage) return;
     var code = stage.getAttribute('data-code') || '';
     var basis = stage.getAttribute('data-base') || 'qr.php';
+    // 'url' = der Inhalt steht unmittelbar im Code, es gibt keinen Kurzlink
+    var modus = stage.getAttribute('data-mode') || 'link';
     var $ = function (id) { return document.getElementById(id); };
     var wert = function (id) { var el = $(id); return el ? el.value : null; };
 
     function params(extra) {
-        var p = new URLSearchParams({ c: code });
+        var p;
+        if (modus === 'url') {
+            p = new URLSearchParams({ t: 'url', u: (wert('opt-u') || '').trim() });
+        } else {
+            p = new URLSearchParams({ c: code });
+        }
         ['style', 'eye', 'fg', 'bg', 'ecc', 'margin', 'ls'].forEach(function (k) {
             var v = wert('opt-' + k);
             if (v !== null) p.set(k, v);
@@ -44,7 +51,7 @@
         setzeHref('dl-pdf', { format: 'pdf', download: 1 });
     }
 
-    ['opt-style', 'opt-eye', 'opt-fg', 'opt-bg', 'opt-ecc', 'opt-margin',
+    ['opt-u', 'opt-style', 'opt-eye', 'opt-fg', 'opt-bg', 'opt-ecc', 'opt-margin',
      'opt-logo', 'opt-ls', 'opt-size', 'opt-ftext'].forEach(function (id) {
         var el = $(id);
         if (!el) return;
