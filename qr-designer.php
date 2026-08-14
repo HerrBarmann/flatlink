@@ -279,6 +279,27 @@ $statischText = trim((string)($_GET['u'] ?? ''));
             <div><label>Vordergrund</label><input id="opt-fg" type="color" value="#16181D"></div>
             <div><label>Hintergrund</label><input id="opt-bg" type="color" value="#ffffff"></div>
         </div>
+        <label for="opt-grad">Farbverlauf</label>
+        <div class="short-row grad-row">
+            <select id="opt-grad">
+                <option value="">Kein Verlauf</option>
+                <option value="linear">Linear</option>
+                <option value="radial">Radial (von innen)</option>
+            </select>
+            <input id="opt-fg2" type="color" value="#3B6EA8" title="Zweite Farbe" aria-label="Zweite Farbe des Verlaufs">
+        </div>
+        <div id="grad-winkel" hidden>
+            <label for="opt-ga">Richtung: <span id="ga-val">45</span>°</label>
+            <input id="opt-ga" type="range" min="0" max="345" step="15" value="45">
+        </div>
+        <label>Verlaufs-Vorlagen</label>
+        <div class="qr-links">
+            <button class="btn btn-small" type="button" data-grad="linear|45|#0B3D2E|#7ABA1C">Wiese</button>
+            <button class="btn btn-small" type="button" data-grad="linear|0|#1a1a2e|#8e2de2">Nacht</button>
+            <button class="btn btn-small" type="button" data-grad="radial|0|#3a1c71|#d76d77">Sonne</button>
+            <button class="btn btn-small" type="button" data-grad="linear|135|#134E5E|#71B280">See</button>
+        </div>
+
         <label>Farbvorlagen</label>
         <div class="actions">
             <button class="btn btn-small" type="button" data-preset="#16181D|#ffffff">Klassik</button>

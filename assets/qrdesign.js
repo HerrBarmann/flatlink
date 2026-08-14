@@ -40,6 +40,12 @@
         });
         var mm = wert('opt-mm');
         if (mm) p.set('mm', mm);
+        var grad = wert('opt-grad');
+        if (grad) {
+            p.set('grad', grad);
+            if (wert('opt-fg2')) p.set('fg2', wert('opt-fg2'));
+            if (wert('opt-ga')) p.set('ga', wert('opt-ga'));
+        }
         for (var k2 in extra) p.set(k2, extra[k2]);
         return p.toString();
     }
@@ -50,6 +56,11 @@
     }
 
     function refresh() {
+        // Der Winkel ist nur beim linearen Verlauf eine Frage
+        var gw = $('grad-winkel');
+        if (gw) gw.hidden = wert('opt-grad') !== 'linear';
+        var gv = $('ga-val');
+        if (gv && $('opt-ga')) gv.textContent = $('opt-ga').value;
         var m = $('margin-val'), l = $('ls-val');
         if (m && $('opt-margin')) m.textContent = $('opt-margin').value;
         if (l && $('opt-ls')) l.textContent = $('opt-ls').value;
@@ -63,6 +74,7 @@
 
     ['opt-u', 'opt-style', 'opt-eye', 'opt-fg', 'opt-bg', 'opt-ecc', 'opt-margin',
      'opt-logo', 'opt-ls', 'opt-size', 'opt-ftext', 'opt-mm',
+     'opt-grad', 'opt-fg2', 'opt-ga',
      'opt-fgc-c', 'opt-fgc-m', 'opt-fgc-y', 'opt-fgc-k',
      'opt-bgc-c', 'opt-bgc-m', 'opt-bgc-y', 'opt-bgc-k'].forEach(function (id) {
         var el = $(id);
@@ -78,6 +90,16 @@
             var teile = p.getAttribute('data-preset').split('|');
             $('opt-fg').value = teile[0];
             $('opt-bg').value = teile[1];
+            refresh();
+            return;
+        }
+        var g = e.target.closest('[data-grad]');
+        if (g && $('opt-grad')) {
+            var t = g.getAttribute('data-grad').split('|');
+            $('opt-grad').value = t[0];
+            if ($('opt-ga')) $('opt-ga').value = t[1];
+            if ($('opt-fg')) $('opt-fg').value = t[2];
+            if ($('opt-fg2')) $('opt-fg2').value = t[3];
             refresh();
             return;
         }

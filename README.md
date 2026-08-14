@@ -136,7 +136,8 @@ auch alles, was sie verlangt.
   **Versionen 1–40**, Fehlerkorrektur L/M/Q/H) – ohne jede Fremdbibliothek.
   Bis zu 2953 Zeichen, also auch lange Adressen mit Kampagnen-Parametern
 - **QR-Designer** unter `qr-designer.php`: Modul- und Augenformen, freie
-  Farben, **Druckfarben in CMYK**, Export als SVG, PNG, **Vektor-PDF und EPS**.
+  Farben, **Farbverläufe**, **Druckfarben in CMYK**, Export als SVG, PNG,
+  **Vektor-PDF und EPS**.
   Angemeldete bekommen auf derselben Seite zusätzlich eigenes Logo, Rahmen mit
   Text und die Auswahl ihrer Links – ein Kurzlink lässt sich dort auch gleich
   anlegen
@@ -663,6 +664,25 @@ Lizenzfrage.
 Nachgewiesen wird das ohne Ghostscript: Ein Prüfprogramm liest die erzeugten
 Dateien zurück, zeichnet die enthaltenen Pfade und lässt `zbarimg` sie scannen –
 über alle Modul- und Augenformen, mit Rahmen, mit Absenderzeile und in CMYK.
+
+## Farbverläufe
+
+Linear mit frei wählbarer Richtung oder radial von innen nach außen, dazu vier
+Vorlagen. Der Verlauf liegt über den Datenmodulen und den Augen; der
+Hintergrund bleibt einfarbig.
+
+**Gefärbt wird modulweise, nicht mit dem Verlaufs-Werkzeug des jeweiligen
+Formats.** SVG und PDF könnten einen glatten Verlauf, PNG und EPS in Level 2
+nicht – vier Formate mit zwei Verfahren wären vier Ergebnisse, die sich im
+Detail unterscheiden. Ausgerechnet beim Druckexport will niemand herausfinden,
+warum die Datei anders aussieht als die Vorschau. Ein QR-Code besteht ohnehin
+aus Kacheln; eine Farbe je Kachel ist bei jeder vernünftigen Größe von einem
+glatten Verlauf nicht zu unterscheiden.
+
+**Mit CMYK verträgt sich das nicht**, und deshalb gewinnt dort die Druckfarbe:
+Ein Verlauf im Vierfarbdruck ist eine Entscheidung für sich – Rasterung,
+Farbauftrag, Papier –, und ein stillschweigend umgerechneter Verlauf wäre keine
+gute Antwort darauf. Die Oberfläche sagt das, statt es geschehen zu lassen.
 
 ## Zwei Arten von QR-Code
 

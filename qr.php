@@ -175,6 +175,15 @@ if ($fgCmyk !== null) $fg = VecColor::cmykToHex($fgCmyk);
 if ($bgCmyk !== null) $bg = VecColor::cmykToHex($bgCmyk);
 // Breite auf dem Papier – nur für die Vektorformate von Belang
 $druckMm = max(10.0, min(1000.0, (float)(qin('mm') ?? 80)));
+
+// Farbverlauf über die Module. Mit CMYK verträgt er sich nicht: Ein Verlauf im
+// Vierfarbdruck ist eine Entscheidung für sich (Rasterung, Farbauftrag), und
+// ein stillschweigend umgerechneter Verlauf wäre keine gute Antwort darauf.
+// Deshalb gewinnt hier die Druckfarbe, und die Oberfläche sagt es auch.
+$grad = qp('grad', '', '/^(linear|radial)$/');
+$gradTo = qp('fg2', '#3B6EA8', '/^#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/');
+$gradAngle = max(0, min(359, (int)(qin('ga') ?? 45)));
+if ($fgCmyk !== null) $grad = '';
 $ecc    = qp('ecc', 'M', '/^[LMQH]$/');
 $size   = max(64, min(2048, (int)(qin('size') ?? 512)));
 $margin = max(0, min(10, (int)(qin('margin') ?? 4)));
@@ -224,6 +233,7 @@ $renderer = new QrRenderer($qr, [
     'style' => $style, 'eye' => $eye, 'fg' => $fg, 'bg' => $bg,
     'fgColor' => $fgCmyk !== null ? VecColor::fromCmyk($fgCmyk) : null,
     'bgColor' => $bgCmyk !== null ? VecColor::fromCmyk($bgCmyk) : null,
+    'grad' => $grad === '' ? null : $grad, 'gradTo' => $gradTo, 'gradAngle' => $gradAngle,
     'size' => $size, 'margin' => $margin, 'logo' => $logo, 'logoScale' => $ls,
     'frameText' => $ftext, 'brandText' => $brand,
     'brandGlyphSvg' => $glyphSvg, 'brandGlyphPng' => $glyphPng,

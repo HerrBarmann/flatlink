@@ -503,7 +503,52 @@ final class QrRenderer
             // 'fg'/'bg' bleiben die Bildschirm-Näherung für SVG und PNG.
             'fgColor'   => null,       // ?VecColor
             'bgColor'   => null,       // ?VecColor
+            // Farbverlauf über die Module. 'fg' ist der Anfang, 'gradTo' das
+            // Ende. Null heißt: einfarbig wie bisher.
+            'grad'      => null,       // null | 'linear' | 'radial'
+            'gradTo'    => '#3B6EA8',
+            'gradAngle' => 45,         // Grad, nur bei 'linear'
         ], $options);
+    }
+
+    /**
+     * Farbe eines Punktes im Verlauf – oder schlicht die Vordergrundfarbe.
+     *
+     * **Warum modulweise und nicht als echter Verlauf des jeweiligen Formats:**
+     * SVG und PDF könnten einen glatten Verlauf, PNG und EPS (Level 2) nicht.
+     * Vier Formate mit zwei verschiedenen Verfahren wären vier Ergebnisse, die
+     * sich im Detail unterscheiden – und ausgerechnet beim Druckexport will
+     * niemand herausfinden, warum die Datei anders aussieht als die Vorschau.
+     * Ein QR-Code besteht ohnehin aus Kacheln; eine Farbe je Kachel ist bei
+     * jeder vernünftigen Größe von einem glatten Verlauf nicht zu
+     * unterscheiden.
+     *
+     * @param float $mx Modul-Koordinaten, Mitte des einzufärbenden Elements
+     * @param int   $total Kantenlänge des Codes in Modulen (mit Rand)
+     */
+    private function colorAt(float $mx, float $my, int $total): string
+    {
+        $o = $this->opt;
+        if ($o['grad'] === null) return (string)$o['fg'];
+
+        $c = $total / 2;
+        if ($o['grad'] === 'radial') {
+            $d = sqrt(($mx - $c) ** 2 + ($my - $c) ** 2);
+            $u = $d / (M_SQRT1_2 * $total);            // Ecke = 1.0
+        } else {
+            $a = deg2rad((float)$o['gradAngle']);
+            $proj = ($mx - $c) * cos($a) + ($my - $c) * sin($a);
+            // Ausdehnung der Projektion des Quadrats auf die Verlaufsachse
+            $halb = (abs(cos($a)) + abs(sin($a))) * $total / 2;
+            $u = $halb > 0 ? 0.5 + $proj / (2 * $halb) : 0.5;
+        }
+        return self::mixColor((string)$o['fg'], (string)$o['gradTo'], max(0.0, min(1.0, $u)));
+    }
+
+    /** Läuft über diesen Code ein Verlauf? */
+    private function hasGrad(): bool
+    {
+        return $this->opt['grad'] !== null;
     }
 
     /** Die drei 7x7-Finder-Bereiche (oben links / oben rechts / unten links) */
@@ -757,20 +802,32 @@ final class QrRenderer
         $m = $o['margin'];
         $ops = [['path', [vec_rect(0, 0, $total, $total)], $bg, false]];
 
+        $verlauf = $this->hasGrad();
         $formen = [];
+        $einzeln = [];
         foreach ($this->modulePositions() as [$x, $y]) {
             $px = $x + $m; $py = $y + $m;
             switch ($o['style']) {
-                case 'dot':     $formen[] = vec_circle($px + 0.5, $py + 0.5, 0.42); break;
-                case 'rounded': $formen[] = vec_rect($px + 0.04, $py + 0.04, 0.92, 0.92, 0.28); break;
-                default:        $formen[] = vec_rect($px, $py, 1, 1); break;
+                case 'dot':     $form = vec_circle($px + 0.5, $py + 0.5, 0.42); break;
+                case 'rounded': $form = vec_rect($px + 0.04, $py + 0.04, 0.92, 0.92, 0.28); break;
+                default:        $form = vec_rect($px, $py, 1, 1); break;
+            }
+            if ($verlauf) {
+                $einzeln[] = ['path', [$form],
+                    VecColor::fromHex($this->colorAt($px + 0.5, $py + 0.5, $total)), false];
+            } else {
+                $formen[] = $form;
             }
         }
         if ($formen !== []) $ops[] = ['path', $formen, $fg, false];
+        foreach ($einzeln as $e) $ops[] = $e;
 
         foreach ($this->eyeOrigins() as [$ex, $ey]) {
+            $ef = $verlauf
+                ? VecColor::fromHex($this->colorAt($ex + $m + 3.5, $ey + $m + 3.5, $total))
+                : $fg;
             foreach ($this->eyeOps($ex + $m, $ey + $m) as $teil) {
-                $ops[] = ['path', $teil, $fg, count($teil) > 1];
+                $ops[] = ['path', $teil, $ef, count($teil) > 1];
             }
         }
 
@@ -834,22 +891,30 @@ final class QrRenderer
         $parts = [];
         $parts[] = '<rect width="' . $total . '" height="' . $total . '" fill="' . htmlspecialchars($o['bg']) . '"/>';
 
-        // Datenmodule (Finder-Bereiche werden separat als Augen gezeichnet)
+        // Datenmodule (Finder-Bereiche werden separat als Augen gezeichnet).
+        // Ohne Verlauf hängen alle in einer Gruppe mit gemeinsamer Farbe – das
+        // hält die Datei klein. Mit Verlauf trägt jedes Modul seine eigene.
+        $verlauf = $this->hasGrad();
         $path = '';
         $shapes = [];
         for ($y = 0; $y < $n; $y++) {
             for ($x = 0; $x < $n; $x++) {
                 if (!$this->qr->modules[$y][$x] || $this->inEye($x, $y)) continue;
                 $px = $x + $m; $py = $y + $m;
+                $f = $verlauf ? ' fill="' . htmlspecialchars($this->colorAt($px + 0.5, $py + 0.5, $total)) . '"' : '';
                 switch ($o['style']) {
                     case 'dot':
-                        $shapes[] = '<circle cx="' . ($px + 0.5) . '" cy="' . ($py + 0.5) . '" r="0.42"/>';
+                        $shapes[] = '<circle cx="' . ($px + 0.5) . '" cy="' . ($py + 0.5) . '" r="0.42"' . $f . '/>';
                         break;
                     case 'rounded':
-                        $shapes[] = '<rect x="' . ($px + 0.04) . '" y="' . ($py + 0.04) . '" width="0.92" height="0.92" rx="0.28"/>';
+                        $shapes[] = '<rect x="' . ($px + 0.04) . '" y="' . ($py + 0.04) . '" width="0.92" height="0.92" rx="0.28"' . $f . '/>';
                         break;
                     default:
-                        $path .= 'M' . $px . ' ' . $py . 'h1v1h-1z';
+                        if ($verlauf) {
+                            $shapes[] = '<path d="M' . $px . ' ' . $py . 'h1v1h-1z"' . $f . '/>';
+                        } else {
+                            $path .= 'M' . $px . ' ' . $py . 'h1v1h-1z';
+                        }
                 }
             }
         }
@@ -859,7 +924,11 @@ final class QrRenderer
 
         // Augen
         foreach ($this->eyeOrigins() as [$ex, $ey]) {
-            $parts[] = $this->svgEye($ex + $m, $ey + $m);
+            $ef = $verlauf
+                ? ' fill="' . htmlspecialchars($this->colorAt($ex + $m + 3.5, $ey + $m + 3.5, $total)) . '"'
+                : '';
+            $parts[] = $ef === '' ? $this->svgEye($ex + $m, $ey + $m)
+                : '<g' . $ef . '>' . $this->svgEye($ex + $m, $ey + $m) . '</g>';
         }
         $parts[] = '</g>';
 
@@ -964,11 +1033,20 @@ final class QrRenderer
         imagefilledrectangle($img, 0, 0, $px - 1, $px - 1, $bg);
 
         $m = $o['margin'];
+        $verlauf = $this->hasGrad();
+        // Farben je Modul kosten sonst Tausende Aufrufe von imagecolorallocate
+        $cache = [];
+        $farbe = function (float $mx, float $my) use ($img, $o, $totalModules, $verlauf, $fg, &$cache): int {
+            if (!$verlauf) return $fg;
+            $hex = $this->colorAt($mx, $my, $totalModules);
+            return $cache[$hex] ??= self::gdColor($img, $hex);
+        };
         for ($y = 0; $y < $n; $y++) {
             for ($x = 0; $x < $n; $x++) {
                 if (!$this->qr->modules[$y][$x] || $this->inEye($x, $y)) continue;
                 $x0 = ($x + $m) * $scale;
                 $y0 = ($y + $m) * $scale;
+                $fg = $farbe($x + $m + 0.5, $y + $m + 0.5);
                 switch ($o['style']) {
                     case 'dot':
                         $d = (int)round($scale * 0.84);
@@ -983,7 +1061,8 @@ final class QrRenderer
             }
         }
         foreach ($this->eyeOrigins() as [$ex, $ey]) {
-            $this->gdEye($img, ($ex + $m) * $scale, ($ey + $m) * $scale, $scale, $fg, $bg);
+            $this->gdEye($img, ($ex + $m) * $scale, ($ey + $m) * $scale, $scale,
+                $farbe($ex + $m + 3.5, $ey + $m + 3.5), $bg);
         }
         if ($o['logo'] !== null && is_file($o['logo'])) {
             $this->gdLogo($img, $px);
