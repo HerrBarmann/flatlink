@@ -209,8 +209,14 @@ show_flash();
                        value="<?= e((string)($z['label'] ?? '')) ?>">
                 <input type="text" name="url[]" inputmode="url" placeholder="https://…"
                        value="<?= e((string)($z['url'] ?? '')) ?>">
-                <button type="button" class="btn btn-small btn-danger" data-remove-row
-                        title="Diese Zeile entfernen" aria-label="Diese Zeile entfernen">&times;</button>
+                <span class="row-tools">
+                    <button type="button" class="btn btn-small" data-move-row="up"
+                            title="Nach oben" aria-label="Nach oben">&uarr;</button>
+                    <button type="button" class="btn btn-small" data-move-row="down"
+                            title="Nach unten" aria-label="Nach unten">&darr;</button>
+                    <button type="button" class="btn btn-small btn-danger" data-remove-row
+                            title="Diese Zeile entfernen" aria-label="Diese Zeile entfernen">&times;</button>
+                </span>
             </div>
             <?php endforeach; ?>
         </div>

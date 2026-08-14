@@ -52,6 +52,24 @@
             if (first) first.focus();
             return;
         }
+        var mv = e.target.closest('[data-move-row]');
+        if (mv) {
+            var r = mv.closest('[data-row]');
+            if (!r) return;
+            var hoch = mv.getAttribute('data-move-row') === 'up';
+            var nachbar = hoch ? r.previousElementSibling : r.nextElementSibling;
+            // Nur echte Zeilen tauschen – zwischen ihnen kann anderes stehen
+            while (nachbar && !nachbar.hasAttribute('data-row')) {
+                nachbar = hoch ? nachbar.previousElementSibling : nachbar.nextElementSibling;
+            }
+            if (!nachbar) return;
+            if (hoch) r.parentNode.insertBefore(r, nachbar);
+            else r.parentNode.insertBefore(nachbar, r);
+            // Den Knopf weiter unter dem Finger behalten, sonst muss man nach
+            // jedem Schritt neu zielen
+            mv.focus();
+            return;
+        }
         var rm = e.target.closest('[data-remove-row]');
         if (rm) {
             var row = rm.closest('[data-row]');

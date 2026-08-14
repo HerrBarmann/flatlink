@@ -132,11 +132,19 @@ return [
     // umzieht, darf sie beherzt erhöhen und den Import in Ruhe laufen lassen.
     'import_max_rows' => 100,
 
+    // Aussehen der Link-in-Bio-Seiten, solange der Besitzer nichts eigenes
+    // wählt. Sinnvoll sind die Farben der Instanz – sonst bekommt jemand ohne
+    // eigene Gestaltung eine Seite, die nach nichts aussieht.
+    'bio_default_colors' => [],   // z. B. ['bg' => '#ffffff', 'ink' => '#111111', …]
+
     // Fuß der Link-in-Bio-Seiten. Diese Seiten tragen sonst nichts vom
     // Betreiber – kein Menü, keine Marke –, deshalb steht hier die einzige
     // Zeile, die bleibt. Leerer Text lässt sie ganz weg; das Zeichen ist eine
     // Bilddatei in assets/ und ebenfalls freiwillig.
-    'bio_footer_text' => null,   // null = „powered by <site_name>"
+    // Vorspann vor der Wortmarke; '' lässt nur die Marke stehen, null die
+    // ganze Zeile weg. Die Marke selbst wird aus 'site_name' aufgebaut.
+    'bio_footer_text' => 'powered by',
+    'bio_footer_accent' => '',   // Farbe der Endung und des Cursors, leer = wie die Zeile
     'bio_footer_glyph' => '',
 
     // Klasse am <body>-Element. Daran lassen sich in assets/custom.css ganze

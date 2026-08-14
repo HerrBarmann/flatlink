@@ -301,6 +301,8 @@ td a { font-family: var(--mono); }
 .pair-rows { display: grid; gap: 0.4rem; }
 .pair-row { display: grid; grid-template-columns: 1fr 1.6fr auto; gap: 0.4rem; align-items: center; }
 .pair-row input { margin: 0; }
+.row-tools { display: flex; gap: 0.2rem; }
+.row-tools .btn { padding: 0.28rem 0.5rem; line-height: 1; }
 @media (max-width: 560px) {
     .pair-row { grid-template-columns: 1fr auto; }
     .pair-row input:first-child { grid-column: 1 / -1; }

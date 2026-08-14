@@ -432,6 +432,13 @@ die Speisekarte und nicht das Menü des Kurzlink-Dienstes. Vom Betreiber bleibt
 eine Zeile im Fuß, einstellbar über `bio_footer_text` und `bio_footer_glyph`;
 ein leerer Text lässt sie ganz weg.
 
+Die Reihenfolge der Ziele lässt sich mit Pfeiltasten je Zeile ändern – ohne
+JavaScript bleibt sie die Reihenfolge der Felder, was ebenfalls funktioniert,
+nur mühsamer. Wie eine Seite ohne eigene Gestaltung aussieht, bestimmt
+`bio_default_colors`; steht dort nichts, bleibt ein neutrales Dunkelgrau. Wo
+kein eigenes Logo hinterlegt ist, steht am Kopf die Wortmarke der Instanz,
+aufgebaut wie in deren Seitenkopf.
+
 Konten mit dem Recht `bio_style` wählen zusätzlich **ein Logo aus der
 Logo-Bibliothek und vier Farben** (Hintergrund, Schrift, Schaltflächen und
 deren Beschriftung). Die Farbwerte werden gegen `#rrggbb` geprüft, bevor sie in

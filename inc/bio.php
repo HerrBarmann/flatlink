@@ -118,10 +118,72 @@ function bio_count(string $owner): int
     return $n;
 }
 
-/** Vorgabe-Farben einer Bio-Seite, wenn nichts eigenes gesetzt ist */
+/**
+ * Vorgabe-Farben einer Bio-Seite.
+ *
+ * Aus der Konfiguration, damit eine Instanz ihr eigenes Aussehen durchreichen
+ * kann: Wer nichts einstellt, soll keine fremde Seite bekommen, sondern eine,
+ * die nach dem Dienst aussieht, über den sie läuft. Ohne Angabe bleibt ein
+ * neutrales Dunkelgrau.
+ */
 function bio_default_colors(): array
 {
-    return ['bg' => '#0f1216', 'ink' => '#f2f4f7', 'btn' => '#f2f4f7', 'btn_ink' => '#0f1216'];
+    static $vor = null;
+    if ($vor !== null) return $vor;
+    $vor = ['bg' => '#0f1216', 'ink' => '#f2f4f7', 'btn' => '#f2f4f7', 'btn_ink' => '#0f1216'];
+    foreach ((array)cfg('bio_default_colors') as $k => $v) {
+        if (isset($vor[$k]) && is_string($v) && preg_match('/^#[0-9a-fA-F]{6}$/', $v) === 1) {
+            $vor[$k] = strtolower($v);
+        }
+    }
+    return $vor;
+}
+
+/**
+ * Adresse des eigenen Logos einer Seite, sonst leer.
+ *
+ * Kein Ersatz aus der Instanz: Wer kein eigenes Logo hat, bekommt oben die
+ * Wortmarke des Dienstes – siehe bio_brand_block().
+ */
+function bio_logo_url(array $l): string
+{
+    $eigen = (string)($l['bio_logo'] ?? '');
+    if ($eigen !== '' && preg_match('/^[a-f0-9]{16,64}$/', $eigen) === 1
+        && is_file(data_path('logos') . '/' . $eigen)) {
+        return base_url() . '/logo.php?id=' . rawurlencode($eigen);
+    }
+    return '';
+}
+
+/** Die Wortmarke des Dienstes, wie im Seitenkopf ausgezeichnet */
+function bio_wordmark(): string
+{
+    $name = (string)cfg('site_name');
+    $punkt = strpos($name, '.');
+    $marke = ($punkt === false || $punkt === 0)
+        ? e($name)
+        : e(substr($name, 0, $punkt)) . '<span class="bio-tld">' . e(substr($name, $punkt)) . '</span>';
+    return '<span class="bio-brand">' . $marke . '</span>';
+}
+
+/**
+ * Markenblock am Kopf einer Seite ohne eigenes Logo.
+ *
+ * Wo nichts Eigenes steht, steht der Dienst – aber als das, was er ist: die
+ * Kopfzeile, die man von ihm kennt, Zeichen und Wortmarke nebeneinander. Wer
+ * ein eigenes Logo hinterlegt, sieht diesen Block nicht; dort bleibt vom
+ * Betreiber nur die Zeile im Fuß.
+ */
+function bio_brand_block(): string
+{
+    $logo = trim((string)cfg('logo'));
+    $bild = '';
+    if ($logo !== '' && is_file(dirname(__DIR__) . '/assets/' . basename($logo))) {
+        $bild = '<img class="bio-brandmark" src="' . e(base_url() . '/assets/' . basename($logo))
+            . '" alt="" width="44" height="44">';
+    }
+    return '<a class="bio-brandtop" href="' . e(base_url() . '/') . '" rel="noopener">'
+        . $bild . bio_wordmark() . '</a>';
 }
 
 /**
@@ -165,10 +227,7 @@ function bio_render(string $code, array $l): never
 
     clicks_bump($code);
 
-    $logo = (string)($l['bio_logo'] ?? '');
-    $logoUrl = $logo !== '' && preg_match('/^[a-f0-9]{16,64}$/', $logo) === 1 && is_file(data_path('logos') . '/' . $logo)
-        ? base_url() . '/logo.php?id=' . rawurlencode($logo)
-        : '';
+    $logoUrl = bio_logo_url($l);
 
     security_headers();
     header('Content-Type: text/html; charset=UTF-8');
@@ -191,12 +250,17 @@ function bio_render(string $code, array $l): never
     echo '<link rel="stylesheet" href="' . e(base_url()) . '/assets/bio.css">';
     // Nur die vier gewählten Farben als Variablen – kein Nutzer-Text landet in
     // einem style-Attribut, und die Werte sind zuvor gegen #rrggbb geprüft.
+    $akzent = trim((string)cfg('bio_footer_accent'));
+    $akzent = preg_match('/^#[0-9a-fA-F]{6}$/', $akzent) === 1 ? strtolower($akzent) : '';
     echo '<style>:root{--bio-bg:' . $f['bg'] . ';--bio-ink:' . $f['ink']
-        . ';--bio-btn:' . $f['btn'] . ';--bio-btn-ink:' . $f['btn_ink'] . '}</style>';
+        . ';--bio-btn:' . $f['btn'] . ';--bio-btn-ink:' . $f['btn_ink']
+        . ($akzent !== '' ? ';--bio-accent:' . $akzent : '') . '}</style>';
     echo '</head><body class="bio-page"><main class="bio-wrap">';
 
     if ($logoUrl !== '') {
         echo '<img class="bio-logo" src="' . e($logoUrl) . '" alt="" width="96" height="96">';
+    } else {
+        echo bio_brand_block();
     }
     echo '<h1 class="bio-title">' . e($titel) . '</h1>';
     if ($text !== '') echo '<p class="bio-text">' . nl2br(e($text)) . '</p>';
@@ -217,26 +281,33 @@ function bio_render(string $code, array $l): never
 /**
  * Die Herkunftszeile im Fuß einer Bio-Seite.
  *
- * Zurückhaltend: ein kleines Zeichen und ein Satz. Wer das für seine Instanz
- * ändern will, setzt 'bio_footer_glyph' und 'bio_footer_text'; ein leerer Text
- * lässt die Zeile ganz weg.
+ * Zeichen plus Wortmarke, aufgebaut wie in der Kopfzeile des Dienstes: Heißt
+ * die Instanz wie eine Domain, wird der Teil ab dem ersten Punkt getrennt
+ * ausgezeichnet, dahinter steht der Cursor. Das ist die einzige Stelle, an der
+ * eine Bio-Seite den Betreiber zeigt – dann soll sie ihn auch richtig zeigen
+ * und nicht als beliebigen Fließtext.
+ *
+ * 'bio_footer_text' ist der Vorspann vor der Wortmarke. Ein leerer Wert lässt
+ * nur die Marke stehen, `null` die ganze Zeile weg.
  */
 function bio_origin_note(): string
 {
-    $text = cfg('bio_footer_text');
-    $text = $text === null ? 'powered by ' . cfg('site_name') : trim((string)$text);
-    if ($text === '') return '';
+    $vorspann = cfg('bio_footer_text');
+    if ($vorspann === null) return '';
+    $vorspann = trim((string)$vorspann);
 
     $out = '';
     $glyph = trim((string)cfg('bio_footer_glyph'));
-    if ($glyph !== '') {
-        $datei = dirname(__DIR__) . '/assets/' . basename($glyph);
-        if (is_file($datei)) {
-            $out .= '<img class="bio-mark" src="' . e(base_url() . '/assets/' . basename($glyph))
-                . '" alt="" width="20" height="20">';
-        }
+    if ($glyph !== '' && is_file(dirname(__DIR__) . '/assets/' . basename($glyph))) {
+        $out .= '<img class="bio-mark" src="' . e(base_url() . '/assets/' . basename($glyph))
+            . '" alt="" width="20" height="20">';
     }
-    return '<a href="' . e(base_url() . '/') . '" rel="noopener">' . $out . e($text) . '</a>';
+    if ($vorspann !== '') {
+        $out .= '<span class="bio-pre">' . e($vorspann) . '</span>';
+    }
+    $out .= bio_wordmark();
+
+    return '<a href="' . e(base_url() . '/') . '" rel="noopener">' . $out . '</a>';
 }
 
 /**
