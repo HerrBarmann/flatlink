@@ -24,6 +24,7 @@ declare(strict_types=1);
  * könnte: Sämtliche Regeln kommen aus inc/linkrules.php, derselben Fassung.
  */
 require_once __DIR__ . '/inc/linkrules.php';
+require_once __DIR__ . '/inc/domains.php';
 require_once __DIR__ . '/inc/token.php';
 require_once __DIR__ . '/inc/auth.php';
 
@@ -137,10 +138,11 @@ function api_link(string $code, array $l): array
 {
     return [
         'code' => $code,
-        'short_url' => short_url($code),
+        'short_url' => short_url($code, (string)($l['domain'] ?? '')),
         'url' => $l['url'] ?? null,
         'title' => $l['title'] ?? null,
         'tags' => array_values((array)($l['tags'] ?? [])),
+        'domain' => (string)($l['domain'] ?? '') ?: domain_main(),
         'type' => $l['type'] ?? 'random',
         'group' => $l['group'] ?? null,
         'owner' => $l['owner'] ?? null,
@@ -186,6 +188,7 @@ if ($ressource === 'me' && count($teile) === 1) {
             'logos' => limit_label(user_limit($name, 'logos')),
         ],
         'assignable_groups' => link_rules_assignable($user),
+        'domains' => domains_for($user['name']),
         'rate_limit_per_hour' => $limit,
         'key' => ['id' => $eintrag['id'], 'label' => $eintrag['label'] ?? ''],
     ]);
@@ -233,6 +236,7 @@ if ($ressource === 'links') {
                 'expires' => (string)($in['expires'] ?? ''),
                 'title' => (string)($in['title'] ?? ''),
                 'tags' => $in['tags'] ?? '',
+                'domain' => (string)($in['domain'] ?? ''),
             ]);
             if ($err !== null) api_fail(422, 'rejected', $err);
 
@@ -291,6 +295,7 @@ if ($ressource === 'links') {
         }
         // Schlagworte dürfen als Liste oder als Zeichenkette mit Kommas kommen
         if (array_key_exists('tags', $in)) $rein['tags'] = $in['tags'];
+        if (array_key_exists('domain', $in)) $rein['domain'] = (string)$in['domain'];
         [$err, $opts] = link_rules_update($user, $l, $rein);
         if ($err !== null) api_fail(422, 'rejected', $err);
 

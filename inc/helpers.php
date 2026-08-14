@@ -112,9 +112,18 @@ function base_url(bool $trusted = false): string
     return ($https ? 'https' : 'http') . '://' . $host . $dir;
 }
 
-function short_url(string $code): string
+/**
+ * Die Adresse, unter der ein Kurzlink steht.
+ *
+ * $domain ist der Wert aus dem Link selbst; leer heißt Hauptdomain. Bewusst
+ * ein Parameter und kein Nachschlagen: Wer die Liste zeichnet, hat den Link
+ * längst in der Hand, und ein Zugriff auf die Ablage je Zeile wäre teuer.
+ */
+function short_url(string $code, string $domain = ''): string
 {
-    return base_url() . '/' . $code;
+    if ($domain === '') return base_url() . '/' . $code;
+    require_once __DIR__ . '/domains.php';
+    return domain_url($domain) . '/' . $code;
 }
 
 function redirect_to(string $url): never
@@ -205,6 +214,7 @@ function settings(): array
             'custom_code_min_len' => (int)cfg('custom_code_min_len'),
             'custom_code_quota' => (int)cfg('custom_code_quota'),
             'totp_required' => (string)cfg('totp_required'),
+            'domains' => (array)cfg('domains'),
         ];
         $s = array_merge($defaults, json_read(data_path() . '/settings.json'));
     }

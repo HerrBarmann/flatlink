@@ -106,6 +106,10 @@ function auth_user(): ?array
  */
 function auth_require(bool $frei = false): array
 {
+    // Die Verwaltung gehört auf die Hauptdomain – vor allem anderen, damit
+    // unter einer Nebendomain gar nicht erst eine Sitzung entsteht.
+    require_once __DIR__ . '/domains.php';
+    domain_force_main();
     auth_boot();
     $u = auth_user();
     // Absolut, nicht relativ: Dateien außerhalb von admin/ landeten sonst auf

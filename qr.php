@@ -121,7 +121,7 @@ if ($type !== 'link') {
         exit('Unbekannter Kurzlink.');
     }
     $filename = str_replace('/', '-', $code);
-    $payload = short_url($code);
+    $payload = short_url($code, (string)($link['domain'] ?? ''));
     $owner = $link['owner'] ?? null;
 }
 

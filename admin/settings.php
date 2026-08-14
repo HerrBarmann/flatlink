@@ -4,6 +4,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../inc/store.php';
 require_once __DIR__ . '/../inc/auth.php';
 require_once __DIR__ . '/../inc/groups.php';
+require_once __DIR__ . '/../inc/domains.php';
 
 $user = auth_require_admin();
 $s = settings();
@@ -48,6 +49,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $neu['custom_code_quota'] = max(0, min(100000, (int)($_POST['custom_code_quota'] ?? 0)));
         $modus = (string)($_POST['totp_required'] ?? 'off');
         $neu['totp_required'] = in_array($modus, ['off', 'admins', 'all'], true) ? $modus : 'off';
+    }
+
+    if ($fehler === null && isset($_POST['domains'])) {
+        $liste = domains_extra();
+        if (($_POST['domain_del'] ?? '') !== '') {
+            $weg = domain_clean((string)$_POST['domain_del']);
+            $liste = array_values(array_filter($liste, fn($d) => $d['host'] !== $weg));
+        } else {
+            $host = domain_clean((string)($_POST['domain_host'] ?? ''));
+            $grp = (string)($_POST['domain_group'] ?? '');
+            if ($host === '') {
+                $fehler = 'Das sieht nicht nach einem Hostnamen aus (z. B. kunde.link).';
+            } elseif ($host === domain_main()) {
+                $fehler = 'Das ist bereits die Hauptdomain.';
+            } elseif (in_array($host, array_column($liste, 'host'), true)) {
+                $fehler = 'Diese Domain ist schon eingetragen.';
+            } else {
+                $liste[] = ['host' => $host, 'group' => isset(groups_all()[$grp]) ? $grp : ''];
+            }
+        }
+        if ($fehler === null) $neu['domains'] = $liste;
     }
 
     if ($fehler !== null) {
@@ -135,6 +157,63 @@ $host = preg_replace('#^https?://#', '', base_url());
         ausgesperrt.</p>
         <button class="btn btn-primary" type="submit">Grundregeln speichern</button>
     </form>
+</div>
+
+<div class="card">
+    <h2>Domains für Kurzlinks</h2>
+    <p class="muted small">Kurzlinks können unter mehreren Adressen ausgegeben werden. Alle zeigen
+    auf diese Installation – im DNS auf denselben Server, im Zertifikat mit aufgeführt. Die
+    Verwaltung bleibt auf <code><?= e(domain_main()) ?></code>; wer <code>/admin/</code> unter
+    einer Nebendomain aufruft, wird hierher zurückgeleitet.</p>
+    <p class="muted small"><strong>Ein Code gehört der Instanz, nicht der Domain.</strong> Es gibt
+    <code>/shop</code> genau einmal, und er löst unter jeder eingerichteten Adresse auf. Das hält
+    gedruckte Codes am Leben, wenn eine Domain wegfällt – kostet aber, dass zwei Kunden nicht
+    beide <code>/shop</code> haben können. Dafür sind die
+    <a href="groups.php">Namensräume der Gruppen</a> da.</p>
+
+    <ul class="key-list">
+        <li>
+            <div><strong><?= e(domain_main()) ?></strong><br>
+            <span class="muted small">Hauptdomain – aus <code>base_url</code>, hier auch die Verwaltung</span></div>
+        </li>
+        <?php foreach (domains_extra() as $d): ?>
+        <li>
+            <div><strong><?= e($d['host']) ?></strong><br>
+            <span class="muted small"><?= $d['group'] === ''
+                ? 'für alle Konten wählbar'
+                : 'nur für die Gruppe „' . e(group_label($d['group'])) . '“' ?></span></div>
+            <form method="post" action="" class="inline" data-confirm="Domain „<?= e($d['host']) ?>“ wirklich entfernen? Links, die darauf zeigen, bleiben bestehen und fallen auf die Hauptdomain zurück.">
+                <?= csrf_field() ?>
+                <input type="hidden" name="domains" value="1">
+                <input type="hidden" name="domain_del" value="<?= e($d['host']) ?>">
+                <button class="btn btn-small btn-danger" type="submit">Entfernen</button>
+            </form>
+        </li>
+        <?php endforeach; ?>
+    </ul>
+
+    <form method="post" action="">
+        <?= csrf_field() ?>
+        <input type="hidden" name="domains" value="1">
+        <div class="two-col">
+            <div>
+                <label for="d-host">Weitere Domain</label>
+                <input id="d-host" type="text" name="domain_host" placeholder="kunde.link" autocomplete="off">
+            </div>
+            <div>
+                <label for="d-group">Vorbehalten für <span class="muted">(optional)</span></label>
+                <select id="d-group" name="domain_group">
+                    <option value="">alle Konten</option>
+                    <?php foreach (groups_all() as $gid => $g): ?>
+                    <option value="<?= e((string)$gid) ?>"><?= e((string)$g['name']) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+        </div>
+        <p><button class="btn" type="submit">Domain hinzufügen</button></p>
+    </form>
+    <p class="muted small">Die Domain muss zusätzlich beim Hoster auf dieses Verzeichnis zeigen
+    und im Zertifikat stehen – das kann diese Oberfläche nicht für dich tun.</p>
 </div>
 
 <div class="card">

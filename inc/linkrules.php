@@ -16,6 +16,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/store.php';
 require_once __DIR__ . '/groups.php';
 require_once __DIR__ . '/safety.php';
+require_once __DIR__ . '/domains.php';
 
 /**
  * Eingaben für einen neuen Kurzlink prüfen und in Anlege-Argumente übersetzen.
@@ -46,6 +47,13 @@ function link_rules_create(array $user, array $in): array
     } elseif (!in_array($prefix, $myPrefixes, true)) {
         $prefix = $myPrefixes[0];
     }
+
+    // Domain: leer heißt Hauptdomain. Eine, die dem Konto nicht offensteht,
+    // wird nicht abgelehnt, sondern fällt auf die Hauptdomain zurück – sie ist
+    // eine Adresse, keine Berechtigung, und ein harter Fehler brächte hier
+    // niemandem etwas.
+    $domain = domain_clean((string)($in['domain'] ?? ''));
+    if ($domain === domain_main() || !domain_allowed($domain, $user['name'])) $domain = '';
 
     $assignable = link_rules_assignable($user);
     $codeQuota = (int)settings()['custom_code_quota'];
@@ -86,6 +94,7 @@ function link_rules_create(array $user, array $in): array
         'group' => $group,
         'title' => (string)($in['title'] ?? ''),
         'url' => $url,
+        'domain' => $domain,
     ];
     if (array_key_exists('tags', $in)) $opts['tags'] = $in['tags'];
     return [null, $full, $opts];
@@ -131,6 +140,18 @@ function link_rules_update(array $user, array $link, array $in): array
     $opts = ['expires' => $expires, 'group' => $group, 'url' => $url];
     if (array_key_exists('title', $in)) $opts['title'] = (string)$in['title'];
     if (array_key_exists('tags', $in)) $opts['tags'] = $in['tags'];
+    if (array_key_exists('domain', $in)) {
+        // Wie bei den Gruppen: Eine bereits gesetzte Domain darf bleiben, auch
+        // wenn das Konto sie heute nicht mehr wählen könnte. Sonst wäre ein
+        // Link nach einem Gruppenwechsel nicht mehr zu bearbeiten – und die
+        // Adresse steht womöglich längst gedruckt auf einem Aufkleber.
+        $d = domain_clean((string)$in['domain']);
+        if ($d === domain_main()) $d = '';
+        if ($d !== (string)($link['domain'] ?? '') && !domain_allowed($d, $user['name'])) {
+            return ['Diese Domain steht diesem Konto nicht zur Verfügung.', []];
+        }
+        $opts['domain'] = $d;
+    }
     return [null, $opts];
 }
 

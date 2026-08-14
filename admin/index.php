@@ -6,6 +6,7 @@ require_once __DIR__ . '/../inc/auth.php';
 require_once __DIR__ . '/../inc/safety.php';
 require_once __DIR__ . '/../inc/groups.php';
 require_once __DIR__ . '/../inc/linkrules.php';
+require_once __DIR__ . '/../inc/domains.php';
 
 $user = auth_require();
 $isAdmin = $user['role'] === 'admin';
@@ -35,6 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'expires' => (string)($_POST['expires'] ?? ''),
             'title' => (string)($_POST['title'] ?? ''),
             'tags' => (string)($_POST['tags'] ?? ''),
+            'domain' => (string)($_POST['domain'] ?? ''),
         ]);
         if ($err !== null) {
             flash($err, 'err');
@@ -47,7 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($linkpass !== '') {
                     link_set_password($result, password_hash($linkpass, PASSWORD_DEFAULT));
                 }
-                flash('Kurzlink ' . short_url($result) . ' angelegt'
+                flash('Kurzlink ' . short_url($result, (string)($opts['domain'] ?? '')) . ' angelegt'
                     . ($group !== null ? ' für Gruppe „' . group_label($group) . '“' : '')
                     . ($linkpass !== '' ? ' (passwortgeschützt)' : '') . '.');
                 redirect_to('index.php?hl=' . urlencode($result));
@@ -66,6 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'group' => (string)($_POST['group'] ?? ''),
                 'title' => (string)($_POST['title'] ?? ''),
                 'tags' => (string)($_POST['tags'] ?? ''),
+                'domain' => (string)($_POST['domain'] ?? ''),
             ]);
         }
         if ($err !== null) {
@@ -144,6 +147,16 @@ show_flash();
             <label for="c-tags">Schlagworte <span class="muted">(optional, mit Komma trennen – zum Filtern der Liste)</span></label>
             <input id="c-tags" type="text" name="tags" maxlength="220" placeholder="kampagne, sommer, plakat">
         </div>
+        <?php $meineDomains = domains_for($user['name']); if (count($meineDomains) > 1): ?>
+        <div>
+            <label for="c-domain">Domain <span class="muted">(unter welcher Adresse der Link steht)</span></label>
+            <select id="c-domain" name="domain">
+                <?php foreach ($meineDomains as $d): ?>
+                <option value="<?= e($d) ?>"><?= e($d) ?><?= $d === domain_main() ? ' (Standard)' : '' ?></option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+        <?php endif; ?>
         <?php if ($isAdmin): ?>
         <div>
             <label for="c-code">Wunsch-Name <span class="muted">(leer = zufällig, Admin: ohne Limits)</span></label>
@@ -226,6 +239,24 @@ show_flash();
             <input id="e-title" type="text" name="title" maxlength="120" value="<?= e((string)($editLink['title'] ?? '')) ?>">
             <label for="e-tags">Schlagworte <span class="muted">(mit Komma trennen)</span></label>
             <input id="e-tags" type="text" name="tags" maxlength="220" value="<?= e(tags_text($editLink)) ?>">
+            <?php
+            $meineDomains = domains_for($user['name']);
+            $istDomain = (string)($editLink['domain'] ?? '');
+            // Eine bereits gesetzte Domain gehört in die Liste, auch wenn das
+            // Konto sie heute nicht mehr wählen dürfte – sonst verschwände sie
+            // beim ersten Speichern, und der gedruckte Code zeigte ins Leere.
+            if ($istDomain !== '' && !in_array($istDomain, $meineDomains, true)) $meineDomains[] = $istDomain;
+            ?>
+            <?php if (count($meineDomains) > 1): ?>
+            <label for="e-domain">Domain</label>
+            <select id="e-domain" name="domain">
+                <?php foreach ($meineDomains as $d): ?>
+                <option value="<?= e($d) ?>"<?= $d === ($istDomain === '' ? domain_main() : $istDomain) ? ' selected' : '' ?>><?= e($d) ?><?= $d === domain_main() ? ' (Standard)' : '' ?></option>
+                <?php endforeach; ?>
+            </select>
+            <p class="muted small">Achtung: Ein bereits gedruckter QR-Code zeigt weiterhin auf die
+            alte Adresse. Ändere sie nur, solange der Link noch nicht im Umlauf ist.</p>
+            <?php endif; ?>
         </div>
         <div>
             <label for="e-expires">Ablaufdatum <span class="muted">(leer = kein Ablauf)</span></label>
@@ -306,7 +337,8 @@ show_flash();
         <tr><th>Link</th><th>Ziel</th><th>Klicks</th><th>Gruppe</th><?php if ($isAdmin): ?><th>Besitzer</th><?php endif; ?><th>Läuft ab</th><th>Erstellt</th><th></th></tr>
         <?php foreach ($links as $code => $link): $clicks = clicks_get((string)$code); ?>
         <tr<?= $code === $highlight ? ' class="row-hl"' : '' ?>>
-            <td><a href="<?= e(short_url((string)$code)) ?>" target="_blank" rel="noopener"><?= e((string)$code) ?></a><?=
+            <td><a href="<?= e(short_url((string)$code, (string)($link['domain'] ?? ''))) ?>" target="_blank" rel="noopener"><?= e((string)$code) ?></a><?=
+                ($link['domain'] ?? '') !== '' ? ' <span class="badge badge-quiet" title="' . e((string)$link['domain']) . '">' . e((string)$link['domain']) . '</span>' : '' ?><?=
                 !empty($link['pass']) ? ' <span class="badge badge-quiet" title="passwortgeschützt">PW</span>' : '' ?>
                 <?php if (($link['title'] ?? '') !== ''): ?><br><span class="link-title"><?= e((string)$link['title']) ?></span><?php endif; ?>
                 <?php if (($link['tags'] ?? []) !== []): ?>

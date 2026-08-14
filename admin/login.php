@@ -6,6 +6,8 @@ require_once __DIR__ . '/../inc/sso.php';
 require_once __DIR__ . '/../inc/totp.php';
 require_once __DIR__ . '/../inc/webauthn.php';
 
+require_once __DIR__ . '/../inc/domains.php';
+domain_force_main();
 auth_boot();
 if (auth_user() !== null) redirect_to('index.php');
 

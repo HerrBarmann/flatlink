@@ -340,6 +340,12 @@ function link_apply_meta(array $l, array $opts): array
         $tags = tags_normalize($opts['tags']);
         if ($tags === []) unset($l['tags']); else $l['tags'] = $tags;
     }
+    if (array_key_exists('domain', $opts)) {
+        // Die Hauptdomain wird nicht mitgeschrieben: Sie ergibt sich aus der
+        // Konfiguration und würde beim Umzug einer Instanz sonst falsch stehen.
+        $d = (string)($opts['domain'] ?? '');
+        if ($d === '') unset($l['domain']); else $l['domain'] = $d;
+    }
     return $l;
 }
 

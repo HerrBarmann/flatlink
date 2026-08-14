@@ -122,6 +122,15 @@ return [
     // Seite dafür hat, trägt sie hier ein.
     'api_doc_url' => 'API.md',
 
+    // Weitere Domains für Kurzlinks. Alle zeigen auf dieselbe Installation;
+    // die Verwaltung bleibt auf der Adresse aus 'base_url'. Ein Code gehört
+    // der Instanz, nicht der Domain – er löst unter jeder von ihnen auf.
+    // Je Eintrag entweder nur der Host oder zusätzlich eine Gruppe, der die
+    // Domain vorbehalten sein soll:
+    //   ['host' => 'kunde.link', 'group' => 'kunde'],
+    // Auch zur Laufzeit unter Einstellungen pflegbar.
+    'domains' => [],
+
     // Zwei-Faktor-Anmeldung verlangen: 'off' | 'admins' | 'all'.
     // Erfüllt wird die Auflage durch einen Passkey ODER ein Einmalkennwort aus
     // einer App. Auch zur Laufzeit unter Einstellungen änderbar.

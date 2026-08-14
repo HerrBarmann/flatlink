@@ -78,6 +78,7 @@ curl -H "Authorization: Bearer $KEY" https://example.org/api/me
   "groups": ["pro"],
   "permissions": ["logo_upload", "custom_code", "api_access"],
   "limits": { "links": "500", "links_used": 42, "stats_days": "365", "logos": "100" },
+  "domains": ["example.org", "kunde.link"],
   "assignable_groups": [],
   "rate_limit_per_hour": 300
 }
@@ -114,6 +115,7 @@ curl -X POST https://example.org/api/links \
 | `code` | nein | Wunsch-Name; braucht das Recht `custom_code` |
 | `title` | nein | Name für die eigene Übersicht |
 | `tags` | nein | Schlagworte zum Ordnen – Liste oder Zeichenkette mit Kommas; höchstens acht, je 24 Zeichen, werden kleingeschrieben |
+| `domain` | nein | Adresse, unter der der Link stehen soll; leer oder unbekannt = Hauptdomain |
 | `expires` | nein | `JJJJ-MM-TT`, frühestens heute |
 | `group` | nein | nur Arbeitsgruppen des Kontos |
 | `password` | nein | Zugriffsschutz vor der Weiterleitung |

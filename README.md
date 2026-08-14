@@ -571,6 +571,41 @@ zeigt der Code auf den Dienst von GS1 selbst. Die Logik steht in
 [`inc/gs1.php`](inc/gs1.php), eine Bedienoberfläche dafür bringt flatlink nicht
 mit – sie ist als eigene Seite schnell gebaut.
 
+## Mehrere Domains
+
+Kurzlinks lassen sich unter mehreren Adressen ausgeben – `kunde.link/shop`
+statt `deine-instanz.de/shop`. Alle Domains zeigen auf dieselbe Installation:
+im DNS auf denselben Server, im Zertifikat mit aufgeführt. Eingerichtet werden
+sie unter *Einstellungen* oder über `'domains'` in der Konfiguration; eine
+Domain lässt sich einer Gruppe vorbehalten, so wie ein Namensraum-Präfix.
+
+**Ein Code gehört der Instanz, nicht der Domain.** Es gibt `/shop` genau
+einmal, und er löst unter jeder eingerichteten Adresse auf. Das ist die
+tragende Entscheidung, deshalb beide Seiten:
+
+- *Dafür:* Ein gedruckter Code stirbt nicht, wenn eine Domain wegfällt. Zieht
+  ein Kunde um oder läuft eine Domain aus, funktionieren die Aufkleber weiter.
+  Für einen Dienst, dessen ganzer Zweck „gedruckt ist gedruckt" lautet, wiegt
+  das schwerer als Exklusivität.
+- *Dagegen:* Zwei Kunden können nicht beide `/shop` haben. Wer das braucht,
+  gibt ihnen [Namensraum-Präfixe](#zwei-arten-von-gruppen) – dafür sind sie da.
+
+Getrennte Namensräume je Domain wären eine andere Datenhaltung: Ein Link wäre
+nicht mehr durch seinen Code bestimmt, sondern durch Domain *und* Code. Das
+zöge sich durch Ablage, Schnittstelle, Import und jede Oberfläche.
+
+Die **Verwaltung bleibt auf der Hauptdomain** – der aus `base_url`. Eine
+Sitzung, ein Cookie, eine Adresse für Passkeys: Ein unter `kunde.link`
+eingerichteter Passkey ließe sich auf der Hauptdomain nicht mehr benutzen.
+Aufrufe von `/admin/` unter einer Nebendomain werden deshalb umgeleitet, bevor
+überhaupt eine Sitzung entsteht.
+
+Wählbar ist die Domain beim Anlegen, beim Ändern, im CSV-Import (für den
+ganzen Vorgang, nicht je Zeile) und über die [Schnittstelle](API.md)
+(Feld `domain`). Wird eine Domain wieder entfernt, bleiben die Links bestehen –
+sie zeigen dann auf eine Adresse, die nicht mehr eingerichtet ist, und müssen
+einzeln umgestellt werden. Der Löschen-Knopf sagt das.
+
 ## Schlagworte
 
 Ab ein paar hundert Links reicht die Suche nicht mehr. Jeder Link nimmt bis zu

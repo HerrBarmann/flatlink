@@ -216,7 +216,7 @@ if (function_exists('qr_type_nav')) echo qr_type_nav('link');
 <?php page_footer(); exit; endif; ?>
 
 <div class="card">
-    <h2>QR-Designer <span class="muted">für</span> <?= e(short_url($code)) ?></h2>
+    <h2>QR-Designer <span class="muted">für</span> <?= e(short_url($code, (string)($link['domain'] ?? ''))) ?></h2>
     <?php if ($links !== []): ?>
     <form method="get" action="" class="short-row">
         <select name="c" data-autosubmit>

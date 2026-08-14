@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../inc/store.php';
+require_once __DIR__ . '/../inc/domains.php';
 require_once __DIR__ . '/../inc/auth.php';
 require_once __DIR__ . '/../inc/safety.php';
 require_once __DIR__ . '/../inc/groups.php';
@@ -168,6 +169,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $group = trim((string)($_POST['group'] ?? ''));
     if ($group === '' || !in_array($group, $assignable, true)) $group = null;
 
+    // Die Domain gilt für den ganzen Import, nicht je Zeile: Wer eine Liste
+    // hochlädt, tut das für einen Kunden – nicht für fünf verschiedene.
+    $domain = domain_clean((string)($_POST['domain'] ?? ''));
+    if ($domain === domain_main() || !domain_allowed($domain, $user['name'])) $domain = '';
+
     $results = [];
     $created = 0;
     foreach ($rows as $r) {
@@ -196,11 +202,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($err === null) {
             [$ok, $result] = link_create($r['url'], $r['code'] === '' ? null : $r['code'], $user['name'],
                 $r['code'] === '' ? 'random' : 'custom',
-                ['expires' => $expires, 'group' => $group, 'title' => $r['title'], 'tags' => $r['tags']]);
+                ['expires' => $expires, 'group' => $group, 'title' => $r['title'],
+                 'tags' => $r['tags'], 'domain' => $domain]);
             if ($ok) {
                 $created++;
                 if ($r['code'] !== '') $usedCustom++;
-                $results[] = ['zeile' => $r['zeile'], 'ok' => true, 'text' => short_url($result), 'url' => $r['url']];
+                $results[] = ['zeile' => $r['zeile'], 'ok' => true, 'text' => short_url($result, $domain), 'url' => $r['url']];
                 continue;
             }
             $err = $result;
@@ -248,6 +255,16 @@ show_flash();
                 <option value="">– keine, nur für dich –</option>
                 <?php foreach ($assignable as $gid): ?>
                 <option value="<?= e($gid) ?>"><?= e(group_label($gid)) ?></option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+        <?php endif; ?>
+        <?php $meineDomains = domains_for($user['name']); if (count($meineDomains) > 1): ?>
+        <div>
+            <label for="i-domain">Domain für alle importierten Links</label>
+            <select id="i-domain" name="domain">
+                <?php foreach ($meineDomains as $d): ?>
+                <option value="<?= e($d) ?>"><?= e($d) ?><?= $d === domain_main() ? ' (Standard)' : '' ?></option>
                 <?php endforeach; ?>
             </select>
         </div>

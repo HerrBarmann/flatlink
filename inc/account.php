@@ -47,7 +47,7 @@ function account_export(string $username): array
         if (($l['owner'] ?? null) !== $username) continue;
         $c = clicks_get((string)$code);
         $links[] = [
-            'kurzlink' => base_url() . '/' . $code,
+            'kurzlink' => short_url((string)$code, (string)($l['domain'] ?? '')),
             'code' => (string)$code,
             'name' => $l['title'] ?? null,
             'schlagworte' => array_values((array)($l['tags'] ?? [])),
