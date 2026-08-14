@@ -426,3 +426,17 @@ details.utm {
 details.utm > summary { cursor: pointer; color: var(--muted); font-size: 0.92rem; }
 details.utm[open] > summary { margin-bottom: 0.4rem; color: var(--ink); }
 details.utm label { margin-top: 0.5rem; }
+
+/* Auswahlliste der QR-Serie: eine Zeile je Link, ruhig und scrollbar, damit
+   auch zweihundert Einträge die Seite nicht sprengen. */
+.check-list {
+    max-height: 26rem; overflow-y: auto; margin: 0.6rem 0 1rem;
+    border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper);
+}
+.check-list .check {
+    display: flex; gap: 0.6rem; align-items: flex-start;
+    padding: 0.45rem 0.7rem; border-bottom: 1px solid var(--line); margin: 0;
+}
+.check-list .check:last-child { border-bottom: 0; }
+.check-list .check:hover { background: var(--accent-tint); }
+.check-list .check > span { min-width: 0; }

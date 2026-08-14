@@ -342,6 +342,14 @@ show_flash();
     <?php if ($links === []): ?>
         <p class="muted">Noch keine Links<?= $q !== '' ? ' für diese Suche' : '' ?><?= $tagFilter !== '' ? ' mit diesem Schlagwort' : '' ?>.</p>
     <?php else: ?>
+    <?php
+    // Der Filter wird mitgenommen: Wer nach einem Schlagwort gefiltert hat und
+    // dann eine Serie zieht, meint genau diese Links.
+    $serieFilter = array_filter(['g' => $gFilter, 'tag' => $tagFilter, 'q' => $q], fn($v) => $v !== '');
+    ?>
+    <p class="muted small" style="margin:0 0 0.5rem">
+        <a class="btn btn-small" href="qrzip.php<?= $serieFilter !== [] ? '?' . e(http_build_query($serieFilter)) : '' ?>">QR-Codes dieser <?= count($links) ?> Links als ZIP</a>
+    </p>
     <div class="table-scroll"><table>
         <tr><th>Link</th><th>Ziel</th><th>Klicks</th><th>Gruppe</th><?php if ($isAdmin): ?><th>Besitzer</th><?php endif; ?><th>Läuft ab</th><th>Erstellt</th><th></th></tr>
         <?php foreach ($links as $code => $link): $clicks = clicks_get((string)$code); ?>

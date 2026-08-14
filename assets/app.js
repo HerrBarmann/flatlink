@@ -100,6 +100,19 @@
         }
     });
 
+    // <input type="checkbox" data-checkall="codes[]"> schaltet alle Kästchen
+    // dieses Namens im selben Formular um. Ohne diesen Helfer müsste man bei
+    // einer Serie jedes einzeln anklicken – und der Zweck der Serie ist ja,
+    // sich das zu sparen.
+    document.addEventListener('change', function (e) {
+        var alle = e.target.closest('[data-checkall]');
+        if (!alle || !alle.form) return;
+        var name = alle.getAttribute('data-checkall');
+        alle.form.querySelectorAll('input[type=checkbox][name="' + name + '"]').forEach(function (c) {
+            if (!c.disabled) c.checked = alle.checked;
+        });
+    });
+
     // Absicherung: Enter in einem Eingabefeld schickt das Formular ab, auch
     // wenn Autofill oder Erweiterungen die implizite Übermittlung schlucken.
     document.addEventListener('keydown', function (e) {

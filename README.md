@@ -92,6 +92,7 @@ in der Konfiguration schaltet sie ab.
   unabhängig vom Dienst funktionieren
 - **Konten** mit Selbstregistrierung per Double-Opt-In, Passwort-Reset und
   Rollen (Nutzer/Admin), inklusive Nutzungs-Limits pro Konto
+- **QR-Codes einzeln oder als Serie im ZIP**, mit Übersicht als CSV
 - **Zwei-Faktor-Anmeldung**: Passkeys (WebAuthn) oder Einmalkennwörter aus
   einer App, mit Wiederherstellungscodes, optional für
   die ganze Instanz erzwingbar
@@ -570,6 +571,30 @@ erscheint, entscheidet der Betreiber der eingetragenen Adresse; ohne Angabe
 zeigt der Code auf den Dienst von GS1 selbst. Die Logik steht in
 [`inc/gs1.php`](inc/gs1.php), eine Bedienoberfläche dafür bringt flatlink nicht
 mit – sie ist als eigene Seite schnell gebaut.
+
+## QR-Serien als ZIP
+
+Zwanzig Tischaufsteller, eine Ausstellung, eine Aufkleberserie: *QR-Serie* in
+der Kopfzeile packt die QR-Codes mehrerer Links in ein Archiv. Format (SVG oder
+PNG), Modul- und Eckenform, Farben und Größe gelten für die ganze Serie.
+
+Der Weg führt über die Liste: nach Schlagwort oder Gruppe filtern, dann den
+Knopf über der Tabelle – die Auswahl steht schon. Höchstens 200 Codes je
+Archiv.
+
+Im ZIP liegt **eine Übersicht als CSV**. Wer eine Serie an eine Druckerei gibt,
+braucht die Zuordnung von Datei zu Ziel, nicht nur die Bilder; und die
+Dateinamen tragen zusätzlich den Namen des Links, damit sie auf einem fremden
+Schreibtisch noch etwas bedeuten.
+
+Geschrieben wird das Archiv von [`inc/zip.php`](inc/zip.php) – **ohne die
+PHP-Erweiterung `zip`**. Sie ist nicht überall eingeschaltet und will eine
+echte Datei auf der Platte: erst schreiben, dann ausliefern, dann aufräumen.
+Genau der Fall, der auf günstigem Hosting scheitert und beim Entwickler nie.
+Das Format selbst ist überschaubar, wenn man weglässt, was hier ohnehin
+niemand braucht: keine Verschlüsselung, keine geteilten Archive, kein ZIP64.
+Verdichtet wird mit `gzdeflate()`, wo es etwas bringt – sonst wird gespeichert;
+beides ist im Format vorgesehen.
 
 ## Kampagnen-Parameter (UTM)
 
