@@ -26,6 +26,7 @@ function perms_all(): array
         'csv_import'  => 'Links per CSV importieren',
         'logo_upload' => 'Eigene Logos hochladen',
         'qr_unbranded' => 'QR-Codes ohne Absenderzeile',
+        'api_access' => 'Zugriff über die Programmierschnittstelle (API)',
     ];
 }
 

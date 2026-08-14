@@ -16,6 +16,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/store.php';
 require_once __DIR__ . '/groups.php';
+require_once __DIR__ . '/token.php';
 
 /**
  * Alles, was zu einem Konto gespeichert ist, als verschachteltes Array.
@@ -163,6 +164,9 @@ function account_delete(string $username): ?string
         $d = json_read($f);
         if (($d['user'] ?? null) === $username) @unlink($f);
     }
+
+    // Zugangsschlüssel gehören zum Konto und dürfen es nicht überleben
+    tokens_drop_user($username);
 
     return user_delete($username);
 }

@@ -356,11 +356,18 @@ function rate_limit_gc(): void
     }
 }
 
-/** Generisches Stunden-Rate-Limit pro IP für beliebige Aktionen (Registrierung, Reset, Meldung) */
-function bucket_rate_ok(string $bucket, int $limit): bool
+/**
+ * Generisches Stunden-Rate-Limit für beliebige Aktionen.
+ *
+ * Gezählt wird je IP-Hash – oder je übergebener Kennung, wenn die IP nicht der
+ * richtige Maßstab ist: Ein Server, der die API bedient, kommt immer von
+ * derselben Adresse; dort ist der Zugangsschlüssel die sinnvolle Einheit.
+ */
+function bucket_rate_ok(string $bucket, int $limit, ?string $identity = null): bool
 {
     rate_limit_gc();
-    $file = data_path('ratelimit') . '/' . $bucket . '-' . ip_hash() . '.json';
+    $wer = $identity !== null ? substr(hash('sha256', $identity), 0, 32) : ip_hash();
+    $file = data_path('ratelimit') . '/' . $bucket . '-' . $wer . '.json';
     $hour = date('YmdH');
     $ok = true;
     json_update($file, function (array $d) use ($hour, $limit, &$ok) {

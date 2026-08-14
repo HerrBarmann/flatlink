@@ -117,6 +117,11 @@ return [
     // überschreibt es damit und ist vom Update ausgenommen. Vorlage zum
     // Kopieren: assets/custom.example.css
 
+    // Anfragen je Stunde und Zugangsschlüssel für die Programmierschnittstelle.
+    // Gezählt wird nach Schlüssel, nicht nach IP – ein Server, der die
+    // Schnittstelle bedient, kommt immer von derselben Adresse.
+    'api_rate_limit' => 300,
+
     // Wie viele Zeilen der CSV-Import auf einmal annimmt. Die Grenze schützt vor
     // sehr langen Laufzeiten auf schwachen Servern; wer aus Bitly oder YOURLS
     // umzieht, darf sie beherzt erhöhen und den Import in Ruhe laufen lassen.

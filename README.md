@@ -97,6 +97,8 @@ in der Konfiguration schaltet sie ab.
   Team gemeinsam verwaltet
 - **CSV-Import** für viele Links auf einmal – die Ausfuhren von Bitly und
   YOURLS lassen sich unverändert einlesen
+- **Programmierschnittstelle** mit Zugangsschlüsseln je Konto, siehe
+  [API.md](API.md)
 - **Missbrauchsschutz**: Rate-Limits pro IP (gespeichert wird nur ein
   Schlüssel-Hash, kein Klartext), Meldeformular, Sperrfunktion, optional
   Google Safe Browsing
@@ -443,7 +445,7 @@ Wahl – dafür braucht flatlink weder Einrichtung noch Wartung noch Migration.
 
 ## Was nicht drin ist
 
-Damit niemand danach sucht: keine API mit Token-Authentifizierung, keine
+Damit niemand danach sucht: keine
 mehrsprachige Oberfläche (die Texte sind deutsch), keine Statistik nach Ländern
 oder Geräten – Letzteres liegt in der Natur der Sache. Gruppen teilen Links und
 Rechte, trennen aber keine Mandanten voneinander: Administratoren sehen immer

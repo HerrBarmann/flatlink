@@ -13,6 +13,16 @@ RewriteBase /
 # Interne Verzeichnisse sperren
 RewriteRule ^(inc|data)(/|$) - [F,L]
 
+# Programmierschnittstelle unter /api/… erreichbar machen. Muss vor der
+# Kurzcode-Regel stehen, sonst hielte diese „api" für einen Kurzcode.
+RewriteRule ^api(/.*)?$ api.php [L,QSA,E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+# Der Kopf Authorization wird von manchen Servern nicht an PHP durchgereicht.
+# Diese Zeile legt ihn zusätzlich als Umgebungsvariable ab; api.php sucht dort.
+<IfModule mod_setenvif.c>
+SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1
+</IfModule>
+
 # Kurzcodes an den Redirect-Handler geben (nur wenn keine echte Datei/kein Verzeichnis)
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d

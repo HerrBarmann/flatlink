@@ -5,6 +5,7 @@ require_once __DIR__ . '/../inc/auth.php';
 require_once __DIR__ . '/../inc/groups.php';
 require_once __DIR__ . '/../inc/store.php';
 require_once __DIR__ . '/../inc/account.php';
+require_once __DIR__ . '/../inc/token.php';
 require_once __DIR__ . '/../inc/mail.php';
 
 $user = auth_require();
@@ -13,6 +14,28 @@ $extern = ($user['auth'] ?? 'local') !== 'local';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_check();
     $action = (string)($_POST['action'] ?? 'password');
+
+    if ($action === 'token_new') {
+        if (!user_can($user['name'], 'api_access')) {
+            flash('Für die Schnittstelle fehlt deinem Konto die Berechtigung.', 'err');
+        } elseif (count(tokens_of($user['name'])) >= 10) {
+            flash('Höchstens zehn Zugangsschlüssel pro Konto – zieh zuerst einen zurück.', 'err');
+        } else {
+            $neu = token_create($user['name'], (string)($_POST['label'] ?? ''));
+            // Der Klartext wird nirgends gespeichert; er muss also jetzt gezeigt
+            // werden oder gar nicht. Über die Sitzung, damit die Umleitung
+            // hinter dem Formular erhalten bleibt.
+            $_SESSION['fresh_token'] = $neu['token'];
+            flash('Zugangsschlüssel angelegt.');
+        }
+        redirect_to('profile.php');
+    }
+
+    if ($action === 'token_revoke') {
+        $ok = token_revoke($user['name'], (string)($_POST['id'] ?? ''));
+        flash($ok ? 'Zugangsschlüssel zurückgezogen.' : 'Diesen Schlüssel gibt es nicht.', $ok ? 'ok' : 'err');
+        redirect_to('profile.php');
+    }
 
     if ($action === 'export') {
         // Bewusst POST: Ein GET-Download ließe sich über ein eingebettetes Bild
@@ -219,6 +242,56 @@ show_flash();
         <input id="p-repeat" type="password" name="repeat" required minlength="8" autocomplete="new-password">
         <p><button class="btn btn-primary" type="submit">Passwort ändern</button></p>
     </form>
+    <?php endif; ?>
+
+    <h2>Programmierschnittstelle</h2>
+    <?php if (!user_can($user['name'], 'api_access')): ?>
+        <p class="muted small">Für den Zugriff über die Schnittstelle fehlt deinem Konto die
+        Berechtigung. Sie hängt an einer Gruppe – ein Administrator kann sie freischalten.</p>
+    <?php else: ?>
+        <?php $frisch = $_SESSION['fresh_token'] ?? null; unset($_SESSION['fresh_token']); ?>
+        <?php if ($frisch !== null): ?>
+        <div class="flash flash-ok" style="word-break:break-all">
+            <strong>Dein neuer Schlüssel:</strong><br>
+            <code><?= e($frisch) ?></code><br>
+            <span class="small">Notier ihn jetzt – er wird nicht gespeichert und lässt sich
+            später nicht noch einmal anzeigen.</span>
+        </div>
+        <?php endif; ?>
+        <p class="muted small">Ein Schlüssel meldet ein Programm unter deinem Konto an. Er kann
+        nie mehr, als du selbst darfst. Anleitung: <a href="<?= e(base_url()) ?>/api.php/me">API-Wurzel</a>
+        und der Abschnitt in der Dokumentation.</p>
+        <?php $meine = tokens_of($user['name']); ?>
+        <?php if ($meine !== []): ?>
+        <div class="table-scroll"><table>
+            <tr><th>Bezeichnung</th><th>Anfang</th><th>Angelegt</th><th>Zuletzt benutzt</th><th></th></tr>
+            <?php foreach ($meine as $t): ?>
+            <tr>
+                <td><?= e((string)($t['label'] ?? '')) ?: '<span class="muted">ohne</span>' ?></td>
+                <td><code><?= e((string)($t['hint'] ?? '')) ?>…</code></td>
+                <td class="small"><?= e(date('d.m.Y', strtotime((string)$t['created']))) ?></td>
+                <td class="small"><?= ($t['last_used'] ?? null) !== null
+                    ? e(date('d.m.Y', strtotime((string)$t['last_used'])))
+                    : '<span class="muted">nie</span>' ?></td>
+                <td><form method="post" action="" class="inline" data-confirm="Schlüssel zurückziehen? Programme, die ihn nutzen, verlieren sofort den Zugriff.">
+                    <?= csrf_field() ?>
+                    <input type="hidden" name="action" value="token_revoke">
+                    <input type="hidden" name="id" value="<?= e((string)$t['id']) ?>">
+                    <button class="btn btn-small btn-danger" type="submit">Zurückziehen</button>
+                </form></td>
+            </tr>
+            <?php endforeach; ?>
+        </table></div>
+        <?php endif; ?>
+        <form method="post" action="">
+            <?= csrf_field() ?>
+            <input type="hidden" name="action" value="token_new">
+            <label for="p-label">Neuer Schlüssel <span class="muted">(Bezeichnung, damit du ihn später zuordnen kannst)</span></label>
+            <div class="short-row">
+                <input id="p-label" type="text" name="label" maxlength="60" placeholder="z. B. Kassensystem">
+                <button class="btn" type="submit">Anlegen</button>
+            </div>
+        </form>
     <?php endif; ?>
 
     <h2>Deine Daten</h2>
