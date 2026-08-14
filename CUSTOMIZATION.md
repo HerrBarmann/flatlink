@@ -241,6 +241,7 @@ eingreifen lässt:
 | `.short-row` / `.grid-form` / `.check` | Formular-Layouts |
 | `.designer` | zweispaltiges Layout des QR-Designers |
 | `.origin` | Herkunftszeile im Fuß |
+| `main` | Inhaltsbereich; wächst, damit der Fuß unten bleibt |
 | `body.<name>` | ganze Gestaltungsvariante, siehe unten (`body_class`) |
 
 Ein paar erprobte Eingriffe:

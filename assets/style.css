@@ -41,7 +41,21 @@ body {
     line-height: 1.6;
 }
 
-.wrap { max-width: 960px; margin: 0 auto; padding: 0 1rem 3rem; }
+/* Die Hülle ist mindestens bildschirmhoch und verteilt in der Senkrechten:
+   <main> nimmt den Rest, dadurch sitzt die Fußzeile auf kurzen Seiten unten am
+   Bildschirmrand statt frei in der Mitte zu schweben. 'dvh' berücksichtigt die
+   ein- und ausfahrenden Leisten mobiler Browser; 'vh' bleibt als Rückfall für
+   ältere Browser darüber stehen. */
+.wrap {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 0 1rem 3rem;
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+}
+main { flex: 1 0 auto; }
 
 a { color: var(--accent-deep); text-decoration: none; }
 a:hover { text-decoration: underline; }
