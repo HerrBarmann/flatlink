@@ -292,6 +292,24 @@ function user_limit(string $username, string $key): int
     return $best;
 }
 
+/**
+ * Sprechende Namen der Limit-Schlüssel.
+ *
+ * In der Oberfläche standen bisher die internen Schlüssel – „stats_days 365"
+ * liest niemand gern, der nicht den Quelltext kennt.
+ *
+ * @return array<string,string>
+ */
+function limit_names(): array
+{
+    return [
+        'links' => 'Links',
+        'stats_days' => 'Tage Statistik',
+        'logos' => 'Logos',
+        'bio' => 'Link-in-Bio-Seiten',
+    ];
+}
+
 /** Limit für die Anzeige aufbereiten: unbegrenzte Werte als "∞" */
 function limit_label(int $limit): string
 {

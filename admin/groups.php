@@ -116,7 +116,7 @@ show_flash();
         <div>
             <label>Eigene Limits <span class="muted">(leer oder 0 = es gilt der Wert aus <code>config.php</code>)</span></label>
             <div class="check-row">
-                <?php foreach (['links' => 'Links', 'stats_days' => 'Statistik (Tage)', 'logos' => 'Logos', 'bio' => 'Link-in-Bio-Seiten'] as $k => $lbl): ?>
+                <?php foreach (limit_names() as $k => $lbl): ?>
                 <span style="display:inline-flex;align-items:center;gap:0.4rem">
                     <span class="muted small"><?= e($lbl) ?></span>
                     <input type="number" name="limits[<?= e($k) ?>]" min="0" step="1" style="width:6.5rem"
@@ -138,57 +138,82 @@ show_flash();
     <?php if ($groups === []): ?>
         <p class="muted">Noch keine Gruppen. Ohne Gruppen sieht jedes Konto nur seine eigenen Links.</p>
     <?php else: ?>
-    <div class="table-scroll"><table>
-        <tr><th>Kennung</th><th>Name</th><th>Art</th><th>Namensraum</th><th>Rechte</th><th>Limits</th><th>Mitglieder</th><th>Links</th><th></th></tr>
-        <?php foreach ($groups as $id => $g): $members = group_members((string)$id); ?>
-        <tr>
-            <td><code><?= e((string)$id) ?></code></td>
-            <td><?= e($g['name']) ?></td>
-            <td class="small"><?php
-                echo group_shared((string)$id)
-                    ? '<span class="tag tag-on" title="Mitglieder verwalten die Links dieser Gruppe gemeinsam">geteilt</span>'
-                    : '<span class="tag" title="Vergibt nur Rechte und Limits – Links bleiben privat">nur Rechte</span>';
-            ?></td>
-            <td class="small"><?php
-                $pfx = (string)($g['prefix'] ?? '');
-                echo $pfx === '' ? '<span class="muted">frei</span>'
-                    : '<code>' . e($pfx) . '/</code>';
-            ?></td>
-            <td class="small">
-                <?php if (($g['perms'] ?? []) === []): ?>
-                    <span class="muted">keine besonderen</span>
-                <?php else: ?>
-                    <?= e(implode(' · ', array_map(fn($p) => $perms[$p] ?? $p, $g['perms']))) ?>
-                <?php endif; ?>
-            </td>
-            <td>
-                <?= count($members) ?>
-                <?php if ($members !== []): ?>
-                <?php $namen = array_map('user_display', $members); ?>
-                <span class="muted small" title="<?= e(implode(', ', $namen)) ?>">
-                    (<?= e(mb_strimwidth(implode(', ', $namen), 0, 34, '…')) ?>)</span>
-                <?php endif; ?>
-            </td>
-            <td class="small"><?php
-                $lim = array_filter($g['limits'] ?? []);
-                echo $lim === []
-                    ? '<span class="muted">Standard</span>'
-                    : e(implode(' · ', array_map(fn($k, $v) => $k . ' ' . $v, array_keys($lim), $lim)));
-            ?></td>
-            <td><?= (int)($linkCount[(string)$id] ?? 0) ?></td>
-            <td class="actions">
-                <a class="btn btn-small" href="groups.php?edit=<?= e(rawurlencode((string)$id)) ?>">Bearbeiten</a>
-                <form method="post" action="" class="inline"
-                      data-confirm="Gruppe „<?= e((string)$id) ?>“ wirklich löschen? Mitgliedschaften und Link-Zuordnungen werden aufgehoben, die Links selbst bleiben.">
-                    <?= csrf_field() ?>
-                    <input type="hidden" name="action" value="delete">
-                    <input type="hidden" name="id" value="<?= e((string)$id) ?>">
-                    <button class="btn btn-small btn-danger" type="submit">Löschen</button>
-                </form>
-            </td>
-        </tr>
+    <div class="user-list">
+        <?php foreach ($groups as $id => $g):
+            $members = group_members((string)$id);
+            $geteilt = group_shared((string)$id);
+            $pfx = (string)($g['prefix'] ?? '');
+            $lim = array_filter($g['limits'] ?? []);
+        ?>
+        <details class="user">
+            <summary>
+                <span class="user-name">
+                    <strong><?= e($g['name']) ?></strong>
+                    <br><span class="muted small" style="font-family:var(--mono)"><?= e((string)$id) ?></span>
+                </span>
+                <span class="user-meta">
+                    <?= $geteilt
+                        ? '<span class="tag tag-on" title="Mitglieder verwalten die Links dieser Gruppe gemeinsam">geteilt</span>'
+                        : '<span class="tag" title="Vergibt nur Rechte und Limits – Links bleiben privat">nur Rechte</span>' ?>
+                    <?php if ($pfx !== ''): ?><span class="tag">Namensraum <code><?= e($pfx) ?>/</code></span><?php endif; ?>
+                    <span class="small"><?= count($members) ?> <span class="muted"><?= count($members) === 1 ? 'Mitglied' : 'Mitglieder' ?></span></span>
+                    <span class="small"><?= (int)($linkCount[(string)$id] ?? 0) ?> <span class="muted">Links</span></span>
+                </span>
+            </summary>
+
+            <div class="user-forms">
+                <div>
+                    <label>Rechte der Mitglieder</label>
+                    <?php if (($g['perms'] ?? []) === []): ?>
+                        <p class="muted small">Keine besonderen – es gelten die Grundrechte aus den
+                        <a href="settings.php">Einstellungen</a>.</p>
+                    <?php else: ?>
+                        <div class="check-row">
+                            <?php foreach ($g['perms'] as $perm): ?>
+                            <span class="tag tag-on"><?= e($perms[$perm] ?? $perm) ?></span>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
+                </div>
+
+                <div>
+                    <label>Eigene Limits</label>
+                    <?php if ($lim === []): ?>
+                        <p class="muted small">Keine – es gelten die Werte aus den
+                        <a href="settings.php">Grundregeln</a>.</p>
+                    <?php else: ?>
+                        <p class="small"><?= e(implode(' · ', array_map(
+                            fn($k, $v) => $v . ' ' . (limit_names()[$k] ?? $k),
+                            array_keys($lim), $lim))) ?></p>
+                        <p class="muted small">Gilt statt der Grundregel. Wer in mehreren Gruppen
+                        ist, bekommt jeweils den höchsten Wert.</p>
+                    <?php endif; ?>
+                </div>
+
+                <div>
+                    <label>Mitglieder</label>
+                    <?php if ($members === []): ?>
+                        <p class="muted small">Niemand – zuzuordnen in der
+                        <a href="users.php">Nutzerverwaltung</a>.</p>
+                    <?php else: ?>
+                        <p class="small"><?= e(implode(', ', array_map('user_display', $members))) ?></p>
+                    <?php endif; ?>
+                </div>
+
+                <div class="user-danger">
+                    <a class="btn btn-small" href="groups.php?edit=<?= e(rawurlencode((string)$id)) ?>">Bearbeiten</a>
+                    <form method="post" action="" class="inline"
+                          data-confirm="Gruppe „<?= e((string)$id) ?>“ wirklich löschen? Mitgliedschaften und Link-Zuordnungen werden aufgehoben, die Links selbst bleiben.">
+                        <?= csrf_field() ?>
+                        <input type="hidden" name="action" value="delete">
+                        <input type="hidden" name="id" value="<?= e((string)$id) ?>">
+                        <button class="btn btn-small btn-danger" type="submit">Gruppe löschen</button>
+                    </form>
+                </div>
+            </div>
+        </details>
         <?php endforeach; ?>
-    </table></div>
+    </div>
     <p class="muted small">Wer in welcher Gruppe ist, wird in der
     <a href="users.php">Nutzerverwaltung</a> gesetzt. Bei zentraler Anmeldung
     kann die Zuordnung auch aus dem Verzeichnis kommen – siehe
