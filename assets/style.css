@@ -235,6 +235,46 @@ td a { font-family: var(--mono); }
 .list-head { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; }
 .list-head form { margin: 0; }
 
+/* Nutzerliste: eine Zeile je Konto zum Überfliegen, die Formulare erst beim
+   Aufklappen. In einer Tabellenzelle standen sie zuvor nebeneinander und
+   sprengten die Breite – vier Formulare passen dort schlicht nicht hinein. */
+.user-list { display: grid; }
+.user { border-bottom: 1px solid var(--line); }
+.user:last-child { border-bottom: 0; }
+.user > summary {
+    display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.5rem 1rem;
+    padding: 0.7rem 0.2rem; cursor: pointer; list-style: none;
+}
+.user > summary::-webkit-details-marker { display: none; }
+/* Eigener Pfeil, damit er links steht und sich mitdreht */
+.user > summary::before {
+    content: "▸"; color: var(--muted); flex: none;
+    transition: transform 0.12s ease; display: inline-block;
+}
+.user[open] > summary::before { transform: rotate(90deg); }
+.user > summary:hover { background: var(--accent-tint); }
+.user-name { flex: 1 1 14rem; min-width: 0; }
+.user-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem 0.7rem; }
+
+.user-forms {
+    display: grid; gap: 1.1rem;
+    padding: 0.4rem 0 1.2rem 1.3rem;
+    border-left: 2px solid var(--line);
+    margin-left: 0.35rem;
+}
+.user-forms form { margin: 0; }
+.user-forms label { margin-top: 0; }
+.user-danger { display: flex; flex-wrap: wrap; gap: 0.5rem; padding-top: 0.4rem; border-top: 1px dashed var(--line); }
+/* Auf schmalen Schirmen rutscht der Knopf unter das Feld, statt rechts aus dem
+   Bild zu laufen – Datumsfelder bringen eine feste Mindestbreite mit, gegen die
+   ein einzeiliges Layout nicht ankommt. */
+.user-forms .short-row { flex-wrap: wrap; }
+.user-forms .short-row > input { flex: 1 1 12rem; }
+
+@media (prefers-reduced-motion: reduce) {
+    .user > summary::before { transition: none; }
+}
+
 /* Badges */
 .badge {
     display: inline-block; padding: 0.1rem 0.5rem; border-radius: 4px;

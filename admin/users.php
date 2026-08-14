@@ -188,88 +188,105 @@ show_flash();
             <?php if ($q !== ''): ?><a class="btn btn-small" href="users.php">Alle</a><?php endif; ?>
         </form>
     </div>
-    <div class="table-scroll"><table>
-        <tr><th>Konto</th><th>Rolle</th><th>Anmeldung</th><th>Gruppen</th><th>Links</th><th>Seit</th><th></th></tr>
+    <div class="user-list">
         <?php foreach ($users as $name => $u):
             $src = $u['auth'] ?? 'local';
             $mine = user_groups((string)$name);
+            $selbst = $name === $user['name'];
         ?>
-        <tr>
-            <td>
-                <strong><?= e(user_display((string)$name)) ?></strong><?= $name === $user['name'] ? ' <span class="muted">(du)</span>' : '' ?>
-                <?php if (user_has_display((string)$name)): ?>
-                <br><span class="muted small" style="font-family:var(--mono)" title="<?= e((string)$name) ?>"><?= e(mb_strimwidth((string)$name, 0, 38, '…')) ?></span>
-                <?php endif; ?>
-            </td>
-            <td><?= e($u['role']) ?></td>
-            <td><span class="tag"><?= e(match ($src) {
-                'ldap' => 'LDAP', 'sso' => 'SSO', default => 'lokal',
-            }) ?></span></td>
-            <td class="small">
-                <?php if ($mine === []): ?><span class="muted">–</span>
-                <?php else: foreach ($mine as $g): $bis = user_group_until((string)$name, $g); ?>
-                    <span class="tag tag-on" <?= $bis !== null ? 'title="befristet bis ' . e(date('d.m.Y', strtotime($bis))) . '"' : '' ?>>
-                        <?= e(group_label($g)) ?><?= $bis !== null ? ' ⏱' : '' ?></span>
-                <?php endforeach; endif; ?>
-            </td>
-            <td><?= link_count((string)$name) ?><span class="muted">/<?= e(limit_label(user_limit((string)$name, 'links'))) ?></span></td>
-            <td><?= e(date('d.m.Y', strtotime($u['created']))) ?></td>
-            <td class="actions">
+        <details class="user">
+            <summary>
+                <span class="user-name">
+                    <strong><?= e(user_display((string)$name)) ?></strong><?= $selbst ? ' <span class="muted">(du)</span>' : '' ?>
+                    <?php if (user_has_display((string)$name)): ?>
+                    <br><span class="muted small" style="font-family:var(--mono)" title="<?= e((string)$name) ?>"><?= e(mb_strimwidth((string)$name, 0, 44, '…')) ?></span>
+                    <?php endif; ?>
+                </span>
+                <span class="user-meta">
+                    <span class="tag"><?= e(match ($src) { 'ldap' => 'LDAP', 'sso' => 'SSO', default => 'lokal' }) ?></span>
+                    <?php if ($u['role'] === 'admin'): ?><span class="tag tag-on">Admin</span><?php endif; ?>
+                    <?php foreach ($mine as $g): $bis = user_group_until((string)$name, $g); ?>
+                        <span class="tag tag-on" <?= $bis !== null ? 'title="befristet bis ' . e(date('d.m.Y', strtotime($bis))) . '"' : '' ?>>
+                            <?= e(group_label($g)) ?><?= $bis !== null ? ' ⏱' : '' ?></span>
+                    <?php endforeach; ?>
+                    <span class="small"><?= link_count((string)$name) ?><span class="muted">/<?= e(limit_label(user_limit((string)$name, 'links'))) ?> Links</span></span>
+                    <span class="small muted">seit <?= e(date('d.m.Y', strtotime($u['created']))) ?></span>
+                </span>
+            </summary>
+
+            <div class="user-forms">
                 <?php if ($groups !== []): ?>
-                <form method="post" action="" class="inline">
+                <form method="post" action="">
                     <?= csrf_field() ?>
                     <input type="hidden" name="action" value="groups">
                     <input type="hidden" name="username" value="<?= e((string)$name) ?>">
-                    <?php foreach ($groups as $gid => $g): ?>
-                    <label class="check" title="<?= e($g['name']) ?>">
-                        <input type="checkbox" name="groups[]" value="<?= e((string)$gid) ?>"
-                            <?= in_array((string)$gid, $mine, true) ? ' checked' : '' ?>>
-                        <?= e(mb_strimwidth($g['name'], 0, 14, '…')) ?>
-                    </label>
-                    <?php endforeach; ?>
-                    <input type="date" name="until" min="<?= e(date('Y-m-d')) ?>"
-                           title="Mitgliedschaft befristen (leer = unbefristet)">
-                    <button class="btn btn-small" type="submit">Gruppen setzen</button>
+                    <label>Gruppen</label>
+                    <div class="check-row">
+                        <?php foreach ($groups as $gid => $g): ?>
+                        <label class="check" title="<?= e($g['name']) ?>">
+                            <input type="checkbox" name="groups[]" value="<?= e((string)$gid) ?>"
+                                <?= in_array((string)$gid, $mine, true) ? ' checked' : '' ?>>
+                            <?= e($g['name']) ?>
+                        </label>
+                        <?php endforeach; ?>
+                    </div>
+                    <div class="short-row">
+                        <input type="date" name="until" min="<?= e(date('Y-m-d')) ?>"
+                               title="Mitgliedschaft befristen (leer = unbefristet)">
+                        <button class="btn btn-small" type="submit">Gruppen setzen</button>
+                    </div>
+                    <p class="muted small">Datum leer lassen = unbefristet.</p>
                 </form>
                 <?php endif; ?>
-                <?php if ($name !== $user['name']): ?>
-                <form method="post" action="" class="inline">
-                    <?= csrf_field() ?>
-                    <input type="hidden" name="action" value="role">
-                    <input type="hidden" name="username" value="<?= e((string)$name) ?>">
-                    <input type="hidden" name="role" value="<?= $u['role'] === 'admin' ? 'user' : 'admin' ?>">
-                    <button class="btn btn-small" type="submit">→ <?= $u['role'] === 'admin' ? 'user' : 'admin' ?></button>
-                </form>
-                <?php endif; ?>
-                <form method="post" action="" class="inline">
+
+                <form method="post" action="">
                     <?= csrf_field() ?>
                     <input type="hidden" name="action" value="display">
                     <input type="hidden" name="username" value="<?= e((string)$name) ?>">
-                    <input type="text" name="display_name" maxlength="80" placeholder="Anzeigename"
-                           value="<?= e(user_has_display((string)$name) ? user_display((string)$name) : '') ?>">
-                    <button class="btn btn-small" type="submit">Setzen</button>
+                    <label for="dn-<?= e((string)$name) ?>">Anzeigename</label>
+                    <div class="short-row">
+                        <input id="dn-<?= e((string)$name) ?>" type="text" name="display_name" maxlength="80"
+                               placeholder="leer = Kennung"
+                               value="<?= e(user_has_display((string)$name) ? user_display((string)$name) : '') ?>">
+                        <button class="btn btn-small" type="submit">Setzen</button>
+                    </div>
                 </form>
+
                 <?php if ($src === 'local'): ?>
-                <form method="post" action="" class="inline">
+                <form method="post" action="">
                     <?= csrf_field() ?>
                     <input type="hidden" name="action" value="password">
                     <input type="hidden" name="username" value="<?= e((string)$name) ?>">
-                    <input type="password" name="password" placeholder="Neues Passwort" minlength="8" required autocomplete="new-password">
-                    <button class="btn btn-small" type="submit">Setzen</button>
+                    <label for="pw-<?= e((string)$name) ?>">Neues Passwort setzen</label>
+                    <div class="short-row">
+                        <input id="pw-<?= e((string)$name) ?>" type="password" name="password"
+                               placeholder="mind. 8 Zeichen" minlength="8" required autocomplete="new-password">
+                        <button class="btn btn-small" type="submit">Setzen</button>
+                    </div>
                 </form>
                 <?php endif; ?>
-                <?php if ($name !== $user['name']): ?>
-                <form method="post" action="" class="inline" data-confirm="Nutzer „<?= e((string)$name) ?>“ wirklich löschen?">
-                    <?= csrf_field() ?>
-                    <input type="hidden" name="action" value="delete">
-                    <input type="hidden" name="username" value="<?= e((string)$name) ?>">
-                    <button class="btn btn-small btn-danger" type="submit">Löschen</button>
-                </form>
+
+                <?php if (!$selbst): ?>
+                <div class="user-danger">
+                    <form method="post" action="" class="inline">
+                        <?= csrf_field() ?>
+                        <input type="hidden" name="action" value="role">
+                        <input type="hidden" name="username" value="<?= e((string)$name) ?>">
+                        <input type="hidden" name="role" value="<?= $u['role'] === 'admin' ? 'user' : 'admin' ?>">
+                        <button class="btn btn-small" type="submit">Rolle → <?= $u['role'] === 'admin' ? 'user' : 'admin' ?></button>
+                    </form>
+                    <form method="post" action="" class="inline" data-confirm="Nutzer „<?= e((string)$name) ?>“ wirklich löschen?">
+                        <?= csrf_field() ?>
+                        <input type="hidden" name="action" value="delete">
+                        <input type="hidden" name="username" value="<?= e((string)$name) ?>">
+                        <button class="btn btn-small btn-danger" type="submit">Konto löschen</button>
+                    </form>
+                </div>
                 <?php endif; ?>
-            </td>
-        </tr>
+            </div>
+        </details>
         <?php endforeach; ?>
-    </table></div>
+    </div>
     <?php if ($groups === []): ?>
     <p class="muted small">Es gibt noch keine Gruppen – <a href="groups.php">hier anlegen</a>.
     Ohne Gruppen sieht jedes Konto nur seine eigenen Links.</p>
