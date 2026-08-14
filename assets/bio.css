@@ -1,0 +1,77 @@
+/* Link-in-Bio-Seiten.
+ *
+ * Eigenes, kleines Stylesheet statt des Haupt-Themes: Die Seite gehört dem,
+ * der sie angelegt hat, und soll nicht nach Kurzlink-Dienst aussehen. Die vier
+ * Farben kommen als Variablen aus dem Dokument; hier stehen nur Maße.
+ */
+* { box-sizing: border-box; }
+
+body.bio-page {
+    margin: 0;
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    background: var(--bio-bg, #0f1216);
+    color: var(--bio-ink, #f2f4f7);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.6;
+    -webkit-text-size-adjust: 100%;
+}
+
+.bio-wrap {
+    flex: 1 0 auto;
+    width: 100%;
+    max-width: 30rem;
+    margin: 0 auto;
+    padding: 3rem 1.2rem 2rem;
+    text-align: center;
+}
+
+.bio-logo {
+    width: 96px; height: 96px;
+    object-fit: contain;
+    border-radius: 50%;
+    background: rgb(255 255 255 / 0.08);
+    padding: 0.4rem;
+    margin: 0 auto 1rem;
+    display: block;
+}
+
+.bio-title { margin: 0 0 0.5rem; font-size: 1.6rem; line-height: 1.25; text-wrap: balance; }
+.bio-text { margin: 0 0 1.8rem; opacity: 0.8; }
+
+.bio-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.7rem; }
+
+.bio-link {
+    display: block;
+    padding: 0.95rem 1.1rem;
+    background: var(--bio-btn, #f2f4f7);
+    color: var(--bio-btn-ink, #0f1216);
+    border-radius: 10px;
+    text-decoration: none;
+    font-weight: 600;
+    /* Lange Beschriftungen dürfen umbrechen, statt aus der Fläche zu laufen */
+    overflow-wrap: anywhere;
+    transition: transform 0.08s ease, filter 0.08s ease;
+}
+.bio-link:hover { filter: brightness(0.92); }
+.bio-link:active { transform: translateY(1px); }
+.bio-link:focus-visible { outline: 3px solid var(--bio-ink, #f2f4f7); outline-offset: 3px; }
+
+.bio-foot {
+    flex: 0 0 auto;
+    padding: 1.4rem 1rem 2rem;
+    text-align: center;
+    font-size: 0.78rem;
+}
+.bio-foot a {
+    display: inline-flex; align-items: center; gap: 0.4rem;
+    color: inherit; text-decoration: none; opacity: 0.55;
+}
+.bio-foot a:hover { opacity: 0.85; text-decoration: underline; }
+.bio-mark { width: 20px; height: 20px; object-fit: contain; }
+
+@media (prefers-reduced-motion: reduce) {
+    .bio-link { transition: none; }
+}

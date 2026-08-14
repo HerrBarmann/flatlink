@@ -39,7 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($fehler === null && isset($_POST['grundregeln'])) {
         // 0 heißt „unbegrenzt", deshalb wird nicht auf größer null geprüft,
         // sondern nur auf sinnvolle Obergrenzen.
-        foreach (['links' => 1000000, 'stats_days' => 100000, 'logos' => 10000] as $k => $max) {
+        foreach (['links' => 1000000, 'stats_days' => 100000, 'logos' => 10000, 'bio' => 10000] as $k => $max) {
             $neu['limits'][$k] = max(0, min($max, (int)($_POST['limit_' . $k] ?? 0)));
         }
         $neu['default_perms'] = array_values(array_intersect(
@@ -90,6 +90,11 @@ $host = preg_replace('#^https?://#', '', base_url());
                 <label for="s-logos">Logos in der Bibliothek</label>
                 <input id="s-logos" type="number" name="limit_logos" min="0" max="10000"
                        value="<?= (int)($s['limits']['logos'] ?? 0) ?>">
+            </div>
+            <div>
+                <label for="s-bio">Link-in-Bio-Seiten</label>
+                <input id="s-bio" type="number" name="limit_bio" min="0" max="10000"
+                       value="<?= (int)($s['limits']['bio'] ?? 0) ?>">
             </div>
             <div>
                 <label for="s-quota">Wunsch-Codes je Konto</label>

@@ -28,6 +28,7 @@ function perms_all(): array
         'qr_unbranded' => 'QR-Codes ohne Absenderzeile',
         'api_access' => 'Zugriff über die Programmierschnittstelle (API)',
         'bio_page' => 'Link-in-Bio-Seiten anlegen',
+        'bio_style' => 'Link-in-Bio-Seiten gestalten (Logo und Farben)',
     ];
 }
 
@@ -81,7 +82,7 @@ function group_save(string $id, string $name, array $perms, array $limits = [], 
     // Eigene Limits sind optional; 0 oder leer heißt "kein eigener Wert",
     // dann gilt für dieses Konto weiter das globale Limit
     $clean = [];
-    foreach (['links', 'stats_days', 'logos'] as $k) {
+    foreach (['links', 'stats_days', 'logos', 'bio'] as $k) {
         $v = (int)($limits[$k] ?? 0);
         if ($v > 0) $clean[$k] = $v;
     }
@@ -266,7 +267,7 @@ function user_can(string $username, string $perm): bool
 // ---- Nutzungs-Limits ----
 
 /**
- * Limit eines Kontos ('links' | 'stats_days' | 'logos').
+ * Limit eines Kontos ('links' | 'stats_days' | 'logos' | 'bio').
  *
  * Grundlage ist der globale Wert aus der Konfiguration. Gruppen können ihn
  * anheben: Wer in mehreren ist, bekommt den jeweils höchsten Wert. Admins

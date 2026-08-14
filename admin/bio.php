@@ -29,6 +29,8 @@ if (!user_can($user['name'], 'bio_page')) {
 
 $assignable = link_rules_assignable($user);
 $editCode = (string)($_GET['edit'] ?? '');
+$darfGestalten = user_can($user['name'], 'bio_style');
+$bioLimit = user_limit($user['name'], 'bio');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_check();
@@ -42,6 +44,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $titel = trim((string)($_POST['title'] ?? ''));
     $text = mb_substr(trim((string)($_POST['bio_text'] ?? '')), 0, 500);
     $index = ($_POST['bio_index'] ?? '') === '1';
+    // Ohne die Berechtigung wird die Gestaltung gar nicht erst gelesen – dann
+    // bleibt eine vorhandene unangetastet, statt beim Speichern zu verschwinden.
+    $stil = $darfGestalten ? [
+        'logo' => (string)($_POST['bio_logo'] ?? ''),
+        'colors' => [
+            'bg' => (string)($_POST['c_bg'] ?? ''),
+            'ink' => (string)($_POST['c_ink'] ?? ''),
+            'btn' => (string)($_POST['c_btn'] ?? ''),
+            'btn_ink' => (string)($_POST['c_btn_ink'] ?? ''),
+        ],
+    ] : null;
 
     if ($action === 'create') {
         // Das Ziel eines Kurzlinks entfällt hier; die Regeln erwarten aber
@@ -58,6 +71,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ]);
         if ($itemErr !== null) {
             flash($itemErr, 'err');
+        } elseif (!$isAdmin && bio_count($user['name']) >= $bioLimit) {
+            flash($bioLimit === 1
+                ? 'Dein Konto darf eine Link-in-Bio-Seite haben. Bearbeite die vorhandene oder lösche sie.'
+                : 'Limit erreicht: ' . $bioLimit . ' Link-in-Bio-Seiten.', 'err');
         } elseif ($err !== null) {
             flash($err, 'err');
         } else {
@@ -66,7 +83,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!$ok) {
                 flash($ergebnis, 'err');
             } else {
-                bio_write($ergebnis, $items, $text, $index);
+                bio_write($ergebnis, $items, $text, $index, $stil);
                 flash('Seite ' . short_url($ergebnis) . ' angelegt.');
                 redirect_to('bio.php?edit=' . urlencode($ergebnis));
             }
@@ -91,7 +108,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($assignable !== [] || ($l['group'] ?? null) !== null) {
                     link_set_group($code, $opts['group']);
                 }
-                bio_write($code, $items, $text, $index);
+                bio_write($code, $items, $text, $index, $stil);
                 flash('Seite aktualisiert.');
             }
         }
@@ -126,6 +143,9 @@ show_flash();
     sozialen Netz, den Aufkleber am Schaufenster, die Fußzeile der Speisekarte. Gezählt wird
     wie überall bei uns: ein Zähler je Tag, für die Seite und je Ziel. Kein Datensatz über
     Besucher.</p>
+    <p class="muted small">Seiten: <?= bio_count($user['name']) ?>/<?= e(limit_label($bioLimit)) ?><?php
+        if (!$darfGestalten): ?> · Eigenes Logo und eigene Farben gibt es mit der Berechtigung
+        zum Gestalten<?php endif; ?></p>
 </div>
 
 <?php if ($seiten !== []): ?>
@@ -236,6 +256,42 @@ show_flash();
             <input id="b-expires" type="date" name="expires" min="<?= e(date('Y-m-d')) ?>"
                    value="<?= e((string)($edit['expires'] ?? '')) ?>">
         </div>
+
+        <?php if ($darfGestalten):
+            $farben = bio_colors($edit ?? []);
+            $meineLogos = array_filter(logos_meta(), fn($m) => $isAdmin || ($m['by'] ?? null) === $user['name']);
+        ?>
+        <label>Gestaltung</label>
+        <div>
+            <label for="b-logo">Logo <span class="muted">(aus deiner
+                <a href="qrdesign.php">Logo-Bibliothek</a>)</span></label>
+            <select id="b-logo" name="bio_logo">
+                <option value="">– kein Logo –</option>
+                <?php foreach ($meineLogos as $lid => $meta): ?>
+                <option value="<?= e((string)$lid) ?>"<?= ($edit['bio_logo'] ?? '') === (string)$lid ? ' selected' : '' ?>>
+                    <?= e((string)($meta['name'] ?? 'Logo')) ?></option>
+                <?php endforeach; ?>
+            </select>
+            <?php if ($meineLogos === []): ?>
+            <p class="muted small">Noch kein Logo hochgeladen – das geht im
+            <a href="qrdesign.php">QR-Designer</a>.</p>
+            <?php endif; ?>
+        </div>
+        <div class="two-col">
+            <div><label for="c-bg">Hintergrund</label>
+                <input id="c-bg" type="color" name="c_bg" value="<?= e($farben['bg']) ?>"></div>
+            <div><label for="c-ink">Schrift</label>
+                <input id="c-ink" type="color" name="c_ink" value="<?= e($farben['ink']) ?>"></div>
+        </div>
+        <div class="two-col">
+            <div><label for="c-btn">Schaltflächen</label>
+                <input id="c-btn" type="color" name="c_btn" value="<?= e($farben['btn']) ?>"></div>
+            <div><label for="c-btn-ink">Schrift auf Schaltflächen</label>
+                <input id="c-btn-ink" type="color" name="c_btn_ink" value="<?= e($farben['btn_ink']) ?>"></div>
+        </div>
+        <p class="muted small">Achte auf ausreichenden Kontrast – die Seite wird meist auf einem
+        Handy im Sonnenlicht geöffnet.</p>
+        <?php endif; ?>
 
         <label class="check">
             <input type="checkbox" name="bio_index" value="1"<?= !empty($edit['bio_index']) ? ' checked' : '' ?>>

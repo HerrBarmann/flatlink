@@ -425,6 +425,22 @@ einer laufenden Nummer (`/abc123?i=2`) statt unmittelbar auf die Zieladresse.
 Ein Besucher-Datensatz entsteht dabei nicht — die Nummer sagt nur, *welches*
 Ziel geklickt wurde, nicht *von wem*.
 
+Die Seite wird **als eigenes Dokument ausgeliefert**, nicht im Theme der
+Instanz: keine Kopfnavigation, kein Hinweis auf Anmeldung oder Tarife. Sie
+gehört dem, der sie angelegt hat – wer den QR-Code am Schaufenster scannt, will
+die Speisekarte und nicht das Menü des Kurzlink-Dienstes. Vom Betreiber bleibt
+eine Zeile im Fuß, einstellbar über `bio_footer_text` und `bio_footer_glyph`;
+ein leerer Text lässt sie ganz weg.
+
+Konten mit dem Recht `bio_style` wählen zusätzlich **ein Logo aus der
+Logo-Bibliothek und vier Farben** (Hintergrund, Schrift, Schaltflächen und
+deren Beschriftung). Die Farbwerte werden gegen `#rrggbb` geprüft, bevor sie in
+den Stilblock gelangen; alles andere fällt auf die Vorgabe zurück. Das Logo
+liefert `logo.php` aus – ein Endpunkt, der genau eine Datei herausgibt und nur
+dann, wenn ihre Kennung in der Bibliothek verzeichnet ist. Wie viele Seiten ein
+Konto anlegen darf, steht als Limit `bio` in den Grundregeln und lässt sich je
+Gruppe erhöhen.
+
 Suchmaschinen sind standardmäßig ausgeschlossen (`noindex`); wer die Seite
 gefunden haben möchte, hakt das ausdrücklich an. Eine Seite, die als QR-Code an
 einer Tür klebt, muss nicht auch im Index stehen.

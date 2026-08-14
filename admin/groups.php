@@ -116,7 +116,7 @@ show_flash();
         <div>
             <label>Eigene Limits <span class="muted">(leer oder 0 = es gilt der Wert aus <code>config.php</code>)</span></label>
             <div class="check-row">
-                <?php foreach (['links' => 'Links', 'stats_days' => 'Statistik (Tage)', 'logos' => 'Logos'] as $k => $lbl): ?>
+                <?php foreach (['links' => 'Links', 'stats_days' => 'Statistik (Tage)', 'logos' => 'Logos', 'bio' => 'Link-in-Bio-Seiten'] as $k => $lbl): ?>
                 <span style="display:inline-flex;align-items:center;gap:0.4rem">
                     <span class="muted small"><?= e($lbl) ?></span>
                     <input type="number" name="limits[<?= e($k) ?>]" min="0" step="1" style="width:6.5rem"

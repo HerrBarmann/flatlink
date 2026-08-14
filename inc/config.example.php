@@ -80,7 +80,7 @@ return [
     // ---- Nutzungs-Limits (gelten je Konto; Admins haben keine Limits) ----
     // links: gleichzeitig aktive Links · stats_days: Tiefe der Klick-Statistik
     // logos: Bilder in der Logo-Bibliothek für QR-Codes · 0 = unbegrenzt
-    'limits' => ['links' => 0, 'stats_days' => 365, 'logos' => 10],
+    'limits' => ['links' => 0, 'stats_days' => 365, 'logos' => 10, 'bio' => 0],
 
     // Optionale Absenderzeile unter erzeugten QR-Codes (leer = keine).
     // Nützlich, wenn Codes gedruckt werden und erkennbar sein soll, wer sie ausgibt.
@@ -131,6 +131,13 @@ return [
     // sehr langen Laufzeiten auf schwachen Servern; wer aus Bitly oder YOURLS
     // umzieht, darf sie beherzt erhöhen und den Import in Ruhe laufen lassen.
     'import_max_rows' => 100,
+
+    // Fuß der Link-in-Bio-Seiten. Diese Seiten tragen sonst nichts vom
+    // Betreiber – kein Menü, keine Marke –, deshalb steht hier die einzige
+    // Zeile, die bleibt. Leerer Text lässt sie ganz weg; das Zeichen ist eine
+    // Bilddatei in assets/ und ebenfalls freiwillig.
+    'bio_footer_text' => null,   // null = „powered by <site_name>"
+    'bio_footer_glyph' => '',
 
     // Klasse am <body>-Element. Daran lassen sich in assets/custom.css ganze
     // Gestaltungsvarianten aufhängen (alles unter `body.variante { … }`), die
