@@ -5,6 +5,7 @@ require_once __DIR__ . '/../inc/store.php';
 require_once __DIR__ . '/../inc/auth.php';
 require_once __DIR__ . '/../inc/safety.php';
 require_once __DIR__ . '/../inc/groups.php';
+require_once __DIR__ . '/../inc/linkrules.php';
 
 $user = auth_require();
 $isAdmin = $user['role'] === 'admin';
@@ -24,47 +25,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
 
     if ($action === 'create') {
-        $url = trim((string)($_POST['url'] ?? ''));
-        $code = trim((string)($_POST['code'] ?? ''));
-        // Gewählter Namensraum; ohne Beschränkung bleibt er leer
-        $prefix = trim((string)($_POST['prefix'] ?? ''));
-        if ($myPrefixes === []) {
-            $prefix = '';
-        } elseif (!in_array($prefix, $myPrefixes, true)) {
-            $prefix = $myPrefixes[0];
-        }
-        $group = trim((string)($_POST['group'] ?? ''));
-        $group = $group === '' ? null : $group;
-        $title = (string)($_POST['title'] ?? '');
-        [$expOk, $expires] = parse_expiry((string)($_POST['expires'] ?? ''));
-        if (!str_starts_with($url, 'http://') && !str_starts_with($url, 'https://') && $url !== '') {
-            $url = 'https://' . $url;
-        }
-        if (!valid_url($url)) {
-            flash('Ungültige Ziel-URL (nur http/https).', 'err');
-        } elseif (!$isAdmin && link_count($user['name']) >= user_limit($user['name'], 'links')) {
-            flash('Limit erreicht: ' . user_limit($user['name'], 'links') . ' aktive Links. Lösche zuerst alte Links.', 'err');
-        } elseif ($code !== '' && !$mayCustom) {
-            flash('Für Wunsch-Namen fehlt deinem Konto die Berechtigung – frag einen Administrator.', 'err');
-        } elseif ($group !== null && !in_array($group, $assignable, true)) {
-            flash('Diese Gruppe steht dir nicht zur Verfügung.', 'err');
-        } elseif ($code !== '' && !$isAdmin && mb_strlen($code) < (int)cfg('custom_code_min_len')) {
-            flash('Wunsch-Codes brauchen mindestens ' . (int)cfg('custom_code_min_len') . ' Zeichen – die kürzeren sind reserviert.', 'err');
-        } elseif ($code !== '' && !$isAdmin && $codeQuota > 0 && custom_code_count($user['name']) >= $codeQuota) {
-            flash('Kontingent erreicht: maximal ' . $codeQuota . ' aktive Wunsch-Codes pro Konto. Lösche zuerst einen bestehenden.', 'err');
-        } elseif ($code !== '' && !valid_code($code)) {
-            flash('Ungültiger Wunsch-Name: 1–64 Zeichen (a-z, A-Z, 0-9, _ und -), nicht reserviert.', 'err');
-        } elseif ($code !== '' && $prefix === '' && in_array(strtolower($code), all_prefixes(), true)) {
-            flash('Dieser Name ist als Namensraum vergeben.', 'err');
-        } elseif (!$expOk) {
-            flash('Ungültiges Ablaufdatum (frühestens heute).', 'err');
-        } elseif (url_flagged($url)) {
-            flash('Diese Ziel-URL ist als schädlich gemeldet und kann nicht verkürzt werden.', 'err');
+        // Sämtliche Regeln stehen in inc/linkrules.php – dieselbe Fassung, die
+        // auch die API benutzt.
+        [$err, $full, $opts] = link_rules_create($user, [
+            'url' => (string)($_POST['url'] ?? ''),
+            'code' => (string)($_POST['code'] ?? ''),
+            'prefix' => (string)($_POST['prefix'] ?? ''),
+            'group' => (string)($_POST['group'] ?? ''),
+            'expires' => (string)($_POST['expires'] ?? ''),
+            'title' => (string)($_POST['title'] ?? ''),
+        ]);
+        if ($err !== null) {
+            flash($err, 'err');
         } else {
-            // Wunsch-Name unter das Präfix hängen; Zufallscodes erledigt link_create
-            $full = $code === '' ? null : ($prefix === '' ? $code : $prefix . '/' . $code);
-            [$ok, $result] = link_create($url, $full, $user['name'], $code === '' ? 'random' : 'custom',
-                ['prefix' => $prefix, 'expires' => $expires, 'group' => $group, 'title' => $title]);
+            $group = $opts['group'];
+            [$ok, $result] = link_create($opts['url'], $full, $user['name'],
+                $full === null ? 'random' : 'custom', $opts);
             if ($ok) {
                 $linkpass = (string)($_POST['linkpass'] ?? '');
                 if ($linkpass !== '') {
@@ -79,30 +55,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     } elseif ($action === 'update') {
         $code = (string)($_POST['code'] ?? '');
-        $url = trim((string)($_POST['url'] ?? ''));
         $link = link_get($code);
-        $rawExp = trim((string)($_POST['expires'] ?? ''));
-        if ($link !== null && $rawExp === (string)($link['expires'] ?? '')) {
-            // Unverändertes Datum durchlassen (sonst wäre ein abgelaufener Link nicht mehr editierbar)
-            [$expOk, $expires] = [true, $link['expires'] ?? null];
-        } else {
-            [$expOk, $expires] = parse_expiry($rawExp);
+        $err = ($link === null || !link_access($user, $link)) ? 'Kein Zugriff auf diesen Link.' : null;
+        $opts = [];
+        if ($err === null) {
+            [$err, $opts] = link_rules_update($user, $link, [
+                'url' => (string)($_POST['url'] ?? ''),
+                'expires' => (string)($_POST['expires'] ?? ''),
+                'group' => (string)($_POST['group'] ?? ''),
+                'title' => (string)($_POST['title'] ?? ''),
+            ]);
         }
-        $group = trim((string)($_POST['group'] ?? ''));
-        $group = $group === '' ? null : $group;
-        if ($link === null || !link_access($user, $link)) {
-            flash('Kein Zugriff auf diesen Link.', 'err');
-        } elseif ($group !== null && !in_array($group, $assignable, true)) {
-            flash('Diese Gruppe steht dir nicht zur Verfügung.', 'err');
-        } elseif (!valid_url($url)) {
-            flash('Ungültige Ziel-URL (nur http/https).', 'err');
-        } elseif (!$expOk) {
-            flash('Ungültiges Ablaufdatum (frühestens heute, leer = kein Ablauf).', 'err');
+        if ($err !== null) {
+            flash($err, 'err');
         } else {
-            link_update($code, $url, ['expires' => $expires, 'title' => (string)($_POST['title'] ?? '')]);
+            link_update($code, $opts['url'], $opts);
             // Gruppe nur anfassen, wenn das Formular sie überhaupt anbieten konnte
             if ($assignable !== [] || ($link['group'] ?? null) !== null) {
-                link_set_group($code, $group);
+                link_set_group($code, $opts['group']);
             }
             if (($_POST['linkpass_remove'] ?? '') === '1') {
                 link_set_password($code, null);

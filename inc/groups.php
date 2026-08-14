@@ -356,6 +356,22 @@ function links_visible(array $user): array
     return array_filter(links_all(), fn($l) => link_access($user, $l));
 }
 
+/**
+ * Limit einer Gruppe für einen Schlüssel – oder den globalen Wert, wenn die
+ * Gruppe keinen eigenen hat.
+ *
+ * Nützlich überall dort, wo über eine Gruppe geredet wird, ohne dass ein
+ * konkretes Mitglied vorliegt: etwa auf einer Tarifseite. Zahlen dort von Hand
+ * einzutragen heißt, dass sie irgendwann nicht mehr stimmen.
+ */
+function group_limit(string $group, string $key): int
+{
+    $eigen = (int)(groups_all()[$group]['limits'][$key] ?? 0);
+    if ($eigen > 0) return $eigen;
+    $global = (int)((array)cfg('limits'))[$key] ?? 0;
+    return $global > 0 ? $global : PHP_INT_MAX;
+}
+
 /** @return string[] Alle Rechte eines Kontos */
 function user_perms(string $username): array
 {

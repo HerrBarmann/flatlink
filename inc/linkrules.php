@@ -1,0 +1,147 @@
+<?php
+declare(strict_types=1);
+/**
+ * Die Regeln, unter denen ein Konto einen Kurzlink anlegen oder ändern darf.
+ *
+ * Sie standen bisher ausgeschrieben in der Verwaltungsoberfläche. Sobald ein
+ * zweiter Weg dazukommt – die API –, wäre das eine Einladung zum
+ * Auseinanderlaufen: Eine später ergänzte Regel landet in einem der beiden
+ * Zweige und fehlt im anderen. Solche Lücken merkt man erst, wenn jemand sie
+ * benutzt. Deshalb steht hier die einzige Fassung, und beide Wege rufen sie.
+ *
+ * Bewusst nicht enthalten sind Dinge, die nur eine Oberfläche betreffen:
+ * CSRF-Prüfung, Formularaufbau, Meldungen. Hier stehen nur Regeln, die
+ * unabhängig davon gelten, wer fragt.
+ */
+require_once __DIR__ . '/store.php';
+require_once __DIR__ . '/groups.php';
+require_once __DIR__ . '/safety.php';
+
+/**
+ * Eingaben für einen neuen Kurzlink prüfen und in Anlege-Argumente übersetzen.
+ *
+ * @param array{name:string,role:string} $user
+ * @param array{url?:string,code?:string,prefix?:string,group?:?string,expires?:string,title?:string} $in
+ * @return array{0:?string,1:?string,2:array} [Fehlermeldung|null, voller Code|null, Optionen]
+ */
+function link_rules_create(array $user, array $in): array
+{
+    $isAdmin = ($user['role'] ?? '') === 'admin';
+    $url = trim((string)($in['url'] ?? ''));
+    $code = trim((string)($in['code'] ?? ''));
+    $group = trim((string)($in['group'] ?? ''));
+    $group = $group === '' ? null : $group;
+
+    // Adressen ohne Schema sind ein häufiger Tippfehler und keine Absicht
+    if ($url !== '' && !str_starts_with($url, 'http://') && !str_starts_with($url, 'https://')) {
+        $url = 'https://' . $url;
+    }
+
+    // Namensraum: Wer auf Präfixe festgelegt ist, landet immer unter einem –
+    // notfalls unter dem ersten, statt frei anlegen zu dürfen.
+    $myPrefixes = $isAdmin ? [] : user_prefixes($user['name']);
+    $prefix = trim((string)($in['prefix'] ?? ''));
+    if ($myPrefixes === []) {
+        $prefix = '';
+    } elseif (!in_array($prefix, $myPrefixes, true)) {
+        $prefix = $myPrefixes[0];
+    }
+
+    $assignable = link_rules_assignable($user);
+    $codeQuota = (int)cfg('custom_code_quota');
+    $minLen = (int)cfg('custom_code_min_len');
+
+    [$expOk, $expires] = parse_expiry((string)($in['expires'] ?? ''));
+
+    $err = null;
+    if (!valid_url($url)) {
+        $err = 'Ungültige Ziel-URL (nur http/https).';
+    } elseif (!$isAdmin && link_count($user['name']) >= user_limit($user['name'], 'links')) {
+        $err = 'Limit erreicht: ' . user_limit($user['name'], 'links') . ' aktive Links.';
+    } elseif ($code !== '' && !user_can($user['name'], 'custom_code')) {
+        $err = 'Für Wunsch-Namen fehlt diesem Konto die Berechtigung.';
+    } elseif ($group !== null && !in_array($group, $assignable, true)) {
+        $err = 'Diese Gruppe steht diesem Konto nicht zur Verfügung.';
+    } elseif ($code !== '' && !$isAdmin && mb_strlen($code) < $minLen) {
+        $err = 'Wunsch-Codes brauchen mindestens ' . $minLen . ' Zeichen.';
+    } elseif ($code !== '' && !$isAdmin && $codeQuota > 0 && custom_code_count($user['name']) >= $codeQuota) {
+        $err = 'Kontingent erreicht: maximal ' . $codeQuota . ' aktive Wunsch-Codes pro Konto.';
+    } elseif ($code !== '' && !valid_code($code)) {
+        $err = 'Ungültiger oder reservierter Wunsch-Name.';
+    } elseif ($code !== '' && $prefix === '' && in_array(strtolower($code), all_prefixes(), true)) {
+        $err = 'Dieser Name ist als Namensraum vergeben.';
+    } elseif (!$expOk) {
+        $err = 'Ungültiges Ablaufdatum (frühestens heute).';
+    } elseif (url_flagged($url)) {
+        $err = 'Diese Ziel-URL ist als schädlich gemeldet und kann nicht verkürzt werden.';
+    }
+    if ($err !== null) return [$err, null, []];
+
+    // Wunsch-Name unter das Präfix hängen; Zufallscodes erledigt link_create
+    $full = $code === '' ? null : ($prefix === '' ? $code : $prefix . '/' . $code);
+
+    return [null, $full, [
+        'prefix' => $prefix,
+        'expires' => $expires,
+        'group' => $group,
+        'title' => (string)($in['title'] ?? ''),
+        'url' => $url,
+    ]];
+}
+
+/**
+ * Eingaben für die Änderung eines bestehenden Links prüfen.
+ *
+ * @return array{0:?string,1:array} [Fehlermeldung|null, Optionen]
+ */
+function link_rules_update(array $user, array $link, array $in): array
+{
+    $url = trim((string)($in['url'] ?? ($link['url'] ?? '')));
+    if ($url !== '' && !str_starts_with($url, 'http://') && !str_starts_with($url, 'https://')) {
+        $url = 'https://' . $url;
+    }
+
+    // Ein unverändertes Datum muss durchgehen, sonst ließe sich ein bereits
+    // abgelaufener Link nie wieder bearbeiten.
+    $rawExp = array_key_exists('expires', $in) ? trim((string)$in['expires']) : (string)($link['expires'] ?? '');
+    if ($rawExp === (string)($link['expires'] ?? '')) {
+        [$expOk, $expires] = [true, $link['expires'] ?? null];
+    } else {
+        [$expOk, $expires] = parse_expiry($rawExp);
+    }
+
+    $group = array_key_exists('group', $in) ? trim((string)$in['group']) : (string)($link['group'] ?? '');
+    $group = $group === '' ? null : $group;
+    $assignable = link_rules_assignable($user);
+
+    if (!valid_url($url)) {
+        return ['Ungültige Ziel-URL (nur http/https).', []];
+    }
+    // Eine bestehende Zuordnung darf bleiben, auch wenn sie nicht neu vergeben
+    // werden könnte – sonst wäre ein geerbter Gruppenlink nicht mehr änderbar.
+    if ($group !== null && $group !== ($link['group'] ?? null) && !in_array($group, $assignable, true)) {
+        return ['Diese Gruppe steht diesem Konto nicht zur Verfügung.', []];
+    }
+    if (!$expOk) {
+        return ['Ungültiges Ablaufdatum (frühestens heute, leer = kein Ablauf).', []];
+    }
+
+    $opts = ['expires' => $expires, 'group' => $group, 'url' => $url];
+    if (array_key_exists('title', $in)) $opts['title'] = (string)$in['title'];
+    return [null, $opts];
+}
+
+/**
+ * Gruppen, denen dieses Konto einen Link zuordnen darf.
+ *
+ * Nur Arbeitsgruppen – eine Rechtegruppe wie ein Tarif hat mit der Verwaltung
+ * eines einzelnen Links nichts zu tun (siehe group_shared).
+ *
+ * @return string[]
+ */
+function link_rules_assignable(array $user): array
+{
+    return ($user['role'] ?? '') === 'admin'
+        ? array_values(array_filter(array_keys(groups_all()), 'group_shared'))
+        : user_shared_groups($user['name']);
+}
