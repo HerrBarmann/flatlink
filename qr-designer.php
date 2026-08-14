@@ -172,8 +172,14 @@ page_header('QR-Code-Generator', false,
     function_exists('designer_description') ? designer_description() : null,
     base_url() . '/qr-designer.php');
 show_flash();
-if (function_exists('qr_type_nav')) echo qr_type_nav('link');
+// Eine Hülle um das Werkzeug – ohne eigene Bedeutung im Kern, aber der Griff,
+// an dem eine Instanz es gestalten kann. Bei 1337.kiwi liegt darauf dieselbe
+// dunkle Fläche wie bei den übrigen QR-Generatoren.
+// Der Vorspann steht VOR der Hülle: Bei den übrigen Generatoren sitzt die
+// Überschrift ebenfalls über der Fläche, nicht darin.
 if (function_exists('designer_intro')) echo designer_intro();
+echo '<div class="designer-stage">';
+if (function_exists('qr_type_nav')) echo qr_type_nav('link');
 
 ?>
 <div class="card">
@@ -205,6 +211,7 @@ if (function_exists('designer_intro')) echo designer_intro();
 <?php if ($code === ''): ?>
     <div class="card"><p class="muted">Sobald ein Kurzlink da ist, erscheint hier der Designer –
     mit Farben, Formen<?= $user !== null ? ', Logo, Rahmen und Druck-PDF' : '' ?>.</p></div>
+</div><!-- /.designer-stage -->
 <?php if (function_exists('designer_outro')) echo designer_outro(); ?>
 <?php page_footer(); exit; endif; ?>
 
@@ -324,6 +331,7 @@ if (function_exists('designer_intro')) echo designer_intro();
     </div>
 </div>
 
+</div><!-- /.designer-stage -->
 <?php if (function_exists('designer_outro')) echo designer_outro(); ?>
 <script src="assets/qrdesign.js" defer></script>
 <?php page_footer(); ?>
