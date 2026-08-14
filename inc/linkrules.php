@@ -80,13 +80,15 @@ function link_rules_create(array $user, array $in): array
     // Wunsch-Name unter das Präfix hängen; Zufallscodes erledigt link_create
     $full = $code === '' ? null : ($prefix === '' ? $code : $prefix . '/' . $code);
 
-    return [null, $full, [
+    $opts = [
         'prefix' => $prefix,
         'expires' => $expires,
         'group' => $group,
         'title' => (string)($in['title'] ?? ''),
         'url' => $url,
-    ]];
+    ];
+    if (array_key_exists('tags', $in)) $opts['tags'] = $in['tags'];
+    return [null, $full, $opts];
 }
 
 /**
@@ -128,6 +130,7 @@ function link_rules_update(array $user, array $link, array $in): array
 
     $opts = ['expires' => $expires, 'group' => $group, 'url' => $url];
     if (array_key_exists('title', $in)) $opts['title'] = (string)$in['title'];
+    if (array_key_exists('tags', $in)) $opts['tags'] = $in['tags'];
     return [null, $opts];
 }
 

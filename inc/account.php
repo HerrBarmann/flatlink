@@ -50,6 +50,7 @@ function account_export(string $username): array
             'kurzlink' => base_url() . '/' . $code,
             'code' => (string)$code,
             'name' => $l['title'] ?? null,
+            'schlagworte' => array_values((array)($l['tags'] ?? [])),
             'ziel' => $l['url'] ?? null,
             'art' => ($l['type'] ?? '') === 'custom' ? 'Wunsch-Name' : 'Zufallscode',
             'gruppe' => $l['group'] ?? null,

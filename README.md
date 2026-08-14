@@ -76,7 +76,7 @@ in der Konfiguration schaltet sie ab.
 ## Was drin ist
 
 - **Kurzlinks** mit zufälligem oder selbst gewähltem Code, optionalem Namen,
-  optionalem Ablaufdatum und optionalem Passwortschutz
+  Schlagworten zum Filtern, optionalem Ablaufdatum und optionalem Passwortschutz
 - **QR-Codes** aus einem eigenen Encoder (ISO/IEC 18004, Byte-Mode,
   Versionen 1–10, Fehlerkorrektur L/M/Q/H) – ohne jede Fremdbibliothek
 - **QR-Designer** unter `qr-designer.php`: Modul- und Augenformen, freie
@@ -516,6 +516,22 @@ erscheint, entscheidet der Betreiber der eingetragenen Adresse; ohne Angabe
 zeigt der Code auf den Dienst von GS1 selbst. Die Logik steht in
 [`inc/gs1.php`](inc/gs1.php), eine Bedienoberfläche dafür bringt flatlink nicht
 mit – sie ist als eigene Seite schnell gebaut.
+
+## Schlagworte
+
+Ab ein paar hundert Links reicht die Suche nicht mehr. Jeder Link nimmt bis zu
+acht Schlagworte auf, mit Komma getrennt eingegeben. Über der Liste steht eine
+Wolke aller vergebenen Schlagworte mit ihrer Häufigkeit; ein Klick filtert, ein
+zweiter auf „alle anzeigen" hebt den Filter wieder auf. Filter und Suche lassen
+sich verbinden.
+
+Schlagworte werden **kleingeschrieben abgelegt**: „Kampagne" und „kampagne"
+sollen dieselbe Schublade sein, sonst hat man nach einer Woche beide. Sie sind
+Ordnung, keine Berechtigung – wer Zugriff regeln will, nimmt
+[Gruppen](#zwei-arten-von-gruppen).
+
+Verfügbar auch über die [Schnittstelle](API.md) (Feld `tags`, Filter `?tag=`)
+und im CSV-Import (Spalte `schlagworte` oder `tags`).
 
 ## Umzug von einem anderen Dienst
 

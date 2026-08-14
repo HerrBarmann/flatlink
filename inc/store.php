@@ -336,7 +336,65 @@ function link_apply_meta(array $l, array $opts): array
         $t = trim((string)preg_replace('/[\x00-\x1F\x7F]/u', '', $t));
         if ($t === '') unset($l['title']); else $l['title'] = mb_substr($t, 0, 120);
     }
+    if (array_key_exists('tags', $opts)) {
+        $tags = tags_normalize($opts['tags']);
+        if ($tags === []) unset($l['tags']); else $l['tags'] = $tags;
+    }
     return $l;
+}
+
+/** Höchstzahl Schlagworte je Link – mehr ordnet nicht, sondern verwirrt */
+const TAGS_MAX = 8;
+
+/**
+ * Schlagworte säubern.
+ *
+ * Angenommen wird eine Liste oder eine Zeichenkette mit Kommas. Vergleich und
+ * Ablage laufen in Kleinschreibung: „Kampagne" und „kampagne" sollen dieselbe
+ * Schublade sein, sonst hat man nach einer Woche beide.
+ *
+ * @param string|array $roh
+ * @return string[]
+ */
+function tags_normalize($roh): array
+{
+    $teile = is_array($roh) ? $roh : explode(',', (string)$roh);
+    $out = [];
+    foreach ($teile as $t) {
+        $t = trim((string)preg_replace('/[\x00-\x1F\x7F]/u', '', (string)$t));
+        // Leerraum in der Mitte zusammenfassen, damit „a  b" und „a b" gleich sind
+        $t = (string)preg_replace('/\s+/u', ' ', $t);
+        $t = mb_strtolower(mb_substr($t, 0, 24));
+        if ($t === '' || in_array($t, $out, true)) continue;
+        $out[] = $t;
+        if (count($out) >= TAGS_MAX) break;
+    }
+    sort($out, SORT_NATURAL | SORT_FLAG_CASE);
+    return $out;
+}
+
+/** Schlagworte eines Links als Eingabetext */
+function tags_text(?array $l): string
+{
+    return implode(', ', (array)($l['tags'] ?? []));
+}
+
+/**
+ * Alle vergebenen Schlagworte mit ihrer Häufigkeit, für Filterlisten.
+ *
+ * @param array<string,array> $links
+ * @return array<string,int> Schlagwort => Anzahl, häufigste zuerst
+ */
+function tags_counts(array $links): array
+{
+    $z = [];
+    foreach ($links as $l) {
+        foreach ((array)($l['tags'] ?? []) as $t) {
+            $z[$t] = ($z[$t] ?? 0) + 1;
+        }
+    }
+    arsort($z);
+    return $z;
 }
 
 /** Gruppenzuordnung eines Links setzen ($group = null hebt sie auf) */

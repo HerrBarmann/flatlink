@@ -371,6 +371,11 @@ td a { font-family: var(--mono); }
     white-space: nowrap;
 }
 .tag-on { border-color: var(--accent); color: var(--accent-deep); background: var(--accent-tint); }
+/* Schlagworte sind anklickbar – als Filter unter dem Link und als Wolke über
+   der Liste. Der Unterstrich bliebe sonst der einzige Hinweis darauf. */
+.tag-row { display: flex; flex-wrap: wrap; gap: 0.25rem; margin: 0.25rem 0 0; }
+a.tag { text-decoration: none; }
+a.tag:hover { border-color: var(--accent); color: var(--accent-deep); text-decoration: none; }
 
 /* Wiederholbare Feldzeilen (Ziele einer Link-in-Bio-Seite): Anzeigename,
    Adresse und ein Knopf zum Entfernen nebeneinander. */

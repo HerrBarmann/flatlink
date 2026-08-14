@@ -65,8 +65,9 @@ function import_spalten(array $kopf): array
                    'short link', 'slug', 'alias', 'code', 'kurzcode', 'wunsch-code', 'kurzlink'],
         'title' => ['title', 'titel', 'name', 'description', 'beschreibung'],
         'expires' => ['expires', 'expires_at', 'expiry', 'expiration', 'ablauf', 'ablaufdatum'],
+        'tags' => ['tags', 'tag', 'schlagworte', 'schlagwort', 'labels', 'keywords'],
     ];
-    $map = ['url' => -1, 'code' => -1, 'title' => -1, 'expires' => -1];
+    $map = ['url' => -1, 'code' => -1, 'title' => -1, 'expires' => -1, 'tags' => -1];
     foreach ($kopf as $i => $name) {
         $name = strtolower(trim($name));
         foreach ($bekannt as $feld => $namen) {
@@ -114,7 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Kopfzeile erkennen und auswerten. Eine Zeile, die mit http beginnt, ist
     // schon ein Datensatz – dann gilt die alte feste Reihenfolge.
-    $map = ['url' => 0, 'code' => 1, 'expires' => 2, 'title' => 3];
+    $map = ['url' => 0, 'code' => 1, 'expires' => 2, 'title' => 3, 'tags' => 4];
     if ($lines !== [] && stripos($lines[0], 'http') !== 0) {
         $kopf = $lines[0];
         $sep = substr_count($kopf, ';') >= substr_count($kopf, ',') ? ';' : ',';
@@ -151,6 +152,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'code' => import_code($holen('code')),
             'expires' => $holen('expires'),
             'title' => $holen('title'),
+            'tags' => $holen('tags'),
         ];
     }
 
@@ -194,7 +196,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($err === null) {
             [$ok, $result] = link_create($r['url'], $r['code'] === '' ? null : $r['code'], $user['name'],
                 $r['code'] === '' ? 'random' : 'custom',
-                ['expires' => $expires, 'group' => $group, 'title' => $r['title']]);
+                ['expires' => $expires, 'group' => $group, 'title' => $r['title'], 'tags' => $r['tags']]);
             if ($ok) {
                 $created++;
                 if ($r['code'] !== '') $usedCustom++;
@@ -218,7 +220,7 @@ show_flash();
     Kontingent passen (<?= (int)$maxRows ?> frei). Für größere Durchgänge gibt es die
     Berechtigung zum Massen-Import.</p>
     <?php endif; ?>
-    <p class="muted small">Eine Zeile pro Link: <code>url;wunsch-code;ablaufdatum;name</code> —
+    <p class="muted small">Eine Zeile pro Link: <code>url;wunsch-code;ablaufdatum;name;schlagworte</code> —
     alles außer der URL ist optional, als Trennzeichen geht Semikolon oder Komma. Alle
     Ziel-URLs werden vor dem Anlegen gesammelt auf Phishing/Malware geprüft.</p>
     <p class="muted small"><strong>Umzug von einem anderen Dienst?</strong> Die Ausfuhren von

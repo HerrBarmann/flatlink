@@ -91,6 +91,7 @@ Alle Links, auf die das Konto Zugriff hat.
 | --- | --- |
 | `q` | sucht in Code, Ziel und Name |
 | `group` | nur Links dieser Gruppe |
+| `tag` | nur Links mit diesem Schlagwort |
 | `limit` | 1–200, Vorgabe 50 |
 | `offset` | zum Blättern |
 
@@ -112,6 +113,7 @@ curl -X POST https://example.org/api/links \
 | `url` | ja | http/https; fehlt das Schema, wird `https://` ergänzt |
 | `code` | nein | Wunsch-Name; braucht das Recht `custom_code` |
 | `title` | nein | Name für die eigene Übersicht |
+| `tags` | nein | Schlagworte zum Ordnen – Liste oder Zeichenkette mit Kommas; höchstens acht, je 24 Zeichen, werden kleingeschrieben |
 | `expires` | nein | `JJJJ-MM-TT`, frühestens heute |
 | `group` | nein | nur Arbeitsgruppen des Kontos |
 | `password` | nein | Zugriffsschutz vor der Weiterleitung |

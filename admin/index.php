@@ -34,6 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'group' => (string)($_POST['group'] ?? ''),
             'expires' => (string)($_POST['expires'] ?? ''),
             'title' => (string)($_POST['title'] ?? ''),
+            'tags' => (string)($_POST['tags'] ?? ''),
         ]);
         if ($err !== null) {
             flash($err, 'err');
@@ -64,6 +65,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'expires' => (string)($_POST['expires'] ?? ''),
                 'group' => (string)($_POST['group'] ?? ''),
                 'title' => (string)($_POST['title'] ?? ''),
+                'tags' => (string)($_POST['tags'] ?? ''),
             ]);
         }
         if ($err !== null) {
@@ -103,10 +105,18 @@ if ($gFilter === '-') {
 } elseif ($gFilter !== '') {
     $links = array_filter($links, fn($l) => ($l['group'] ?? null) === $gFilter);
 }
+// Schlagwort-Filter vor der Suche: Die Wolke unter der Liste soll die Zahlen
+// des gerade gewählten Ausschnitts zeigen, nicht die des Gesamtbestands.
+$alleTags = tags_counts($links);
+$tagFilter = mb_strtolower(trim((string)($_GET['tag'] ?? '')));
+if ($tagFilter !== '') {
+    $links = array_filter($links, fn($l) => in_array($tagFilter, (array)($l['tags'] ?? []), true));
+}
 if ($q !== '') {
     $links = array_filter($links, fn($l, $c) => stripos($c, $q) !== false
         || stripos($l['url'], $q) !== false
-        || stripos((string)($l['title'] ?? ''), $q) !== false, ARRAY_FILTER_USE_BOTH);
+        || stripos((string)($l['title'] ?? ''), $q) !== false
+        || in_array(mb_strtolower($q), (array)($l['tags'] ?? []), true), ARRAY_FILTER_USE_BOTH);
 }
 uasort($links, fn($a, $b) => strcmp($b['created'], $a['created']));
 
@@ -131,6 +141,8 @@ show_flash();
             <input id="c-url" type="text" name="url" placeholder="https://example.com/…" required>
             <label for="c-title">Name <span class="muted">(optional – nur für dich, damit du den Link in der Liste wiederfindest)</span></label>
             <input id="c-title" type="text" name="title" maxlength="120" placeholder="z. B. Speisekarte Sommer">
+            <label for="c-tags">Schlagworte <span class="muted">(optional, mit Komma trennen – zum Filtern der Liste)</span></label>
+            <input id="c-tags" type="text" name="tags" maxlength="220" placeholder="kampagne, sommer, plakat">
         </div>
         <?php if ($isAdmin): ?>
         <div>
@@ -212,6 +224,8 @@ show_flash();
             <input id="e-url" type="text" name="url" value="<?= e($editLink['url']) ?>" required>
             <label for="e-title">Name <span class="muted">(optional)</span></label>
             <input id="e-title" type="text" name="title" maxlength="120" value="<?= e((string)($editLink['title'] ?? '')) ?>">
+            <label for="e-tags">Schlagworte <span class="muted">(mit Komma trennen)</span></label>
+            <input id="e-tags" type="text" name="tags" maxlength="220" value="<?= e(tags_text($editLink)) ?>">
         </div>
         <div>
             <label for="e-expires">Ablaufdatum <span class="muted">(leer = kein Ablauf)</span></label>
@@ -268,11 +282,25 @@ show_flash();
             </select>
             <?php endif; ?>
             <input type="search" name="q" value="<?= e($q) ?>" placeholder="Suchen…">
+            <?php if ($tagFilter !== ''): ?><input type="hidden" name="tag" value="<?= e($tagFilter) ?>"><?php endif; ?>
             <button class="btn btn-small" type="submit">Suchen</button>
         </form>
     </div>
+    <?php if ($alleTags !== []): ?>
+    <p class="tag-row" style="margin:0 0 0.9rem">
+        <?php if ($tagFilter !== ''): ?>
+            <a class="tag" href="index.php<?= $q !== '' ? '?q=' . e(rawurlencode($q)) : '' ?>">alle anzeigen</a>
+        <?php endif; ?>
+        <?php foreach ($alleTags as $t => $n): ?>
+        <a class="tag<?= $t === $tagFilter ? ' tag-on' : '' ?>"
+           href="index.php?tag=<?= e(rawurlencode((string)$t)) ?><?= $q !== '' ? '&amp;q=' . e(rawurlencode($q)) : '' ?>"><?= e((string)$t) ?>
+           <span class="muted"><?= (int)$n ?></span></a>
+        <?php endforeach; ?>
+    </p>
+    <?php endif; ?>
+
     <?php if ($links === []): ?>
-        <p class="muted">Noch keine Links<?= $q !== '' ? ' für diese Suche' : '' ?>.</p>
+        <p class="muted">Noch keine Links<?= $q !== '' ? ' für diese Suche' : '' ?><?= $tagFilter !== '' ? ' mit diesem Schlagwort' : '' ?>.</p>
     <?php else: ?>
     <div class="table-scroll"><table>
         <tr><th>Link</th><th>Ziel</th><th>Klicks</th><th>Gruppe</th><?php if ($isAdmin): ?><th>Besitzer</th><?php endif; ?><th>Läuft ab</th><th>Erstellt</th><th></th></tr>
@@ -280,7 +308,14 @@ show_flash();
         <tr<?= $code === $highlight ? ' class="row-hl"' : '' ?>>
             <td><a href="<?= e(short_url((string)$code)) ?>" target="_blank" rel="noopener"><?= e((string)$code) ?></a><?=
                 !empty($link['pass']) ? ' <span class="badge badge-quiet" title="passwortgeschützt">PW</span>' : '' ?>
-                <?php if (($link['title'] ?? '') !== ''): ?><br><span class="link-title"><?= e((string)$link['title']) ?></span><?php endif; ?></td>
+                <?php if (($link['title'] ?? '') !== ''): ?><br><span class="link-title"><?= e((string)$link['title']) ?></span><?php endif; ?>
+                <?php if (($link['tags'] ?? []) !== []): ?>
+                <br><span class="tag-row">
+                    <?php foreach ((array)$link['tags'] as $t): ?>
+                    <a class="tag<?= $t === $tagFilter ? ' tag-on' : '' ?>" href="index.php?tag=<?= e(rawurlencode($t)) ?>"><?= e($t) ?></a>
+                    <?php endforeach; ?>
+                </span>
+                <?php endif; ?></td>
             <td class="url-cell" title="<?= e($link['url']) ?>"><?= e(mb_strimwidth($link['url'], 0, 60, '…')) ?></td>
             <td><a href="stats.php?c=<?= e(rawurlencode((string)$code)) ?>" title="Statistik"><?= (int)$clicks['n'] ?></a></td>
             <td><?php

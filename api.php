@@ -140,6 +140,7 @@ function api_link(string $code, array $l): array
         'short_url' => short_url($code),
         'url' => $l['url'] ?? null,
         'title' => $l['title'] ?? null,
+        'tags' => array_values((array)($l['tags'] ?? [])),
         'type' => $l['type'] ?? 'random',
         'group' => $l['group'] ?? null,
         'owner' => $l['owner'] ?? null,
@@ -199,11 +200,16 @@ if ($ressource === 'links') {
             if ($q !== '') {
                 $links = array_filter($links, fn($l, $c) => stripos((string)$c, $q) !== false
                     || stripos((string)($l['url'] ?? ''), $q) !== false
-                    || stripos((string)($l['title'] ?? ''), $q) !== false, ARRAY_FILTER_USE_BOTH);
+                    || stripos((string)($l['title'] ?? ''), $q) !== false
+                    || in_array(mb_strtolower($q), (array)($l['tags'] ?? []), true), ARRAY_FILTER_USE_BOTH);
             }
             $g = (string)($_GET['group'] ?? '');
             if ($g !== '') {
                 $links = array_filter($links, fn($l) => (string)($l['group'] ?? '') === $g);
+            }
+            $tag = mb_strtolower(trim((string)($_GET['tag'] ?? '')));
+            if ($tag !== '') {
+                $links = array_filter($links, fn($l) => in_array($tag, (array)($l['tags'] ?? []), true));
             }
             uasort($links, fn($a, $b) => strcmp((string)($b['created'] ?? ''), (string)($a['created'] ?? '')));
 
@@ -226,6 +232,7 @@ if ($ressource === 'links') {
                 'group' => (string)($in['group'] ?? ''),
                 'expires' => (string)($in['expires'] ?? ''),
                 'title' => (string)($in['title'] ?? ''),
+                'tags' => $in['tags'] ?? '',
             ]);
             if ($err !== null) api_fail(422, 'rejected', $err);
 
@@ -282,6 +289,8 @@ if ($ressource === 'links') {
         foreach (['url', 'expires', 'group', 'title'] as $f) {
             if (array_key_exists($f, $in)) $rein[$f] = (string)$in[$f];
         }
+        // Schlagworte dürfen als Liste oder als Zeichenkette mit Kommas kommen
+        if (array_key_exists('tags', $in)) $rein['tags'] = $in['tags'];
         [$err, $opts] = link_rules_update($user, $l, $rein);
         if ($err !== null) api_fail(422, 'rejected', $err);
 
