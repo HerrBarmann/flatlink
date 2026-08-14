@@ -25,6 +25,7 @@ declare(strict_types=1);
  */
 require_once __DIR__ . '/inc/linkrules.php';
 require_once __DIR__ . '/inc/domains.php';
+require_once __DIR__ . '/inc/utm.php';
 require_once __DIR__ . '/inc/token.php';
 require_once __DIR__ . '/inc/auth.php';
 
@@ -143,6 +144,7 @@ function api_link(string $code, array $l): array
         'title' => $l['title'] ?? null,
         'tags' => array_values((array)($l['tags'] ?? [])),
         'domain' => (string)($l['domain'] ?? '') ?: domain_main(),
+        'utm' => (object)utm_extract((string)($l['url'] ?? '')),
         'type' => $l['type'] ?? 'random',
         'group' => $l['group'] ?? null,
         'owner' => $l['owner'] ?? null,
@@ -237,6 +239,7 @@ if ($ressource === 'links') {
                 'title' => (string)($in['title'] ?? ''),
                 'tags' => $in['tags'] ?? '',
                 'domain' => (string)($in['domain'] ?? ''),
+                'utm' => is_array($in['utm'] ?? null) ? $in['utm'] : [],
             ]);
             if ($err !== null) api_fail(422, 'rejected', $err);
 
@@ -296,6 +299,7 @@ if ($ressource === 'links') {
         // Schlagworte dürfen als Liste oder als Zeichenkette mit Kommas kommen
         if (array_key_exists('tags', $in)) $rein['tags'] = $in['tags'];
         if (array_key_exists('domain', $in)) $rein['domain'] = (string)$in['domain'];
+        if (is_array($in['utm'] ?? null)) $rein['utm'] = $in['utm'];
         [$err, $opts] = link_rules_update($user, $l, $rein);
         if ($err !== null) api_fail(422, 'rejected', $err);
 

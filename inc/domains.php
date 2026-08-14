@@ -24,9 +24,17 @@ declare(strict_types=1);
  *   nicht beide `/shop` haben. Dafür gibt es die Namensraum-Präfixe der
  *   Gruppen, die genau dieses Problem lösen.
  *
- * Die Verwaltung bleibt bewusst auf der Hauptdomain: eine Sitzung, ein Cookie,
- * eine Adresse für Passkeys. Aufrufe von /admin/ unter einer Nebendomain
- * werden dorthin umgeleitet.
+ * Eine Nebendomain liefert **nur Kurzlinks** aus – sonst nichts. Startseite,
+ * QR-Generatoren, Meldeseite und Verwaltung leiten auf die Hauptdomain um.
+ * Zwei Gründe:
+ *
+ * - Eine Marken-Domain zeigt die Links der Marke, nicht die Werbeseite des
+ *   Kurzlink-Dienstes. Wer `kurz.beispiel.de` druckt, will dort keine
+ *   Preisliste von jemand anderem.
+ * - Für Suchmaschinen gäbe es sonst dieselbe Seite unter mehreren Adressen.
+ *
+ * Die Verwaltung bleibt aus einem weiteren Grund auf der Hauptdomain: eine
+ * Sitzung, ein Cookie, eine Adresse für Passkeys.
  */
 require_once __DIR__ . '/helpers.php';
 
@@ -144,12 +152,20 @@ function domain_current(): string
 }
 
 /**
- * Die Verwaltung gehört auf die Hauptdomain.
+ * Alles außer der Weiterleitung selbst gehört auf die Hauptdomain.
  *
- * Eine Sitzung, ein Cookie, eine Adresse für Passkeys: Ein Passkey, der unter
- * `kunde.link` eingerichtet wurde, ließe sich unter der Hauptdomain nicht mehr
- * benutzen. Statt das zu erklären, wird umgeleitet – bevor irgendetwas mit
- * einer Sitzung passiert.
+ * Wird von page_header() für jede gezeichnete Seite gerufen – mit einer
+ * Ausnahme: go.php. Dort entstehen die Seiten, die zu einem Kurzlink gehören
+ * (Passwortabfrage, abgelaufen, gesperrt, nicht gefunden), und die müssen
+ * unter der Adresse bleiben, unter der der Code gedruckt wurde. Eine
+ * Passwortabfrage, die auf eine andere Domain springt, wäre ein Fehler.
+ *
+ * Zusätzlich rufen auth_require() und die Anmeldeseite die Umleitung selbst:
+ * Dort muss sie greifen, *bevor* eine Sitzung entsteht, nicht erst wenn die
+ * Seite gezeichnet wird.
+ *
+ * Dauerhaft (301) wäre falsch: Eine Domain kann später Hauptdomain werden,
+ * und ein 301 klebt in Browsern und Suchmaschinen fest.
  */
 function domain_force_main(): void
 {
@@ -157,9 +173,19 @@ function domain_force_main(): void
     $jetzt = domain_current();
     if ($jetzt === '' || $jetzt === domain_main()) return;
     // Nur umleiten, wenn die Domain uns überhaupt gehört – sonst würde ein
-    // beliebiger Host-Header zu einer Weiterleitung führen.
+    // beliebiger Host-Kopf zu einer Weiterleitung führen.
     if (!in_array($jetzt, domains_all(), true)) return;
     $pfad = (string)($_SERVER['REQUEST_URI'] ?? '/');
     header('Location: ' . base_url() . $pfad, true, 302);
     exit;
+}
+
+/**
+ * Ist dies der Aufruf, der einen Kurzlink auflöst?
+ *
+ * Nur go.php – und zwar auch, wenn der Server es als 404-Behandlung aufruft.
+ */
+function domain_is_resolver(): bool
+{
+    return str_ends_with((string)($_SERVER['SCRIPT_NAME'] ?? ''), '/go.php');
 }

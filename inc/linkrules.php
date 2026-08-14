@@ -17,6 +17,7 @@ require_once __DIR__ . '/store.php';
 require_once __DIR__ . '/groups.php';
 require_once __DIR__ . '/safety.php';
 require_once __DIR__ . '/domains.php';
+require_once __DIR__ . '/utm.php';
 
 /**
  * Eingaben für einen neuen Kurzlink prüfen und in Anlege-Argumente übersetzen.
@@ -37,6 +38,9 @@ function link_rules_create(array $user, array $in): array
     if ($url !== '' && !str_starts_with($url, 'http://') && !str_starts_with($url, 'https://')) {
         $url = 'https://' . $url;
     }
+    // Kampagnen-Parameter noch vor der Prüfung anhängen: Geprüft und gemeldet
+    // wird die Adresse, die am Ende auch aufgerufen wird.
+    if (isset($in['utm']) && is_array($in['utm'])) $url = utm_apply($url, $in['utm']);
 
     // Namensraum: Wer auf Präfixe festgelegt ist, landet immer unter einem –
     // notfalls unter dem ersten, statt frei anlegen zu dürfen.
@@ -111,6 +115,9 @@ function link_rules_update(array $user, array $link, array $in): array
     if ($url !== '' && !str_starts_with($url, 'http://') && !str_starts_with($url, 'https://')) {
         $url = 'https://' . $url;
     }
+    // Nur anfassen, wenn der Aufrufer die Parameter überhaupt mitschickt –
+    // sonst verlöre ein Aufruf, der bloß den Titel ändert, die Kampagne.
+    if (isset($in['utm']) && is_array($in['utm'])) $url = utm_apply($url, $in['utm']);
 
     // Ein unverändertes Datum muss durchgehen, sonst ließe sich ein bereits
     // abgelaufener Link nie wieder bearbeiten.

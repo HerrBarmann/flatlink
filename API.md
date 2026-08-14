@@ -116,6 +116,7 @@ curl -X POST https://example.org/api/links \
 | `title` | nein | Name für die eigene Übersicht |
 | `tags` | nein | Schlagworte zum Ordnen – Liste oder Zeichenkette mit Kommas; höchstens acht, je 24 Zeichen, werden kleingeschrieben |
 | `domain` | nein | Adresse, unter der der Link stehen soll; leer oder unbekannt = Hauptdomain |
+| `utm` | nein | Objekt mit `utm_source`, `utm_medium`, `utm_campaign`, `utm_term`, `utm_content`; wird an `url` gehängt |
 | `expires` | nein | `JJJJ-MM-TT`, frühestens heute |
 | `group` | nein | nur Arbeitsgruppen des Kontos |
 | `password` | nein | Zugriffsschutz vor der Weiterleitung |
@@ -135,6 +136,12 @@ ausdrücklich übergeben.
 
 Zusätzlich zu den Feldern von `POST`: `disabled` (`true`/`false`) sperrt den
 Link, `"password": ""` hebt den Zugriffsschutz auf.
+
+`utm` verhält sich innerhalb seines Objekts genauso: Nur die übergebenen
+Parameter werden angefasst. `{"utm": {"utm_campaign": "winter"}}` tauscht die
+Kampagne und lässt `utm_source` stehen; ein leerer Wert entfernt einen
+einzelnen Parameter. Die Parameter werden **nicht getrennt gespeichert** – sie
+stehen in `url`, und `utm` in der Antwort ist ausgelesen, nicht abgelegt.
 
 ### `DELETE /links/{code}`
 

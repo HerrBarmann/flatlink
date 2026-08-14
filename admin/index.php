@@ -7,6 +7,7 @@ require_once __DIR__ . '/../inc/safety.php';
 require_once __DIR__ . '/../inc/groups.php';
 require_once __DIR__ . '/../inc/linkrules.php';
 require_once __DIR__ . '/../inc/domains.php';
+require_once __DIR__ . '/../inc/utm.php';
 
 $user = auth_require();
 $isAdmin = $user['role'] === 'admin';
@@ -37,6 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'title' => (string)($_POST['title'] ?? ''),
             'tags' => (string)($_POST['tags'] ?? ''),
             'domain' => (string)($_POST['domain'] ?? ''),
+            'utm' => (array)($_POST['utm'] ?? []),
         ]);
         if ($err !== null) {
             flash($err, 'err');
@@ -69,6 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'title' => (string)($_POST['title'] ?? ''),
                 'tags' => (string)($_POST['tags'] ?? ''),
                 'domain' => (string)($_POST['domain'] ?? ''),
+                'utm' => (array)($_POST['utm'] ?? []),
             ]);
         }
         if ($err !== null) {
@@ -103,6 +106,10 @@ $q = trim((string)($_GET['q'] ?? ''));
 $highlight = (string)($_GET['hl'] ?? '');
 $gFilter = (string)($_GET['g'] ?? '');
 $links = links_visible($user);
+// Vorschläge für den Kampagnen-Baukasten aus dem Gesamtbestand, nicht aus dem
+// gefilterten Ausschnitt: Sie sollen beim Anlegen vollständig sein, egal
+// welcher Filter gerade in der Liste steht.
+$utmVorschlaege = utm_suggestions($links);
 if ($gFilter === '-') {
     $links = array_filter($links, fn($l) => ($l['group'] ?? null) === null);
 } elseif ($gFilter !== '') {
@@ -147,6 +154,7 @@ show_flash();
             <label for="c-tags">Schlagworte <span class="muted">(optional, mit Komma trennen – zum Filtern der Liste)</span></label>
             <input id="c-tags" type="text" name="tags" maxlength="220" placeholder="kampagne, sommer, plakat">
         </div>
+        <?= utm_form('c', [], $utmVorschlaege) ?>
         <?php $meineDomains = domains_for($user['name']); if (count($meineDomains) > 1): ?>
         <div>
             <label for="c-domain">Domain <span class="muted">(unter welcher Adresse der Link steht)</span></label>
@@ -239,6 +247,7 @@ show_flash();
             <input id="e-title" type="text" name="title" maxlength="120" value="<?= e((string)($editLink['title'] ?? '')) ?>">
             <label for="e-tags">Schlagworte <span class="muted">(mit Komma trennen)</span></label>
             <input id="e-tags" type="text" name="tags" maxlength="220" value="<?= e(tags_text($editLink)) ?>">
+            <?= utm_form('e', utm_extract((string)($editLink['url'] ?? '')), $utmVorschlaege) ?>
             <?php
             $meineDomains = domains_for($user['name']);
             $istDomain = (string)($editLink['domain'] ?? '');
@@ -341,6 +350,10 @@ show_flash();
                 ($link['domain'] ?? '') !== '' ? ' <span class="badge badge-quiet" title="' . e((string)$link['domain']) . '">' . e((string)$link['domain']) . '</span>' : '' ?><?=
                 !empty($link['pass']) ? ' <span class="badge badge-quiet" title="passwortgeschützt">PW</span>' : '' ?>
                 <?php if (($link['title'] ?? '') !== ''): ?><br><span class="link-title"><?= e((string)$link['title']) ?></span><?php endif; ?>
+                <?php $utm = utm_extract((string)($link['url'] ?? '')); if ($utm !== []): ?>
+                <br><span class="badge badge-quiet" title="Kampagne: <?= e(implode(' · ', $utm)) ?>">UTM<?=
+                    isset($utm['utm_campaign']) ? ' ' . e($utm['utm_campaign']) : '' ?></span>
+                <?php endif; ?>
                 <?php if (($link['tags'] ?? []) !== []): ?>
                 <br><span class="tag-row">
                     <?php foreach ((array)$link['tags'] as $t): ?>

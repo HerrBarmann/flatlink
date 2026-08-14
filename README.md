@@ -571,6 +571,33 @@ zeigt der Code auf den Dienst von GS1 selbst. Die Logik steht in
 [`inc/gs1.php`](inc/gs1.php), eine Bedienoberfläche dafür bringt flatlink nicht
 mit – sie ist als eigene Seite schnell gebaut.
 
+## Kampagnen-Parameter (UTM)
+
+Beim Anlegen und Ändern eines Links lassen sich `utm_source`, `utm_medium`,
+`utm_campaign`, `utm_term` und `utm_content` eintragen. Sie werden an die
+Ziel-Adresse gehängt; vorhandene Query-Parameter bleiben unangetastet, ein
+Anker bleibt hinten.
+
+**Ausgewertet wird das nicht hier.** Diese Parameter sind die einzige
+Möglichkeit, der Statistik der *Zielseite* – Matomo, Plausible, Google
+Analytics – mitzuteilen, woher jemand kam. Der Kurzlink selbst zählt weiterhin
+nur Aufrufe je Tag: keine Herkunft, kein Gerät, kein Datensatz je Besuch. Wer
+UTM-Parameter setzt, gibt die Herkunft absichtlich an die Zielseite weiter. Ein
+Werkzeug, keine Empfehlung – deshalb ist der Block zugeklappt und leer, bis
+jemand ihn benutzt.
+
+**Keine eigene Datenhaltung.** Die Parameter stehen in der Ziel-URL und sonst
+nirgends. Der Baukasten liest sie von dort und schreibt sie dorthin zurück –
+sie zusätzlich am Link zu speichern hieße, zwei Wahrheiten zu pflegen. Wer die
+Adresse von Hand ändert, ändert damit auch die Kampagne, und das Formular zeigt
+beim nächsten Öffnen den neuen Stand.
+
+Schon benutzte Werte erscheinen als Vorschlagsliste. Das ist der billigste
+Schutz gegen den Tippfehler, der eine Auswertung in zwei Hälften zerlegt.
+
+Verfügbar auch im CSV-Import (für den ganzen Vorgang, nicht je Zeile) und über
+die [Schnittstelle](API.md) (Feld `utm`).
+
 ## Mehrere Domains
 
 Kurzlinks lassen sich unter mehreren Adressen ausgeben – `kunde.link/shop`
@@ -599,6 +626,12 @@ Sitzung, ein Cookie, eine Adresse für Passkeys: Ein unter `kunde.link`
 eingerichteter Passkey ließe sich auf der Hauptdomain nicht mehr benutzen.
 Aufrufe von `/admin/` unter einer Nebendomain werden deshalb umgeleitet, bevor
 überhaupt eine Sitzung entsteht.
+
+Eine Nebendomain liefert **nur Kurzlinks** aus. Startseite, QR-Generatoren,
+Meldeseite und Verwaltung leiten auf die Hauptdomain um (302, nicht 301 – eine
+Domain kann später zur Hauptdomain werden). Ausgenommen sind die Seiten, die zu
+einem Code gehören: Passwortabfrage, abgelaufen, gesperrt, nicht gefunden. Sie
+bleiben unter der Adresse, unter der der Code gedruckt wurde.
 
 Wählbar ist die Domain beim Anlegen, beim Ändern, im CSV-Import (für den
 ganzen Vorgang, nicht je Zeile) und über die [Schnittstelle](API.md)

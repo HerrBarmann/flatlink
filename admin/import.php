@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../inc/store.php';
 require_once __DIR__ . '/../inc/domains.php';
+require_once __DIR__ . '/../inc/utm.php';
 require_once __DIR__ . '/../inc/auth.php';
 require_once __DIR__ . '/../inc/safety.php';
 require_once __DIR__ . '/../inc/groups.php';
@@ -174,11 +175,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $domain = domain_clean((string)($_POST['domain'] ?? ''));
     if ($domain === domain_main() || !domain_allowed($domain, $user['name'])) $domain = '';
 
+    // Ebenso die Kampagne: Eine hochgeladene Liste gehört zu einer Aktion.
+    $utm = (array)($_POST['utm'] ?? []);
+
     $results = [];
     $created = 0;
     foreach ($rows as $r) {
         $err = null;
         [$expOk, $expires] = parse_expiry($r['expires']);
+        if ($utm !== []) $r['url'] = utm_apply($r['url'], $utm);
         if (!valid_url($r['url'])) {
             $err = 'Ungültige URL';
         } elseif (in_array($r['url'], $flagged, true)) {
@@ -269,6 +274,7 @@ show_flash();
             </select>
         </div>
         <?php endif; ?>
+        <?= utm_form('i', [], []) ?>
         <button class="btn btn-primary" type="submit">Importieren</button>
     </form>
 </div>

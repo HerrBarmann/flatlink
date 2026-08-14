@@ -458,6 +458,13 @@ function security_headers(): void
  */
 function page_header(string $title, bool $admin = false, ?string $desc = null, ?string $canonical = null): void
 {
+    // Eine Nebendomain liefert nur Kurzlinks aus. Alles andere – Startseite,
+    // Generatoren, Verwaltung – gehört auf die Hauptdomain. Ausgenommen sind
+    // die Seiten von go.php: Sie gehören zu einem Code, der unter genau dieser
+    // Adresse gedruckt wurde.
+    require_once __DIR__ . '/domains.php';
+    if (!domain_is_resolver()) domain_force_main();
+
     $site = e(cfg('site_name'));
     $root = $admin ? '..' : '.';
     $GLOBALS['_page_root'] = $root;
