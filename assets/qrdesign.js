@@ -1,72 +1,78 @@
 /* QR-Designer – Vorschau und Download-Adressen aktualisieren.
- * Der Kurz-Code kommt über data-code aus dem Markup, damit hier kein
- * PHP eingebettet werden muss und die CSP ohne Inline-Skripte auskommt.
+ *
+ * Dieselbe Datei bedient Gäste und Angemeldete. Nicht jedes Bedienelement ist
+ * immer da – Logo, Rahmentext, PDF und Größenwahl gibt es nur mit Konto –,
+ * deshalb wird überall geprüft, bevor gelesen wird. Der Kurz-Code und der Pfad
+ * zu qr.php kommen über data-Attribute aus dem Markup, damit hier kein PHP
+ * eingebettet werden muss und die CSP ohne Inline-Skripte auskommt.
  */
 (function () {
     var stage = document.getElementById('qr-stage');
-    var code = stage ? stage.getAttribute('data-code') : '';
+    if (!stage) return;
+    var code = stage.getAttribute('data-code') || '';
+    var basis = stage.getAttribute('data-base') || 'qr.php';
     var $ = function (id) { return document.getElementById(id); };
+    var wert = function (id) { var el = $(id); return el ? el.value : null; };
 
     function params(extra) {
-        var p = new URLSearchParams({
-            c: code,
-            style: $('opt-style').value,
-            eye: $('opt-eye').value,
-            fg: $('opt-fg').value,
-            bg: $('opt-bg').value,
-            ecc: $('opt-ecc').value,
-            margin: $('opt-margin').value,
-            ls: $('opt-ls').value
+        var p = new URLSearchParams({ c: code });
+        ['style', 'eye', 'fg', 'bg', 'ecc', 'margin', 'ls'].forEach(function (k) {
+            var v = wert('opt-' + k);
+            if (v !== null) p.set(k, v);
         });
-        if ($('opt-logo').value) p.set('logo', $('opt-logo').value);
-        if ($('opt-ftext').value.trim()) p.set('ftext', $('opt-ftext').value.trim());
-        for (var k in extra) p.set(k, extra[k]);
+        var logo = wert('opt-logo');
+        if (logo) p.set('logo', logo);
+        var ftext = wert('opt-ftext');
+        if (ftext && ftext.trim()) p.set('ftext', ftext.trim());
+        for (var k2 in extra) p.set(k2, extra[k2]);
         return p.toString();
     }
 
+    function setzeHref(id, extra) {
+        var el = $(id);
+        if (el) el.href = basis + '?' + params(extra);
+    }
+
     function refresh() {
-        $('margin-val').textContent = $('opt-margin').value;
-        $('ls-val').textContent = $('opt-ls').value;
-        $('qr-preview').src = '../qr.php?' + params({ size: 320 });
-        $('dl-svg').href = '../qr.php?' + params({ format: 'svg', download: 1 });
-        $('dl-png').href = '../qr.php?' + params({ format: 'png', size: $('opt-size').value, download: 1 });
-        $('dl-pdf').href = '../qr.php?' + params({ format: 'pdf', download: 1 });
+        var m = $('margin-val'), l = $('ls-val');
+        if (m && $('opt-margin')) m.textContent = $('opt-margin').value;
+        if (l && $('opt-ls')) l.textContent = $('opt-ls').value;
+        var vorschau = $('qr-preview');
+        if (vorschau) vorschau.src = basis + '?' + params({ size: 320 });
+        setzeHref('dl-svg', { format: 'svg', download: 1 });
+        setzeHref('dl-png', { format: 'png', size: wert('opt-size') || 1024, download: 1 });
+        setzeHref('dl-pdf', { format: 'pdf', download: 1 });
     }
 
-    ['opt-style', 'opt-eye', 'opt-fg', 'opt-bg', 'opt-ecc', 'opt-margin', 'opt-logo', 'opt-ls', 'opt-size', 'opt-ftext'].forEach(function (id) {
-        $(id).addEventListener('input', refresh);
-        $(id).addEventListener('change', refresh);
+    ['opt-style', 'opt-eye', 'opt-fg', 'opt-bg', 'opt-ecc', 'opt-margin',
+     'opt-logo', 'opt-ls', 'opt-size', 'opt-ftext'].forEach(function (id) {
+        var el = $(id);
+        if (!el) return;
+        el.addEventListener('input', refresh);
+        el.addEventListener('change', refresh);
     });
 
-    document.querySelectorAll('[data-preset]').forEach(function (btn) {
-        btn.addEventListener('click', function () {
-            var p = btn.getAttribute('data-preset').split('|');
-            $('opt-fg').value = p[0];
-            $('opt-bg').value = p[1];
+    // Farbvorlagen
+    document.addEventListener('click', function (e) {
+        var p = e.target.closest('[data-preset]');
+        if (p && $('opt-fg') && $('opt-bg')) {
+            var teile = p.getAttribute('data-preset').split('|');
+            $('opt-fg').value = teile[0];
+            $('opt-bg').value = teile[1];
             refresh();
-        });
+            return;
+        }
+        var b = e.target.closest('[data-pbg]');
+        if (b) {
+            var buehne = $('preview-stage');
+            if (buehne) buehne.style.background = b.getAttribute('data-pbg');
+            return;
+        }
+        if (e.target.id === 'ftext-preset' && $('opt-ftext')) {
+            $('opt-ftext').value = 'Scan mich!';
+            refresh();
+        }
     });
 
-    $('ftext-preset').addEventListener('click', function () {
-        $('opt-ftext').value = 'Scan mich!';
-        autoMargin();
-        refresh();
-    });
-
-    // Mit Rahmen wirkt die volle Quiet-Zone doppelt – Rand automatisch auf 2 Module
-    // verringern (und zurück), solange der Nutzer den Regler nicht selbst verstellt hat
-    function autoMargin() {
-        var m = $('opt-margin');
-        var has = $('opt-ftext').value.trim() !== '';
-        if (has && m.value === '4') m.value = '2';
-        if (!has && m.value === '2') m.value = '4';
-    }
-    $('opt-ftext').addEventListener('input', autoMargin);
-
-    document.querySelectorAll('[data-pbg]').forEach(function (btn) {
-        btn.addEventListener('click', function () {
-            $('preview-stage').style.background = btn.getAttribute('data-pbg');
-        });
-    });
     refresh();
 })();

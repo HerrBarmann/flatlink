@@ -79,9 +79,10 @@ in der Konfiguration schaltet sie ab.
   optionalem Ablaufdatum und optionalem Passwortschutz
 - **QR-Codes** aus einem eigenen Encoder (ISO/IEC 18004, Byte-Mode,
   Versionen 1–10, Fehlerkorrektur L/M/Q/H) – ohne jede Fremdbibliothek
-- **QR-Designer**: Modul- und Augenformen, freie Farben, eigenes Logo in der
-  Mitte, Rahmen mit frei wählbarem Text, Export als SVG, PNG und druckfertiges
-  PDF – ein Kurzlink lässt sich dort auch gleich anlegen
+- **QR-Designer** unter `qr-designer.php`: Modul- und Augenformen, freie
+  Farben, Export als SVG und PNG. Angemeldete bekommen auf derselben Seite
+  zusätzlich eigenes Logo, Rahmen mit Text, druckfertiges PDF und die Auswahl
+  ihrer Links – ein Kurzlink lässt sich dort auch gleich anlegen
 - **Link-in-Bio-Seiten**: eine Seite mit mehreren Zielen unter einem Kurzcode,
   gezählt wie alles andere – je Tag, für die Seite und je Ziel, ohne
   Besucher-Datensatz

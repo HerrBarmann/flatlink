@@ -240,6 +240,12 @@ eingreifen lässt:
 | `.table-scroll table` | Tabellen |
 | `.short-row` / `.grid-form` / `.check` | Formular-Layouts |
 | `.designer` | zweispaltiges Layout des QR-Designers |
+
+Der QR-Designer kennt drei Erweiterungspunkte in `inc/local.php`:
+`designer_description()` liefert die Meta-Beschreibung, `designer_intro()`
+Inhalt oberhalb und `designer_outro()` unterhalb des Werkzeugs. So bleibt die
+Seite selbst Kern-Code, während eine Instanz sie zur auffindbaren Landingpage
+ausbauen kann.
 | `.origin` | Herkunftszeile im Fuß |
 | `main` | Inhaltsbereich; wächst, damit der Fuß unten bleibt |
 | `body.<name>` | ganze Gestaltungsvariante, siehe unten (`body_class`) |
