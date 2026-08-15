@@ -258,6 +258,28 @@ function csrf_token(): string
     return $_SESSION['csrf'];
 }
 
+/**
+ * Das versteckte Kennungsfeld für Formulare, die nur ein Passwort enthalten.
+ *
+ * Passwortverwaltungen (iOS, Google, Bitwarden) ordnen ein Passwort dem Konto
+ * zu, dessen Kennung im selben Formular steht. Fehlt sie – bei der zweiten
+ * Stufe der Anmeldung, beim Passwortwechsel im Profil, beim Zurücksetzen –,
+ * sehen sie ein herrenloses Passwort und fragen nach dem Benutzernamen.
+ * Wer dort nichts einträgt, sammelt mit jeder Anmeldung einen weiteren
+ * namenlosen Eintrag an, und beim nächsten Mal wird wieder gefragt.
+ *
+ * Das Feld ist ausgeblendet und schreibgeschützt; es dient allein der
+ * Zuordnung. Der Name beginnt mit einem Unterstrich, damit es nirgends mit
+ * einem verarbeiteten Formularfeld kollidiert.
+ */
+function username_hint(string $kennung): string
+{
+    if ($kennung === '') return '';
+    return '<input type="text" name="_konto" value="' . e($kennung)
+        . '" autocomplete="username" readonly tabindex="-1" aria-hidden="true"'
+        . ' style="position:absolute;left:-9999px;width:1px;height:1px">';
+}
+
 function csrf_field(): string
 {
     return '<input type="hidden" name="_csrf" value="' . e(csrf_token()) . '">';

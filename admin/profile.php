@@ -333,6 +333,7 @@ show_flash();
     <form method="post" action="">
         <?= csrf_field() ?>
         <input type="hidden" name="action" value="password">
+        <?= username_hint($user['name']) ?>
         <label for="p-current"><?= t('Aktuelles Passwort') ?></label>
         <input id="p-current" type="password" name="current" required autocomplete="current-password">
         <label for="p-new"><?= t('Neues Passwort (mind. 8 Zeichen)') ?></label>
@@ -458,6 +459,7 @@ show_flash();
                         <span style="font-family:var(--mono)"><?= e($user['name']) ?></span></label>
                     <input id="t-confirm" type="text" name="confirm" required autocomplete="off">
                 <?php else: ?>
+                    <?= username_hint($user['name']) ?>
                     <label for="t-pass"><?= t('Zur Sicherheit dein Passwort:') ?></label>
                     <input id="t-pass" type="password" name="current" required autocomplete="current-password">
                 <?php endif; ?>
@@ -569,6 +571,7 @@ show_flash();
                 <span style="font-family:var(--mono)"><?= e($user['name']) ?></span></label>
             <input id="p-confirm" type="text" name="confirm" required autocomplete="off">
         <?php else: ?>
+            <?= username_hint($user['name']) ?>
             <label for="p-del-pass"><?= t('Zur Sicherheit dein Passwort:') ?></label>
             <input id="p-del-pass" type="password" name="current" required autocomplete="current-password">
         <?php endif; ?>

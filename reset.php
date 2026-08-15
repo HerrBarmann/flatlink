@@ -96,6 +96,7 @@ page_header(t('Passwort zurücksetzen'));
             <?= csrf_field() ?>
             <input type="hidden" name="action" value="set">
             <input type="hidden" name="token" value="<?= e($token) ?>">
+            <?= username_hint((string)((pending_get('pwreset', $token)['user'] ?? ''))) ?>
             <label for="rs-new"><?= t('Neues Passwort (mind. 8 Zeichen)') ?></label>
             <input id="rs-new" type="password" name="new" required minlength="8" autofocus autocomplete="new-password">
             <label for="rs-repeat"><?= t('Wiederholen') ?></label>

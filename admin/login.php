@@ -78,6 +78,7 @@ if ($wartet !== null) {
             <?php endif; ?>
         <form method="post" action="" data-enter-submit>
             <?= csrf_field() ?>
+            <?= username_hint($wartet) ?>
             <label for="code"><?= t('Code') ?></label>
             <input id="code" type="text" name="code" required<?= $keys === [] ? ' autofocus' : '' ?>
                    autocomplete="one-time-code" inputmode="numeric" placeholder="123456">

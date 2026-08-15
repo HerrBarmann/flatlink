@@ -110,7 +110,10 @@ if (!empty($link['pass'])) {
     }
     echo '<form method="post" action="">'
         . '<label for="zugang">' . t('Passwort') . '</label>'
-        . '<input id="zugang" type="password" name="zugang" required autofocus>'
+        // Kein Konto-Passwort: Es gehört zum Link, nicht zu einer Anmeldung –
+        // eine Passwortverwaltung soll es nicht als Zugangsdatum einsammeln.
+        . '<input id="zugang" type="password" name="zugang" required autofocus'
+        . ' autocomplete="off" data-lpignore="true" data-1p-ignore>'
         . '<p><button class="btn btn-primary" type="submit">' . t('Öffnen') . '</button></p>'
         . '</form></div>';
     page_footer();
