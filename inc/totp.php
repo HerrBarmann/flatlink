@@ -177,7 +177,7 @@ function totp_confirm(string $user, string $eingabe): ?array
             $code .= '23456789ABCDEFGHJKLMNPQRSTUVWXYZ'[random_int(0, 31)];
         }
         $klar[] = substr($code, 0, 5) . '-' . substr($code, 5);
-        // Ein gleichbleibender Abdruck genügt: Der Code ist zufällig und lang,
+        // Ein gleichbleibender Hash genügt: Der Code ist zufällig und lang,
         // der Grund für langsame Passwortverfahren entfällt (wie bei den
         // API-Schlüsseln, siehe inc/token.php).
         $hashes[] = hash('sha256', $code);

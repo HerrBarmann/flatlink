@@ -9,10 +9,10 @@ declare(strict_types=1);
  * selbst darf: Rechte, Limits und Gruppenzugehörigkeit gelten unverändert
  * weiter. Er ist ein zweiter Weg zur Anmeldung, keine zweite Berechtigung.
  *
- * Gespeichert wird nur der SHA-256-Abdruck, nie der Schlüssel selbst – wer die
+ * Gespeichert wird nur der SHA-256-Hash, nie der Schlüssel selbst – wer die
  * Datei liest, kann sich damit nicht anmelden. Bewusst kein password_hash():
  * Zu einer eingehenden Anfrage muss der passende Eintrag *gefunden* werden, und
- * das geht nur mit einem gleichbleibenden Abdruck als Schlüssel. Der Grund für
+ * das geht nur mit einem gleichbleibenden Hash als Schlüssel. Der Grund für
  * langsame Passwort-Verfahren – dass Menschen kurze, erratbare Passwörter
  * wählen – entfällt hier: Ein Schlüssel besteht aus 160 zufälligen Bit.
  */

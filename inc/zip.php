@@ -130,7 +130,7 @@ final class ZipWriter
      *
      * Nicht nur Kosmetik: Ein Name mit `../` darin ist der klassische Weg, beim
      * Entpacken aus dem Zielverzeichnis auszubrechen. Unsere Namen kommen zwar
-     * aus eigenen Daten, aber ein Kurz-Code darf einen Schrägstrich enthalten
+     * aus eigenen Daten, aber ein Kurzcode darf einen Schrägstrich enthalten
      * (Namensräume), und was einmal in eine ZIP-Datei geschrieben wurde,
      * entpackt irgendwann jemand anders.
      */

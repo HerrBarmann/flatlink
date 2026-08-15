@@ -90,7 +90,7 @@ return [
     // Konten mit dem Recht 'qr_unbranded' bekommen die Zeile nicht.
     'qr_brand_text' => '',
 
-    // Optionales Bildzeichen links neben der Absenderzeile. Zwei Dateien,
+    // Optionales Symbol links neben der Absenderzeile. Zwei Dateien,
     // weil Vektor- und Rasterausgabe verschiedene Quellen brauchen: eine
     // eigenständige SVG-Datei mit eigener viewBox fürs SVG, und eine
     // einfarbige PNG-Maske mit Alphakanal fürs Raster (PNG/PDF), die auf die

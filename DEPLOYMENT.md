@@ -176,7 +176,7 @@ Für eine interne Instanz lohnt sich außerdem:
 ## 4. Webserver einrichten
 
 flatlink braucht eine einzige Umschreibung: Alles, was keine echte Datei ist,
-geht an `go.php`, das den Kurz-Code auflöst.
+geht an `go.php`, das den Kurzcode auflöst.
 
 ### Apache
 
@@ -235,7 +235,7 @@ server {
         return 404;
     }
 
-    # Echte Dateien zuerst, sonst als Kurz-Code behandeln
+    # Echte Dateien zuerst, sonst als Kurzcode behandeln
     location / {
         try_files $uri $uri/ @shortcode;
     }

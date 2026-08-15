@@ -20,7 +20,7 @@ gelten, gehört es in `'default_perms'` in der Konfiguration.
 ## Schlüssel anlegen
 
 *Profil → Programmierschnittstelle → Anlegen.* Der Schlüssel wird **einmal**
-angezeigt und danach nirgends mehr — gespeichert ist nur sein Abdruck. Geht er
+angezeigt und danach nirgends mehr — gespeichert ist nur sein Hash. Geht er
 verloren, wird er zurückgezogen und ein neuer angelegt.
 
 Ein Schlüssel beginnt mit `flk_`. Das ist Absicht: Taucht er versehentlich in
@@ -206,5 +206,5 @@ done < liste.csv
 ```
 
 Für einen einmaligen Umzug von einem anderen Dienst ist der CSV-Import in der
-Oberfläche der kürzere Weg — er versteht die Ausfuhren von Bitly und YOURLS
+Oberfläche der kürzere Weg — er versteht die Exporte von Bitly und YOURLS
 unmittelbar.

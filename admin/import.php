@@ -54,7 +54,7 @@ $results = null;
  * Spalten einer Kopfzeile auf unsere Felder abbilden.
  *
  * Statt eine feste Reihenfolge zu verlangen, wird die Kopfzeile gelesen. Damit
- * lassen sich die Ausfuhren von Bitly und YOURLS unverändert einlesen – und
+ * lassen sich die Exporte von Bitly und YOURLS unverändert einlesen – und
  * jede andere Tabelle, deren Spalten vernünftig heißen. Fehlt eine Kopfzeile,
  * gilt weiterhin die alte Reihenfolge url;code;ablauf;name.
  *
@@ -237,7 +237,7 @@ show_flash();
     <p class="muted small">Eine Zeile pro Link: <code>url;wunsch-code;ablaufdatum;name;schlagworte</code> —
     alles außer der URL ist optional, als Trennzeichen geht Semikolon oder Komma. Alle
     Ziel-URLs werden vor dem Anlegen gesammelt auf Phishing/Malware geprüft.</p>
-    <p class="muted small"><strong>Umzug von einem anderen Dienst?</strong> Die Ausfuhren von
+    <p class="muted small"><strong>Umzug von einem anderen Dienst?</strong> Die Exporte von
     <strong>Bitly</strong> und <strong>YOURLS</strong> lassen sich unverändert einlesen: Steht
     eine Kopfzeile darüber, werden die Spalten daran erkannt statt an ihrer Reihenfolge
     (<code>Long URL</code>, <code>Bitlink</code>, <code>Title</code> bzw. <code>url</code>,

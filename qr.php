@@ -208,7 +208,7 @@ $brandText = (string)cfg('qr_brand_text');
 $unbranded = $owner !== null && user_can((string)$owner, 'qr_unbranded');
 $brand = ($brandText === '' || $unbranded) ? null : $brandText;
 
-// Optionales Bildzeichen neben der Absenderzeile
+// Optionales Symbol neben der Absenderzeile
 $glyphSvg = (string)cfg('qr_brand_glyph_svg');
 $glyphPng = (string)cfg('qr_brand_glyph_png');
 $glyphSvg = $glyphSvg !== '' ? __DIR__ . '/assets/' . basename($glyphSvg) : null;

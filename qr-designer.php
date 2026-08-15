@@ -85,7 +85,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (!$darfLogo && in_array($action, ['upload-logo', 'delete-logo'], true)) {
-        flash('Für eigene Logos fehlt diesem Konto die Berechtigung.', 'err');
+        flash('Für eigene Logos fehlt deinem Konto die Berechtigung.', 'err');
         redirect_to('qr-designer.php');
     }
 

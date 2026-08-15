@@ -493,7 +493,7 @@ final class QrRenderer
             'logoScale' => 0.22,       // Anteil an der Kantenlänge
             'frameText' => null,       // Rahmen mit Text unter dem Code (null = kein Rahmen)
             'brandText' => null,       // kleine Absender-Zeile (unter dem Code oder im Band)
-            // Optionales Bildzeichen links neben der Absenderzeile. Zwei Wege,
+            // Optionales Symbol links neben der Absenderzeile. Zwei Wege,
             // weil Vektor- und Rasterausgabe verschiedene Quellen brauchen:
             // eine eigenständige SVG-Datei (mit eigener viewBox) fürs SVG und
             // eine PNG-Maske fürs Raster, die auf die Textfarbe eingefärbt wird.
@@ -643,7 +643,7 @@ final class QrRenderer
         return $cache[$file] = [trim($inner), trim($m[1]), $vb[2] / $vb[3]];
     }
 
-    /** Absender-Zeile, optional mit Bildzeichen davor, um $cx zentriert */
+    /** Absender-Zeile, optional mit Symbol davor, um $cx zentriert */
     private function svgBrandLine(float $cx, float $cy, float $fs, string $text, string $color, float $opacity = 1.0): string
     {
         $font = ' font-family="&#39;Courier New&#39;, monospace" font-weight="500"'
@@ -1402,7 +1402,7 @@ final class QrRenderer
     }
 
     /**
-     * Absender-Zeile im Raster: optionales Bildzeichen (eingefärbte PNG-Maske)
+     * Absender-Zeile im Raster: optionales Symbol (eingefärbte PNG-Maske)
      * plus Text, zusammen zentriert. Ohne Maske oder ohne TrueType-Schrift
      * übernimmt gdBandText.
      */

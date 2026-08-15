@@ -8,7 +8,7 @@ require_once __DIR__ . '/inc/bio.php';
 
 $code = $_GET['c'] ?? '';
 if (!is_string($code) || $code === '') {
-    // ErrorDocument-Fallback: Kurz-Code aus dem ursprünglich angefragten Pfad ableiten
+    // ErrorDocument-Fallback: Kurzcode aus dem ursprünglich angefragten Pfad ableiten
     $path = rawurldecode((string)parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH));
     $base = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/')), '/');
     if ($base !== '' && str_starts_with($path, $base)) {

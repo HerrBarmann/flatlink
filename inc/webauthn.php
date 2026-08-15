@@ -19,7 +19,7 @@ declare(strict_types=1);
  *
  *   1. Die Aufgabe (Challenge) muss die sein, die wir selbst gestellt haben.
  *   2. Die Herkunft (Origin) muss unsere sein – hier hängt die Phishing-Abwehr.
- *   3. Der Abdruck der Domain (rpIdHash) muss zu unserer Domain passen.
+ *   3. Der Hash der Domain (rpIdHash) muss zu unserer Domain passen.
  *   4. Die Unterschrift muss zum hinterlegten Schlüssel passen.
  *
  * Alles in reinem PHP: Der CBOR-Teil ist selbst geschrieben, die Prüfung der
@@ -346,7 +346,7 @@ function webauthn_check_clientdata(string $json, string $erwarteterTyp, string $
 /**
  * Die Daten des Authenticators zerlegen.
  *
- * Aufbau: 32 Byte Abdruck der Domain, 1 Byte Merker, 4 Byte Zähler, danach
+ * Aufbau: 32 Byte Hash der Domain, 1 Byte Merker, 4 Byte Zähler, danach
  * optional die Angaben zum frisch erzeugten Schlüssel.
  *
  * @return array{rpIdHash:string,flags:int,signCount:int,credId:?string,cose:?array}
@@ -391,7 +391,7 @@ function passkey_register(string $user, array $antwort, string $label): ?string
         $att = cbor_decode(b64u_decode((string)($antwort['attestationObject'] ?? '')));
         if (!is_array($att) || !isset($att['authData'])) return 'Antwort des Geräts unlesbar.';
         $auth = webauthn_parse_authdata((string)$att['authData']);
-        // (3) Der Abdruck der Domain muss zu unserer passen
+        // (3) Der Hash der Domain muss zu unserer passen
         if (!hash_equals(hash('sha256', webauthn_rp_id(), true), $auth['rpIdHash'])) {
             return 'Der Passkey gehört zu einer anderen Adresse.';
         }
@@ -453,7 +453,7 @@ function passkey_verify(string $user, array $antwort): ?string
     } catch (Throwable $e) {
         return 'Antwort des Geräts nicht verwertbar.';
     }
-    // (3) Abdruck der Domain
+    // (3) Hash der Domain
     if (!hash_equals(hash('sha256', webauthn_rp_id(), true), $auth['rpIdHash'])) {
         return 'Der Passkey gehört zu einer anderen Adresse.';
     }
