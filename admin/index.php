@@ -37,6 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'prefix' => (string)($_POST['prefix'] ?? ''),
             'group' => (string)($_POST['group'] ?? ''),
             'expires' => (string)($_POST['expires'] ?? ''),
+            'starts' => (string)($_POST['starts'] ?? ''),
             'title' => (string)($_POST['title'] ?? ''),
             'tags' => (string)($_POST['tags'] ?? ''),
             'domain' => (string)($_POST['domain'] ?? ''),
@@ -73,6 +74,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             [$err, $opts] = link_rules_update($user, $link, [
                 'url' => (string)($_POST['url'] ?? ''),
                 'expires' => (string)($_POST['expires'] ?? ''),
+                'starts' => (string)($_POST['starts'] ?? ''),
                 'group' => (string)($_POST['group'] ?? ''),
                 'title' => (string)($_POST['title'] ?? ''),
                 'tags' => (string)($_POST['tags'] ?? ''),
@@ -163,6 +165,7 @@ if (($_GET['export'] ?? '') === 'csv') {
             (string)($l['url'] ?? ''),
             (string)($l['title'] ?? ''),
             implode(', ', (array)($l['tags'] ?? [])),
+            (string)($l['starts'] ?? ''),
             (string)($l['expires'] ?? ''),
             (string)($l['group'] ?? ''),
             (string)($l['domain'] ?? ''),
@@ -320,9 +323,15 @@ if ($neu !== null && link_access($user, $neu)):
             </select>
         </div>
         <?php endif; ?>
-        <div>
-            <label for="c-expires"><?= t('Ablaufdatum') ?> <span class="muted">(<?= t('optional, gültig bis einschließlich') ?>)</span></label>
-            <input id="c-expires" type="date" name="expires" min="<?= e(date('Y-m-d')) ?>">
+        <div class="two-col">
+            <div>
+                <label for="c-starts"><?= t('Aktiv ab') ?> <span class="muted">(<?= t('optional, sonst sofort') ?>)</span></label>
+                <input id="c-starts" type="date" name="starts" min="<?= e(date('Y-m-d')) ?>">
+            </div>
+            <div>
+                <label for="c-expires"><?= t('Ablaufdatum') ?> <span class="muted">(<?= t('optional, gültig bis einschließlich') ?>)</span></label>
+                <input id="c-expires" type="date" name="expires" min="<?= e(date('Y-m-d')) ?>">
+            </div>
         </div>
         <div>
             <label for="c-linkpass"><?= t('Passwortschutz') ?> <span class="muted">(<?= t('optional – Besucher müssen es vor der Weiterleitung eingeben') ?>)</span></label>
@@ -366,9 +375,15 @@ if ($neu !== null && link_access($user, $neu)):
             <p class="muted small"><?= t('Achtung: Ein bereits gedruckter QR-Code zeigt weiterhin auf die alte Adresse. Ändere sie nur, solange der Link noch nicht im Umlauf ist.') ?></p>
             <?php endif; ?>
         </div>
-        <div>
-            <label for="e-expires"><?= t('Ablaufdatum') ?> <span class="muted">(<?= t('leer = kein Ablauf') ?>)</span></label>
-            <input id="e-expires" type="date" name="expires" value="<?= e($editLink['expires'] ?? '') ?>">
+        <div class="two-col">
+            <div>
+                <label for="e-starts"><?= t('Aktiv ab') ?> <span class="muted">(<?= t('leer = sofort') ?>)</span></label>
+                <input id="e-starts" type="date" name="starts" value="<?= e($editLink['starts'] ?? '') ?>">
+            </div>
+            <div>
+                <label for="e-expires"><?= t('Ablaufdatum') ?> <span class="muted">(<?= t('leer = kein Ablauf') ?>)</span></label>
+                <input id="e-expires" type="date" name="expires" value="<?= e($editLink['expires'] ?? '') ?>">
+            </div>
         </div>
         <?php if ($assignable !== [] || ($editLink['group'] ?? null) !== null): ?>
         <div>
@@ -466,6 +481,8 @@ if ($neu !== null && link_access($user, $neu)):
                     <?php if ($utm !== []): ?><span class="badge badge-quiet" title="<?= t('Kampagne:') ?> <?= e(implode(' · ', $utm)) ?>">UTM<?= isset($utm['utm_campaign']) ? ' ' . e($utm['utm_campaign']) : '' ?></span><?php endif; ?>
                     <?php if (($link['expires'] ?? null) !== null && link_expired($link)): ?>
                         <span class="badge badge-expired" title="<?= t('seit %s', e(date('d.m.Y', strtotime($link['expires'])))) ?>"><?= t('abgelaufen') ?></span>
+                    <?php elseif (link_pending($link)): ?>
+                        <span class="badge badge-quiet" title="<?= t('ab %s', e(date('d.m.Y', strtotime((string)$link['starts'])))) ?>"><?= t('geplant') ?></span>
                     <?php endif; ?>
                 </div>
                 <?php if (($link['title'] ?? '') !== ''): ?><div class="link-title"><?= e((string)$link['title']) ?></div><?php endif; ?>
@@ -481,6 +498,9 @@ if ($neu !== null && link_access($user, $neu)):
                         <?php endforeach; ?>
                     <?php endif; ?>
                     <span class="muted small"><?= e(date('d.m.Y', strtotime($link['created']))) ?></span>
+                    <?php if (link_pending($link)): ?>
+                        <span class="muted small" title="<?= t('Aktiv ab') ?>">▶ <?= e(date('d.m.Y', strtotime((string)$link['starts']))) ?></span>
+                    <?php endif; ?>
                     <?php if (($link['expires'] ?? null) !== null && !link_expired($link)): ?>
                         <span class="muted small" title="<?= t('Läuft ab') ?>">⏳ <?= e(date('d.m.Y', strtotime($link['expires']))) ?></span>
                     <?php endif; ?>

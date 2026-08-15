@@ -143,7 +143,9 @@ it requires.
 ## What's included
 
 - **Short links** with random or self-chosen codes, an optional label, tags
-  for filtering, an optional expiry date and optional password protection
+  for filtering, **a start date and an expiry date**, and optional password
+  protection – a code can be printed and handed out before its target goes
+  live
 - **QR codes** from an in-house encoder (ISO/IEC 18004, byte mode,
   **versions 1–40**, error correction L/M/Q/H) – without any third-party
   library. Up to 2953 characters, so long addresses with campaign parameters

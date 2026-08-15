@@ -117,6 +117,20 @@ function link_expired(array $link): bool
 }
 
 /**
+ * Noch nicht aktiv = Startdatum gesetzt und der Tag noch nicht erreicht.
+ *
+ * Das Gegenstück zum Ablauf, für Kampagnen, Semesterstarts, Pressetermine:
+ * Der Code ist gedruckt und verteilt, das Ziel soll aber erst am Stichtag
+ * erreichbar sein. Gültig ab dem genannten Tag, wie der Ablauf bis
+ * einschließlich seines Tages gilt.
+ */
+function link_pending(array $link): bool
+{
+    $s = $link['starts'] ?? null;
+    return $s !== null && date('Y-m-d') < $s;
+}
+
+/**
  * Automatisches Aufräumen (AGB § 2): Links, deren letzter Aufruf länger als
  * cfg('link_gc_years') Jahre zurückliegt (nie aufgerufene: ab Erstellung).
  *
@@ -322,6 +336,10 @@ function link_apply_meta(array $l, array $opts): array
         // Konfiguration und würde beim Umzug einer Instanz sonst falsch stehen.
         $d = (string)($opts['domain'] ?? '');
         if ($d === '') unset($l['domain']); else $l['domain'] = $d;
+    }
+    if (array_key_exists('starts', $opts)) {
+        $st = $opts['starts'];
+        if ($st === null || $st === '') unset($l['starts']); else $l['starts'] = (string)$st;
     }
     return $l;
 }

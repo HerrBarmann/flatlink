@@ -20,6 +20,24 @@ Ordnung, keine Berechtigung – wer Zugriff regeln will, nimmt
 Verfügbar auch über die [Schnittstelle](../API.md) (Feld `tags`, Filter `?tag=`)
 und im CSV-Import (Spalte `schlagworte` oder `tags`).
 
+## Startdatum und Ablauf
+
+Ein Link kann ein **Startdatum** tragen: Vorher gibt es ihn schon – der Code
+ist vergeben, der QR-Code druckbar, die Adresse steht fest –, aber er führt
+noch nicht weiter. Wer ihn zu früh scannt, bekommt eine Seite mit dem Datum
+statt einer Weiterleitung (410, dieselbe Antwort wie bei einem abgelaufenen
+Link: Der Code existiert, führt heute aber nicht).
+
+Das ist der Fall, für den Plakate gedruckt werden, bevor die Kampagne läuft:
+Semesterstart, Pressetermin, Produktvorstellung. Zusammen mit dem
+Ablaufdatum lässt sich ein Zeitfenster abstecken; ein Startdatum nach dem
+Ablauf wird abgelehnt.
+
+Gültig ist der Link **ab** dem genannten Tag (wie der Ablauf **bis
+einschließlich** seines Tages gilt). Ein leeres Feld heißt „sofort".
+Verfügbar auch über die [Schnittstelle](../API.md) (Feld `starts`, dazu
+`pending` in der Antwort) und im CSV-Export.
+
 ## Kampagnen-Parameter (UTM)
 
 Beim Anlegen und Ändern eines Links lassen sich `utm_source`, `utm_medium`,

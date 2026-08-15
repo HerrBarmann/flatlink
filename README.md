@@ -139,7 +139,9 @@ auch alles, was sie verlangt.
 ## Was drin ist
 
 - **Kurzlinks** mit zufälligem oder selbst gewähltem Code, optionalem Namen,
-  Schlagworten zum Filtern, optionalem Ablaufdatum und optionalem Passwortschutz
+  Schlagworten zum Filtern, **Startdatum und Ablaufdatum** und optionalem
+  Passwortschutz – ein Code kann also gedruckt und verteilt sein, bevor sein
+  Ziel erreichbar ist
 - **QR-Codes** aus einem eigenen Encoder (ISO/IEC 18004, Byte-Mode,
   **Versionen 1–40**, Fehlerkorrektur L/M/Q/H) – ohne jede Fremdbibliothek.
   Bis zu 2953 Zeichen, also auch lange Adressen mit Kampagnen-Parametern

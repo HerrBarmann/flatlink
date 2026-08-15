@@ -310,6 +310,24 @@ function parse_expiry(string $raw): array
 }
 
 /**
+ * Startdatum lesen – wie parse_expiry, nur ohne Vergangenheits-Sperre in der
+ * Bedeutung: Ein Startdatum von heute heißt „ab sofort", eines von gestern
+ * ist harmlos (der Link ist dann längst aktiv) und wird stillschweigend
+ * übernommen. Zurückgewiesen wird nur Unsinn im Format.
+ *
+ * @return array{0:bool,1:?string} [gültig, Datum oder null]
+ */
+function parse_start(string $raw): array
+{
+    $raw = trim($raw);
+    if ($raw === '') return [true, null];
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $raw)) return [false, null];
+    [$y, $m, $d] = array_map('intval', explode('-', $raw));
+    if (!checkdate($m, $d, $y)) return [false, null];
+    return [true, $raw];
+}
+
+/**
  * Adresse des Aufrufers.
  *
  * Standardmäßig REMOTE_ADDR – der einzige Wert, den der Webserver selbst

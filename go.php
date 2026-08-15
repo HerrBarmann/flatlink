@@ -36,6 +36,19 @@ if (!empty($link['disabled'])) {
     exit;
 }
 
+// Noch nicht aktiv: dieselbe Antwort wie „abgelaufen" (410) – der Code
+// existiert, führt aber heute nicht weiter. Das Datum steht dabei, damit
+// niemand rätselt, ob der Aufkleber kaputt ist.
+if (link_pending($link)) {
+    http_response_code(410);
+    page_header(t('Noch nicht aktiv'));
+    echo '<div class="card center"><h1>' . t('Noch nicht aktiv') . '</h1><p>'
+        . t('Dieser Kurzlink führt ab dem %s weiter.', e(date('d.m.Y', strtotime((string)$link['starts'])))) . '</p>'
+        . '<p><a class="btn" href="./">' . t('Zur Startseite') . '</a></p></div>';
+    page_footer();
+    exit;
+}
+
 if (link_expired($link)) {
     http_response_code(410);
     page_header(t('Abgelaufen'));

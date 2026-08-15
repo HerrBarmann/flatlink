@@ -66,6 +66,7 @@ function link_rules_create(array $user, array $in): array
     $minLen = (int)settings()['custom_code_min_len'];
 
     [$expOk, $expires] = parse_expiry((string)($in['expires'] ?? ''));
+    [$startOk, $starts] = parse_start((string)($in['starts'] ?? ''));
 
     $err = null;
     if (!valid_url($url)) {
@@ -86,6 +87,10 @@ function link_rules_create(array $user, array $in): array
         $err = t('Dieser Name ist als Namensraum vergeben.');
     } elseif (!$expOk) {
         $err = t('Ungültiges Ablaufdatum (frühestens heute).');
+    } elseif (!$startOk) {
+        $err = t('Ungültiges Startdatum (JJJJ-MM-TT).');
+    } elseif ($starts !== null && $expires !== null && $starts > $expires) {
+        $err = t('Der Link kann nicht ablaufen, bevor er beginnt.');
     } elseif (url_flagged($url)) {
         $err = t('Diese Ziel-URL ist als schädlich gemeldet und kann nicht verkürzt werden.');
     }
@@ -97,6 +102,7 @@ function link_rules_create(array $user, array $in): array
     $opts = [
         'prefix' => $prefix,
         'expires' => $expires,
+        'starts' => $starts,
         'group' => $group,
         'title' => (string)($in['title'] ?? ''),
         'url' => $url,
@@ -130,6 +136,14 @@ function link_rules_update(array $user, array $link, array $in): array
         [$expOk, $expires] = parse_expiry($rawExp);
     }
 
+    // Dasselbe fürs Startdatum
+    $rawStart = array_key_exists('starts', $in) ? trim((string)$in['starts']) : (string)($link['starts'] ?? '');
+    if ($rawStart === (string)($link['starts'] ?? '')) {
+        [$startOk, $starts] = [true, $link['starts'] ?? null];
+    } else {
+        [$startOk, $starts] = parse_start($rawStart);
+    }
+
     $group = array_key_exists('group', $in) ? trim((string)$in['group']) : (string)($link['group'] ?? '');
     $group = $group === '' ? null : $group;
     $assignable = link_rules_assignable($user);
@@ -145,8 +159,14 @@ function link_rules_update(array $user, array $link, array $in): array
     if (!$expOk) {
         return [t('Ungültiges Ablaufdatum (frühestens heute, leer = kein Ablauf).'), []];
     }
+    if (!$startOk) {
+        return [t('Ungültiges Startdatum (JJJJ-MM-TT).'), []];
+    }
+    if ($starts !== null && $expires !== null && $starts > $expires) {
+        return [t('Der Link kann nicht ablaufen, bevor er beginnt.'), []];
+    }
 
-    $opts = ['expires' => $expires, 'group' => $group, 'url' => $url];
+    $opts = ['expires' => $expires, 'starts' => $starts, 'group' => $group, 'url' => $url];
     if (array_key_exists('title', $in)) $opts['title'] = (string)$in['title'];
     if (array_key_exists('tags', $in)) $opts['tags'] = $in['tags'];
     if (array_key_exists('domain', $in)) {

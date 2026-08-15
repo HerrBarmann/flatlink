@@ -971,4 +971,13 @@ your password immediately and contact us.
     'Zuletzt: %s' => 'Last run: %s',
     'Jetzt prüfen' => 'Check now',
     'Alle aktiven Ziele jetzt gegen Safe Browsing prüfen? Das kann bei großen Beständen dauern.' => 'Check all active targets against Safe Browsing now? This can take a while on large stocks.',
+    'Aktiv ab' => 'Active from',
+    'optional, sonst sofort' => 'optional, otherwise immediately',
+    'leer = sofort' => 'empty = immediately',
+    'geplant' => 'scheduled',
+    'ab %s' => 'from %s',
+    'Noch nicht aktiv' => 'Not active yet',
+    'Dieser Kurzlink führt ab dem %s weiter.' => 'This short link will forward from %s.',
+    'Ungültiges Startdatum (JJJJ-MM-TT).' => 'Invalid start date (YYYY-MM-DD).',
+    'Der Link kann nicht ablaufen, bevor er beginnt.' => 'The link cannot expire before it starts.',
 ];
