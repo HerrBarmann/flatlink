@@ -157,7 +157,7 @@ uasort($links, fn($a, $b) => strcmp($b['created'], $a['created']));
 // kein Zusatz, sondern das Gegenstück zum Umzug HIERHER – niemand soll
 // bleiben müssen, weil er seine Links nicht mitnehmen kann.
 if (($_GET['export'] ?? '') === 'csv') {
-    $csv = "code;url;name;schlagworte;ablaufdatum;gruppe;domain;klicks;angelegt
+    $csv = "code;url;name;schlagworte;startdatum;ablaufdatum;gruppe;domain;klicks;angelegt
 ";
     foreach ($links as $code => $l) {
         $csv .= implode(';', array_map('csv_feld', [
@@ -180,7 +180,7 @@ if (($_GET['export'] ?? '') === 'csv') {
     header('Cache-Control: no-store');
     // BOM, damit Excel die Umlaute nicht verstümmelt – dieselbe Rücksicht
     // wie beim Serien-Export und beim Datenexport im Profil
-    echo "ï»¿" . $csv;
+    echo "\xEF\xBB\xBF" . $csv;
     exit;
 }
 

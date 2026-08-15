@@ -57,7 +57,7 @@ $results = null;
  * jede andere Tabelle, deren Spalten vernünftig heißen. Fehlt eine Kopfzeile,
  * gilt weiterhin die alte Reihenfolge url;code;ablauf;name.
  *
- * @return array{url:int,code:int,title:int,expires:int} Spaltennummern, -1 = nicht vorhanden
+ * @return array{url:int,code:int,title:int,expires:int,starts:int,tags:int} Spaltennummern, -1 = nicht vorhanden
  */
 function import_spalten(array $kopf): array
 {
@@ -68,9 +68,10 @@ function import_spalten(array $kopf): array
                    'short link', 'slug', 'alias', 'code', 'kurzcode', 'wunsch-code', 'kurzlink'],
         'title' => ['title', 'titel', 'name', 'description', 'beschreibung'],
         'expires' => ['expires', 'expires_at', 'expiry', 'expiration', 'ablauf', 'ablaufdatum'],
+        'starts' => ['starts', 'starts_at', 'start', 'startdatum', 'gueltig ab', 'gültig ab'],
         'tags' => ['tags', 'tag', 'schlagworte', 'schlagwort', 'labels', 'keywords'],
     ];
-    $map = ['url' => -1, 'code' => -1, 'title' => -1, 'expires' => -1, 'tags' => -1];
+    $map = ['url' => -1, 'code' => -1, 'title' => -1, 'expires' => -1, 'starts' => -1, 'tags' => -1];
     foreach ($kopf as $i => $name) {
         $name = strtolower(trim($name));
         foreach ($bekannt as $feld => $namen) {
@@ -80,6 +81,22 @@ function import_spalten(array $kopf): array
         }
     }
     return $map;
+}
+
+/**
+ * Eine CSV-Zeile zerlegen.
+ *
+ * str_getcsv() bekommt das Escape-Zeichen ausdrücklich mit: Ab PHP 8.4 mahnt
+ * die Funktion an, dass ihr Standardwert sich ändern wird, und schriebe sonst
+ * je Zeile eine Deprecated-Meldung ins Fehlerprotokoll – bei einem Import mit
+ * 500 Zeilen also 500 Stück. Der leere String ist dabei nicht nur der künftige
+ * Standard, sondern auch der richtige Wert: CSV nach RFC 4180 kennt kein
+ * Escape mit Backslash, und in Ziel-Adressen darf am Feldende einer stehen,
+ * ohne das nächste Feld anzukleben.
+ */
+function csv_zerlegen(string $zeile, string $sep): array
+{
+    return str_getcsv($zeile, $sep, '"', '');
 }
 
 /**
@@ -122,7 +139,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($lines !== [] && stripos($lines[0], 'http') !== 0) {
         $kopf = $lines[0];
         $sep = substr_count($kopf, ';') >= substr_count($kopf, ',') ? ';' : ',';
-        $erkannt = import_spalten(array_map('strval', str_getcsv($kopf, $sep)));
+        $erkannt = import_spalten(array_map('strval', csv_zerlegen($kopf, $sep)));
         // Ohne erkannte Ziel-Spalte bleibt es bei der festen Reihenfolge –
         // sonst würde eine unverstandene Kopfzeile alle Zeilen verwerfen.
         if ($erkannt['url'] !== -1) $map = $erkannt;
@@ -143,7 +160,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $rows = [];
     foreach ($lines as $i => $line) {
         $sep = substr_count($line, ';') >= substr_count($line, ',') ? ';' : ',';
-        $cols = array_map('trim', str_getcsv($line, $sep));
+        $cols = array_map('trim', csv_zerlegen($line, $sep));
         $holen = fn(string $feld) => ($map[$feld] ?? -1) >= 0 ? (string)($cols[$map[$feld]] ?? '') : '';
         $url = $holen('url');
         if (!str_starts_with($url, 'http://') && !str_starts_with($url, 'https://') && $url !== '') {
@@ -154,6 +171,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'url' => $url,
             'code' => import_code($holen('code')),
             'expires' => $holen('expires'),
+            'starts' => $holen('starts'),
             'title' => $holen('title'),
             'tags' => $holen('tags'),
         ];
@@ -184,6 +202,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     foreach ($rows as $r) {
         $err = null;
         [$expOk, $expires] = parse_expiry($r['expires']);
+        [$startOk, $starts] = parse_start($r['starts']);
         if ($utm !== []) $r['url'] = utm_apply($r['url'], $utm);
         if (!valid_url($r['url'])) {
             $err = t('Ungültige URL');
@@ -191,6 +210,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $err = t('Als schädlich gemeldet (Safe Browsing)');
         } elseif (!$expOk) {
             $err = t('Ungültiges Ablaufdatum (JJJJ-MM-TT, frühestens heute)');
+        } elseif (!$startOk) {
+            $err = t('Ungültiges Startdatum (JJJJ-MM-TT).');
+        } elseif ($starts !== null && $expires !== null && $expires < $starts) {
+            $err = t('Der Link kann nicht ablaufen, bevor er beginnt.');
         } elseif (!$isAdmin && $usedLinks + $created >= $quotaLinks) {
             $err = t('Link-Limit erreicht (%d)', $quotaLinks);
         } elseif ($r['code'] !== '') {
@@ -208,7 +231,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($err === null) {
             [$ok, $result] = link_create($r['url'], $r['code'] === '' ? null : $r['code'], $user['name'],
                 $r['code'] === '' ? 'random' : 'custom',
-                ['expires' => $expires, 'group' => $group, 'title' => $r['title'],
+                ['expires' => $expires, 'starts' => $starts, 'group' => $group, 'title' => $r['title'],
                  'tags' => $r['tags'], 'domain' => $domain]);
             if ($ok) {
                 $created++;
@@ -231,7 +254,7 @@ show_flash();
     <?php if (!$darfMasse && !$isAdmin): ?>
     <p class="muted small"><?= t('Dein Konto kann so viele Links auf einmal einlesen, wie in dein Kontingent passen (%d frei). Für größere Durchgänge gibt es die Berechtigung zum Massen-Import.', (int)$maxRows) ?></p>
     <?php endif; ?>
-    <p class="muted small"><?= t('Eine Zeile pro Link: %s — alles außer der URL ist optional, als Trennzeichen geht Semikolon oder Komma. Alle Ziel-URLs werden vor dem Anlegen gesammelt auf Phishing/Malware geprüft.', '<code>url;wunsch-code;ablaufdatum;name;schlagworte</code>') ?></p>
+    <p class="muted small"><?= t('Eine Zeile pro Link: %s — alles außer der URL ist optional, als Trennzeichen geht Semikolon oder Komma. Alle Ziel-URLs werden vor dem Anlegen gesammelt auf Phishing/Malware geprüft.', '<code>url;wunsch-code;ablaufdatum;name;schlagworte;startdatum</code>') ?></p>
     <p class="muted small"><strong><?= t('Umzug von einem anderen Dienst?') ?></strong> <?= t('Die Exporte von %sBitly%s und %sYOURLS%s lassen sich unverändert einlesen: Steht eine Kopfzeile darüber, werden die Spalten daran erkannt statt an ihrer Reihenfolge (%s bzw. %s). Enthält die Code-Spalte eine ganze Adresse wie %s, wird der letzte Teil übernommen – die Kurzcodes bleiben also erhalten.',
         '<strong>', '</strong>', '<strong>', '</strong>',
         '<code>Long URL</code>, <code>Bitlink</code>, <code>Title</code>',
