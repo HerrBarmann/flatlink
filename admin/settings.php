@@ -214,25 +214,12 @@ $host = preg_replace('#^https?://#', '', base_url());
     <p class="muted small"><?= t('Die Domain muss zusätzlich beim Hoster auf dieses Verzeichnis zeigen und im Zertifikat stehen – das kann diese Oberfläche nicht für dich tun.') ?></p>
 </div>
 
-<div class="card">
-    <h2><?= t('Ablage') ?></h2>
-    <?php
-    $dataPath = data_path();
-    $imWebroot = data_dir_in_webroot();
-    ?>
-    <p class="muted small"><?= t('Laufzeitdaten liegen in') ?><br>
-    <code style="word-break:break-all"><?= e($dataPath) ?></code></p>
-    <p class="muted small"><?= t('Links und Konten:') ?> SQLite
-        (<code><?= e(basename(db_file())) ?></code>)</p>
-    <?php if ($imWebroot): ?>
-    <div class="flash flash-err" style="margin-top:0.8rem">
-        <strong><?= t('Das Verzeichnis liegt im Webroot.') ?></strong> <?= t('Geschützt ist es dort nur durch die %s – die nginx, Caddy und LiteSpeed ignorieren. Darin stehen Passwort-Hashes und gültige Reset-Token. Wenn dein Hosting einen Pfad außerhalb zulässt, trag ihn als %s in %s ein – den Inhalt vorher kopieren, erst danach die Konfiguration umstellen.', '<code>.htaccess</code>', '<code>data_dir</code>', '<code>inc/config.php</code>') ?>
-    </div>
-    <?php else: ?>
-    <p class="muted small"><?= t('Außerhalb des Webroots – so soll es sein.') ?></p>
-    <?php endif; ?>
-    <p class="muted small"><?= t('Kurzlinks:') ?> <?= number_format((int)db()->query('SELECT COUNT(*) FROM links')->fetchColumn(), 0, t(','), t('.')) ?></p>
+<?php if (data_dir_in_webroot()): ?>
+<div class="flash flash-err">
+    <strong><?= t('Das Datenverzeichnis liegt im Webroot') ?></strong> (<code style="word-break:break-all"><?= e(data_path()) ?></code>).
+    <?= t('Geschützt ist es dort nur durch die %s – die nginx, Caddy und LiteSpeed ignorieren. Darin stehen Passwort-Hashes und gültige Reset-Token. Wenn dein Hosting einen Pfad außerhalb zulässt, trag ihn als %s in %s ein – den Inhalt vorher kopieren, erst danach die Konfiguration umstellen.', '<code>.htaccess</code>', '<code>data_dir</code>', '<code>inc/config.php</code>') ?>
 </div>
+<?php endif; ?>
 
 <div class="card">
     <h2><?= t('Öffentliche Oberfläche') ?></h2>
