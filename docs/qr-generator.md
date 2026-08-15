@@ -2,7 +2,7 @@
 
 Alles zu QR-Codes in flatlink: die zwei Arten von Codes, der eigene Encoder,
 Gestaltung, Lesbarkeit, der Export für den Druck, Serien und der GS1 Digital
-Link. Zurück zur [README](../README.md).
+Link. Zurück zur [README](../README.md). – 🇬🇧 [English version](qr-generator.en.md).
 
 ## Zwei Arten von QR-Code
 
@@ -176,12 +176,13 @@ Font-Lizenz anhängt.
 ## QR-Serien als ZIP
 
 Zwanzig Tischaufsteller, eine Ausstellung, eine Aufkleberserie: *QR-Serie* in
-der Kopfzeile packt die QR-Codes mehrerer Links in ein Archiv. Format (SVG oder
-PNG), Modul- und Eckenform, Farben und Größe gelten für die ganze Serie.
+der Kopfzeile packt die QR-Codes mehrerer Links in ein Archiv. Das volle
+Gestaltungs-Panel gilt für die ganze Serie – Formen, Augen, Farben, Verläufe,
+Fehlerkorrektur, Rahmentext und Logo –, mit einer Live-Vorschau am ersten
+Link der Liste. Höchstens 200 Codes je Archiv.
 
 Der Weg führt über die Liste: nach Schlagwort oder Gruppe filtern, dann den
-Knopf über der Tabelle – die Auswahl steht schon. Höchstens 200 Codes je
-Archiv.
+Knopf über der Liste – die Auswahl steht schon.
 
 Im ZIP liegt **eine Übersicht als CSV**. Wer eine Serie an eine Druckerei gibt,
 braucht die Zuordnung von Datei zu Ziel, nicht nur die Bilder; und die

@@ -2,7 +2,7 @@
 
 Zwei-Faktor-Anmeldung mit Passkeys oder Einmalkennwörtern, zentrale Anmeldung
 über LDAP oder den Webserver, und was Konten selbst über ihre Daten bestimmen.
-Zurück zur [README](../README.md).
+Zurück zur [README](../README.md). – 🇬🇧 [English version](konten.en.md).
 
 ## Zwei-Faktor-Anmeldung
 

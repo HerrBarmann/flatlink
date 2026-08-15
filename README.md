@@ -17,6 +17,9 @@
   <img src="docs/screenshots/linkliste.png" alt="Die Linkliste mit Schlagworten, Gruppen und Klickzahlen" width="820">
 </p>
 
+> 🇬🇧 English version: **[README.en.md](README.en.md)** – the manual chapters
+> are translated as well.
+
 ---
 
 ## Der Punkt
@@ -104,15 +107,6 @@ Admin-Konto an. Für den Dauerbetrieb: Dateien auf den Webspace kopieren,
 `data/` beschreibbar machen, `base_url` in der Konfiguration eintragen.
 Ausführlich unter [Installation](#installation).
 
-> **In English:** a self-hosted URL shortener with a print-ready QR code
-> designer and link-in-bio pages, written in dependency-free PHP – built for
-> universities, libraries and public bodies that must keep their links in
-> house. No database, no Composer, no build step. Click statistics are a
-> per-day counter and nothing else: no IP addresses, no user agents, no
-> referrers, no per-visit records. Licensed under the GNU AGPL
-> v3 with an attribution term under section 7(b): every interface must keep a
-> visible notice naming flatlink and linking to the project.
-
 ## Für wen das gedacht ist
 
 - **Hochschulen, Bibliotheken, Schulen, Verwaltungen**, die Kurzlinks nicht an
@@ -160,6 +154,10 @@ auch alles, was sie verlangt.
   WLAN-Zugänge, Kontakte (vCard), Termine (iCalendar) und **GS1 Digital Link** – die Eingaben werden nirgends
   gespeichert, sondern direkt in den Code kodiert, sodass diese Grafiken völlig
   unabhängig vom Dienst funktionieren
+- **Englische Oberfläche**: Deutsch ist die Quellsprache, die Sprache gilt je
+  Instanz (`'language'` in der Konfiguration oder unter *Einstellungen*, zur
+  Laufzeit). Eine weitere Sprache ist eine Datei unter `inc/lang/`; was einer
+  Übersetzung fehlt, bleibt sichtbar deutsch statt leer
 - **Konten** mit Selbstregistrierung per Double-Opt-In, Passwort-Reset und
   Rollen (Nutzer/Admin), inklusive Nutzungs-Limits pro Konto
 - **QR-Codes einzeln oder als Serie im ZIP**, mit Übersicht als CSV
@@ -238,6 +236,7 @@ Alles steckt in `inc/config.php`; die kommentierte Vorlage ist
 | --- | --- |
 | `site_name` | Anzeigename in Titel, Kopfzeile und Mails |
 | `base_url` | Feste Basis-URL; leer = automatische Erkennung |
+| `language` | Sprache der Oberfläche (`de` ist die Quellsprache, `en` liegt bei) |
 | `limits` | Links, Statistik-Tiefe und Logos pro Konto (`0` = unbegrenzt) |
 | `default_perms` | Rechte, die jedes angemeldete Konto ohne Gruppe hat |
 | `sso` | Zentrale Anmeldung über den Webserver (Shibboleth/SAML/OIDC) |
@@ -256,7 +255,8 @@ Instanz nur intern genutzt werden soll.
 
 ## Handbuch
 
-Die README ist der Überblick; die Tiefe steht in eigenen Dokumenten:
+Die README ist der Überblick; die Tiefe steht in eigenen Dokumenten.
+Die vier Handbücher gibt es auch auf Englisch (`.en.md` daneben):
 
 | Dokument | Inhalt |
 | --- | --- |
@@ -301,11 +301,9 @@ Wahl – dafür braucht flatlink weder Einrichtung noch Wartung noch Migration.
 
 ## Was nicht drin ist
 
-Damit niemand danach sucht: keine
-mehrsprachige Oberfläche (die Texte sind deutsch), keine Statistik nach Ländern
-oder Geräten – Letzteres liegt in der Natur der Sache. Gruppen teilen Links und
-Rechte, trennen aber keine Mandanten voneinander: Administratoren sehen immer
-alles.
+Damit niemand danach sucht: keine Statistik nach Ländern oder Geräten – das
+liegt in der Natur der Sache. Gruppen teilen Links und Rechte, trennen aber
+keine Mandanten voneinander: Administratoren sehen immer alles.
 
 Ebenfalls nicht enthalten sind **Impressum, Datenschutzerklärung und AGB**.
 Wer eine öffentliche Instanz betreibt, ist in Deutschland und weiten Teilen
