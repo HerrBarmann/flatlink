@@ -303,6 +303,8 @@ Die vier Handbücher gibt es auch auf Englisch (`.en.md` daneben):
 | [API.md](API.md) | die Programmierschnittstelle |
 | [DEPLOYMENT.md](DEPLOYMENT.md) | Installation für den Dauerbetrieb, von Dateirechten bis Shibboleth |
 | [CUSTOMIZATION.md](CUSTOMIZATION.md) | eigenes Aussehen ohne Änderungen am Kern |
+| [Was flatlink nie tun wird](docs/niemals.md) | die Funktionen, die es hier nie geben wird – und warum |
+| [Barrierefreiheit](docs/barrierefreiheit.md) | Selbsteinschätzung nach WCAG 2.1 AA: was geprüft ist, was fehlt |
 | [SECURITY.md](SECURITY.md) | was gespeichert wird, was nicht, und wie sich Lücken melden lassen |
 
 ## Wie die Daten liegen

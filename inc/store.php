@@ -4,6 +4,7 @@ declare(strict_types=1);
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // flatlink · Zusatzbedingung zur Namensnennung nach §7(b) AGPL: siehe LICENSE
 require_once __DIR__ . '/helpers.php';
+require_once __DIR__ . '/hooks.php';
 
 /**
  * ---------------------------------------------------------------------------
@@ -293,7 +294,9 @@ function link_create(string $url, ?string $code, ?string $owner, string $type, a
     });
 
     if ($taken) return [false, t('Dieser Code ist schon vergeben.')];
-    return $ok ? [true, $code] : [false, t('Anlegen fehlgeschlagen.')];
+    if (!$ok) return [false, t('Anlegen fehlgeschlagen.')];
+    hook_fire('link.created', hook_link($code, link_get($code)));
+    return [true, $code];
 }
 
 /**
@@ -306,7 +309,7 @@ function link_update(string $code, string $url, array $opts = []): bool
     // Wer den Vorgang auslöst, steht in der Sitzung – im Schreib-Callback
     // wäre der Aufruf zu spät, er liefe dann innerhalb der Transaktion.
     $wer = function_exists('auth_user') ? (auth_user()['name'] ?? null) : null;
-    return link_write($code, function (?array $l) use ($url, $opts, $wer) {
+    $ok = link_write($code, function (?array $l) use ($url, $opts, $wer) {
         if ($l === null) return false;
         $vorher = (string)($l['url'] ?? '');
         $l['url'] = $url;
@@ -321,6 +324,8 @@ function link_update(string $code, string $url, array $opts = []): bool
         }
         return link_apply_meta($l, $opts);
     });
+    if ($ok) hook_fire('link.updated', hook_link($code, link_get($code)));
+    return $ok;
 }
 
 /** Wie viele Änderungen je Link aufgehoben werden */
@@ -370,6 +375,13 @@ function link_apply_meta(array $l, array $opts): array
     if (array_key_exists('starts', $opts)) {
         $st = $opts['starts'];
         if ($st === null || $st === '') unset($l['starts']); else $l['starts'] = (string)$st;
+    }
+    foreach (['og_title' => 120, 'og_text' => 200, 'og_image' => 500] as $feld => $max) {
+        if (!array_key_exists($feld, $opts)) continue;
+        $v = trim((string)preg_replace('/[\x00-\x1F\x7F]/u', '', (string)$opts[$feld]));
+        // Das Bild muss eine Adresse sein; Titel und Text sind freier Text
+        if ($feld === 'og_image' && $v !== '' && !valid_url($v)) $v = '';
+        if ($v === '') unset($l[$feld]); else $l[$feld] = mb_substr($v, 0, $max);
     }
     if (array_key_exists('rules', $opts)) {
         $r = (array)$opts['rules'];
@@ -473,18 +485,23 @@ function link_set_password(string $code, ?string $hash): bool
 /** Link wegen Missbrauchs sperren/entsperren (gesperrte Links antworten mit 410) */
 function link_set_disabled(string $code, bool $disabled): bool
 {
-    return link_write($code, function (?array $l) use ($disabled) {
+    $ok = link_write($code, function (?array $l) use ($disabled) {
         if ($l === null) return false;
         if ($disabled) $l['disabled'] = true; else unset($l['disabled']);
         $l['updated'] = date('c');
         return $l;
     });
+    if ($ok) hook_fire('link.blocked', hook_link($code, link_get($code)));
+    return $ok;
 }
 
 function link_delete(string $code): void
 {
+    // Vor dem Löschen lesen: Danach gäbe es nichts mehr zu melden als den Code
+    $l = link_get($code);
     link_write($code, fn(?array $l) => null);
     @unlink(clicks_file($code));
+    hook_fire('link.deleted', hook_link($code, $l));
 }
 
 /** Freien Zufallscode suchen (innerhalb des Locks aufgerufen), optional unter einem Prefix ("p/abc123") */

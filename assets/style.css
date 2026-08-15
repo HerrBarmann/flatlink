@@ -177,6 +177,30 @@ input[type="date"], input[type="number"], select {
     color: var(--ink);
 }
 input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: var(--accent); }
+
+/* Tastaturbedienung: Wer mit Tab durch die Seite geht, muss sehen, wo er ist.
+   Bis hierher hatten nur Eingabefelder einen sichtbaren Fokus – Links, Knöpfe
+   und Klappen nicht, was WCAG 2.4.7 verletzt. `:focus-visible` statt `:focus`,
+   damit ein Mausklick keinen Rahmen hinterlässt. */
+a:focus-visible, button:focus-visible, summary:focus-visible,
+.btn:focus-visible, [tabindex]:focus-visible, label:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 3px;
+}
+/* Auf dunklen Bändern reicht der Akzent nicht immer – dort heller umranden */
+.band-dark a:focus-visible, .band-dark button:focus-visible, .band-dark .btn:focus-visible {
+    outline-color: var(--paper);
+}
+
+/* Sprunglink: erste Station beim Tabben, sonst unsichtbar. Ohne ihn muss
+   sich jede Tastaturbedienung erst durch die Kopfzeile arbeiten. */
+.skip {
+    position: absolute; left: -9999px; top: 0; z-index: 100;
+    padding: 0.6rem 1rem; background: var(--accent); color: var(--paper);
+    font-family: var(--mono); text-decoration: none; border-radius: 0 0 var(--radius) 0;
+}
+.skip:focus { left: 0; }
 /* Datumsfelder: iOS/Safari erzwingt sonst eine intrinsische Breite und
    sprengt schmale Layouts nach rechts */
 input[type="date"] {

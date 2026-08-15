@@ -78,6 +78,21 @@ return [
     // möglich. Siehe SECURITY.md.
     'click_dims' => true,
 
+    // ---- Webhooks ----
+    // Adressen, die bei Verwaltungsereignissen ein POST mit JSON bekommen:
+    // Link angelegt/geändert/gelöscht/gesperrt, Meldung eingegangen, Konto
+    // wartet auf Freischaltung. Es gibt bewusst KEIN Ereignis für Klicks –
+    // der Weiterleitungspfad ist der eine Ort, an dem über Besucher nichts
+    // passiert, und ein Webhook dort wäre Besucherverfolgung durch die
+    // Hintertür (dazu würde er jede Weiterleitung verlangsamen).
+    // Ein Versuch je Ereignis, 3 s Zeitlimit, keine Wiederholung.
+    'webhooks' => [],
+
+    // Wird es gesetzt, trägt jede Meldung eine Signatur
+    // (X-Flatlink-Signature: sha256=…) über dem Rumpf – der Empfänger kann
+    // damit prüfen, dass sie wirklich von dieser Instanz kommt.
+    'webhook_secret' => '',
+
     // Max. Länge der Ziel-URL
     'max_url_length' => 2048,
 

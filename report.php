@@ -34,13 +34,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $sent = true;
         } else {
             $file = data_path('reports') . '/' . date('Ymd-His') . '-' . bin2hex(random_bytes(4)) . '.json';
+            // ip_hash() und nicht hash('sha256', …): Ein blanker SHA-256 über
+            // eine IPv4-Adresse ist keine Anonymisierung. Dieselbe Stelle gab
+            // es im öffentlichen Rate-Limit; sie wurde dort im Review von außen
+            // gefunden, hier beim Nachziehen der Webhooks.
             json_write($file, [
                 'code' => $code,
                 'reason' => $reason,
                 'text' => $text,
                 'created' => date('c'),
-                'ip_hash' => hash('sha256', client_ip()),
+                'ip_hash' => ip_hash(),
             ]);
+            hook_fire('report.received', ['code' => $code, 'reason' => $reason, 'text' => $text]);
             $sent = true;
         }
     }

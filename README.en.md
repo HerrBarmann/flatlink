@@ -304,6 +304,8 @@ The README is the overview; the depth lives in dedicated documents:
 | [API.md](API.md) | the API (German) |
 | [DEPLOYMENT.md](DEPLOYMENT.md) | installation for production, from file permissions to Shibboleth (German) |
 | [CUSTOMIZATION.md](CUSTOMIZATION.md) | your own look without changing the core (German) |
+| [What flatlink will never do](docs/niemals.md) | the features that will never exist here – and why (German) |
+| [Accessibility](docs/barrierefreiheit.md) | self-assessment against WCAG 2.1 AA (German) |
 | [SECURITY.md](SECURITY.md) | what is stored, what is not, and how to report vulnerabilities (German) |
 
 ## How the data is stored

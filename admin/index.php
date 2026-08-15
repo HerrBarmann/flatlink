@@ -83,6 +83,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'domain' => (string)($_POST['domain'] ?? ''),
                 'utm' => (array)($_POST['utm'] ?? []),
             ]);
+            foreach (['og_title', 'og_text', 'og_image'] as $f) {
+                if (isset($_POST[$f])) $opts[$f] = (string)$_POST[$f];
+            }
         }
         if ($err !== null) {
             flash($err, 'err');
@@ -425,6 +428,17 @@ if ($neu !== null && link_access($user, $neu)):
             </label>
             <?php endif; ?>
         </div>
+        <details class="mehr"<?= ($editLink['og_title'] ?? '') !== '' ? ' open' : '' ?>>
+            <summary><?= t('Vorschau beim Teilen: eigener Titel und Bild') ?></summary>
+            <p class="muted small"><?= t('Wer den Kurzlink in einen Chat oder ein soziales Netz klebt, sieht diese Angaben statt dessen, was die Zielseite hergibt. Ohne Titel passiert nichts – dann wird auch ein Vorschau-Abruf ganz normal weitergeleitet. Vorschau-Abrufe zählen nicht als Klicks.') ?></p>
+            <label for="e-ogt"><?= t('Titel') ?></label>
+            <input id="e-ogt" type="text" name="og_title" maxlength="120" value="<?= e((string)($editLink['og_title'] ?? '')) ?>">
+            <label for="e-ogd"><?= t('Beschreibung') ?></label>
+            <input id="e-ogd" type="text" name="og_text" maxlength="200" value="<?= e((string)($editLink['og_text'] ?? '')) ?>">
+            <label for="e-ogi"><?= t('Bild-Adresse') ?> <span class="muted">(<?= t('optional') ?>)</span></label>
+            <input id="e-ogi" type="text" name="og_image" maxlength="500" placeholder="https://…"
+                   value="<?= e((string)($editLink['og_image'] ?? '')) ?>">
+        </details>
         <?php if ($darfWeichen):
             $weichen = array_values((array)($editLink['rules'] ?? []));
             // Eine leere Zeile mehr, damit sich ohne Klick eine Weiche

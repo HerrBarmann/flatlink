@@ -125,6 +125,14 @@ if (!empty($link['pass'])) {
 // Eine Weiche kann ein anderes Ziel bestimmen – ausgewertet in dieser
 // Anfrage, gespeichert wird davon nichts (siehe inc/routing.php).
 [$ziel, $weiche] = route_target($link);
+
+// Vorschau für Chats und soziale Netze: nur wenn der Link eigene Angaben
+// trägt und der Abruf von einem Vorschau-Dienst kommt. Nicht gezählt – ein
+// Vorschau-Abruf ist kein Besuch, und ihn mitzuzählen würde jede geteilte
+// Nachricht als Klick ausweisen.
+if (($link['og_title'] ?? '') !== '' && route_ist_vorschau()) {
+    preview_render($code, $link, $ziel);
+}
 clicks_bump($code, null, $weiche);
 header('Location: ' . $ziel, true, 302);
 exit;

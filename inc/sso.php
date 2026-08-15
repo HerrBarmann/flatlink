@@ -181,6 +181,16 @@ function pending_user_note(string $username, ?string $display, ?string $email, a
         }
         return $q;
     });
+    // Nur beim ersten Mal melden: Wer sich täglich erfolglos anmeldet, soll
+    // nicht täglich eine Nachricht auslösen.
+    if ((int)((pending_users()[$username]['tries'] ?? 0)) === 1) {
+        hook_fire('user.pending', [
+            'user' => $username,
+            'display' => $display,
+            'email' => $email,
+            'reason' => $reason,
+        ]);
+    }
 }
 
 function pending_user_drop(string $username): void

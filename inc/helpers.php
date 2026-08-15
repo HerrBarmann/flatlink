@@ -730,6 +730,8 @@ function page_header(string $title, bool $admin = false, ?string $desc = null, ?
     $bodyClass = trim((string)cfg('body_class'));
     echo '<script src="' . $root . '/assets/app.js" defer></script>'
         . '</head><body' . ($bodyClass !== '' ? ' class="' . e($bodyClass) . '"' : '') . '>'
+        // Erste Station beim Tabben: über die Kopfzeile hinweg zum Inhalt
+        . '<a class="skip" href="#inhalt">' . t('Zum Inhalt springen') . '</a>'
         . '<div class="wrap">';
 
     // Wortmarke, optional mit eigenem Logo davor. Der Name steckt in einem
@@ -811,7 +813,7 @@ function page_header(string $title, bool $admin = false, ?string $desc = null, ?
         echo '<a href="' . $adm . '">' . t('Login') . '</a>';
     }
     echo '</nav>';
-    echo '</header><main>';
+    echo '</header><main id="inhalt">';
 }
 
 /**
