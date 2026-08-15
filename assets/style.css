@@ -552,3 +552,28 @@ details.druckfarben[open] > summary { margin-bottom: 0.4rem; color: var(--ink); 
     text-align: right; padding-left: 0.5rem; font-family: var(--mono);
     font-size: 0.8rem; color: var(--muted); font-variant-numeric: tabular-nums;
 }
+
+/* ---- Touch-Geräte: kein ungewolltes Hineinzoomen ----
+   iOS Safari zoomt beim Antippen eines Eingabefelds automatisch hinein, wenn
+   dessen Schrift kleiner als 16px ist – und bleibt danach gezoomt, womit die
+   Seite plötzlich quer scrollt. Das sieht aus wie ein Layoutfehler, ist aber
+   eine Schutzmaßnahme des Systems gegen zu kleine Schrift. Die richtige
+   Antwort ist deshalb nicht, das Zoomen zu verbieten (das wäre ein
+   Barrierefreiheitsverstoß, und Safari ignoriert es seit iOS 10 ohnehin),
+   sondern die Felder groß genug zu machen.
+
+   Nur auf grobem Zeigegerät: Auf dem Rechner bleiben die kompakten Größen. */
+@media (pointer: coarse) {
+    input[type="text"], input[type="password"], input[type="search"],
+    input[type="url"], input[type="date"], input[type="number"],
+    input[type="email"], input[type="tel"], select, textarea,
+    .actions input[type="date"], .actions input[type="password"] {
+        font-size: 16px;
+    }
+}
+
+/* Doppeltipp auf Knöpfe und Links soll auslösen, nicht zoomen. Der
+   Pinch-Zoom mit zwei Fingern bleibt davon unberührt. */
+button, .btn, a, summary, label, input, select, textarea {
+    touch-action: manipulation;
+}
