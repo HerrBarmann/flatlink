@@ -5,6 +5,7 @@ declare(strict_types=1);
 // flatlink · Zusatzbedingung zur Namensnennung nach §7(b) AGPL: siehe LICENSE
 require_once __DIR__ . '/inc/store.php';
 require_once __DIR__ . '/inc/bio.php';
+require_once __DIR__ . '/inc/routing.php';
 
 $code = $_GET['c'] ?? '';
 if (!is_string($code) || $code === '') {
@@ -91,8 +92,9 @@ if (!empty($link['pass'])) {
                 if (is_string($i) && $i !== '' && ctype_digit($i)) bio_follow($code, $link, (int)$i);
                 bio_render($code, $link);
             }
-            clicks_bump($code);
-            header('Location: ' . $link['url'], true, 302);
+            [$ziel, $weiche] = route_target($link);
+            clicks_bump($code, null, $weiche);
+            header('Location: ' . $ziel, true, 302);
             exit;
         } else {
             // Kein Warten mehr an dieser Stelle: Der golock-Zähler oben
@@ -120,6 +122,9 @@ if (!empty($link['pass'])) {
     exit;
 }
 
-clicks_bump($code);
-header('Location: ' . $link['url'], true, 302);
+// Eine Weiche kann ein anderes Ziel bestimmen – ausgewertet in dieser
+// Anfrage, gespeichert wird davon nichts (siehe inc/routing.php).
+[$ziel, $weiche] = route_target($link);
+clicks_bump($code, null, $weiche);
+header('Location: ' . $ziel, true, 302);
 exit;

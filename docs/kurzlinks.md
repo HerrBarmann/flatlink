@@ -38,6 +38,46 @@ einschließlich** seines Tages gilt). Ein leeres Feld heißt „sofort".
 Verfügbar auch über die [Schnittstelle](../API.md) (Feld `starts`, dazu
 `pending` in der Antwort) und im CSV-Export.
 
+## Weichen: ein Link, mehrere Ziele
+
+Ein Plakat hängt einmal, aber die Leute davor sind verschieden. Ein Link kann
+deshalb **Weichen** tragen: Wer den Code mit einem Handy scannt, landet im App
+Store; wer den Browser auf Englisch stehen hat, auf der englischen Seite; alle
+anderen auf dem Hauptziel.
+
+| Merkmal | Werte | Woher |
+| --- | --- | --- |
+| Gerät | `mobile`, `tablet`, `desktop` | grob aus der Browser-Kennung |
+| Sprache | zwei Buchstaben (`en`, `fr`) | aus der Sprachliste des Browsers, in ihrer Reihenfolge |
+| Land | zwei Buchstaben (`at`, `ch`) | von einem vorgeschalteten Dienst (siehe unten) |
+
+Die **erste zutreffende Weiche gewinnt**; trifft keine zu, gilt das Hauptziel.
+Die Reihenfolge ist damit die ganze Logik – kein Und/Oder, keine
+Verschachtelung. Wer mehr braucht, braucht kein Kurzlink-Werkzeug. Höchstens
+acht Weichen je Link; das Recht dazu heißt `link_rules`.
+
+**Es wird nichts gespeichert.** Die Merkmale werden bei der Anfrage geprüft
+und danach vergessen – was ein einzelner Besucher für ein Gerät hatte oder aus
+welchem Land er kam, steht nirgends. Genau das unterscheidet eine Weiche von
+dem, was anderswo „Targeting" heißt: Dort ist sie der Anlass, ein Profil
+anzulegen; hier ist sie eine Fallunterscheidung, so spurlos wie ein `if`.
+Mitgezählt wird nur, **wie oft** jede Weiche gegriffen hat – das steht in der
+Statistik des Links, damit sich sehen lässt, ob eine gestellte Weiche
+überhaupt je benutzt wird.
+
+**Zum Land:** flatlink bringt keine Geo-Datenbank mit und lädt auch keine –
+eine IP-zu-Land-Tabelle wäre ein Vielfaches der ganzen Anwendung und passt
+nicht zu einem Projekt, das man per FTP hochlädt. Wohl aber liefern viele
+Vorschaltdienste das Land fertig mit (Cloudflare als `CF-IPCountry`, andere
+als `X-Country-Code`). Gelesen wird es nur hinter einem als vertrauenswürdig
+eingetragenen Proxy (`trusted_proxies`) – sonst könnte jeder Besucher sein
+Land behaupten, indem er die Kopfzeile selbst mitschickt, und eine Weiche, die
+sich von der Gegenseite stellen lässt, ist keine. Ohne diesen Eintrag steht
+„Land" in der Oberfläche nicht zur Auswahl.
+
+Über die [Schnittstelle](../API.md) heißt das Feld `rules` und nimmt eine
+Liste aus `{wenn, ist, url}`.
+
 ## Kampagnen-Parameter (UTM)
 
 Beim Anlegen und Ändern eines Links lassen sich `utm_source`, `utm_medium`,

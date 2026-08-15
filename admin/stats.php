@@ -7,6 +7,7 @@ require_once __DIR__ . '/../inc/store.php';
 require_once __DIR__ . '/../inc/auth.php';
 require_once __DIR__ . '/../inc/bio.php';
 require_once __DIR__ . '/../inc/groups.php';
+require_once __DIR__ . '/../inc/routing.php';
 
 $user = auth_require();
 
@@ -168,6 +169,30 @@ if ($hatDims): ?>
         </div>
     <?php endforeach; ?>
     </div>
+</div>
+<?php endif; ?>
+
+<?php $weichen = array_values((array)($link['rules'] ?? [])); if ($weichen !== []):
+    $treffer = (array)($clicks['routes'] ?? []);
+    $summe = array_sum(array_map('intval', $treffer)); ?>
+<div class="card">
+    <h2><?= t('Weichen') ?></h2>
+    <p class="muted small"><?= t('Die erste zutreffende Weiche gewinnt. Gezählt wird, wie oft jede gegriffen hat – nicht, wer sie ausgelöst hat: Gerät, Sprache und Land werden bei der Anfrage geprüft und danach vergessen.') ?></p>
+    <div class="table-scroll"><table>
+        <tr><th><?= t('Wenn') ?></th><th><?= t('Ziel') ?></th><th><?= t('Griff') ?></th></tr>
+        <?php foreach ($weichen as $i => $r): $n = (int)($treffer[(string)$i] ?? 0); ?>
+        <tr>
+            <td class="small" style="white-space:nowrap"><?= e(route_label($r)) ?></td>
+            <td class="url-cell" title="<?= e((string)($r['url'] ?? '')) ?>"><?= e(mb_strimwidth((string)($r['url'] ?? ''), 0, 52, '…')) ?></td>
+            <td class="small" style="text-align:right;font-family:var(--mono)"><?= $n > 0 ? (int)$n : '–' ?></td>
+        </tr>
+        <?php endforeach; ?>
+        <tr>
+            <td class="small muted"><?= t('sonst') ?></td>
+            <td class="url-cell muted" title="<?= e((string)($link['url'] ?? '')) ?>"><?= e(mb_strimwidth((string)($link['url'] ?? ''), 0, 52, '…')) ?></td>
+            <td class="small muted" style="text-align:right;font-family:var(--mono)"><?= max(0, (int)($clicks['n'] ?? 0) - $summe) ?></td>
+        </tr>
+    </table></div>
 </div>
 <?php endif; ?>
 

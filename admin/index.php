@@ -7,6 +7,7 @@ require_once __DIR__ . '/../inc/store.php';
 require_once __DIR__ . '/../inc/auth.php';
 require_once __DIR__ . '/../inc/safety.php';
 require_once __DIR__ . '/../inc/groups.php';
+require_once __DIR__ . '/../inc/routing.php';
 require_once __DIR__ . '/../inc/linkrules.php';
 require_once __DIR__ . '/../inc/domains.php';
 require_once __DIR__ . '/../inc/utm.php';
@@ -23,6 +24,7 @@ $myPrefixes = $isAdmin ? [] : user_prefixes($user['name']);
 // hat mit der Verwaltung eines einzelnen Links nichts zu tun.
 $assignable = $isAdmin ? array_values(array_filter(array_keys(groups_all()), 'group_shared')) : user_shared_groups($user['name']);
 $mayCustom = user_can($user['name'], 'custom_code');
+$darfWeichen = user_can($user['name'], 'link_rules');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_check();
@@ -85,6 +87,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($err !== null) {
             flash($err, 'err');
         } else {
+            if ($darfWeichen) {
+                [$wErr, $regeln] = route_from_form(
+                    (array)($_POST['rw'] ?? []), (array)($_POST['ri'] ?? []), (array)($_POST['ru'] ?? []));
+                if ($wErr !== null) {
+                    flash($wErr, 'err');
+                    redirect_to('index.php?edit=' . urlencode($code));
+                }
+                $opts['rules'] = $regeln;
+            }
             link_update($code, $opts['url'], $opts);
             // Gruppe nur anfassen, wenn das Formular sie überhaupt anbieten konnte
             if ($assignable !== [] || ($link['group'] ?? null) !== null) {
@@ -414,6 +425,44 @@ if ($neu !== null && link_access($user, $neu)):
             </label>
             <?php endif; ?>
         </div>
+        <?php if ($darfWeichen):
+            $weichen = array_values((array)($editLink['rules'] ?? []));
+            // Eine leere Zeile mehr, damit sich ohne Klick eine Weiche
+            // anlegen lässt; beim Speichern fällt sie weg, wenn sie leer bleibt.
+            $weichen[] = ['wenn' => 'device', 'ist' => '', 'url' => ''];
+            $klicks = (array)(clicks_get($editCode)['routes'] ?? []);
+        ?>
+        <details class="mehr"<?= count($weichen) > 1 ? ' open' : '' ?>>
+            <summary><?= t('Weichen: je nach Gerät, Sprache oder Land woandershin') ?></summary>
+            <p class="muted small"><?= t('Die erste zutreffende Weiche gewinnt; trifft keine zu, gilt die Ziel-URL oben. Ausgewertet wird bei jedem Aufruf – gespeichert wird davon nichts. Höchstens %d Weichen.', ROUTE_MAX) ?>
+            <?php if (!route_land_moeglich()): ?>
+            <br><?= t('„Land“ steht auf dieser Instanz nicht zur Verfügung: Es kommt von einem vorgeschalteten Dienst, und dafür muss %s in der Konfiguration eingetragen sein.', '<code>trusted_proxies</code>') ?>
+            <?php endif; ?></p>
+            <?php foreach ($weichen as $i => $r): ?>
+            <div class="weiche">
+                <select name="rw[<?= $i ?>]" aria-label="<?= t('Merkmal') ?>">
+                    <?php foreach (route_kriterien() as $k => $label):
+                        if ($k === 'country' && !route_land_moeglich() && ($r['wenn'] ?? '') !== 'country') continue; ?>
+                    <option value="<?= e($k) ?>"<?= ($r['wenn'] ?? '') === $k ? ' selected' : '' ?>><?= e($label) ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <input type="text" name="ri[<?= $i ?>]" value="<?= e((string)($r['ist'] ?? '')) ?>"
+                       list="weichen-werte" maxlength="20" size="8"
+                       placeholder="<?= t('mobile / en / at') ?>" aria-label="<?= t('Wert') ?>">
+                <input type="text" name="ru[<?= $i ?>]" value="<?= e((string)($r['url'] ?? '')) ?>"
+                       placeholder="https://…" aria-label="<?= t('Ziel dieser Weiche') ?>">
+                <span class="muted small weiche-n"><?= isset($klicks[(string)$i]) ? t('%dx', (int)$klicks[(string)$i]) : '' ?></span>
+            </div>
+            <?php endforeach; ?>
+            <datalist id="weichen-werte">
+                <?php foreach (route_werte('device') as $w => $label): ?>
+                <option value="<?= e($w) ?>"><?= e($label) ?></option>
+                <?php endforeach; ?>
+                <option value="de">Deutsch</option><option value="en">English</option>
+            </datalist>
+            <p class="muted small"><?= t('Leere Zeilen werden nicht gespeichert. Eine Weiche löschen: Wert und Ziel leeren.') ?></p>
+        </details>
+        <?php endif; ?>
         <div class="short-row">
             <button class="btn btn-primary" type="submit"><?= t('Speichern') ?></button>
             <a class="btn" href="index.php"><?= t('Abbrechen') ?></a>

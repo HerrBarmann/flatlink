@@ -371,6 +371,10 @@ function link_apply_meta(array $l, array $opts): array
         $st = $opts['starts'];
         if ($st === null || $st === '') unset($l['starts']); else $l['starts'] = (string)$st;
     }
+    if (array_key_exists('rules', $opts)) {
+        $r = (array)$opts['rules'];
+        if ($r === []) unset($l['rules']); else $l['rules'] = array_values($r);
+    }
     return $l;
 }
 
@@ -601,10 +605,10 @@ function click_dim_bump(array $liste, string $wert): array
  * der Seitenaufruf. Mit $item ist ein einzelnes Ziel dieser Seite gemeint; die
  * Zählweise bleibt dieselbe, nur eine Ebene tiefer.
  */
-function clicks_bump(string $code, ?int $item = null): void
+function clicks_bump(string $code, ?int $item = null, ?int $weiche = null): void
 {
     $herkunft = $item === null ? click_dims() : [];
-    json_update(clicks_file($code), function (array $c) use ($item, $herkunft) {
+    json_update(clicks_file($code), function (array $c) use ($item, $herkunft, $weiche) {
         $today = date('Y-m-d');
         $zaehle = function (array $z) use ($today): array {
             $days = $z['days'] ?? [];
@@ -626,6 +630,15 @@ function clicks_bump(string $code, ?int $item = null): void
             $neu = $zaehle($c) + $c;
             foreach ($herkunft as $feld => $wert) {
                 $neu[$feld] = click_dim_bump((array)($neu[$feld] ?? []), $wert);
+            }
+            // Welche Weiche gegriffen hat. Das ist keine Besuchereigenschaft,
+            // sondern eine Eigenschaft des Links – deshalb unabhängig von
+            // click_dims: Ohne diese Zahl wüsste niemand, ob eine gestellte
+            // Weiche überhaupt je benutzt wird.
+            if ($weiche !== null) {
+                $r = (array)($neu['routes'] ?? []);
+                $r[(string)$weiche] = (int)($r[(string)$weiche] ?? 0) + 1;
+                $neu['routes'] = $r;
             }
             return $neu;
         }

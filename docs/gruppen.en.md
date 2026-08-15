@@ -26,6 +26,7 @@ Available are:
 | `csv_import` | may import many links at once |
 | `logo_upload` | may upload custom logos for QR codes |
 | `qr_unbranded` | produces QR codes without the attribution line |
+| `link_rules` | may set switches (target by device, language, country) |
 | `links_all` | sees and manages **all** links of the instance |
 | `reports_manage` | handles abuse reports and blocks links |
 

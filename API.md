@@ -147,6 +147,22 @@ stehen in `url`, und `utm` in der Antwort ist ausgelesen, nicht abgelegt.
 
 Löscht Link und Klickzähler. Antwort `{"deleted": "abc123"}`.
 
+### Weichen (`rules`)
+
+```json
+{ "rules": [
+    { "wenn": "device", "ist": "mobile", "url": "https://apps.apple.com/…" },
+    { "wenn": "lang",   "ist": "en",     "url": "https://example.com/en" }
+] }
+```
+
+`GET` liefert die Liste mit, `PATCH` setzt sie (eine leere Liste löscht alle
+Weichen). Merkmale: `device` (`mobile`/`tablet`/`desktop`), `lang` und
+`country` (je zwei Buchstaben). Die erste zutreffende Weiche gewinnt, sonst
+gilt `url`. Braucht das Recht `link_rules`; höchstens acht je Link.
+Ausgewertet wird bei jeder Anfrage – gespeichert wird davon nichts, gezählt
+nur, wie oft jede Weiche gegriffen hat.
+
 ### `GET /links/{code}/stats`
 
 ```json

@@ -35,6 +35,7 @@ function perms_all(): array
         // und verwalten alles, was Links betrifft – aber keine Konten,
         // Domains oder Einstellungen. Genau die Zwischenstufe, die zwischen
         // „nur die eigenen" und „darf alles" fehlte.
+        'link_rules' => t('Weichen stellen: je nach Gerät, Sprache oder Land woandershin'),
         'links_all' => t('Alle Links der Instanz sehen und verwalten'),
         'reports_manage' => t('Missbrauchs-Meldungen bearbeiten und Links sperren'),
     ];

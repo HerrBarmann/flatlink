@@ -577,3 +577,16 @@ details.druckfarben[open] > summary { margin-bottom: 0.4rem; color: var(--ink); 
 button, .btn, a, summary, label, input, select, textarea {
     touch-action: manipulation;
 }
+
+/* Weichen im Bearbeiten-Formular: Merkmal, Wert und Ziel in einer Zeile,
+   auf schmalen Geräten untereinander. Das Ziel bekommt den Rest der Breite –
+   es ist das Feld, das man lesen können muss. */
+.weiche { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.45rem; }
+.weiche select { width: auto; flex: none; }
+.weiche input[type="text"]:first-of-type { flex: none; width: 6.5rem; }
+.weiche input[type="text"]:last-of-type { flex: 1 1 auto; min-width: 0; }
+.weiche-n { flex: none; min-width: 2.5rem; text-align: right; font-family: var(--mono); }
+@media (max-width: 560px) {
+    .weiche { flex-wrap: wrap; }
+    .weiche input[type="text"]:last-of-type { flex-basis: 100%; }
+}

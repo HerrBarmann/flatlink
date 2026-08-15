@@ -26,6 +26,7 @@ declare(strict_types=1);
  * könnte: Sämtliche Regeln kommen aus inc/linkrules.php, derselben Fassung.
  */
 require_once __DIR__ . '/inc/linkrules.php';
+require_once __DIR__ . '/inc/routing.php';
 require_once __DIR__ . '/inc/domains.php';
 require_once __DIR__ . '/inc/utm.php';
 require_once __DIR__ . '/inc/token.php';
@@ -153,6 +154,7 @@ function api_link(string $code, array $l): array
         'expired' => link_expired($l),
         'starts' => $l['starts'] ?? null,
         'history' => array_values((array)($l['history'] ?? [])),
+        'rules' => array_values((array)($l['rules'] ?? [])),
         'pending' => link_pending($l),
         'password_protected' => isset($l['pass']),
         'disabled' => (bool)($l['disabled'] ?? false),
@@ -316,6 +318,20 @@ if ($ressource === 'links') {
         if (is_array($in['utm'] ?? null)) $rein['utm'] = $in['utm'];
         [$err, $opts] = link_rules_update($user, $l, $rein);
         if ($err !== null) api_fail(422, 'rejected', $err);
+
+        // Weichen: eine Liste von {wenn, ist, url}. Eine leere Liste löscht
+        // sie – anders als bei den übrigen Feldern ist „nicht übergeben"
+        // hier ausdrücklich etwas anderes als „leer".
+        if (array_key_exists('rules', $in)) {
+            if (!user_can($user['name'], 'link_rules')) {
+                api_fail(403, 'forbidden', t('Für Weichen fehlt diesem Konto die Berechtigung.'));
+            }
+            $roh = (array)$in['rules'];
+            [$wErr, $regeln] = route_from_form(
+                array_column($roh, 'wenn'), array_column($roh, 'ist'), array_column($roh, 'url'));
+            if ($wErr !== null) api_fail(422, 'rejected', $wErr);
+            $opts['rules'] = $regeln;
+        }
 
         link_update($code, $opts['url'], $opts);
         if (array_key_exists('group', $rein)) link_set_group($code, $opts['group']);

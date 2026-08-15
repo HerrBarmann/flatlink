@@ -773,6 +773,7 @@ Verfügbare Rechte:
 | `csv_import` | darf viele Links auf einmal importieren |
 | `logo_upload` | darf eigene Logos für QR-Codes hochladen |
 | `qr_unbranded` | erzeugt QR-Codes ohne die Absenderzeile |
+| `link_rules` | darf Weichen stellen (Ziel je nach Gerät, Sprache, Land) |
 | `links_all` | sieht und verwaltet alle Links der Instanz |
 | `reports_manage` | bearbeitet Meldungen und sperrt Links |
 
