@@ -419,6 +419,13 @@ a.tag:hover { border-color: var(--accent); color: var(--accent-deep); text-decor
 
 /* Kampagnen-Baukasten: zugeklappt ein Einzeiler, aufgeklappt ein Feldblock.
    Abgesetzt, damit er nicht wie ein Pflichtfeld des Formulars aussieht. */
+/* „Mehr Optionen"-Klappe im Anlege-Formular: dieselbe Zurückhaltung wie die
+   Kampagnen-Klappe – der Hauptweg ist ein Feld und ein Knopf. */
+details.mehr { margin-top: 0.7rem; }
+details.mehr > summary { cursor: pointer; color: var(--muted); font-size: 0.92rem; }
+details.mehr[open] > summary { margin-bottom: 0.4rem; color: var(--ink); }
+details.mehr label { margin-top: 0.5rem; }
+
 details.utm {
     margin: 0.2rem 0 0.4rem; padding: 0.55rem 0.7rem;
     border: 1px dashed var(--line); border-radius: var(--radius);

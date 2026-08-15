@@ -53,9 +53,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($linkpass !== '') {
                     link_set_password($result, password_hash($linkpass, PASSWORD_DEFAULT));
                 }
-                flash(t('Kurzlink %s angelegt', short_url($result, (string)($opts['domain'] ?? '')))
-                    . ($group !== null ? ' ' . t('für Gruppe „%s“', group_label($group)) : '')
-                    . ($linkpass !== '' ? ' ' . t('(passwortgeschützt)') : '') . '.');
+                // Die Ergebnis-Karte auf der Seite zeigt den Link selbst; die
+                // Meldung kommt nur noch, wenn sie etwas hinzufügt.
+                $zusatz = ($group !== null ? ' ' . t('für Gruppe „%s“', group_label($group)) : '')
+                    . ($linkpass !== '' ? ' ' . t('(passwortgeschützt)') : '');
+                if ($zusatz !== '') {
+                    flash(t('Kurzlink %s angelegt', short_url($result, (string)($opts['domain'] ?? ''))) . $zusatz . '.');
+                }
                 redirect_to('index.php?hl=' . urlencode($result));
             }
             flash($result, 'err');
@@ -112,6 +116,15 @@ $links = links_visible($user);
 // gefilterten Ausschnitt: Sie sollen beim Anlegen vollständig sein, egal
 // welcher Filter gerade in der Liste steht.
 $utmVorschlaege = utm_suggestions($links);
+// Zahlen für die Kopfzeile und die Liste in einem Durchgang: die Klickzähler
+// je Code einmal lesen, bevor die Filter den Bestand einengen.
+$klickVon = [];
+$klicksGesamt = 0;
+foreach ($links as $c => $l) {
+    $klickVon[$c] = (int)(clicks_get((string)$c)['n'] ?? 0);
+    $klicksGesamt += $klickVon[$c];
+}
+$linksGesamt = count($links);
 if ($gFilter === '-') {
     $links = array_filter($links, fn($l) => ($l['group'] ?? null) === null);
 } elseif ($gFilter !== '') {
@@ -140,17 +153,52 @@ page_header(t('Links'), true);
 show_flash();
 ?>
 
-<div class="card">
-    <div class="list-head">
-        <h2><?= t('Neuer Kurzlink') ?></h2>
-        <a class="btn btn-small" href="import.php"><?= t('CSV-Import') ?></a>
+<!-- .stage und .hero tragen keine eigene Bedeutung: Sie sind die Haken,
+     an denen eine Instanz die Seite inszenieren kann – bei 1337.kiwi liegen
+     Kopf und Formular damit auf derselben Fläche wie auf der Startseite und
+     bei den QR-Generatoren. Ohne eigene Stile bleibt es eine schlichte Seite. -->
+<div class="stage">
+<div class="hero">
+    <h1><?= $isAdmin ? t('Alle Links.') : t('Deine Links.') ?> <span class="accent"><?= t('Gezählt, nicht getrackt.') ?></span></h1>
+    <p class="sub"><?= t('%s Kurzlinks · %s Klicks – ein Zähler je Tag, mehr speichern wir nicht.',
+        number_format($linksGesamt, 0, t(','), t('.')),
+        number_format($klicksGesamt, 0, t(','), t('.'))) ?></p>
+</div>
+
+<?php
+// Der frisch angelegte Link bekommt seine eigene Karte – mit Kurzadresse zum
+// Kopieren und dem QR-Code, wie nach dem Kürzen auf der Startseite.
+$neu = $highlight !== '' && $editLink === null ? link_get($highlight) : null;
+if ($neu !== null && link_access($user, $neu)):
+    $neuKurz = short_url($highlight, (string)($neu['domain'] ?? '')); ?>
+<div class="card result">
+    <h2><?= t('Angelegt.') ?></h2>
+    <div class="short-row">
+        <input id="short" type="text" readonly value="<?= e($neuKurz) ?>">
+        <button class="btn" type="button" data-copy="#short"><?= t('Kopieren') ?></button>
     </div>
-    <form method="post" action="" class="grid-form">
-        <?= csrf_field() ?>
-        <input type="hidden" name="action" value="create">
+    <div class="qr-preview">
+        <img src="../qr.php?c=<?= e(rawurlencode($highlight)) ?>&amp;size=240" width="180" height="180"
+             alt="<?= t('QR-Code für %s', e($neuKurz)) ?>">
+        <div class="qr-links">
+            <a class="btn btn-small" href="qrdesign.php?c=<?= e(rawurlencode($highlight)) ?>"><?= t('Im QR-Designer gestalten') ?></a>
+            <a class="btn btn-small" href="stats.php?c=<?= e(rawurlencode($highlight)) ?>"><?= t('Statistik') ?></a>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
+
+<form class="card create-form" method="post" action="">
+    <?= csrf_field() ?>
+    <input type="hidden" name="action" value="create">
+    <label for="c-url"><?= t('Ziel-URL') ?></label>
+    <div class="short-row">
+        <input id="c-url" type="text" name="url" placeholder="https://example.com/…" required>
+        <button class="btn btn-primary" type="submit"><?= t('Kürzen') ?></button>
+    </div>
+    <details class="mehr">
+        <summary><?= t('Mehr Optionen: Name, Schlagworte, Wunsch-Name, Kampagne …') ?></summary>
         <div>
-            <label for="c-url"><?= t('Ziel-URL') ?></label>
-            <input id="c-url" type="text" name="url" placeholder="https://example.com/…" required>
             <label for="c-title"><?= t('Name') ?> <span class="muted">(<?= t('optional – nur für dich, damit du den Link in der Liste wiederfindest') ?>)</span></label>
             <input id="c-title" type="text" name="title" maxlength="120" placeholder="<?= t('z. B. Speisekarte Sommer') ?>">
             <label for="c-tags"><?= t('Schlagworte') ?> <span class="muted">(<?= t('optional, mit Komma trennen – zum Filtern der Liste') ?>)</span></label>
@@ -230,9 +278,10 @@ show_flash();
             <label for="c-linkpass"><?= t('Passwortschutz') ?> <span class="muted">(<?= t('optional – Besucher müssen es vor der Weiterleitung eingeben') ?>)</span></label>
             <input id="c-linkpass" type="text" name="linkpass" autocomplete="off" placeholder="<?= t('leer = kein Schutz') ?>">
         </div>
-        <button class="btn btn-primary" type="submit"><?= t('Anlegen') ?></button>
-    </form>
-</div>
+    </details>
+    <p class="muted small" style="margin:0.7rem 0 0"><?= t('Viele auf einmal?') ?> <a href="import.php"><?= t('CSV-Import') ?></a></p>
+</form>
+</div><!-- /.stage -->
 
 <?php if ($editLink !== null): ?>
 <div class="card highlight">
@@ -352,7 +401,6 @@ show_flash();
     </p>
     <div class="link-list">
         <?php foreach ($links as $code => $link):
-            $clicks = clicks_get((string)$code);
             $kurz = short_url((string)$code, (string)($link['domain'] ?? ''));
             $utm = utm_extract((string)($link['url'] ?? ''));
         ?>
@@ -391,7 +439,7 @@ show_flash();
                 </div>
             </div>
             <a class="link-klicks" href="stats.php?c=<?= e(rawurlencode((string)$code)) ?>" title="<?= t('Statistik') ?>">
-                <strong><?= number_format((int)$clicks['n'], 0, t(','), t('.')) ?></strong>
+                <strong><?= number_format($klickVon[$code] ?? 0, 0, t(','), t('.')) ?></strong>
                 <span><?= t('Klicks') ?></span>
             </a>
             <div class="link-actions actions">
