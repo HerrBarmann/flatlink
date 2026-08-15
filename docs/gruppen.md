@@ -26,6 +26,26 @@ sind:
 | `csv_import` | darf viele Links auf einmal importieren |
 | `logo_upload` | darf eigene Logos für QR-Codes hochladen |
 | `qr_unbranded` | erzeugt QR-Codes ohne die Absenderzeile |
+| `links_all` | sieht und verwaltet **alle** Links der Instanz |
+| `reports_manage` | bearbeitet Missbrauchs-Meldungen und sperrt Links |
+
+### Eine Redaktion ohne Administratorrechte
+
+Die beiden letzten Rechte bilden zusammen das, was anderswo eine eigene Rolle
+zwischen „Nutzer" und „Administrator" wäre – ohne dass es eine dritte Rolle
+geben muss. Eine Gruppe „Redaktion" mit `links_all` und `reports_manage` darf:
+
+* alle Links der Instanz sehen, bearbeiten und sperren,
+* eingegangene Meldungen abarbeiten und die Bestandsprüfung anstoßen.
+
+Sie darf ausdrücklich **nicht**: Konten anlegen, Gruppen ändern, Einstellungen
+umstellen, das Protokoll lesen. Wer es doch versucht, bekommt 403. Das ist die
+übliche Aufteilung im Betrieb: Wer den Missbrauchs-Posteingang hütet, braucht
+Zugriff auf jeden Link – aber nicht auf die SMTP-Zugangsdaten.
+
+Beide Rechte lassen sich auch einzeln vergeben. `links_all` allein ergibt eine
+Aufsicht, die alles sieht, aber keine Meldungen bearbeitet; `reports_manage`
+allein eine Beschwerdestelle, die nur die gemeldeten Links zu Gesicht bekommt.
 
 ### Namensräume
 

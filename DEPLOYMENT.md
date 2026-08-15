@@ -772,6 +772,13 @@ Verfügbare Rechte:
 | `custom_code` | darf Wunsch-Namen vergeben statt Zufallscodes |
 | `csv_import` | darf viele Links auf einmal importieren |
 | `logo_upload` | darf eigene Logos für QR-Codes hochladen |
+| `qr_unbranded` | erzeugt QR-Codes ohne die Absenderzeile |
+| `links_all` | sieht und verwaltet alle Links der Instanz |
+| `reports_manage` | bearbeitet Meldungen und sperrt Links |
+
+`links_all` und `reports_manage` zusammen ergeben eine Redaktion: volle Sicht
+auf die Links und den Meldungs-Eingang, aber kein Zugriff auf Konten, Gruppen,
+Einstellungen und Protokoll. Siehe [docs/gruppen.md](docs/gruppen.md).
 
 ### Wer darf sich überhaupt anmelden?
 

@@ -603,10 +603,11 @@ function page_header(string $title, bool $admin = false, ?string $desc = null, ?
         if (function_exists('user_can') && user_can($u['name'], 'bio_page')) {
             echo '<a href="' . $adm . 'bio.php">' . t('Link-in-Bio') . '</a> ';
         }
+        // Die Klappe zeigt, was das Konto auch benutzen darf: Administratoren
+        // alles, eine Redaktion nur die Meldungen. Wer nichts davon hat,
+        // sieht die Klappe gar nicht.
+        $verwaltung = [];
         if ($u['role'] === 'admin') {
-            // Die vier Verwaltungspunkte hinter einer Klappe. Sie werden selten
-            // gebraucht, machten aber die Hälfte der Kopfzeile aus – auf dem
-            // Handy brach sie dadurch auf drei Zeilen um.
             $verwaltung = [
                 'users.php' => t('Nutzer'),
                 'groups.php' => t('Gruppen'),
@@ -614,6 +615,15 @@ function page_header(string $title, bool $admin = false, ?string $desc = null, ?
                 'audit.php' => t('Protokoll'),
                 'settings.php' => t('Einstellungen'),
             ];
+        } else {
+            // Auf Seiten ohne Rechte-Schicht steht user_can() noch nicht bereit;
+            // die Navigation läuft aber überall.
+            require_once __DIR__ . '/groups.php';
+            if (user_can($u['name'], 'reports_manage')) {
+                $verwaltung = ['reports.php' => t('Meldungen')];
+            }
+        }
+        if ($verwaltung !== []) {
             $hier = basename((string)($_SERVER['SCRIPT_NAME'] ?? ''));
             $drin = isset($verwaltung[$hier]);
             echo '<details class="nav-more"><summary' . ($drin ? ' class="here"' : '') . '>'

@@ -984,4 +984,7 @@ your password immediately and contact us.
     'Ein gedruckter Code lässt sich nicht zurückrufen – wohin er führt, schon. Deshalb steht hier, wer das Ziel wann geändert hat. Die letzten %d Änderungen; Name, Schlagworte und Gestaltung bleiben außen vor, sie sind Ordnung und keine Zusage.' => 'A printed code cannot be recalled – where it leads can be. So here is who changed the target and when. The last %d changes; label, tags and styling stay out of it, they are order, not a promise.',
     'Von' => 'From',
     'Nach' => 'To',
+    'Alle Links der Instanz sehen und verwalten' => 'See and manage all links of the instance',
+    'Missbrauchs-Meldungen bearbeiten und Links sperren' => 'Handle abuse reports and block links',
+    'Für die Bearbeitung von Meldungen fehlt deinem Konto die Berechtigung.' => 'Your account lacks the permission to handle reports.',
 ];

@@ -6,8 +6,16 @@ declare(strict_types=1);
 require_once __DIR__ . '/../inc/store.php';
 require_once __DIR__ . '/../inc/auth.php';
 require_once __DIR__ . '/../inc/safety.php';
+require_once __DIR__ . '/../inc/groups.php';
 
-$user = auth_require_admin();
+// Meldungen darf bearbeiten, wer das Recht dazu hat – Administratoren
+// ohnehin (user_can sagt für sie zu allem ja).
+$user = auth_require();
+if (!user_can($user['name'], 'reports_manage')) {
+    http_response_code(403);
+    nosniff_header();
+    exit(t('Für die Bearbeitung von Meldungen fehlt deinem Konto die Berechtigung.'));
+}
 $reportsDir = data_path('reports');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {

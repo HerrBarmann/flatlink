@@ -31,6 +31,12 @@ function perms_all(): array
         'api_access' => t('Zugriff über die Programmierschnittstelle (API)'),
         'bio_page' => t('Link-in-Bio-Seiten anlegen'),
         'bio_style' => t('Link-in-Bio-Seiten gestalten (Logo und Farben)'),
+        // Die beiden hier machen aus einem Konto eine Redaktion: Sie sehen
+        // und verwalten alles, was Links betrifft – aber keine Konten,
+        // Domains oder Einstellungen. Genau die Zwischenstufe, die zwischen
+        // „nur die eigenen" und „darf alles" fehlte.
+        'links_all' => t('Alle Links der Instanz sehen und verwalten'),
+        'reports_manage' => t('Missbrauchs-Meldungen bearbeiten und Links sperren'),
     ];
 }
 
@@ -331,6 +337,8 @@ function limit_label(int $limit): string
 function link_access(array $user, array $link): bool
 {
     if (($user['role'] ?? '') === 'admin') return true;
+    // Redaktionsrecht: verwaltet Links wie ein Administrator – und nur die
+    if (user_can($user['name'], 'links_all')) return true;
     if (($link['owner'] ?? null) === $user['name']) return true;
     $g = $link['group'] ?? null;
     // Rechtegruppen gewähren bewusst keinen Zugriff auf fremde Links
@@ -376,7 +384,7 @@ function user_shared_groups(string $username): array
  */
 function links_visible(array $user): array
 {
-    if (($user['role'] ?? '') === 'admin') return links_all();
+    if (($user['role'] ?? '') === 'admin' || user_can($user['name'], 'links_all')) return links_all();
     // Eigene Links plus die der eigenen Arbeitsgruppen – die Abfragen liefern
     // nur Kandidaten, ob ein Link wirklich sichtbar ist, entscheidet
     // weiterhin link_access().

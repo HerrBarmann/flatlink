@@ -26,6 +26,26 @@ Available are:
 | `csv_import` | may import many links at once |
 | `logo_upload` | may upload custom logos for QR codes |
 | `qr_unbranded` | produces QR codes without the attribution line |
+| `links_all` | sees and manages **all** links of the instance |
+| `reports_manage` | handles abuse reports and blocks links |
+
+### An editorial team without administrator rights
+
+Together, the last two permissions form what elsewhere would be a role of its
+own between "user" and "administrator" – without there having to be a third
+role. A group "Editors" with `links_all` and `reports_manage` may:
+
+* see, edit and block every link of the instance,
+* work through incoming reports and trigger the re-check of the stock.
+
+It explicitly may **not**: create accounts, change groups, alter settings,
+read the audit log. Anyone who tries anyway gets a 403. That is the usual
+split in operation: whoever tends the abuse inbox needs access to every link
+– but not to the SMTP credentials.
+
+Both permissions can also be granted separately. `links_all` alone yields an
+oversight role that sees everything but handles no reports; `reports_manage`
+alone a complaints desk that only ever sees the reported links.
 
 ### Namespaces
 
