@@ -66,7 +66,7 @@ function api_body(): array
     if (str_contains($typ, 'application/json')) {
         $d = json_decode($roh, true);
         if (!is_array($d)) {
-            api_fail(400, 'invalid_json', 'Der Körper der Anfrage ist kein gültiges JSON.');
+            api_fail(400, 'invalid_json', t('Der Körper der Anfrage ist kein gültiges JSON.'));
         }
         return $body = $d;
     }
@@ -100,31 +100,30 @@ function api_key_from_request(): string
 $schluessel = api_key_from_request();
 if ($schluessel === '') {
     header('WWW-Authenticate: Bearer');
-    api_fail(401, 'no_key', 'Kein Zugangsschlüssel. Erwartet wird der Kopf '
-        . '„Authorization: Bearer flk_…" oder „X-Api-Key: flk_…".');
+    api_fail(401, 'no_key', t('Kein Zugangsschlüssel. Erwartet wird der Kopf „Authorization: Bearer flk_…" oder „X-Api-Key: flk_…".'));
 }
 
 // Versuche zählen, bevor der Schlüssel geprüft wird – sonst ließe sich hier
 // ungebremst durchprobieren. Gezählt wird nach IP, denn einen gültigen
 // Schlüssel gibt es in diesem Moment ja noch nicht.
 if (!bucket_rate_ok('apiauth', 60)) {
-    api_fail(429, 'too_many_attempts', 'Zu viele fehlgeschlagene Anmeldungen – bitte später erneut.');
+    api_fail(429, 'too_many_attempts', t('Zu viele fehlgeschlagene Anmeldungen – bitte später erneut.'));
 }
 
 $eintrag = token_find($schluessel);
 if ($eintrag === null) {
-    api_fail(401, 'bad_key', 'Dieser Zugangsschlüssel ist unbekannt oder zurückgezogen.');
+    api_fail(401, 'bad_key', t('Dieser Zugangsschlüssel ist unbekannt oder zurückgezogen.'));
 }
 
 $name = (string)$eintrag['user'];
 $konto = users_all()[$name] ?? null;
 if ($konto === null) {
-    api_fail(401, 'no_account', 'Das Konto zu diesem Schlüssel gibt es nicht mehr.');
+    api_fail(401, 'no_account', t('Das Konto zu diesem Schlüssel gibt es nicht mehr.'));
 }
 $user = ['name' => $name, 'role' => (string)($konto['role'] ?? 'user')];
 
 if (!user_can($name, 'api_access')) {
-    api_fail(403, 'no_permission', 'Diesem Konto fehlt die Berechtigung für die Schnittstelle.');
+    api_fail(403, 'no_permission', t('Diesem Konto fehlt die Berechtigung für die Schnittstelle.'));
 }
 
 // Ab hier ist der Schlüssel bekannt – also nach ihm zählen und nicht nach der
@@ -132,7 +131,7 @@ if (!user_can($name, 'api_access')) {
 $limit = max(1, (int)cfg('api_rate_limit'));
 if (!bucket_rate_ok('api', $limit, $eintrag['id'])) {
     header('Retry-After: ' . (3600 - (int)date('i') * 60 - (int)date('s')));
-    api_fail(429, 'rate_limited', 'Stundengrenze von ' . $limit . ' Anfragen erreicht.');
+    api_fail(429, 'rate_limited', t('Stundengrenze von %d Anfragen erreicht.', $limit));
 }
 
 // ---- Darstellung eines Links ---------------------------------------------
@@ -168,7 +167,7 @@ function api_link_or_fail(array $user, string $code): array
     // Sonst ließe sich über die Schnittstelle herausfinden, welche Kurzcodes
     // vergeben sind.
     if ($l === null || !link_access($user, $l)) {
-        api_fail(404, 'not_found', 'Diesen Kurzlink gibt es nicht, oder er gehört einem anderen Konto.');
+        api_fail(404, 'not_found', t('Diesen Kurzlink gibt es nicht, oder er gehört einem anderen Konto.'));
     }
     return $l;
 }
@@ -178,7 +177,7 @@ function api_link_or_fail(array $user, string $code): array
 $ressource = $teile[0] ?? '';
 
 if ($ressource === 'me' && count($teile) === 1) {
-    if ($method !== 'GET') api_fail(405, 'method_not_allowed', 'Hier ist nur GET vorgesehen.');
+    if ($method !== 'GET') api_fail(405, 'method_not_allowed', t('Hier ist nur GET vorgesehen.'));
     api_out(200, [
         'account' => $name,
         'display_name' => user_has_display($name) ? user_display($name) : null,
@@ -255,7 +254,7 @@ if ($ressource === 'links') {
             header('Location: ' . base_url() . '/api.php/links/' . rawurlencode($ergebnis));
             api_out(201, api_link($ergebnis, (array)link_get($ergebnis)));
         }
-        api_fail(405, 'method_not_allowed', 'Hier sind GET und POST vorgesehen.');
+        api_fail(405, 'method_not_allowed', t('Hier sind GET und POST vorgesehen.'));
     }
 
     // ---- Einzelner Link ----
@@ -263,7 +262,7 @@ if ($ressource === 'links') {
     $unter = $teile[2] ?? '';
 
     if ($unter === 'stats' && count($teile) === 3) {
-        if ($method !== 'GET') api_fail(405, 'method_not_allowed', 'Hier ist nur GET vorgesehen.');
+        if ($method !== 'GET') api_fail(405, 'method_not_allowed', t('Hier ist nur GET vorgesehen.'));
         api_link_or_fail($user, $code);
         $c = clicks_get($code);
         // Die Statistik reicht nur so weit zurück, wie das Konto sie sehen darf
@@ -282,7 +281,7 @@ if ($ressource === 'links') {
         ]);
     }
 
-    if ($unter !== '') api_fail(404, 'not_found', 'Diesen Endpunkt gibt es nicht.');
+    if ($unter !== '') api_fail(404, 'not_found', t('Diesen Endpunkt gibt es nicht.'));
 
     if ($method === 'GET') {
         api_out(200, api_link($code, api_link_or_fail($user, $code)));
@@ -323,7 +322,7 @@ if ($ressource === 'links') {
         api_out(200, ['deleted' => $code]);
     }
 
-    api_fail(405, 'method_not_allowed', 'Hier sind GET, PATCH und DELETE vorgesehen.');
+    api_fail(405, 'method_not_allowed', t('Hier sind GET, PATCH und DELETE vorgesehen.'));
 }
 
-api_fail(404, 'not_found', 'Unbekannter Endpunkt. Verfügbar sind /me und /links.');
+api_fail(404, 'not_found', t('Unbekannter Endpunkt. Verfügbar sind /me und /links.'));

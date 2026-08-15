@@ -71,9 +71,7 @@ function account_export(string $username): array
     usort($links, fn($a, $b) => strcmp((string)$b['angelegt'], (string)$a['angelegt']));
 
     return [
-        'hinweis' => 'Auskunft nach Art. 15 und Datenübertragbarkeit nach Art. 20 DSGVO. '
-            . 'Diese Datei enthält alles, was ' . cfg('site_name') . ' zu diesem Konto '
-            . 'gespeichert hat – ohne den Passwort-Hash.',
+        'hinweis' => t('Auskunft nach Art. 15 und Datenübertragbarkeit nach Art. 20 DSGVO. Diese Datei enthält alles, was %s zu diesem Konto gespeichert hat – ohne den Passwort-Hash.', cfg('site_name')),
         'erstellt_am' => date('c'),
         'dienst' => cfg('site_name'),
         'konto' => [
@@ -139,12 +137,12 @@ function account_delete_scope(string $username): array
 function account_delete(string $username): ?string
 {
     if (!cfg('self_delete')) {
-        return 'Konten werden auf dieser Instanz zentral verwaltet und können nicht selbst gelöscht werden.';
+        return t('Konten werden auf dieser Instanz zentral verwaltet und können nicht selbst gelöscht werden.');
     }
     // Dieselbe Sperre wie in der Nutzerverwaltung: Eine Instanz ohne
     // Administrator ließe sich nicht mehr bedienen.
     if ((users_all()[$username]['role'] ?? '') === 'admin' && admin_count() <= 1) {
-        return 'Du bist der letzte Administrator. Ernenne erst jemand anderen, dann geht das.';
+        return t('Du bist der letzte Administrator. Ernenne erst jemand anderen, dann geht das.');
     }
 
     foreach (links_all() as $code => $l) {

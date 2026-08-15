@@ -71,10 +71,10 @@ function bio_items_from_fields(array $labels, array $urls): array
             'url' => $url,
         ];
         if (count($items) > BIO_MAX_ITEMS) {
-            return ['Höchstens ' . BIO_MAX_ITEMS . ' Ziele pro Seite.', []];
+            return [t('Höchstens %d Ziele pro Seite.', BIO_MAX_ITEMS), []];
         }
     }
-    if ($items === []) return ['Mindestens ein Ziel angeben.', []];
+    if ($items === []) return [t('Mindestens ein Ziel angeben.'), []];
     return [null, $items];
 }
 

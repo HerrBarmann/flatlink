@@ -126,7 +126,7 @@ function access_denied_reason(string $username, array $groups, array $c): ?strin
         foreach ($scopes as $s) {
             if ($scope !== '' && strtolower((string)$s) === $scope) { $ok = true; break; }
         }
-        if (!$ok) return 'Diese Kennung gehört nicht zu einer zugelassenen Einrichtung.';
+        if (!$ok) return t('Diese Kennung gehört nicht zu einer zugelassenen Einrichtung.');
     }
 
     $req = $c['require_group'] ?? false;
@@ -134,7 +134,7 @@ function access_denied_reason(string $username, array $groups, array $c): ?strin
         // true = irgendeine Gruppe; Liste = eine der genannten
         $needed = is_array($req) ? array_intersect($groups, $req) : $groups;
         if ($needed === []) {
-            return 'Für diese Kennung ist keine Berechtigung hinterlegt.';
+            return t('Für diese Kennung ist keine Berechtigung hinterlegt.');
         }
     }
     return null;
@@ -199,7 +199,7 @@ function pending_user_drop(string $username): void
 function pending_user_approve(string $username, string $source): ?string
 {
     $q = pending_users();
-    if (!isset($q[$username])) return 'Diese Kennung steht nicht in der Warteschlange.';
+    if (!isset($q[$username])) return t('Diese Kennung steht nicht in der Warteschlange.');
     $e = $q[$username];
     // $force: Die Freischaltung ist genau der Moment, in dem ein Administrator
     // eine Verknüpfung bewusst bestätigt – auch die mit einem bestehenden
@@ -234,7 +234,7 @@ function valid_external_id(string $username): bool
 function user_provision(string $username, string $source, ?string $email, array $groups, bool $autoCreate, ?string $display = null, bool $force = false): ?string
 {
     if (!valid_external_id($username)) {
-        return 'Ungültige Kennung aus der zentralen Anmeldung.';
+        return t('Ungültige Kennung aus der zentralen Anmeldung.');
     }
 
     // Ein bestehendes Konto anderer Herkunft darf NICHT stillschweigend
@@ -249,14 +249,14 @@ function user_provision(string $username, string $source, ?string $email, array 
     // bewusst ($force).
     $current = users_all()[$username] ?? null;
     if (!$force && $current !== null && ($current['auth'] ?? 'local') !== $source) {
-        return 'Für diese Kennung gibt es bereits ein Konto mit anderer Anmeldeart.';
+        return t('Für diese Kennung gibt es bereits ein Konto mit anderer Anmeldeart.');
     }
     $err = null;
     $display = $display === null ? null : trim((string)preg_replace('/[\x00-\x1F\x7F]/u', '', $display));
     json_update(users_file(), function (array $users) use ($username, $source, $email, $groups, $autoCreate, $display, &$err) {
         $exists = isset($users[$username]);
         if (!$exists && !$autoCreate) {
-            $err = 'Für diese Kennung gibt es hier kein Konto, und die automatische Anlage ist deaktiviert.';
+            $err = t('Für diese Kennung gibt es hier kein Konto, und die automatische Anlage ist deaktiviert.');
             return null;
         }
         if (!$exists) {
@@ -361,7 +361,7 @@ function sso_attempt(): ?string
     if ($id === null) return null;
     $c = sso_cfg();
 
-    if (!valid_external_id($id['user'])) return 'Ungültige Kennung aus der zentralen Anmeldung.';
+    if (!valid_external_id($id['user'])) return t('Ungültige Kennung aus der zentralen Anmeldung.');
 
     $deny = access_denied_reason($id['user'], $id['groups'], $c);
     if ($deny !== null) return $deny;
@@ -373,13 +373,12 @@ function sso_attempt(): ?string
             pending_user_note($id['user'], $id['display'] ?? null, $id['email'], $id['groups'],
                 $fremd ? 'kollision' : 'unbekannt');
             return $fremd
-                ? 'Unter dieser Kennung gibt es bereits ein Konto mit anderer Anmeldeart. '
-                  . 'Die Verknüpfung muss ein Administrator bestätigen.'
-                : 'Dein Zugang ist noch nicht freigeschaltet. Die Anfrage liegt jetzt zur Prüfung vor.';
+                ? t('Unter dieser Kennung gibt es bereits ein Konto mit anderer Anmeldeart. Die Verknüpfung muss ein Administrator bestätigen.')
+                : t('Dein Zugang ist noch nicht freigeschaltet. Die Anfrage liegt jetzt zur Prüfung vor.');
         }
         return $fremd
-            ? 'Unter dieser Kennung gibt es bereits ein Konto mit anderer Anmeldeart.'
-            : 'Für diese Kennung gibt es hier kein Konto.';
+            ? t('Unter dieser Kennung gibt es bereits ein Konto mit anderer Anmeldeart.')
+            : t('Für diese Kennung gibt es hier kein Konto.');
     }
 
     $err = user_provision($id['user'], 'sso', $id['email'], $id['groups'],
@@ -499,10 +498,10 @@ function ldap_group_names($conn, string $dn, array $entry, array $c): array
 function ldap_login(string $username, string $password): ?string
 {
     $id = ldap_authenticate($username, $password);
-    if ($id === null) return 'Anmeldung fehlgeschlagen.';
+    if ($id === null) return t('Anmeldung fehlgeschlagen.');
     $c = ldap_cfg();
 
-    if (!valid_external_id($id['user'])) return 'Ungültige Kennung aus dem Verzeichnis.';
+    if (!valid_external_id($id['user'])) return t('Ungültige Kennung aus dem Verzeichnis.');
 
     $deny = access_denied_reason($id['user'], $id['groups'], $c);
     if ($deny !== null) return $deny;
@@ -514,13 +513,12 @@ function ldap_login(string $username, string $password): ?string
             pending_user_note($id['user'], $id['display'] ?? null, $id['email'], $id['groups'],
                 $fremd ? 'kollision' : 'unbekannt');
             return $fremd
-                ? 'Unter dieser Kennung gibt es bereits ein Konto mit anderer Anmeldeart. '
-                  . 'Die Verknüpfung muss ein Administrator bestätigen.'
-                : 'Dein Zugang ist noch nicht freigeschaltet. Die Anfrage liegt jetzt zur Prüfung vor.';
+                ? t('Unter dieser Kennung gibt es bereits ein Konto mit anderer Anmeldeart. Die Verknüpfung muss ein Administrator bestätigen.')
+                : t('Dein Zugang ist noch nicht freigeschaltet. Die Anfrage liegt jetzt zur Prüfung vor.');
         }
         return $fremd
-            ? 'Unter dieser Kennung gibt es bereits ein Konto mit anderer Anmeldeart.'
-            : 'Für diese Kennung gibt es hier kein Konto.';
+            ? t('Unter dieser Kennung gibt es bereits ein Konto mit anderer Anmeldeart.')
+            : t('Für diese Kennung gibt es hier kein Konto.');
     }
 
     $err = user_provision($id['user'], 'ldap', $id['email'], $id['groups'],

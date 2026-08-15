@@ -95,44 +95,37 @@ function qr_readability(array $o, int $module): array
     // worauf der Code später liegt. Statt eine Zahl zu erfinden, wird gesagt,
     // worauf zu achten ist.
     if (strtolower(trim($bg)) === 'none') {
-        $hin[] = ['stufe' => 'info', 'text' => 'Der Hintergrund ist durchsichtig. Ob der Code '
-            . 'liest, entscheidet die Fläche darunter – sie muss hell und ruhig sein, kein Foto '
-            . 'und kein Muster. Prüfen lässt sich das von hier aus nicht.'];
+        $hin[] = ['stufe' => 'info', 'text' => t('Der Hintergrund ist durchsichtig. Ob der Code liest, entscheidet die Fläche darunter – sie muss hell und ruhig sein, kein Foto und kein Muster. Prüfen lässt sich das von hier aus nicht.')];
         $bg = '#ffffff';   // für die folgenden Rechnungen der günstigste Fall
     }
 
     // ---- Kontrast ----
     // Alle Farben, die auf dem Hintergrund liegen, einzeln prüfen: Ein Verlauf
     // ist an einem Ende oft kräftig und am anderen zu blass.
-    $vorn = ['Vordergrund' => $fg];
-    if (($o['grad'] ?? null) !== null) $vorn['zweite Verlaufsfarbe'] = (string)$o['gradTo'];
-    if (trim((string)($o['eyeFg'] ?? '')) !== '') $vorn['Augenring'] = (string)$o['eyeFg'];
-    if (trim((string)($o['eyeCoreFg'] ?? '')) !== '') $vorn['Augenkern'] = (string)$o['eyeCoreFg'];
+    $vorn = [t('Vordergrund') => $fg];
+    if (($o['grad'] ?? null) !== null) $vorn[t('zweite Verlaufsfarbe')] = (string)$o['gradTo'];
+    if (trim((string)($o['eyeFg'] ?? '')) !== '') $vorn[t('Augenring')] = (string)$o['eyeFg'];
+    if (trim((string)($o['eyeCoreFg'] ?? '')) !== '') $vorn[t('Augenkern')] = (string)$o['eyeCoreFg'];
 
     foreach ($vorn as $name => $farbe) {
         $k = qr_contrast($farbe, $bg);
         if ($k < 2.5) {
-            $warn(sprintf('%s und Hintergrund haben zu wenig Kontrast (%.1f:1). Ein Scanner '
-                . 'unterscheidet die Felder dann nicht zuverlässig – mindestens 3:1, besser 7:1.',
-                $name, $k));
+            $warn(t('%s und Hintergrund haben zu wenig Kontrast (%.1f:1). Ein Scanner unterscheidet die Felder dann nicht zuverlässig – mindestens 3:1, besser 7:1.', $name, $k));
         } elseif ($k < 4.0) {
-            $info(sprintf('%s liegt mit %.1f:1 knapp über der Grenze. Auf Papier und bei '
-                . 'schlechtem Licht wird das eng.', $name, $k));
+            $info(t('%s liegt mit %.1f:1 knapp über der Grenze. Auf Papier und bei schlechtem Licht wird das eng.', $name, $k));
         }
         if (qr_luminance($farbe) > qr_luminance($bg)) {
-            $warn($name . ' ist heller als der Hintergrund. Ein umgekehrter Code wird von '
-                . 'vielen Kameras gelesen, von manchen aber nicht – im Zweifel dunkel auf hell.');
+            $warn(t('%s ist heller als der Hintergrund. Ein umgekehrter Code wird von vielen Kameras gelesen, von manchen aber nicht – im Zweifel dunkel auf hell.', $name));
         }
     }
 
     // ---- Ruhezone ----
     $rand = (int)($o['margin'] ?? 4);
     if ($rand < 2) {
-        $warn('Der Rand um den Code ist zu schmal (' . $rand . ($rand === 1 ? ' Modul' : ' Module')
-            . '). Die Norm verlangt vier freie Module, sonst findet der Scanner die Kanten nicht.');
+        $warn(t('Der Rand um den Code ist zu schmal (%s). Die Norm verlangt vier freie Module, sonst findet der Scanner die Kanten nicht.',
+            $rand . ' ' . ($rand === 1 ? t('Modul') : t('Module'))));
     } elseif ($rand < 4) {
-        $info('Der Rand liegt mit ' . $rand . ' Modulen unter den vier Modulen der Norm. Auf '
-            . 'einer ruhigen Fläche geht das meist gut, vor einem Muster nicht.');
+        $info(t('Der Rand liegt mit %d Modulen unter den vier Modulen der Norm. Auf einer ruhigen Fläche geht das meist gut, vor einem Muster nicht.', $rand));
     }
 
     // ---- Logo ----
@@ -143,12 +136,10 @@ function qr_readability(array $o, int $module): array
         $anteil = ($skala * (1 + 2 * $pad)) ** 2;
         $budget = qr_logo_budget((string)($o['ecc'] ?? 'H'));
         if ($anteil > $budget) {
-            $warn(sprintf('Das Logo verdeckt rund %d %% der Fläche, die Fehlerkorrektur trägt '
-                . 'hier etwa %d %%. Kleiner machen oder die Fehlerkorrektur anheben.',
+            $warn(t('Das Logo verdeckt rund %d %% der Fläche, die Fehlerkorrektur trägt hier etwa %d %%. Kleiner machen oder die Fehlerkorrektur anheben.',
                 (int)round($anteil * 100), (int)round($budget * 100)));
         } elseif ($anteil > $budget * 0.8) {
-            $info(sprintf('Das Logo nutzt mit rund %d %% fast den ganzen Spielraum der '
-                . 'Fehlerkorrektur aus.', (int)round($anteil * 100)));
+            $info(t('Das Logo nutzt mit rund %d %% fast den ganzen Spielraum der Fehlerkorrektur aus.', (int)round($anteil * 100)));
         }
     }
 
@@ -157,11 +148,9 @@ function qr_readability(array $o, int $module): array
     if ($px > 0) {
         $jeModul = $px / max(1, $module);
         if ($jeModul < 3) {
-            $warn(sprintf('Bei dieser Bildgröße entfallen nur %.1f Pixel auf ein Modul. '
-                . 'Unter drei Pixeln verschwimmen die Felder – größer ausgeben.', $jeModul));
+            $warn(t('Bei dieser Bildgröße entfallen nur %.1f Pixel auf ein Modul. Unter drei Pixeln verschwimmen die Felder – größer ausgeben.', $jeModul));
         } elseif ($jeModul < 5) {
-            $info(sprintf('Nur %.1f Pixel je Modul. Für den Bildschirm reicht das, zum '
-                . 'Weiterverarbeiten besser mehr.', $jeModul));
+            $info(t('Nur %.1f Pixel je Modul. Für den Bildschirm reicht das, zum Weiterverarbeiten besser mehr.', $jeModul));
         }
     }
 
@@ -169,12 +158,9 @@ function qr_readability(array $o, int $module): array
     if ($mm > 0) {
         $modulMm = $mm / max(1, $module);
         if ($modulMm < 0.4) {
-            $warn(sprintf('Auf %.0f mm Breite ist ein Modul nur %.2f mm groß. Unter 0,4 mm '
-                . 'scheitern viele Kameras – breiter drucken oder den Inhalt kürzen.',
-                $mm, $modulMm));
+            $warn(t('Auf %.0f mm Breite ist ein Modul nur %.2f mm groß. Unter 0,4 mm scheitern viele Kameras – breiter drucken oder den Inhalt kürzen.', $mm, $modulMm));
         } elseif ($modulMm < 0.6) {
-            $info(sprintf('Ein Modul misst %.2f mm. Das liest sich aus der Nähe, für ein '
-                . 'Plakat sollte es mehr sein.', $modulMm));
+            $info(t('Ein Modul misst %.2f mm. Das liest sich aus der Nähe, für ein Plakat sollte es mehr sein.', $modulMm));
         }
     }
 

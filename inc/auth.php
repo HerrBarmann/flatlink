@@ -124,7 +124,7 @@ function auth_require(bool $frei = false): array
     if (!$frei) {
         require_once __DIR__ . '/totp.php';
         if (totp_required($u['role']) && !second_factor_active($u['name'])) {
-            flash('Diese Instanz verlangt eine Zwei-Faktor-Anmeldung – bitte hier einrichten.', 'err');
+            flash(t('Diese Instanz verlangt eine Zwei-Faktor-Anmeldung – bitte hier einrichten.'), 'err');
             redirect_to(base_url() . '/admin/profile.php');
         }
     }
@@ -262,14 +262,14 @@ function auth_logout(): void
 function user_add(string $username, string $password, string $role): ?string
 {
     if (preg_match('/^[a-zA-Z0-9._-]{2,32}$/', $username) !== 1) {
-        return 'Nutzername: 2–32 Zeichen, nur Buchstaben, Zahlen, Punkt, Minus, Unterstrich.';
+        return t('Nutzername: 2–32 Zeichen, nur Buchstaben, Zahlen, Punkt, Minus, Unterstrich.');
     }
-    if (strlen($password) < 8) return 'Passwort: mindestens 8 Zeichen.';
-    if (!in_array($role, ['admin', 'user'], true)) return 'Ungültige Rolle.';
+    if (strlen($password) < 8) return t('Passwort: mindestens 8 Zeichen.');
+    if (!in_array($role, ['admin', 'user'], true)) return t('Ungültige Rolle.');
     $err = null;
     json_update(users_file(), function (array $users) use ($username, $password, $role, &$err) {
         if (isset($users[$username])) {
-            $err = 'Diesen Nutzer gibt es schon.';
+            $err = t('Diesen Nutzer gibt es schon.');
             return null;
         }
         // Erstinstallation: Ohne dieses Zugeständnis gäbe es auf einer frischen
@@ -287,8 +287,8 @@ function user_add(string $username, string $password, string $role): ?string
 
 function user_set_password(string $username, string $password): ?string
 {
-    if (strlen($password) < 8) return 'Passwort: mindestens 8 Zeichen.';
-    $err = 'Nutzer nicht gefunden.';
+    if (strlen($password) < 8) return t('Passwort: mindestens 8 Zeichen.');
+    $err = t('Nutzer nicht gefunden.');
     json_update(users_file(), function (array $users) use ($username, $password, &$err) {
         if (!isset($users[$username])) return null;
         $users[$username]['pass'] = password_hash($password, PASSWORD_DEFAULT);
@@ -306,15 +306,15 @@ function user_set_email(string $username, string $email): ?string
 {
     $email = strtolower(trim($email));
     if (filter_var($email, FILTER_VALIDATE_EMAIL) === false || strlen($email) > 254) {
-        return 'Ungültige E-Mail-Adresse.';
+        return t('Ungültige E-Mail-Adresse.');
     }
-    $err = 'Nutzer nicht gefunden.';
+    $err = t('Nutzer nicht gefunden.');
     json_update(users_file(), function (array $users) use ($username, $email, &$err) {
         if (!isset($users[$username])) return null;
         foreach ($users as $key => $u) {
             if ($key === $username) continue;
             if (strtolower($u['email'] ?? '') === $email || strtolower((string)$key) === $email) {
-                $err = 'Diese Adresse ist bereits mit einem anderen Konto verknüpft.';
+                $err = t('Diese Adresse ist bereits mit einem anderen Konto verknüpft.');
                 return null;
             }
         }
@@ -353,8 +353,8 @@ function user_set_display_name(string $username, string $name): ?string
 {
     // Steuerzeichen raus – der Wert kommt teils aus fremden Verzeichnissen
     $name = trim((string)preg_replace('/[\x00-\x1F\x7F]/u', '', $name));
-    if (mb_strlen($name) > 80) return 'Anzeigename: höchstens 80 Zeichen.';
-    $err = 'Nutzer nicht gefunden.';
+    if (mb_strlen($name) > 80) return t('Anzeigename: höchstens 80 Zeichen.');
+    $err = t('Nutzer nicht gefunden.');
     json_update(users_file(), function (array $users) use ($username, $name, &$err) {
         if (!isset($users[$username])) return null;
         if ($name === '') {
@@ -403,11 +403,11 @@ function admin_count(): int
  */
 function user_set_role(string $username, string $role): ?string
 {
-    if (!in_array($role, ['admin', 'user'], true)) return 'Ungültige Rolle.';
+    if (!in_array($role, ['admin', 'user'], true)) return t('Ungültige Rolle.');
     $users = users_all();
-    if (!isset($users[$username])) return 'Nutzer nicht gefunden.';
+    if (!isset($users[$username])) return t('Nutzer nicht gefunden.');
     if ($role !== 'admin' && ($users[$username]['role'] ?? '') === 'admin' && admin_count() <= 1) {
-        return 'Das ist der letzte Administrator – erst einen zweiten ernennen.';
+        return t('Das ist der letzte Administrator – erst einen zweiten ernennen.');
     }
     json_update(users_file(), function (array $users) use ($username, $role) {
         if (!isset($users[$username])) return null;
@@ -422,7 +422,7 @@ function user_delete(string $username): ?string
 {
     $users = users_all();
     if (($users[$username]['role'] ?? '') === 'admin' && admin_count() <= 1) {
-        return 'Das ist der letzte Administrator und kann nicht gelöscht werden.';
+        return t('Das ist der letzte Administrator und kann nicht gelöscht werden.');
     }
     json_update(users_file(), function (array $users) use ($username) {
         unset($users[$username]);
@@ -437,9 +437,9 @@ function user_delete(string $username): ?string
 function register_validate(string $email, string $password): ?string
 {
     if (filter_var($email, FILTER_VALIDATE_EMAIL) === false || strlen($email) > 254) {
-        return 'Das sieht nicht nach einer gültigen E-Mail-Adresse aus.';
+        return t('Das sieht nicht nach einer gültigen E-Mail-Adresse aus.');
     }
-    if (strlen($password) < 8) return 'Passwort: mindestens 8 Zeichen.';
+    if (strlen($password) < 8) return t('Passwort: mindestens 8 Zeichen.');
     return null;
 }
 
@@ -458,12 +458,12 @@ function user_activate(string $email, string $passHash): ?string
     $err = null;
     json_update(users_file(), function (array $users) use ($email, $passHash, &$err) {
         if (isset($users[$email])) {
-            $err = 'Dieses Konto ist bereits aktiviert.';
+            $err = t('Dieses Konto ist bereits aktiviert.');
             return null;
         }
         foreach ($users as $u) {
             if (strtolower($u['email'] ?? '') === $email) {
-                $err = 'Dieses Konto ist bereits aktiviert.';
+                $err = t('Dieses Konto ist bereits aktiviert.');
                 return null;
             }
         }

@@ -69,25 +69,25 @@ function link_rules_create(array $user, array $in): array
 
     $err = null;
     if (!valid_url($url)) {
-        $err = 'Ungültige Ziel-URL (nur http/https).';
+        $err = t('Ungültige Ziel-URL (nur http/https).');
     } elseif (!$isAdmin && link_count($user['name']) >= user_limit($user['name'], 'links')) {
-        $err = 'Limit erreicht: ' . user_limit($user['name'], 'links') . ' aktive Links.';
+        $err = t('Limit erreicht: %d aktive Links.', user_limit($user['name'], 'links'));
     } elseif ($code !== '' && !user_can($user['name'], 'custom_code')) {
-        $err = 'Für Wunsch-Namen fehlt diesem Konto die Berechtigung.';
+        $err = t('Für Wunsch-Namen fehlt diesem Konto die Berechtigung.');
     } elseif ($group !== null && !in_array($group, $assignable, true)) {
-        $err = 'Diese Gruppe steht diesem Konto nicht zur Verfügung.';
+        $err = t('Diese Gruppe steht diesem Konto nicht zur Verfügung.');
     } elseif ($code !== '' && !$isAdmin && mb_strlen($code) < $minLen) {
-        $err = 'Wunsch-Codes brauchen mindestens ' . $minLen . ' Zeichen.';
+        $err = t('Wunsch-Codes brauchen mindestens %d Zeichen.', $minLen);
     } elseif ($code !== '' && !$isAdmin && $codeQuota > 0 && custom_code_count($user['name']) >= $codeQuota) {
-        $err = 'Kontingent erreicht: maximal ' . $codeQuota . ' aktive Wunsch-Codes pro Konto.';
+        $err = t('Kontingent erreicht: maximal %d aktive Wunsch-Codes pro Konto.', $codeQuota);
     } elseif ($code !== '' && !valid_code($code)) {
-        $err = 'Ungültiger oder reservierter Wunsch-Name.';
+        $err = t('Ungültiger oder reservierter Wunsch-Name.');
     } elseif ($code !== '' && $prefix === '' && in_array(strtolower($code), all_prefixes(), true)) {
-        $err = 'Dieser Name ist als Namensraum vergeben.';
+        $err = t('Dieser Name ist als Namensraum vergeben.');
     } elseif (!$expOk) {
-        $err = 'Ungültiges Ablaufdatum (frühestens heute).';
+        $err = t('Ungültiges Ablaufdatum (frühestens heute).');
     } elseif (url_flagged($url)) {
-        $err = 'Diese Ziel-URL ist als schädlich gemeldet und kann nicht verkürzt werden.';
+        $err = t('Diese Ziel-URL ist als schädlich gemeldet und kann nicht verkürzt werden.');
     }
     if ($err !== null) return [$err, null, []];
 
@@ -135,15 +135,15 @@ function link_rules_update(array $user, array $link, array $in): array
     $assignable = link_rules_assignable($user);
 
     if (!valid_url($url)) {
-        return ['Ungültige Ziel-URL (nur http/https).', []];
+        return [t('Ungültige Ziel-URL (nur http/https).'), []];
     }
     // Eine bestehende Zuordnung darf bleiben, auch wenn sie nicht neu vergeben
     // werden könnte – sonst wäre ein geerbter Gruppenlink nicht mehr änderbar.
     if ($group !== null && $group !== ($link['group'] ?? null) && !in_array($group, $assignable, true)) {
-        return ['Diese Gruppe steht diesem Konto nicht zur Verfügung.', []];
+        return [t('Diese Gruppe steht diesem Konto nicht zur Verfügung.'), []];
     }
     if (!$expOk) {
-        return ['Ungültiges Ablaufdatum (frühestens heute, leer = kein Ablauf).', []];
+        return [t('Ungültiges Ablaufdatum (frühestens heute, leer = kein Ablauf).'), []];
     }
 
     $opts = ['expires' => $expires, 'group' => $group, 'url' => $url];
@@ -157,7 +157,7 @@ function link_rules_update(array $user, array $link, array $in): array
         $d = domain_clean((string)$in['domain']);
         if ($d === domain_main()) $d = '';
         if ($d !== (string)($link['domain'] ?? '') && !domain_allowed($d, $user['name'])) {
-            return ['Diese Domain steht diesem Konto nicht zur Verfügung.', []];
+            return [t('Diese Domain steht diesem Konto nicht zur Verfügung.'), []];
         }
         $opts['domain'] = $d;
     }

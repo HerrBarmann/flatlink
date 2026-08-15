@@ -74,9 +74,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'zip')
     $size = max(256, min(2048, (int)($_POST['size'] ?? 1024)));
 
     if ($gewaehlt === []) {
-        $fehler = 'Kein Link ausgewählt.';
+        $fehler = t('Kein Link ausgewählt.');
     } elseif (count($gewaehlt) > QRZIP_MAX) {
-        $fehler = 'Höchstens ' . QRZIP_MAX . ' Codes auf einmal – ausgewählt sind ' . count($gewaehlt) . '.';
+        $fehler = t('Höchstens %d Codes auf einmal – ausgewählt sind %d.', QRZIP_MAX, count($gewaehlt));
     } else {
         // Rasterbilder kosten spürbar Rechenzeit. Lieber die Grenze anheben als
         // mittendrin abgeschnitten zu werden und ein kaputtes Archiv zu liefern.
@@ -164,26 +164,24 @@ $vorauswahl = $_SERVER['REQUEST_METHOD'] === 'POST'
     ? array_flip(array_filter((array)($_POST['codes'] ?? []), 'is_string'))
     : $links;
 
-page_header('QR-Serie', true);
+page_header(t('QR-Serie'), true);
 show_flash();
 if ($fehler !== null) echo '<div class="flash flash-err">' . e($fehler) . '</div>';
 ?>
 <div class="card">
-    <h1>QR-Serie herunterladen</h1>
-    <p class="muted small">Wähl die Links aus, die als QR-Codes in ein Archiv sollen. Im ZIP
-    liegt zusätzlich eine Übersicht als CSV – wer die Codes an eine Druckerei gibt, braucht die
-    Zuordnung von Datei zu Ziel, nicht nur die Bilder. Höchstens <?= QRZIP_MAX ?> auf einmal.</p>
+    <h1><?= t('QR-Serie herunterladen') ?></h1>
+    <p class="muted small"><?= t('Wähl die Links aus, die als QR-Codes in ein Archiv sollen. Im ZIP liegt zusätzlich eine Übersicht als CSV – wer die Codes an eine Druckerei gibt, braucht die Zuordnung von Datei zu Ziel, nicht nur die Bilder. Höchstens %d auf einmal.', QRZIP_MAX) ?></p>
     <?php if ($gefiltert): ?>
-    <p class="muted small">Gefiltert
-        <?php if ($tagFilter !== ''): ?>nach Schlagwort <strong><?= e($tagFilter) ?></strong><?php endif; ?>
-        <?php if ($gFilter !== ''): ?>nach Gruppe <strong><?= e($gFilter === '-' ? 'ohne Gruppe' : group_label($gFilter)) ?></strong><?php endif; ?>
-        <?php if ($q !== ''): ?>nach „<strong><?= e($q) ?></strong>"<?php endif; ?>
-        – <a href="qrzip.php">alle anzeigen</a></p>
+    <p class="muted small"><?= t('Gefiltert') ?>
+        <?php if ($tagFilter !== ''): ?><?= t('nach Schlagwort') ?> <strong><?= e($tagFilter) ?></strong><?php endif; ?>
+        <?php if ($gFilter !== ''): ?><?= t('nach Gruppe') ?> <strong><?= e($gFilter === '-' ? t('ohne Gruppe') : group_label($gFilter)) ?></strong><?php endif; ?>
+        <?php if ($q !== ''): ?><?= t('nach') ?> „<strong><?= e($q) ?></strong>"<?php endif; ?>
+        – <a href="qrzip.php"><?= t('alle anzeigen') ?></a></p>
     <?php endif; ?>
 
     <?php if ($links === []): ?>
-    <p class="muted"><?= $gefiltert ? 'Zu diesem Filter gibt es keine Links. <a href="qrzip.php">Alle anzeigen.</a>'
-        : 'Noch keine Links vorhanden. <a href="index.php">Hier anlegen.</a>' ?></p>
+    <p class="muted"><?= $gefiltert ? t('Zu diesem Filter gibt es keine Links.') . ' <a href="qrzip.php">' . t('Alle anzeigen.') . '</a>'
+        : t('Noch keine Links vorhanden.') . ' <a href="index.php">' . t('Hier anlegen.') . '</a>' ?></p>
     <?php else: ?>
     <form method="post" action="">
         <?= csrf_field() ?>
@@ -191,43 +189,43 @@ if ($fehler !== null) echo '<div class="flash flash-err">' . e($fehler) . '</div
 
         <div class="two-col">
             <div>
-                <label for="z-format">Format</label>
+                <label for="z-format"><?= t('Format') ?></label>
                 <select id="z-format" name="format">
-                    <option value="svg">SVG – verlustfrei skalierbar, für den Druck</option>
-                    <option value="png">PNG – Pixelbild, für Bildschirm und Office</option>
+                    <option value="svg">SVG – <?= t('verlustfrei skalierbar, für den Druck') ?></option>
+                    <option value="png">PNG – <?= t('Pixelbild, für Bildschirm und Office') ?></option>
                 </select>
             </div>
             <div>
-                <label for="z-size">Kantenlänge in Pixeln <span class="muted">(nur PNG)</span></label>
+                <label for="z-size"><?= t('Kantenlänge in Pixeln') ?> <span class="muted"><?= t('(nur PNG)') ?></span></label>
                 <input id="z-size" type="number" name="size" min="256" max="2048" step="128" value="1024">
             </div>
         </div>
         <div class="two-col">
             <div>
-                <label for="z-style">Module</label>
+                <label for="z-style"><?= t('Module') ?></label>
                 <select id="z-style" name="style">
-                    <option value="square">eckig</option>
-                    <option value="rounded">abgerundet</option>
-                    <option value="dot">Punkte</option>
+                    <option value="square"><?= t('eckig') ?></option>
+                    <option value="rounded"><?= t('abgerundet') ?></option>
+                    <option value="dot"><?= t('Punkte') ?></option>
                 </select>
             </div>
             <div>
-                <label for="z-eye">Ecken</label>
+                <label for="z-eye"><?= t('Ecken') ?></label>
                 <select id="z-eye" name="eye">
-                    <option value="square">eckig</option>
-                    <option value="rounded">abgerundet</option>
-                    <option value="circle">rund</option>
+                    <option value="square"><?= t('eckig') ?></option>
+                    <option value="rounded"><?= t('abgerundet') ?></option>
+                    <option value="circle"><?= t('rund') ?></option>
                 </select>
             </div>
         </div>
         <div class="two-col">
-            <div><label for="z-fg">Vordergrund</label><input id="z-fg" type="color" name="fg" value="#16181D"></div>
-            <div><label for="z-bg">Hintergrund</label><input id="z-bg" type="color" name="bg" value="#ffffff"></div>
+            <div><label for="z-fg"><?= t('Vordergrund') ?></label><input id="z-fg" type="color" name="fg" value="#16181D"></div>
+            <div><label for="z-bg"><?= t('Hintergrund') ?></label><input id="z-bg" type="color" name="bg" value="#ffffff"></div>
         </div>
 
         <label class="check" style="margin-top:0.8rem">
             <input type="checkbox" data-checkall="codes[]"<?= $links !== [] && count($vorauswahl) >= count($links) ? ' checked' : '' ?>>
-            <strong>Alle <?= count($links) ?> auswählen</strong>
+            <strong><?= t('Alle %d auswählen', count($links)) ?></strong>
         </label>
 
         <div class="check-list">
@@ -246,7 +244,7 @@ if ($fehler !== null) echo '<div class="flash flash-err">' . e($fehler) . '</div
             <?php endforeach; ?>
         </div>
 
-        <p><button class="btn btn-primary" type="submit">Archiv herunterladen</button></p>
+        <p><button class="btn btn-primary" type="submit"><?= t('Archiv herunterladen') ?></button></p>
     </form>
     <?php endif; ?>
 </div>

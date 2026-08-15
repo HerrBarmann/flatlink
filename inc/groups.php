@@ -24,13 +24,13 @@ require_once __DIR__ . '/store.php';
 function perms_all(): array
 {
     return [
-        'custom_code' => 'Wunsch-Namen vergeben',
-        'csv_import'  => 'Links per CSV importieren',
-        'logo_upload' => 'Eigene Logos hochladen',
-        'qr_unbranded' => 'QR-Codes ohne Absenderzeile',
-        'api_access' => 'Zugriff über die Programmierschnittstelle (API)',
-        'bio_page' => 'Link-in-Bio-Seiten anlegen',
-        'bio_style' => 'Link-in-Bio-Seiten gestalten (Logo und Farben)',
+        'custom_code' => t('Wunsch-Namen vergeben'),
+        'csv_import'  => t('Links per CSV importieren'),
+        'logo_upload' => t('Eigene Logos hochladen'),
+        'qr_unbranded' => t('QR-Codes ohne Absenderzeile'),
+        'api_access' => t('Zugriff über die Programmierschnittstelle (API)'),
+        'bio_page' => t('Link-in-Bio-Seiten anlegen'),
+        'bio_style' => t('Link-in-Bio-Seiten gestalten (Logo und Farben)'),
     ];
 }
 
@@ -75,10 +75,10 @@ function valid_group_id(string $id): bool
 function group_save(string $id, string $name, array $perms, array $limits = [], string $prefix = '', bool $shared = false): ?string
 {
     if (!valid_group_id($id)) {
-        return 'Gruppen-Kennung: 2–32 Zeichen, nur Kleinbuchstaben, Ziffern, Punkt, Minus, Unterstrich.';
+        return t('Gruppen-Kennung: 2–32 Zeichen, nur Kleinbuchstaben, Ziffern, Punkt, Minus, Unterstrich.');
     }
     $name = trim($name);
-    if ($name === '' || mb_strlen($name) > 64) return 'Anzeigename: 1–64 Zeichen.';
+    if ($name === '' || mb_strlen($name) > 64) return t('Anzeigename: 1–64 Zeichen.');
     $perms = array_values(array_intersect($perms, array_keys(perms_all())));
 
     // Eigene Limits sind optional; 0 oder leer heißt "kein eigener Wert",
@@ -91,7 +91,7 @@ function group_save(string $id, string $name, array $perms, array $limits = [], 
 
     $prefix = strtolower(trim($prefix, " /"));
     if ($prefix !== '' && preg_match('/^[a-z0-9_-]{1,32}$/', $prefix) !== 1) {
-        return 'Präfix: 1–32 Zeichen, nur Kleinbuchstaben, Ziffern, Punkt, Minus, Unterstrich.';
+        return t('Präfix: 1–32 Zeichen, nur Kleinbuchstaben, Ziffern, Punkt, Minus, Unterstrich.');
     }
 
     json_update(groups_file(), function (array $groups) use ($id, $name, $perms, $clean, $prefix, $shared) {
@@ -306,9 +306,9 @@ function limit_names(): array
 {
     return [
         'links' => 'Links',
-        'stats_days' => 'Tage Statistik',
+        'stats_days' => t('Tage Statistik'),
         'logos' => 'Logos',
-        'bio' => 'Link-in-Bio-Seiten',
+        'bio' => t('Link-in-Bio-Seiten'),
     ];
 }
 

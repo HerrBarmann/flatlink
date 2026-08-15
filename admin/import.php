@@ -28,12 +28,11 @@ $darfMasse = user_can($user['name'], 'csv_import');
 if (!$darfMasse && !$isAdmin) {
     $frei = user_limit($user['name'], 'links') - link_count($user['name']);
     if ($frei < 1) {
-        page_header('CSV-Import', true);
-        echo '<div class="card center"><h1>CSV-Import</h1>'
-            . '<p>Dein Link-Kontingent ist ausgeschöpft – es ist kein Platz für weitere Links.</p>'
-            . '<p class="muted small">Lösche zuerst nicht mehr benötigte Links, oder lass dir '
-            . 'vom Administrator mehr Platz einräumen.</p>'
-            . '<p><a class="btn" href="index.php">Zurück zu den Links</a></p></div>';
+        page_header(t('CSV-Import'), true);
+        echo '<div class="card center"><h1>' . t('CSV-Import') . '</h1>'
+            . '<p>' . t('Dein Link-Kontingent ist ausgeschöpft – es ist kein Platz für weitere Links.') . '</p>'
+            . '<p class="muted small">' . t('Lösche zuerst nicht mehr benötigte Links, oder lass dir vom Administrator mehr Platz einräumen.') . '</p>'
+            . '<p><a class="btn" href="index.php">' . t('Zurück zu den Links') . '</a></p></div>';
         page_footer();
         exit;
     }
@@ -106,7 +105,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $raw = '';
     if (isset($_FILES['csv']) && $_FILES['csv']['error'] === UPLOAD_ERR_OK) {
         if ($_FILES['csv']['size'] > 100 * 1024) {
-            flash('Datei zu groß (max. 100 KB).', 'err');
+            flash(t('Datei zu groß (max. 100 KB).'), 'err');
             redirect_to('import.php');
         }
         $raw = (string)file_get_contents($_FILES['csv']['tmp_name']);
@@ -131,12 +130,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($lines === []) {
-        flash('Keine Zeilen gefunden – Format: eine URL pro Zeile, optional „;wunsch-code;ablaufdatum“.', 'err');
+        flash(t('Keine Zeilen gefunden – Format: eine URL pro Zeile, optional „;wunsch-code;ablaufdatum“.'), 'err');
         redirect_to('import.php');
     }
     if (count($lines) > $maxRows) {
-        flash('Maximal ' . $maxRows . ' Zeilen pro Import (gefunden: ' . count($lines) . ') – bitte aufteilen'
-            . ($isAdmin ? ' oder import_max_rows in der Konfiguration erhöhen.' : '.'), 'err');
+        flash(t('Maximal %d Zeilen pro Import (gefunden: %d) – bitte aufteilen', $maxRows, count($lines))
+            . ($isAdmin ? ' ' . t('oder import_max_rows in der Konfiguration erhöhen.') : '.'), 'err');
         redirect_to('import.php');
     }
 
@@ -187,22 +186,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         [$expOk, $expires] = parse_expiry($r['expires']);
         if ($utm !== []) $r['url'] = utm_apply($r['url'], $utm);
         if (!valid_url($r['url'])) {
-            $err = 'Ungültige URL';
+            $err = t('Ungültige URL');
         } elseif (in_array($r['url'], $flagged, true)) {
-            $err = 'Als schädlich gemeldet (Safe Browsing)';
+            $err = t('Als schädlich gemeldet (Safe Browsing)');
         } elseif (!$expOk) {
-            $err = 'Ungültiges Ablaufdatum (JJJJ-MM-TT, frühestens heute)';
+            $err = t('Ungültiges Ablaufdatum (JJJJ-MM-TT, frühestens heute)');
         } elseif (!$isAdmin && $usedLinks + $created >= $quotaLinks) {
-            $err = 'Link-Limit erreicht (' . $quotaLinks . ')';
+            $err = t('Link-Limit erreicht (%d)', $quotaLinks);
         } elseif ($r['code'] !== '') {
             if (!$mayCustom) {
-                $err = 'Wunsch-Namen sind für dieses Konto nicht freigeschaltet';
+                $err = t('Wunsch-Namen sind für dieses Konto nicht freigeschaltet');
             } elseif (!$isAdmin && mb_strlen($r['code']) < $minLen) {
-                $err = 'Wunsch-Code zu kurz (mind. ' . $minLen . ' Zeichen)';
+                $err = t('Wunsch-Code zu kurz (mind. %d Zeichen)', $minLen);
             } elseif (!$isAdmin && $quotaCustom > 0 && $usedCustom >= $quotaCustom) {
-                $err = 'Wunsch-Code-Kontingent erreicht (' . $quotaCustom . ')';
+                $err = t('Wunsch-Code-Kontingent erreicht (%d)', $quotaCustom);
             } elseif (!valid_code($r['code'])) {
-                $err = 'Ungültiger oder reservierter Wunsch-Code';
+                $err = t('Ungültiger oder reservierter Wunsch-Code');
             }
         }
 
@@ -223,43 +222,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-page_header('CSV-Import', true);
+page_header(t('CSV-Import'), true);
 show_flash();
 ?>
 
 <div class="card">
-    <h2>CSV-Import <span class="muted">(bis zu <?= (int)$maxRows ?> Links auf einmal)</span></h2>
+    <h2><?= t('CSV-Import') ?> <span class="muted"><?= t('(bis zu %d Links auf einmal)', (int)$maxRows) ?></span></h2>
     <?php if (!$darfMasse && !$isAdmin): ?>
-    <p class="muted small">Dein Konto kann so viele Links auf einmal einlesen, wie in dein
-    Kontingent passen (<?= (int)$maxRows ?> frei). Für größere Durchgänge gibt es die
-    Berechtigung zum Massen-Import.</p>
+    <p class="muted small"><?= t('Dein Konto kann so viele Links auf einmal einlesen, wie in dein Kontingent passen (%d frei). Für größere Durchgänge gibt es die Berechtigung zum Massen-Import.', (int)$maxRows) ?></p>
     <?php endif; ?>
-    <p class="muted small">Eine Zeile pro Link: <code>url;wunsch-code;ablaufdatum;name;schlagworte</code> —
-    alles außer der URL ist optional, als Trennzeichen geht Semikolon oder Komma. Alle
-    Ziel-URLs werden vor dem Anlegen gesammelt auf Phishing/Malware geprüft.</p>
-    <p class="muted small"><strong>Umzug von einem anderen Dienst?</strong> Die Exporte von
-    <strong>Bitly</strong> und <strong>YOURLS</strong> lassen sich unverändert einlesen: Steht
-    eine Kopfzeile darüber, werden die Spalten daran erkannt statt an ihrer Reihenfolge
-    (<code>Long URL</code>, <code>Bitlink</code>, <code>Title</code> bzw. <code>url</code>,
-    <code>keyword</code>, <code>title</code>). Enthält die Code-Spalte eine ganze Adresse wie
-    <code>bit.ly/3xYz9</code>, wird der letzte Teil übernommen &ndash; die Kurzcodes bleiben
-    also erhalten.</p>
+    <p class="muted small"><?= t('Eine Zeile pro Link: %s — alles außer der URL ist optional, als Trennzeichen geht Semikolon oder Komma. Alle Ziel-URLs werden vor dem Anlegen gesammelt auf Phishing/Malware geprüft.', '<code>url;wunsch-code;ablaufdatum;name;schlagworte</code>') ?></p>
+    <p class="muted small"><strong><?= t('Umzug von einem anderen Dienst?') ?></strong> <?= t('Die Exporte von %sBitly%s und %sYOURLS%s lassen sich unverändert einlesen: Steht eine Kopfzeile darüber, werden die Spalten daran erkannt statt an ihrer Reihenfolge (%s bzw. %s). Enthält die Code-Spalte eine ganze Adresse wie %s, wird der letzte Teil übernommen – die Kurzcodes bleiben also erhalten.',
+        '<strong>', '</strong>', '<strong>', '</strong>',
+        '<code>Long URL</code>, <code>Bitlink</code>, <code>Title</code>',
+        '<code>url</code>, <code>keyword</code>, <code>title</code>',
+        '<code>bit.ly/3xYz9</code>') ?></p>
 
     <form method="post" action="" enctype="multipart/form-data" class="grid-form">
         <?= csrf_field() ?>
         <div>
-            <label for="i-file">CSV-Datei</label>
+            <label for="i-file"><?= t('CSV-Datei') ?></label>
             <input id="i-file" type="file" name="csv" accept=".csv,.txt">
         </div>
         <div>
-            <label for="i-daten">… oder direkt einfügen</label>
+            <label for="i-daten"><?= t('… oder direkt einfügen') ?></label>
             <textarea id="i-daten" name="daten" rows="6" style="width:100%; font-family:var(--mono); font-size:0.9rem; padding:0.6rem 0.75rem; border:1px solid var(--line); border-radius:var(--radius); background:var(--paper); color:var(--ink);" placeholder="https://example.com/sommer;sommerfest-2026;2026-09-30&#10;https://example.com/karte"></textarea>
         </div>
         <?php if ($assignable !== []): ?>
         <div>
-            <label for="i-group">Gruppe für alle importierten Links <span class="muted">(optional)</span></label>
+            <label for="i-group"><?= t('Gruppe für alle importierten Links') ?> <span class="muted">(<?= t('optional') ?>)</span></label>
             <select id="i-group" name="group">
-                <option value="">– keine, nur für dich –</option>
+                <option value=""><?= t('– keine, nur für dich –') ?></option>
                 <?php foreach ($assignable as $gid): ?>
                 <option value="<?= e($gid) ?>"><?= e(group_label($gid)) ?></option>
                 <?php endforeach; ?>
@@ -268,24 +261,24 @@ show_flash();
         <?php endif; ?>
         <?php $meineDomains = domains_for($user['name']); if (count($meineDomains) > 1): ?>
         <div>
-            <label for="i-domain">Domain für alle importierten Links</label>
+            <label for="i-domain"><?= t('Domain für alle importierten Links') ?></label>
             <select id="i-domain" name="domain">
                 <?php foreach ($meineDomains as $d): ?>
-                <option value="<?= e($d) ?>"><?= e($d) ?><?= $d === domain_main() ? ' (Standard)' : '' ?></option>
+                <option value="<?= e($d) ?>"><?= e($d) ?><?= $d === domain_main() ? ' (' . t('Standard') . ')' : '' ?></option>
                 <?php endforeach; ?>
             </select>
         </div>
         <?php endif; ?>
         <?= utm_form('i', [], []) ?>
-        <button class="btn btn-primary" type="submit">Importieren</button>
+        <button class="btn btn-primary" type="submit"><?= t('Importieren') ?></button>
     </form>
 </div>
 
 <?php if ($results !== null): $okCount = count(array_filter($results, fn($r) => $r['ok'])); ?>
 <div class="card">
-    <h2>Ergebnis <span class="muted"><?= $okCount ?> von <?= count($results) ?> angelegt</span></h2>
+    <h2><?= t('Ergebnis') ?> <span class="muted"><?= t('%d von %d angelegt', $okCount, count($results)) ?></span></h2>
     <div class="table-scroll"><table>
-        <tr><th>Zeile</th><th>Ziel-URL</th><th>Ergebnis</th></tr>
+        <tr><th><?= t('Zeile') ?></th><th><?= t('Ziel-URL') ?></th><th><?= t('Ergebnis') ?></th></tr>
         <?php foreach ($results as $r): ?>
         <tr>
             <td><?= (int)$r['zeile'] ?></td>
@@ -295,7 +288,7 @@ show_flash();
         </tr>
         <?php endforeach; ?>
     </table></div>
-    <p><a class="btn" href="index.php">Zu den Links</a> <a class="btn" href="import.php">Weiterer Import</a></p>
+    <p><a class="btn" href="index.php"><?= t('Zu den Links') ?></a> <a class="btn" href="import.php"><?= t('Weiterer Import') ?></a></p>
 </div>
 <?php endif; ?>
 <?php page_footer(); ?>

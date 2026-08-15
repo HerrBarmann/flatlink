@@ -152,7 +152,7 @@ page_header($firstRun ? t('Ersteinrichtung') : t('Login'), true);
 
     <?php if (!$firstRun && sso_enabled() && $sso['login_url'] !== ''): ?>
         <p><a class="btn btn-primary" style="display:block;text-align:center"
-              href="<?= e((string)$sso['login_url']) ?>"><?= e((string)$sso['button_label']) ?></a></p>
+              href="<?= e((string)$sso['login_url']) ?>"><?= e(t((string)$sso['button_label'])) ?></a></p>
         <p class="muted small" style="text-align:center"><?= t('oder mit lokalem Konto:') ?></p>
     <?php endif; ?>
 

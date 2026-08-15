@@ -29,11 +29,11 @@ require_once __DIR__ . '/helpers.php';   // e() für den Formularteil
 function utm_fields(): array
 {
     return [
-        'utm_source' => ['Quelle', 'newsletter, plakat, instagram'],
+        'utm_source' => [t('Quelle'), 'newsletter, plakat, instagram'],
         'utm_medium' => ['Medium', 'qr, email, social, print'],
-        'utm_campaign' => ['Kampagne', 'sommer-2026'],
-        'utm_term' => ['Suchbegriff', 'nur bei bezahlter Suche'],
-        'utm_content' => ['Variante', 'zum Unterscheiden zweier Motive'],
+        'utm_campaign' => [t('Kampagne'), 'sommer-2026'],
+        'utm_term' => [t('Suchbegriff'), t('nur bei bezahlter Suche')],
+        'utm_content' => [t('Variante'), t('zum Unterscheiden zweier Motive')],
     ];
 }
 
@@ -132,12 +132,10 @@ function utm_present(string $url): bool
 function utm_form(string $id, array $werte, array $vorschlaege = []): string
 {
     $h = '<details class="utm"' . ($werte !== [] ? ' open' : '') . '>'
-        . '<summary>Kampagnen-Parameter (UTM)'
-        . ($werte !== [] ? ' <span class="badge badge-quiet">gesetzt</span>' : '')
+        . '<summary>' . t('Kampagnen-Parameter (UTM)')
+        . ($werte !== [] ? ' <span class="badge badge-quiet">' . t('gesetzt') . '</span>' : '')
         . '</summary>'
-        . '<p class="muted small">Wird an die Ziel-Adresse gehängt, damit die Statistik der '
-        . '<strong>Zielseite</strong> erkennt, woher jemand kam. Dieser Dienst wertet nichts davon '
-        . 'aus – er zählt weiterhin nur Aufrufe je Tag. Leer lassen heißt: kein Parameter.</p>';
+        . '<p class="muted small">' . t('Wird an die Ziel-Adresse gehängt, damit die Statistik der %sZielseite%s erkennt, woher jemand kam. Dieser Dienst wertet nichts davon aus – er zählt weiterhin nur Aufrufe je Tag. Leer lassen heißt: kein Parameter.', '<strong>', '</strong>') . '</p>';
 
     foreach (utm_fields() as $key => [$label, $hinweis]) {
         $feldId = $id . '-' . $key;

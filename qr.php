@@ -55,7 +55,7 @@ if ($type !== 'link') {
             '', (string)(qin('u') ?? '')));
         if ($payload === '') {
             http_response_code(400);
-            exit('Bitte eine Adresse oder einen Text angeben.');
+            exit(t('Bitte eine Adresse oder einen Text angeben.'));
         }
         // Fehlendes Schema ergänzen, aber nur wenn es nach einer Domain aussieht
         if (preg_match('#^[a-z0-9][a-z0-9.-]*\.[a-z]{2,}(/|$|\?)#i', $payload) === 1) {
@@ -72,7 +72,7 @@ if ($type !== 'link') {
         $hidden = (qin('hidden') ?? '') === '1';
         if ($ssid === '' || strlen($ssid) > 32 || strlen($pw) > 63) {
             http_response_code(400);
-            exit('Ungültige WLAN-Angaben.');
+            exit(t('Ungültige WLAN-Angaben.'));
         }
         // Sonderzeichen gemäß WIFI-Schema escapen (hier zusätzlich Doppelpunkt/Anführungszeichen)
         $wesc = fn(string $s): string => strtr($s, ['\\' => '\\\\', ';' => '\\;', ',' => '\\,', ':' => '\\:', '"' => '\\"']);
@@ -89,7 +89,7 @@ if ($type !== 'link') {
         $web = $in('url', 96);
         if ($vn === '' && $nn === '') {
             http_response_code(400);
-            exit('Bitte mindestens einen Namen angeben.');
+            exit(t('Bitte mindestens einen Namen angeben.'));
         }
         $payload = "BEGIN:VCARD\r\nVERSION:3.0\r\n"
             . 'N:' . $vesc($nn) . ';' . $vesc($vn) . ";;;\r\n"
@@ -112,7 +112,7 @@ if ($type !== 'link') {
         $ende = $dt('ende');
         if ($titel === '' || $start === null) {
             http_response_code(400);
-            exit('Bitte Titel und Startzeit angeben.');
+            exit(t('Bitte Titel und Startzeit angeben.'));
         }
         $payload = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\n"
             . 'SUMMARY:' . $vesc($titel) . "\r\n"
@@ -145,7 +145,7 @@ if ($type !== 'link') {
     $link = is_string($code) && lookup_code_ok($code) ? link_get($code) : null;
     if ($link === null) {
         http_response_code(404);
-        exit('Unbekannter Kurzlink.');
+        exit(t('Unbekannter Kurzlink.'));
     }
     $filename = str_replace('/', '-', $code);
     $payload = short_url($code, (string)($link['domain'] ?? ''));
@@ -231,8 +231,8 @@ $eccLevel = ['L' => QrCode::ECC_L, 'M' => QrCode::ECC_M, 'Q' => QrCode::ECC_Q, '
 // Grenze der Norm bei Version 40, je nach Fehlerkorrektur-Stufe
 if (strlen($payload) > QrCode::maxBytes($eccLevel)) {
     http_response_code(400);
-    exit('Zu viele Zeichen für einen QR-Code: ' . strlen($payload) . ' Byte, möglich sind '
-        . QrCode::maxBytes($eccLevel) . ' bei dieser Fehlerkorrektur.');
+    exit(t('Zu viele Zeichen für einen QR-Code: %d Byte, möglich sind %d bei dieser Fehlerkorrektur.',
+        strlen($payload), QrCode::maxBytes($eccLevel)));
 }
 
 $qr = QrCode::encode($payload, $eccLevel);

@@ -14,8 +14,8 @@ $code = (string)($_GET['c'] ?? '');
 $link = lookup_code_ok($code) ? link_get($code) : null;
 if ($link === null || !link_access($user, $link)) {
     http_response_code(404);
-    page_header('Statistik', true);
-    echo '<div class="card"><p>Link nicht gefunden (oder kein Zugriff).</p><p><a class="btn" href="index.php">Zurück</a></p></div>';
+    page_header(t('Statistik'), true);
+    echo '<div class="card"><p>' . t('Link nicht gefunden (oder kein Zugriff).') . '</p><p><a class="btn" href="index.php">' . t('Zurück') . '</a></p></div>';
     page_footer();
     exit;
 }
@@ -30,7 +30,7 @@ if (($_GET['format'] ?? '') === 'csv') {
     header('Content-Disposition: attachment; filename="klicks-' . str_replace('/', '-', $code) . '.csv"');
     $cutoff = date('Y-m-d', strtotime('-' . $statsDays . ' days'));
     ksort($days);
-    echo "Tag;Klicks\n";
+    echo t('Tag') . ';' . t('Klicks') . "\n";
     foreach ($days as $day => $n) {
         if ($day >= $cutoff) echo $day . ';' . (int)$n . "\n";
     }
@@ -56,21 +56,20 @@ foreach ($days as $day => $n) {
 }
 krsort($months);
 
-page_header('Statistik', true);
+page_header(t('Statistik'), true);
 ?>
 <div class="card">
-    <h2>Statistik <span class="muted">für</span> <?= e(short_url($code)) ?></h2>
+    <h2><?= t('Statistik') ?> <span class="muted"><?= t('für') ?></span> <?= e(short_url($code)) ?></h2>
     <?php if (bio_is($link)): ?>
-    <p class="muted">Link-in-Bio-Seite <strong><?= e((string)($link['title'] ?? $code)) ?></strong>
-    mit <?= count((array)($link['items'] ?? [])) ?> Zielen · <a href="bio.php?edit=<?= e(rawurlencode($code)) ?>">bearbeiten</a></p>
+    <p class="muted"><?= t('Link-in-Bio-Seite %s mit %d Zielen', '<strong>' . e((string)($link['title'] ?? $code)) . '</strong>', count((array)($link['items'] ?? []))) ?> · <a href="bio.php?edit=<?= e(rawurlencode($code)) ?>"><?= t('bearbeiten') ?></a></p>
     <?php else: ?>
-    <p class="muted">Ziel: <a href="<?= e($link['url']) ?>" target="_blank" rel="noopener"><?= e(mb_strimwidth($link['url'], 0, 80, '…')) ?></a></p>
+    <p class="muted"><?= t('Ziel:') ?> <a href="<?= e($link['url']) ?>" target="_blank" rel="noopener"><?= e(mb_strimwidth($link['url'], 0, 80, '…')) ?></a></p>
     <?php endif; ?>
     <div class="stat-row">
-        <div class="stat"><strong><?= (int)$clicks['n'] ?></strong><span>Klicks gesamt</span></div>
-        <div class="stat"><strong><?= array_sum($series) ?></strong><span>letzte 30 Tage</span></div>
-        <div class="stat"><strong><?= $clicks['last'] ? e(date('d.m.Y', strtotime($clicks['last']))) : '–' ?></strong><span>letzter Klick</span></div>
-        <div class="stat"><strong><?= e(date('d.m.Y', strtotime($link['created']))) ?></strong><span>erstellt</span></div>
+        <div class="stat"><strong><?= (int)$clicks['n'] ?></strong><span><?= t('Klicks gesamt') ?></span></div>
+        <div class="stat"><strong><?= array_sum($series) ?></strong><span><?= t('letzte 30 Tage') ?></span></div>
+        <div class="stat"><strong><?= $clicks['last'] ? e(date('d.m.Y', strtotime($clicks['last']))) : '–' ?></strong><span><?= t('letzter Klick') ?></span></div>
+        <div class="stat"><strong><?= e(date('d.m.Y', strtotime($link['created']))) ?></strong><span><?= t('erstellt') ?></span></div>
     </div>
 
     <?php if (bio_is($link)):
@@ -79,11 +78,10 @@ page_header('Statistik', true);
         $summe = 0;
         foreach ($je as $z) $summe += (int)($z['n'] ?? 0);
     ?>
-    <h3>Klicks je Ziel</h3>
-    <p class="muted small">Oben stehen die Aufrufe der Seite, hier die Klicks auf die einzelnen
-    Ziele – beides als Zahl je Tag, wie überall.</p>
+    <h3><?= t('Klicks je Ziel') ?></h3>
+    <p class="muted small"><?= t('Oben stehen die Aufrufe der Seite, hier die Klicks auf die einzelnen Ziele – beides als Zahl je Tag, wie überall.') ?></p>
     <div class="table-scroll"><table>
-        <tr><th>Ziel</th><th>Adresse</th><th>Klicks</th><th>Anteil</th></tr>
+        <tr><th><?= t('Ziel') ?></th><th><?= t('Adresse') ?></th><th><?= t('Klicks') ?></th><th><?= t('Anteil') ?></th></tr>
         <?php foreach ($items as $i => $item): $n = (int)($je[(string)$i]['n'] ?? 0); ?>
         <tr>
             <td><?= e((string)($item['label'] ?? '')) ?></td>
@@ -95,12 +93,12 @@ page_header('Statistik', true);
     </table></div>
     <?php endif; ?>
 
-    <h3>Klicks der letzten 30 Tage</h3>
+    <h3><?= t('Klicks der letzten 30 Tage') ?></h3>
     <?php
     // Balkendiagramm als Inline-SVG, 30 Balken
     $bw = 20; $gap = 4; $h = 120;
     $w = 30 * ($bw + $gap) - $gap;
-    echo '<div class="table-scroll"><svg viewBox="0 0 ' . $w . ' ' . ($h + 22) . '" width="' . $w . '" class="bars" role="img" aria-label="Klicks pro Tag">';
+    echo '<div class="table-scroll"><svg viewBox="0 0 ' . $w . ' ' . ($h + 22) . '" width="' . $w . '" class="bars" role="img" aria-label="' . t('Klicks pro Tag') . '">';
     $x = 0;
     foreach ($series as $day => $n) {
         $bh = (int)round($n / $max * ($h - 14));
@@ -120,17 +118,17 @@ page_header('Statistik', true);
     ?>
 
     <?php if (count($months) > 1): ?>
-    <h3>Monatsübersicht</h3>
+    <h3><?= t('Monatsübersicht') ?></h3>
     <div class="table-scroll"><table>
-        <tr><th>Monat</th><th>Klicks</th></tr>
+        <tr><th><?= t('Monat') ?></th><th><?= t('Klicks') ?></th></tr>
         <?php foreach ($months as $m => $n): ?>
         <tr><td><?= e(date('m/Y', strtotime($m . '-01'))) ?></td><td><?= (int)$n ?></td></tr>
         <?php endforeach; ?>
     </table></div>
     <?php endif; ?>
 
-    <p><a class="btn" href="index.php">Zurück zu den Links</a>
+    <p><a class="btn" href="index.php"><?= t('Zurück zu den Links') ?></a>
        <a class="btn" href="qrdesign.php?c=<?= e(rawurlencode($code)) ?>">QR-Designer</a>
-       <a class="btn" href="stats.php?c=<?= e(rawurlencode($code)) ?>&amp;format=csv">CSV-Export</a></p>
+       <a class="btn" href="stats.php?c=<?= e(rawurlencode($code)) ?>&amp;format=csv"><?= t('CSV-Export') ?></a></p>
 </div>
 <?php page_footer(); ?>

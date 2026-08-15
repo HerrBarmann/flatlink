@@ -238,14 +238,11 @@ function links_gc(): void
             $lines .= '  ' . ($trustedBase !== '' ? $trustedBase . '/' . $code : (string)$code)
                 . ' (letzte Nutzung: ' . date('d.m.Y', $lastUse) . ")\n";
         }
-        $ok = mail_send($mail, 'Lange ungenutzte Kurzlinks werden bald gelöscht',
-            "Hallo,\n\n"
-            . "die folgenden Kurzlinks deines Kontos wurden seit fast " . $years . " Jahren\n"
-            . "nicht ein einziges Mal aufgerufen und werden daher in etwa einem Monat\n"
-            . "automatisch gelöscht (AGB § 2):\n\n"
+        $ok = mail_send($mail, t('Lange ungenutzte Kurzlinks werden bald gelöscht'),
+            t("Hallo,") . "\n\n"
+            . t("die folgenden Kurzlinks deines Kontos wurden seit fast %d Jahren\nnicht ein einziges Mal aufgerufen und werden daher in etwa einem Monat\nautomatisch gelöscht (AGB § 2):", $years) . "\n\n"
             . $lines . "\n"
-            . "Ein einziger Aufruf genügt, um die Frist vollständig zurückzusetzen.\n"
-            . "Nichts weiter nötig, wenn die Links weg können.\n\n"
+            . t("Ein einziger Aufruf genügt, um die Frist vollständig zurückzusetzen.\nNichts weiter nötig, wenn die Links weg können.") . "\n\n"
             . "– " . cfg('site_name'));
         if ($ok) {
             foreach ($codes as $code => $lastUse) {
@@ -282,7 +279,7 @@ function link_create(string $url, ?string $code, ?string $owner, string $type, a
     if ($code === null) {
         $code = link_random_code($prefix);
         if ($code === null) {
-            return [false, 'Kein freier Code gefunden – Code-Länge in config.php erhöhen.'];
+            return [false, t('Kein freier Code gefunden – Code-Länge in config.php erhöhen.')];
         }
     }
 
@@ -303,8 +300,8 @@ function link_create(string $url, ?string $code, ?string $owner, string $type, a
         return link_apply_meta($new, $opts);
     });
 
-    if ($taken) return [false, 'Dieser Code ist schon vergeben.'];
-    return $ok ? [true, $code] : [false, 'Anlegen fehlgeschlagen.'];
+    if ($taken) return [false, t('Dieser Code ist schon vergeben.')];
+    return $ok ? [true, $code] : [false, t('Anlegen fehlgeschlagen.')];
 }
 
 /**

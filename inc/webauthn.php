@@ -329,16 +329,16 @@ function webauthn_take_challenge(string $zweck): ?string
 function webauthn_check_clientdata(string $json, string $erwarteterTyp, string $challenge): ?string
 {
     $d = json_decode($json, true);
-    if (!is_array($d)) return 'Die Angaben des Browsers sind unlesbar.';
-    if (($d['type'] ?? '') !== $erwarteterTyp) return 'Unerwarteter Vorgangstyp.';
+    if (!is_array($d)) return t('Die Angaben des Browsers sind unlesbar.');
+    if (($d['type'] ?? '') !== $erwarteterTyp) return t('Unerwarteter Vorgangstyp.');
     // (1) Die Aufgabe muss unsere sein
     if (!hash_equals($challenge, (string)($d['challenge'] ?? ''))) {
-        return 'Die Aufgabe stimmt nicht – bitte den Vorgang neu starten.';
+        return t('Die Aufgabe stimmt nicht – bitte den Vorgang neu starten.');
     }
     // (2) Die Herkunft muss unsere sein. DIESER Vergleich ist der Grund,
     //     warum ein Passkey auf einer nachgebauten Seite nutzlos ist.
     if (!hash_equals(webauthn_origin(), (string)($d['origin'] ?? ''))) {
-        return 'Die Herkunft der Anfrage stimmt nicht.';
+        return t('Die Herkunft der Anfrage stimmt nicht.');
     }
     return null;
 }
@@ -381,7 +381,7 @@ function webauthn_parse_authdata(string $bin): array
 function passkey_register(string $user, array $antwort, string $label): ?string
 {
     $challenge = webauthn_take_challenge('reg');
-    if ($challenge === null) return 'Der Vorgang ist abgelaufen – bitte neu beginnen.';
+    if ($challenge === null) return t('Der Vorgang ist abgelaufen – bitte neu beginnen.');
 
     $clientData = b64u_decode((string)($antwort['clientDataJSON'] ?? ''));
     $err = webauthn_check_clientdata($clientData, 'webauthn.create', $challenge);
@@ -389,17 +389,17 @@ function passkey_register(string $user, array $antwort, string $label): ?string
 
     try {
         $att = cbor_decode(b64u_decode((string)($antwort['attestationObject'] ?? '')));
-        if (!is_array($att) || !isset($att['authData'])) return 'Antwort des Geräts unlesbar.';
+        if (!is_array($att) || !isset($att['authData'])) return t('Antwort des Geräts unlesbar.');
         $auth = webauthn_parse_authdata((string)$att['authData']);
         // (3) Der Hash der Domain muss zu unserer passen
         if (!hash_equals(hash('sha256', webauthn_rp_id(), true), $auth['rpIdHash'])) {
-            return 'Der Passkey gehört zu einer anderen Adresse.';
+            return t('Der Passkey gehört zu einer anderen Adresse.');
         }
-        if (($auth['flags'] & 0x01) === 0) return 'Das Gerät hat die Anwesenheit nicht bestätigt.';
-        if ($auth['credId'] === null || $auth['cose'] === null) return 'Es wurde kein Schlüssel geliefert.';
+        if (($auth['flags'] & 0x01) === 0) return t('Das Gerät hat die Anwesenheit nicht bestätigt.');
+        if ($auth['credId'] === null || $auth['cose'] === null) return t('Es wurde kein Schlüssel geliefert.');
         [$pemKey, $alg] = cose_to_pem($auth['cose']);
     } catch (Throwable $e) {
-        return 'Antwort des Geräts nicht verwertbar: ' . $e->getMessage();
+        return t('Antwort des Geräts nicht verwertbar:') . ' ' . $e->getMessage();
     }
 
     $id = b64u_encode($auth['credId']);
@@ -434,14 +434,14 @@ function passkey_register(string $user, array $antwort, string $label): ?string
 function passkey_verify(string $user, array $antwort): ?string
 {
     $challenge = webauthn_take_challenge('login');
-    if ($challenge === null) return 'Der Vorgang ist abgelaufen – bitte neu anmelden.';
+    if ($challenge === null) return t('Der Vorgang ist abgelaufen – bitte neu anmelden.');
 
     $id = (string)($antwort['id'] ?? '');
     $treffer = null;
     foreach (passkeys_of($user) as $p) {
         if (hash_equals((string)$p['id'], $id)) { $treffer = $p; break; }
     }
-    if ($treffer === null) return 'Dieser Passkey gehört nicht zu diesem Konto.';
+    if ($treffer === null) return t('Dieser Passkey gehört nicht zu diesem Konto.');
 
     $clientData = b64u_decode((string)($antwort['clientDataJSON'] ?? ''));
     $err = webauthn_check_clientdata($clientData, 'webauthn.get', $challenge);
@@ -451,19 +451,19 @@ function passkey_verify(string $user, array $antwort): ?string
     try {
         $auth = webauthn_parse_authdata($authRaw);
     } catch (Throwable $e) {
-        return 'Antwort des Geräts nicht verwertbar.';
+        return t('Antwort des Geräts nicht verwertbar.');
     }
     // (3) Hash der Domain
     if (!hash_equals(hash('sha256', webauthn_rp_id(), true), $auth['rpIdHash'])) {
-        return 'Der Passkey gehört zu einer anderen Adresse.';
+        return t('Der Passkey gehört zu einer anderen Adresse.');
     }
-    if (($auth['flags'] & 0x01) === 0) return 'Das Gerät hat die Anwesenheit nicht bestätigt.';
+    if (($auth['flags'] & 0x01) === 0) return t('Das Gerät hat die Anwesenheit nicht bestätigt.');
 
     // (4) Die Unterschrift muss zum hinterlegten Schlüssel passen
     $signiert = $authRaw . hash('sha256', $clientData, true);
     $sig = b64u_decode((string)($antwort['signature'] ?? ''));
     $ok = openssl_verify($signiert, $sig, (string)$treffer['pubkey'], OPENSSL_ALGO_SHA256);
-    if ($ok !== 1) return 'Die Unterschrift stimmt nicht.';
+    if ($ok !== 1) return t('Die Unterschrift stimmt nicht.');
 
     // Der Zähler darf nicht zurücklaufen: Täte er das, wäre der Schlüssel
     // vermutlich kopiert worden. Viele Geräte zählen gar nicht (dann bleibt er
@@ -471,7 +471,7 @@ function passkey_verify(string $user, array $antwort): ?string
     $alt = (int)($treffer['sign_count'] ?? 0);
     $neu = (int)$auth['signCount'];
     if ($alt > 0 && $neu > 0 && $neu <= $alt) {
-        return 'Der Passkey wurde möglicherweise kopiert – bitte einen neuen einrichten.';
+        return t('Der Passkey wurde möglicherweise kopiert – bitte einen neuen einrichten.');
     }
 
     json_update(users_file(), function (array $users) use ($user, $id, $neu) {

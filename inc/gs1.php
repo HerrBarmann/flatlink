@@ -55,14 +55,13 @@ function gs1_check_digit(string $ohnePruefziffer): int
 function gs1_normalize_gtin(string $roh): array
 {
     $g = preg_replace('/[^0-9]/', '', $roh) ?? '';
-    if ($g === '') return ['Bitte eine Artikelnummer (GTIN) angeben.', ''];
+    if ($g === '') return [t('Bitte eine Artikelnummer (GTIN) angeben.'), ''];
     if (!in_array(strlen($g), [8, 12, 13, 14], true)) {
-        return ['Eine GTIN hat 8, 12, 13 oder 14 Ziffern – diese hat ' . strlen($g) . '.', ''];
+        return [t('Eine GTIN hat 8, 12, 13 oder 14 Ziffern – diese hat %d.', strlen($g)), ''];
     }
     $soll = gs1_check_digit(substr($g, 0, -1));
     if ((int)substr($g, -1) !== $soll) {
-        return ['Die Prüfziffer stimmt nicht: erwartet ' . $soll . ', angegeben ' . substr($g, -1)
-            . '. Meist ist eine Ziffer vertauscht.', ''];
+        return [t('Die Prüfziffer stimmt nicht: erwartet %s, angegeben %s. Meist ist eine Ziffer vertauscht.', (string)$soll, substr($g, -1)), ''];
     }
     return [null, str_pad($g, 14, '0', STR_PAD_LEFT)];
 }
@@ -96,7 +95,7 @@ function gs1_digital_link(string $gtinRoh, array $extra = [], string $basis = 'h
         $basis = 'https://' . $basis;
     }
     if (filter_var($basis, FILTER_VALIDATE_URL) === false) {
-        return ['Die Adresse des Auflösungsdienstes ist ungültig.', ''];
+        return [t('Die Adresse des Auflösungsdienstes ist ungültig.'), ''];
     }
 
     $url = $basis . '/01/' . $gtin;
@@ -114,7 +113,7 @@ function gs1_digital_link(string $gtinRoh, array $extra = [], string $basis = 'h
     $mhd = trim((string)($extra['17'] ?? ''));
     if ($mhd !== '') {
         $d = DateTimeImmutable::createFromFormat('Y-m-d', $mhd);
-        if ($d === false) return ['Das Haltbarkeitsdatum ist ungültig.', ''];
+        if ($d === false) return [t('Das Haltbarkeitsdatum ist ungültig.'), ''];
         $url .= '?17=' . $d->format('ymd');
     }
     return [null, $url];
