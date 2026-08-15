@@ -62,13 +62,10 @@ halber:
   instanzeigenen Geheimnis gebildet (`data/secret.key`) und sind damit ohne
   Serverzugriff nicht rückrechenbar – aber sie bleiben personenbezogene Daten
   im Sinne der DSGVO und gehören in die Datenschutzerklärung.
-- **Die Ablage ist dateibasiert.** Kurzlinks liegen auf 256 Ablagen verteilt,
-  der Lookup liest nur eine davon. Bei sehr vielen gleichzeitigen
-  Schreibzugriffen bleibt eine Datenbank trotzdem die bessere Wahl.
-- **Das Anlegen eines Kurzlinks liest alle 256 Ablagen.** Nur dort, wo Limits
-  zu prüfen sind – der Weiterleitungspfad, auf den es ankommt, bleibt bei einer
-  Datei. Bei sechsstelligen Beständen wird die Erstellung spürbar langsamer;
-  wer dorthin kommt, sollte auf Zählerdateien je Konto umstellen.
+- **Links und Konten liegen in einer SQLite-Datei** (`data/flatlink.sqlite`,
+  WAL-Modus). Lookup, Limit-Prüfung und Listen sind gezielte Abfragen; die
+  Datei gehört wie der ganze `data/`-Ordner außerhalb des Webroots oder
+  hinter die mitgelieferte Zugriffssperre.
 - **Klick-Zeitstempel sind bewusst nur tagesgenau.** Der Zähler hält fest, wie
   oft ein Link insgesamt und je Kalendertag aufgerufen wurde, dazu den Tag des
   letzten Aufrufs – keine Uhrzeit, keine IP, keinen User-Agent, keinen Referrer

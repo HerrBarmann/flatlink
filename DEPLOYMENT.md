@@ -853,32 +853,6 @@ sudo tar czf flatlink-$(date +%F).tar.gz -C /var/www/flatlink data inc/config.ph
 im Repository. Und weil sie das tut: Das Backup gehört an einen Ort, an dem
 nicht jeder mitliest.
 
-### Bestehende Instanz auf die aufgeteilte Ablage umstellen
-
-Ältere Instanzen halten alle Kurzlinks in einer einzigen `links.json`. Der
-Weiterleitungspfad musste sie damit bei jedem Scan vollständig einlesen – bei
-100.000 Links rund 28 MB und 50 ms. Die Umstellung auf 256 Ablagen bringt das
-auf 0,4 ms.
-
-Die Anwendung liest weiter aus der alten Datei, solange keine Ablagen
-existieren. Zwischen Dateiupload und Migration läuft die Instanz also normal
-weiter – es gibt keinen Moment, in dem Kurzlinks ins Leere gehen.
-
-```bash
-php migrate-links.php --dry-run   # zeigt nur, was passieren würde
-php migrate-links.php             # führt sie aus
-```
-
-Ohne Kommandozeile geht es auch im Browser, angemeldet als Administrator:
-`/migrate-links.php` für den Probelauf, `/migrate-links.php?run=1` für den
-echten Lauf.
-
-Die alte Datei wird nicht gelöscht, sondern zu `links.json.vor-aufteilung`
-umbenannt – und erst, nachdem die Migration nachgezählt hat, dass alle Links
-in den Ablagen angekommen sind. Stimmt die Zahl nicht, bricht sie ab und
-räumt die Ablagen wieder weg. Wenn die Instanz danach ein paar Tage
-unauffällig läuft, können die Sicherungsdatei und `migrate-links.php` weg.
-
 ### Aktualisieren
 
 ```bash
@@ -934,7 +908,7 @@ helfen. Eigene Seiten anlegen und in `page_footer()` in
 | SSO: Attribute da, flatlink meldet nicht an | Name in `user_var` stimmt nicht, oder es ist eine `HTTP_`-Variable ohne `trusted_proxies` |
 | SSO: funktioniert lokal, nicht über Proxy | `trusted_proxies` fehlt – auch `::1` eintragen |
 | Nach Abmelden sofort wieder angemeldet | `logout_url` nicht gesetzt: Der IdP hält die Sitzung |
-| Aussperrt: kein Admin mehr | in `data/users.json` beim gewünschten Konto `"role": "admin"` setzen |
+| Aussperrt: kein Admin mehr | `sqlite3 data/flatlink.sqlite "UPDATE users SET role='admin', data=json_set(data,'$.role','admin') WHERE name='DEINE-KENNUNG'"` |
 
 Wenn nichts davon passt: [ein Issue aufmachen](https://github.com/HerrBarmann/flatlink/issues).
 Hilfreich sind PHP-Version, Webserver, Anmeldeweg und der Auszug aus dem

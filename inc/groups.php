@@ -168,14 +168,15 @@ function group_delete(string $id): void
         }
         return $users;
     });
-    // Über alle Ablagen: die Zuordnung entfernen, die Links selbst behalten
-    foreach (link_store_files() as $file) {
-        json_update($file, function (array $links) use ($id) {
-            $touched = false;
-            foreach ($links as $c => $l) {
-                if (($l['group'] ?? null) === $id) { unset($links[$c]['group']); $touched = true; }
-            }
-            return $touched ? $links : null;
+    // Die Zuordnung entfernen, die Links selbst behalten. Über die Codes der
+    // Gruppe und link_write, damit data-Spalte und abgeleitete grp-Spalte
+    // zusammen geschrieben werden – wie überall.
+    foreach (link_codes_of_group($id) as $code) {
+        link_write($code, function (?array $l) {
+            if ($l === null) return false;
+            unset($l['group']);
+            $l['updated'] = date('c');
+            return $l;
         });
     }
 }
@@ -376,22 +377,18 @@ function user_shared_groups(string $username): array
 function links_visible(array $user): array
 {
     if (($user['role'] ?? '') === 'admin') return links_all();
-    // Über den Index: eigene Links plus die der eigenen Arbeitsgruppen. Der
-    // Index liefert nur die Kandidaten – ob ein Link wirklich sichtbar ist,
-    // entscheidet weiterhin link_access(), dieselbe Prüfung wie zuvor. Ohne
-    // Index (Altbestand, Aufbau läuft gerade woanders) der alte Vollscan.
-    if (db() !== null || link_index_ready()) {
-        $kandidaten = links_of_owner($user['name']);
-        foreach (user_shared_groups($user['name']) as $gid) {
-            foreach (link_codes_of_group($gid) as $code) {
-                if (isset($kandidaten[$code])) continue;
-                $l = link_get($code);
-                if ($l !== null) $kandidaten[$code] = $l;
-            }
+    // Eigene Links plus die der eigenen Arbeitsgruppen – die Abfragen liefern
+    // nur Kandidaten, ob ein Link wirklich sichtbar ist, entscheidet
+    // weiterhin link_access().
+    $kandidaten = links_of_owner($user['name']);
+    foreach (user_shared_groups($user['name']) as $gid) {
+        foreach (link_codes_of_group($gid) as $code) {
+            if (isset($kandidaten[$code])) continue;
+            $l = link_get($code);
+            if ($l !== null) $kandidaten[$code] = $l;
         }
-        return array_filter($kandidaten, fn($l) => link_access($user, $l));
     }
-    return array_filter(links_all(), fn($l) => link_access($user, $l));
+    return array_filter($kandidaten, fn($l) => link_access($user, $l));
 }
 
 /**

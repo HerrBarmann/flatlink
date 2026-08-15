@@ -3,68 +3,42 @@ declare(strict_types=1);
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // flatlink · Zusatzbedingung zur Namensnennung nach §7(b) AGPL: siehe LICENSE
 /**
- * Das SQLite-Backend – die Vorgabe für Links und Konten.
+ * Die Ablage für Links und Konten: eine SQLite-Datei unter data/.
  *
- * SQLite ist keine Infrastruktur: eine Datei unter data/, die Erweiterung
- * pdo_sqlite bringt praktisch jedes PHP mit, es gibt keinen Server, nichts
- * zu warten. Das Backup bleibt das Kopieren des Ordners. Wer die reine
- * Datei-Ablage will, stellt 'storage' => 'json' – sie bleibt vollwertig,
- * trägt aber ab einigen zehntausend Konten oder Listen über sehr große
- * Bestände schlechter (gemessen in docs/release-v2.3.0.md).
+ * Kein Server, nichts einzurichten, nichts zu warten – die Erweiterung
+ * pdo_sqlite bringt praktisch jedes PHP mit, und das Backup bleibt das
+ * Kopieren des data/-Ordners.
  *
- * WAS in die Datenbank wandert – und was nicht: Links und Konten, denn deren
- * Vollscans waren die gemessene Grenze. Klickzähler bleiben Einzeldateien
- * (der Weiterleitungspfad schreibt sie bei jedem Scan – gerade dort soll
- * kein gemeinsames Schreib-Lock entstehen), ebenso Einstellungen, Gruppen,
- * Logos, Rate-Limits und offene Bestätigungen: alles klein, nichts davon
- * wächst mit dem Bestand.
+ * Der vollständige Datensatz liegt als JSON in der Spalte `data`; die
+ * übrigen Spalten (owner, grp, type, created, email, role) sind daraus
+ * abgeleitete Kopien für WHERE und ORDER BY und werden ausschließlich
+ * zusammen mit `data` geschrieben, nie einzeln.
  *
- * WIE gespeichert wird: Der vollständige Datensatz liegt als JSON in der
- * Spalte `data` – dieselbe Wahrheit wie in der Datei-Ablage, nur anders
- * abgelegt. Die übrigen Spalten (owner, grp, type, created, email, role)
- * sind daraus abgeleitete Kopien für WHERE und ORDER BY; geschrieben werden
- * sie ausschließlich zusammen mit `data`, nie einzeln. Ein Wechsel zurück
- * zur Datei-Ablage ist damit jederzeit ein simples Auslesen.
+ * Klickzähler bleiben bewusst Einzeldateien (der Weiterleitungspfad
+ * schreibt sie bei jedem Scan – dort soll kein gemeinsames Schreib-Lock
+ * entstehen), ebenso Einstellungen, Gruppen, Logos, Rate-Limits und offene
+ * Bestätigungen: alles klein, nichts davon wächst mit dem Bestand.
  */
 
-/**
- * Die Verbindung dieser Anfrage – oder null, wenn die Instanz auf der
- * Datei-Ablage läuft. Alle Backend-Weichen im Projekt hängen an diesem null.
- */
-function db(): ?PDO
+/** Die Verbindung dieser Anfrage – eine je Prozess, mehr braucht es nicht */
+function db(): PDO
 {
     static $pdo = null;
-    static $aus = false;
-    if ($aus) return null;
     if ($pdo !== null) return $pdo;
 
-    if ((string)cfg('storage') !== 'sqlite') {
-        $aus = true;
-        return null;
+    // Die eine Diagnose, die auf Shared Hosting weiterhilft: Fehlt die
+    // Erweiterung, soll hier ein Satz stehen statt eines nackten Fatal Error.
+    if (!extension_loaded('pdo_sqlite')) {
+        http_response_code(500);
+        exit('Die PHP-Erweiterung pdo_sqlite fehlt. Sie gehört zur Standardausstattung – beim Hoster lässt sie sich in den PHP-Einstellungen einschalten.');
     }
 
-    $datei = db_file();
-
-    // Die Datenbank gilt erst, wenn es sie gibt. Eine Bestandsinstanz, die
-    // mit dem neuen Standard aktualisiert wird, läuft so unverändert auf
-    // ihren Dateien weiter, bis die Migration gelaufen ist – unter
-    // *Einstellungen → Ablage* oder per `php migrate-sqlite.php`. Ohne diese
-    // Weiche gälte nach dem Update sofort eine leere Datenbank: keine Links,
-    // keine Konten, keine Möglichkeit mehr, sich für die Migration überhaupt
-    // anzumelden. Nur eine frische Instanz (keine Bestandsdaten) legt die
-    // Datei unmittelbar an.
-    if (!is_file($datei) && db_migration_offen()) {
-        $aus = true;
-        return null;
-    }
-
-    $pdo = new PDO('sqlite:' . $datei, null, null, [
+    $pdo = new PDO('sqlite:' . db_file(), null, null, [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
     ]);
-    // WAL: Leser blockieren keine Schreiber und umgekehrt – das Gegenstück
-    // zum Sperren einzelner Ablagen. busy_timeout wartet kurze Konflikte ab,
-    // statt sie als Fehler an den Besucher durchzureichen.
+    // WAL: Leser blockieren keine Schreiber und umgekehrt. busy_timeout
+    // wartet kurze Konflikte ab, statt sie als Fehler durchzureichen.
     $pdo->exec('PRAGMA journal_mode = WAL');
     $pdo->exec('PRAGMA busy_timeout = 5000');
     $pdo->exec('PRAGMA foreign_keys = ON');
@@ -164,68 +138,6 @@ function db_file(): string
 {
     $datei = (string)cfg('sqlite_file');
     return $datei !== '' ? $datei : data_path() . '/flatlink.sqlite';
-}
-
-/**
- * Wartet diese Instanz noch auf die Migration? Ja, wenn SQLite eingestellt
- * ist, die Datenbank fehlt und Bestandsdaten in Dateien liegen.
- *
- * Bewusst ohne data_path(): das legt fehlende Verzeichnisse an und würde
- * die Prüfung verfälschen – dasselbe Muster wie in links_sharded().
- */
-function db_migration_offen(): bool
-{
-    if ((string)cfg('storage') !== 'sqlite') return false;
-    if (is_file(db_file())) return false;
-    $dir = (string)cfg('data_dir');
-    $base = $dir !== '' ? rtrim($dir, '/') : dirname(__DIR__) . '/data';
-    return is_file($base . '/users.json') || is_file($base . '/links.json')
-        || is_file($base . '/links/.aufgeteilt');
-}
-
-/**
- * Die Migration selbst: Konten und Links aus den Dateien in die Datenbank.
- *
- * Von zwei Stellen gerufen – dem Knopf unter *Einstellungen → Ablage* und
- * `migrate-sqlite.php` auf der Kommandozeile. Idempotent: Ein zweiter Lauf
- * überschreibt anhand von Kennung bzw. Code und löscht nichts. Die
- * JSON-Dateien bleiben als Sicherung liegen.
- *
- * Liest die Dateien unmittelbar, nicht über die Ablage-Funktionen – die
- * könnten bereits auf die (noch leere) Datenbank zeigen.
- *
- * @return array{konten:int,links:int}
- */
-function sqlite_migrate(): array
-{
-    $pdo = new PDO('sqlite:' . db_file(), null, null, [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-    ]);
-    $pdo->exec('PRAGMA journal_mode = WAL');
-    db_schema($pdo);
-
-    $konten = json_read(data_path() . '/users.json');
-    $pdo->exec('BEGIN');
-    foreach ($konten as $name => $u) {
-        db_user_put($pdo, (string)$name, $u);
-    }
-    $pdo->exec('COMMIT');
-
-    $dateien = glob(data_path('links') . '/[0-9a-f][0-9a-f].json') ?: [];
-    if ($dateien === [] && is_file(data_path() . '/links.json')) {
-        $dateien = [data_path() . '/links.json'];
-    }
-    $n = 0;
-    foreach ($dateien as $f) {
-        $pdo->exec('BEGIN');
-        foreach (json_read($f) as $code => $l) {
-            db_link_put($pdo, (string)$code, $l);
-            $n++;
-        }
-        $pdo->exec('COMMIT');
-    }
-    return ['konten' => count($konten), 'links' => $n];
 }
 
 /**

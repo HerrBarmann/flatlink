@@ -151,8 +151,6 @@ function account_delete(string $username): ?string
                 $l['updated'] = date('c');
                 return $l;
             });
-            // Der Link bleibt (er gehört der Gruppe), nur der Besitzer geht
-            link_index_remove((string)$code, $username, null);
         } else {
             link_delete((string)$code);
         }

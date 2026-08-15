@@ -123,5 +123,5 @@ ohnehin. Erst der Massenbetrieb darüber hinaus hängt am Recht.
 
 Wie viele Zeilen ein Durchgang dann annimmt, steht in `'import_max_rows'`
 (Vorgabe 100). Wer einen größeren Bestand übernimmt, erhöht den Wert und lässt
-den Import in Ruhe laufen – jede Zeile schreibt in ihre eigene Ablage.
+den Import in Ruhe laufen.
 

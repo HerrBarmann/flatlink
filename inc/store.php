@@ -10,67 +10,15 @@ require_once __DIR__ . '/helpers.php';
  *  Ablage der Kurzlinks
  * ---------------------------------------------------------------------------
  *
- * Die Links liegen nicht in einer Datei, sondern auf 256 Ablagen verteilt.
- * Zugeordnet wird über die ersten zwei Zeichen des Code-Hashes – das streut
- * gleichmäßig und funktioniert mit jeder Code-Form, auch mit Namensräumen
- * wie "bib/oeffnungszeiten".
+ * Links und Konten liegen in einer SQLite-Datei (inc/db.php) – eine Datei
+ * unter data/, kein Server, nichts zu warten. Der vollständige Datensatz
+ * steht als JSON in der Spalte `data`; owner, grp, type und created sind
+ * daraus abgeleitete Kopien für WHERE und ORDER BY.
  *
- * Der Grund ist der Weiterleitungspfad: Er ist der einzige Vorgang, der bei
- * jedem einzelnen Scan eines gedruckten Codes läuft. Läge alles in einer
- * Datei, müsste er sie jedes Mal vollständig einlesen und dekodieren – bei
- * 100.000 Links rund 28 MB und 50 ms. So liest er gut hundert Kilobyte.
- *
- * Nebeneffekt: Schreibvorgänge sperren nur noch ihre eigene Ablage statt der
- * gesamten Sammlung.
+ * Die Klickzähler bleiben bewusst Einzeldateien (data/clicks/): Der
+ * Weiterleitungspfad schreibt sie bei jedem Scan, und genau dort soll kein
+ * gemeinsames Schreib-Lock entstehen.
  */
-
-function links_dir(): string
-{
-    return data_path('links');
-}
-
-/** Alte Sammeldatei – nur noch für den Lesefallback vor der Migration */
-function links_file(): string
-{
-    return data_path() . '/links.json';
-}
-
-/**
- * Läuft diese Instanz schon auf der aufgeteilten Ablage?
- *
- * Solange nicht, wird weiter aus der alten Sammeldatei gelesen. Damit bleibt
- * eine Instanz zwischen dem Einspielen der neuen Dateien und dem Ausführen
- * der Migration durchgehend funktionsfähig.
- */
-function links_sharded(): bool
-{
-    static $yes = null;
-    if ($yes === null) {
-        // Bewusst ohne data_path(): das legt fehlende Verzeichnisse an und
-        // würde die Prüfung damit immer bejahen
-        $dir = (string)cfg('data_dir');
-        $base = $dir !== '' ? rtrim($dir, '/') : dirname(__DIR__) . '/data';
-        // Ausschlaggebend ist eine ausdrückliche Markierung, nicht die bloße
-        // Existenz des Verzeichnisses. Sonst würde ein versehentlich
-        // angelegtes data/links/ eine noch nicht migrierte Instanz auf leere
-        // Ablagen umschalten: Die alten Links wären unsichtbar, neue landeten
-        // daneben. Die Markierung setzen nur die Migration und die erste
-        // Schreiboperation einer frischen Instanz.
-        $yes = is_file($base . '/links/.aufgeteilt') || !is_file($base . '/links.json');
-    }
-    return $yes;
-}
-
-/** Ablage-Kennung eines Codes */
-function link_shard(string $code): string
-{
-    return substr(sha1($code), 0, 2);
-}
-
-function link_shard_file(string $code): string
-{
-    return links_dir() . '/' . link_shard($code) . '.json';
-}
 
 /**
  * Alle Links. Setzt die Ablagen wieder zusammen – gebraucht für Listen,
@@ -80,14 +28,7 @@ function link_shard_file(string $code): string
  */
 function links_all(): array
 {
-    if (($pdo = db()) !== null) {
-        return db_links_rows($pdo->query('SELECT code, data FROM links'));
-    }
-    $all = [];
-    foreach (link_store_files() as $f) {
-        foreach (json_read($f) as $code => $l) $all[$code] = $l;
-    }
-    return $all;
+    return db_links_rows(db()->query('SELECT code, data FROM links'));
 }
 
 /**
@@ -96,28 +37,12 @@ function links_all(): array
  */
 function link_get(string $code): ?array
 {
-    if (($pdo = db()) !== null) {
-        $st = $pdo->prepare('SELECT data FROM links WHERE code = ?');
-        $st->execute([$code]);
-        $zeile = $st->fetch();
-        if ($zeile === false) return null;
-        $d = json_decode((string)$zeile['data'], true);
-        return is_array($d) ? $d : null;
-    }
-    if (!links_sharded()) return json_read(links_file())[$code] ?? null;
-    return json_read(link_shard_file($code))[$code] ?? null;
-}
-
-/**
- * Alle Dateien, in denen Links stehen – eine Ablage je Datei, vor der
- * Migration die einzelne Sammeldatei. Für Vorgänge, die jeden Link anfassen.
- *
- * @return string[]
- */
-function link_store_files(): array
-{
-    if (!links_sharded()) return is_file(links_file()) ? [links_file()] : [];
-    return glob(links_dir() . '/*.json') ?: [];
+    $st = db()->prepare('SELECT data FROM links WHERE code = ?');
+    $st->execute([$code]);
+    $zeile = $st->fetch();
+    if ($zeile === false) return null;
+    $d = json_decode((string)$zeile['data'], true);
+    return is_array($d) ? $d : null;
 }
 
 /**
@@ -127,184 +52,31 @@ function link_store_files(): array
  */
 function link_write(string $code, callable $fn): bool
 {
-    if (($pdo = db()) !== null) {
-        // BEGIN IMMEDIATE nimmt das Schreib-Lock sofort – das Gegenstück zum
-        // flock der Datei-Ablage: lesen, ändern, schreiben als ein Vorgang.
-        $pdo->exec('BEGIN IMMEDIATE');
-        try {
-            $st = $pdo->prepare('SELECT data FROM links WHERE code = ?');
-            $st->execute([$code]);
-            $zeile = $st->fetch();
-            $alt = $zeile === false ? null : json_decode((string)$zeile['data'], true);
-            $neu = $fn(is_array($alt) ? $alt : null);
-            if ($neu === false) {                     // false = nichts ändern
-                $pdo->exec('ROLLBACK');
-                return false;
-            }
-            if ($neu === null) {
-                $del = $pdo->prepare('DELETE FROM links WHERE code = ?');
-                $del->execute([$code]);
-            } else {
-                db_link_put($pdo, $code, $neu);
-            }
-            $pdo->exec('COMMIT');
-            return true;
-        } catch (Throwable $e) {
-            $pdo->exec('ROLLBACK');
-            throw $e;
-        }
-    }
-    $file = links_sharded() ? link_shard_file($code) : links_file();
-    // Frische Instanz: Markierung anlegen, sobald zum ersten Mal geschrieben
-    // wird. Ab da ist der Zustand ausdrücklich festgehalten.
-    if (links_sharded()) {
-        $marker = links_dir() . '/.aufgeteilt';
-        if (!is_file($marker)) file_put_contents($marker, "aufgeteilte Ablage, siehe inc/store.php\n");
-    }
-    $changed = false;
-    json_update($file, function (array $links) use ($code, $fn, &$changed) {
-        $new = $fn($links[$code] ?? null);
-        if ($new === false) return null;          // false = nichts ändern
-        $changed = true;
-        if ($new === null) unset($links[$code]); else $links[$code] = $new;
-        return $links;
-    });
-    return $changed;
-}
-
-// ---- Besitzer- und Gruppen-Index ------------------------------------------
-//
-// Die Ablage ist nach Code-Hash aufgeteilt – gut für die Weiterleitung, blind
-// für die Frage „welche Links gehören diesem Konto?". Die beantwortete bisher
-// ein Vollscan über alles, und der wächst mit der Instanz: Bei einer Million
-// Links kostete schon das Anlegen eines einzigen über eine Sekunde, weil die
-// Limit-Prüfung den gesamten Bestand las.
-//
-// Der Index ist eine ABLEITUNG der Ablage, nie eine zweite Wahrheit: Er nennt
-// nur Codes, die Datensätze bleiben in den Ablagen. Fehlt er oder ist er
-// zweifelhaft, wird er aus der Ablage neu gebaut (Marker `owners/fertig`
-// löschen genügt); ein Code, der im Index steht, aber in der Ablage fehlt,
-// wird beim Lesen still übergangen. Ohne aufgeteilte Ablage (Altbestand vor
-// migrate-links.php) bleibt alles beim Vollscan.
-//
-// Mit Blick auf ein späteres Datenbank-Backend sind die Leser hier genau die
-// Abfragen, die dort ein Index beantworten würde: links_of_owner() ist
-// `WHERE owner = ?`, link_count() ist `COUNT(*)` – die Aufrufer müssten sich
-// nicht ändern.
-
-function owner_index_dir(): string
-{
-    return links_dir() . '/owners';
-}
-
-/** Der Index ist wie die Ablage aufgeteilt – nur nach Besitzer- statt Code-Hash */
-function owner_index_file(string $owner): string
-{
-    return owner_index_dir() . '/' . substr(sha1($owner), 0, 2) . '.json';
-}
-
-function group_index_file(): string
-{
-    return links_dir() . '/groups-index.json';
-}
-
-/**
- * Steht der Index bereit? Baut ihn bei Bedarf auf – genau einmal: Wer den
- * Aufbau-Lock nicht bekommt, arbeitet diesmal ohne Index weiter, statt zu
- * warten oder doppelt zu bauen.
- */
-function link_index_ready(): bool
-{
-    // Mit Datenbank gibt es keinen Datei-Index – dort beantworten die
-    // Spalten owner und grp dieselben Fragen unmittelbar.
-    if (db() !== null) return false;
-    if (!links_sharded()) return false;
-    if (is_file(owner_index_dir() . '/fertig')) return true;
-
-    // Höchstens ein Bauversuch je Anfrage: Schlägt er fehl (etwa wegen
-    // Dateirechten), soll nicht jede weitere Abfrage derselben Seite den
-    // Bestand erneut durchkämmen – der Vollscan-Fallback ist dann billiger.
-    static $versucht = false;
-    if ($versucht) return false;
-    $versucht = true;
-
-    $lock = fopen(links_dir() . '/.index-bau.lock', 'c');
-    if ($lock === false || !flock($lock, LOCK_EX | LOCK_NB)) {
-        if (is_resource($lock)) fclose($lock);
-        return false;
-    }
+    // BEGIN IMMEDIATE nimmt das Schreib-Lock sofort: lesen, ändern,
+    // schreiben als ein Vorgang.
+    $pdo = db();
+    $pdo->exec('BEGIN IMMEDIATE');
     try {
-        if (is_file(owner_index_dir() . '/fertig')) return true; // war schneller
-        $dir = owner_index_dir();
-        if (!is_dir($dir)) @mkdir($dir, 0770, true);
-        $owners = [];   // xx => owner => code => type
-        $groups = [];   // group => code => true
-        foreach (links_all() as $code => $l) {
-            $o = $l['owner'] ?? null;
-            if (is_string($o) && $o !== '') {
-                $owners[substr(sha1($o), 0, 2)][$o][(string)$code] = (string)($l['type'] ?? 'random');
-            }
-            $g = $l['group'] ?? null;
-            if (is_string($g) && $g !== '') $groups[$g][(string)$code] = true;
+        $st = $pdo->prepare('SELECT data FROM links WHERE code = ?');
+        $st->execute([$code]);
+        $zeile = $st->fetch();
+        $alt = $zeile === false ? null : json_decode((string)$zeile['data'], true);
+        $neu = $fn(is_array($alt) ? $alt : null);
+        if ($neu === false) {                     // false = nichts ändern
+            $pdo->exec('ROLLBACK');
+            return false;
         }
-        foreach ($owners as $xx => $daten) {
-            json_write($dir . '/' . $xx . '.json', $daten);
+        if ($neu === null) {
+            $del = $pdo->prepare('DELETE FROM links WHERE code = ?');
+            $del->execute([$code]);
+        } else {
+            db_link_put($pdo, $code, $neu);
         }
-        json_write(group_index_file(), $groups);
-        // Die Markierung macht den Index gültig – erst prüfen, dann bejahen:
-        // Ein als fertig gemeldeter Index, dessen Markierung nie ankam, hieße
-        // bei jeder Anfrage ein Neuaufbau.
-        return file_put_contents($dir . '/fertig',
-            "abgeleitet aus der Ablage, siehe inc/store.php\n") !== false;
-    } finally {
-        flock($lock, LOCK_UN);
-        fclose($lock);
-    }
-}
-
-/** Einen Link im Index eintragen (nach dem Schreiben in die Ablage) */
-function link_index_add(string $code, ?string $owner, ?string $group, string $type): void
-{
-    if (db() !== null) return; // die Spalten schreibt link_write bereits mit
-    if (!is_file(owner_index_dir() . '/fertig')) return;
-    if (is_string($owner) && $owner !== '') {
-        json_update(owner_index_file($owner), function (array $idx) use ($owner, $code, $type) {
-            $idx[$owner][$code] = $type;
-            return $idx;
-        });
-    }
-    if (is_string($group) && $group !== '') {
-        json_update(group_index_file(), function (array $idx) use ($group, $code) {
-            $idx[$group][$code] = true;
-            return $idx;
-        });
-    }
-}
-
-/**
- * Einen Link aus dem Index austragen – nur die übergebenen Schlüssel.
- *
- * Eine dabei leer werdende Index-Datei bleibt stehen: Sie zu löschen wäre
- * ein Wettlauf mit einem gleichzeitigen Eintrag, und ein leeres Wörterbuch
- * liest sich genauso wie ein fehlendes.
- */
-function link_index_remove(string $code, ?string $owner, ?string $group): void
-{
-    if (db() !== null) return;
-    if (!is_file(owner_index_dir() . '/fertig')) return;
-    if (is_string($owner) && $owner !== '') {
-        json_update(owner_index_file($owner), function (array $idx) use ($owner, $code) {
-            unset($idx[$owner][$code]);
-            if (($idx[$owner] ?? []) === []) unset($idx[$owner]);
-            return $idx;
-        });
-    }
-    if (is_string($group) && $group !== '') {
-        json_update(group_index_file(), function (array $idx) use ($group, $code) {
-            unset($idx[$group][$code]);
-            if (($idx[$group] ?? []) === []) unset($idx[$group]);
-            return $idx;
-        });
+        $pdo->exec('COMMIT');
+        return true;
+    } catch (Throwable $e) {
+        $pdo->exec('ROLLBACK');
+        throw $e;
     }
 }
 
@@ -320,38 +92,17 @@ function link_index_remove(string $code, ?string $owner, ?string $group): void
  */
 function links_of_owner(string $owner): array
 {
-    if (($pdo = db()) !== null) {
-        $st = $pdo->prepare('SELECT code, data FROM links WHERE owner = ?');
-        $st->execute([$owner]);
-        return db_links_rows($st);
-    }
-    if (!link_index_ready()) {
-        return array_filter(links_all(), fn($l) => ($l['owner'] ?? null) === $owner);
-    }
-    $codes = array_keys(json_read(owner_index_file($owner))[$owner] ?? []);
-    $nachAblage = [];
-    foreach ($codes as $c) $nachAblage[link_shard((string)$c)][] = (string)$c;
-    $out = [];
-    foreach ($nachAblage as $xx => $liste) {
-        $ablage = json_read(links_dir() . '/' . $xx . '.json');
-        foreach ($liste as $c) {
-            // Im Index, aber nicht in der Ablage: die Ablage hat recht
-            if (isset($ablage[$c])) $out[$c] = $ablage[$c];
-        }
-    }
-    return $out;
+    $st = db()->prepare('SELECT code, data FROM links WHERE owner = ?');
+    $st->execute([$owner]);
+    return db_links_rows($st);
 }
 
 /** Die Codes einer Arbeitsgruppe @return string[] */
 function link_codes_of_group(string $group): array
 {
-    if (($pdo = db()) !== null) {
-        $st = $pdo->prepare('SELECT code FROM links WHERE grp = ?');
-        $st->execute([$group]);
-        return array_map('strval', $st->fetchAll(PDO::FETCH_COLUMN));
-    }
-    if (!link_index_ready()) return [];
-    return array_keys(json_read(group_index_file())[$group] ?? []);
+    $st = db()->prepare('SELECT code FROM links WHERE grp = ?');
+    $st->execute([$group]);
+    return array_map('strval', $st->fetchAll(PDO::FETCH_COLUMN));
 }
 
 /**
@@ -521,16 +272,6 @@ function link_create(string $url, ?string $code, ?string $owner, string $type, a
     });
 
     if ($taken) return [false, t('Dieser Code ist schon vergeben.')];
-    if ($ok) {
-        // Aufbau anstoßen, nicht nur pflegen: Auf einer Instanz, deren Listen
-        // nur Administratoren sehen, liefe sonst nie ein Leser, der den Index
-        // erstmals ableitet – Admin-Wege umgehen die Limit-Prüfungen.
-        // Der frisch angelegte Link ist im Aufbau bereits enthalten; das
-        // link_index_add danach ist dann ein Wiederholen desselben Eintrags.
-        link_index_ready();
-        $g = is_string($group) && $group !== '' ? $group : null;
-        link_index_add($code, $owner, $g, $type);
-    }
     return $ok ? [true, $code] : [false, t('Anlegen fehlgeschlagen.')];
 }
 
@@ -635,59 +376,28 @@ function tags_counts(array $links): array
 /** Gruppenzuordnung eines Links setzen ($group = null hebt sie auf) */
 function link_set_group(string $code, ?string $group): bool
 {
-    $vorher = link_get($code);
-    $ok = link_write($code, function (?array $l) use ($group) {
+    return link_write($code, function (?array $l) use ($group) {
         if ($l === null) return false;
         if ($group === null || $group === '') unset($l['group']); else $l['group'] = $group;
         $l['updated'] = date('c');
         return $l;
     });
-    if ($ok && $vorher !== null) {
-        $alt = $vorher['group'] ?? null;
-        $neu = $group === '' ? null : $group;
-        if ($alt !== $neu) {
-            link_index_remove($code, null, $alt);
-            link_index_add($code, null, $neu, (string)($vorher['type'] ?? 'random'));
-        }
-    }
-    return $ok;
 }
 
 /** Anzahl aktiver Wunsch-Codes eines Kontos (für das Pro-Kontingent) */
 function custom_code_count(string $owner): int
 {
-    if (($pdo = db()) !== null) {
-        $st = $pdo->prepare("SELECT COUNT(*) FROM links WHERE owner = ? AND type = 'custom'");
-        $st->execute([$owner]);
-        return (int)$st->fetchColumn();
-    }
-    if (link_index_ready()) {
-        $meine = json_read(owner_index_file($owner))[$owner] ?? [];
-        return count(array_filter($meine, fn($typ) => $typ === 'custom'));
-    }
-    $n = 0;
-    foreach (links_all() as $l) {
-        if (($l['owner'] ?? null) === $owner && ($l['type'] ?? '') === 'custom') $n++;
-    }
-    return $n;
+    $st = db()->prepare("SELECT COUNT(*) FROM links WHERE owner = ? AND type = 'custom'");
+    $st->execute([$owner]);
+    return (int)$st->fetchColumn();
 }
 
 /** Anzahl aller aktiven Links eines Kontos (für das Tarif-Limit) */
 function link_count(string $owner): int
 {
-    if (($pdo = db()) !== null) {
-        $st = $pdo->prepare('SELECT COUNT(*) FROM links WHERE owner = ?');
-        $st->execute([$owner]);
-        return (int)$st->fetchColumn();
-    }
-    if (link_index_ready()) {
-        return count(json_read(owner_index_file($owner))[$owner] ?? []);
-    }
-    $n = 0;
-    foreach (links_all() as $l) {
-        if (($l['owner'] ?? null) === $owner) $n++;
-    }
-    return $n;
+    $st = db()->prepare('SELECT COUNT(*) FROM links WHERE owner = ?');
+    $st->execute([$owner]);
+    return (int)$st->fetchColumn();
 }
 
 /** Passwortschutz setzen (Hash) oder entfernen (null) – Pro-Feature */
@@ -714,12 +424,8 @@ function link_set_disabled(string $code, bool $disabled): bool
 
 function link_delete(string $code): void
 {
-    $vorher = link_get($code);
     link_write($code, fn(?array $l) => null);
     @unlink(clicks_file($code));
-    if ($vorher !== null) {
-        link_index_remove($code, $vorher['owner'] ?? null, $vorher['group'] ?? null);
-    }
 }
 
 /** Freien Zufallscode suchen (innerhalb des Locks aufgerufen), optional unter einem Prefix ("p/abc123") */

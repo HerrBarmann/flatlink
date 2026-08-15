@@ -134,17 +134,10 @@ return [
     // unter Einstellungen änderbar.
     'language' => 'de',
 
-    // Ablage der Links und Konten. 'sqlite' (Vorgabe) ist eine Datei unter
-    // data/ – kein Server, keine Wartung, nur die Erweiterung pdo_sqlite,
-    // und sie trägt auch sehr große Bestände. 'json' sind reine
-    // JSON-Dateien; vollwertig, aber ab einigen zehntausend Konten die
-    // langsamere Wahl. Eine Bestandsinstanz auf Dateien läuft nach dem
-    // Update unverändert weiter, bis die Migration gelaufen ist – der Knopf
-    // dafür steht unter Einstellungen → Ablage (alternativ:
-    // php migrate-sqlite.php). Klickzähler, Einstellungen, Gruppen und
-    // Logos bleiben in beiden Fällen Dateien.
-    'storage' => 'sqlite',
-    // Pfad der SQLite-Datei; leer = data/flatlink.sqlite
+    // Links und Konten liegen in einer SQLite-Datei – kein Server, nichts
+    // zu warten, das Backup bleibt das Kopieren des data/-Ordners.
+    // Leer = data/flatlink.sqlite; ein eigener Pfad gehört wie data_dir am
+    // besten außerhalb des Webroots.
     'sqlite_file' => '',
 
     // Weitere Domains für Kurzlinks. Alle zeigen auf dieselbe Installation;

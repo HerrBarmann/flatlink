@@ -183,18 +183,16 @@ auch alles, was sie verlangt.
   Google Safe Browsing
 - **Automatisches Aufräumen** nie aufgerufener Links, mit Vorwarnung per Mail
   (standardmäßig deaktiviert)
-- **SQLite als Ablage für Links und Konten** – eine Datei statt eines
-  Datenbank-Servers, trägt auch sehr große Instanzen; wer reine JSON-Dateien
-  will, stellt `'storage' => 'json'` – siehe
-  [Wie die Daten liegen](#wie-die-daten-liegen)
+- **Ablage ohne Betrieb**: Links und Konten in einer SQLite-Datei, alles
+  Übrige in kleinen JSON-Dateien – kein Datenbank-Server, Backup = Ordner
+  kopieren, siehe [Wie die Daten liegen](#wie-die-daten-liegen)
 
 ## Voraussetzungen
 
 - PHP 8.1 oder neuer
-- Erweiterungen: `json`, `mbstring`, `pdo_sqlite` (Standard-Ablage; entfällt
-  im `'storage' => 'json'`-Betrieb), `gd` (für PNG/PDF), `fileinfo`
-  (Logo-Upload), `openssl` (nur für SMTP-Versand), `ldap` (nur für die
-  LDAP-Anmeldung)
+- Erweiterungen: `json`, `mbstring`, `pdo_sqlite` (Ablage), `gd` (für
+  PNG/PDF), `fileinfo` (Logo-Upload), `openssl` (nur für SMTP-Versand),
+  `ldap` (nur für die LDAP-Anmeldung)
 - Ein Webserver mit `mod_rewrite` oder gleichwertiger Umschreibung.
   Die mitgelieferte `.htaccess` bringt zusätzlich einen Fallback über
   `ErrorDocument 404`, falls Rewrites beim Hoster nicht greifen.
@@ -246,6 +244,7 @@ Alles steckt in `inc/config.php`; die kommentierte Vorlage ist
 | --- | --- |
 | `site_name` | Anzeigename in Titel, Kopfzeile und Mails |
 | `base_url` | Feste Basis-URL; leer = automatische Erkennung |
+| `sqlite_file` | Pfad der Ablage-Datei; leer = `data/flatlink.sqlite` |
 | `language` | Sprache der Oberfläche (`de` ist die Quellsprache, `en` liegt bei) |
 | `limits` | Links, Statistik-Tiefe und Logos pro Konto (`0` = unbegrenzt) |
 | `default_perms` | Rechte, die jedes angemeldete Konto ohne Gruppe hat |
@@ -256,7 +255,6 @@ Alles steckt in `inc/config.php`; die kommentierte Vorlage ist
 | `mail` | `log` schreibt nach `data/mail.log`, `smtp` versendet echt |
 | `safe_browsing_key` | Leer = aus. Siehe Warnung unten |
 | `link_gc_years` | `0` = kein automatisches Aufräumen |
-| `storage` | `sqlite` (Vorgabe: eine Datei, kein Server) oder `json` für reine JSON-Dateien |
 | `data_dir` | Laufzeitdaten außerhalb des Webroots ablegen – empfohlen |
 | `trusted_proxies` | Adressen vorgelagerter Proxys; nötig für korrekte Rate-Limits |
 
@@ -282,55 +280,31 @@ Die vier Handbücher gibt es auch auf Englisch (`.en.md` daneben):
 
 ## Wie die Daten liegen
 
-Alles unter `data/`, als JSON, mit `flock` gegen gleichzeitige Schreibzugriffe
-und atomarem Schreiben über Tempdatei plus `rename`:
+**Links und Konten liegen in einer SQLite-Datei** (`data/flatlink.sqlite`).
+Das ist keine Infrastruktur: kein Server, nichts einzurichten, nichts zu
+warten – die Erweiterung `pdo_sqlite` bringt praktisch jedes PHP mit. Der
+vollständige Datensatz steht als JSON in einer `data`-Spalte; die übrigen
+Spalten sind daraus abgeleitete Kopien für die Suche. Gemessen an einer
+Instanz mit einer Million Links und hunderttausend Konten: Anmeldeseite
+9 ms, ein einzelnes Konto 0,01 ms, der Nachschlag einer Weiterleitung
+0,01 ms – alles innerhalb der üblichen PHP-Speichergrenze.
+
+Alles Übrige sind kleine JSON-Dateien unter `data/`, mit `flock` gegen
+gleichzeitige Schreibzugriffe und atomarem Schreiben über Tempdatei plus
+`rename`:
 
 | Datei | Inhalt |
 | --- | --- |
-| `links/<xx>.json` | Kurzlinks, auf 256 Ablagen verteilt: Ziel, Besitzer, Gruppe, Typ, Ablauf, Passwort-Hash |
-| `users.json` | Konten: Passwort-Hash, Rolle, E-Mail, Gruppen, Anmeldequelle |
+| `flatlink.sqlite` | Kurzlinks und Konten, siehe oben |
+| `clicks/<code>.json` | Klickzähler – bewusst eine Mini-Datei je Code: Der Weiterleitungspfad schreibt sie bei jedem Scan, ohne gemeinsames Schreib-Lock |
 | `groups.json` | Gruppen: Anzeigename und Rechte |
-| `links/owners/<xx>.json` | Besitzer-Index: welche Codes gehören welchem Konto – eine Ableitung der Ablage, bei Bedarf neu aufgebaut |
-| `clicks/<code>.json` | Klickzähler, siehe oben |
 | `settings.json` | Zur Laufzeit änderbare Einstellungen |
 | `logos/` | Hochgeladene Logos für QR-Codes |
 | `ratelimit/` | Zähler je IP-Hash (HMAC mit Instanz-Geheimnis), nach 24 h gelöscht |
 | `secret.key` | Geheimnis dieser Instanz für die IP-Hashes – wie ein Passwort behandeln |
 | `pending/` | Offene Bestätigungs-Token (Registrierung, Reset) |
 
-Ein Backup ist damit ein simples Kopieren des `data/`-Ordners.
-
-Die Kurzlinks liegen dabei nicht in einer einzigen Datei, sondern auf 256
-Ablagen verteilt (zugeordnet über den Code-Hash). Der Grund ist der
-Weiterleitungspfad: Er läuft bei jedem Scan eines gedruckten Codes und liest
-so nur wenige Kilobyte statt der gesamten Sammlung. Gemessen bei 100.000
-Links: **0,4 statt 51 Millisekunden** pro Weiterleitung. Nebeneffekt:
-Schreibvorgänge sperren nur ihre eigene Ablage.
-
-Listen und Zählungen laufen über einen **Besitzer- und Gruppen-Index**
-(`links/owners/`), der aus der Ablage abgeleitet ist und sich daraus jederzeit
-neu aufbaut. Gemessen bei einer Million Links: Die Limit-Prüfung beim Anlegen
-fiel von 1,2 Sekunden auf eine halbe Millisekunde, die Linkliste eines Kontos
-läuft in der Standard-Speichergrenze von PHP statt weit darüber.
-
-**Links und Konten liegen in der Vorgabe in einer SQLite-Datei**
-(`data/flatlink.sqlite`). Das ist keine Infrastruktur – kein Server, nichts
-zu warten, die Erweiterung `pdo_sqlite` bringt praktisch jedes PHP mit, und
-das Backup bleibt das Kopieren des `data/`-Ordners. Der vollständige
-Datensatz liegt dabei als JSON in einer `data`-Spalte – dieselbe Wahrheit
-wie in der Datei-Ablage, nur anders abgelegt; die übrigen Spalten sind
-abgeleitete Kopien für die Suche. Gemessen an einer Instanz mit einer
-Million Links und **hunderttausend Konten**: Anmeldeseite 9 ms und ein
-einzelnes Konto in 0,01 ms, wo eine einzelne `users.json` an PHPs
-Speichergrenze scheiterte; die Weiterleitung liegt bei 0,01 ms je
-Nachschlag.
-
-Wer stattdessen reine JSON-Dateien will, stellt `'storage' => 'json'` – die
-Datei-Ablage bleibt vollwertig und die obigen Tabellen beschreiben sie.
-Eine Bestandsinstanz auf Dateien läuft nach einem Update unverändert
-weiter, bis der Umzug gelaufen ist: ein Knopf unter *Einstellungen →
-Ablage* (oder `php migrate-sqlite.php`), idempotent, die JSON-Dateien
-bleiben als Sicherung liegen.
+Ein Backup ist damit weiterhin ein simples Kopieren des `data/`-Ordners.
 
 Eine ehrliche Grenze bleibt: Die Admin-Gesamtliste über *Millionen* Links
 lädt auch mit Datenbank den ganzen Bestand in den Speicher – wer wirklich
@@ -379,7 +353,7 @@ Abhängigkeitsfreiheit ist kein Zufall, sondern der Kern des Projekts. Ein
 Patch, der Composer, einen Build-Schritt oder einen Datenbank-*Server*
 voraussetzt, wird nicht übernommen – auch wenn er die Sache eleganter
 macht. (SQLite besteht diese Prüfung: eine Datei unter `data/`, keine
-Infrastruktur – und die reine Datei-Ablage bleibt als Modus erhalten.)
+Infrastruktur.)
 
 ## Lizenz
 

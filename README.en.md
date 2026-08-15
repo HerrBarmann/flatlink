@@ -186,17 +186,16 @@ it requires.
   Browsing
 - **Automatic cleanup** of never-visited links, with advance warning by mail
   (disabled by default)
-- **SQLite as the store for links and accounts** – one file instead of a
-  database server, carries very large instances too; for plain JSON files
-  set `'storage' => 'json'` – see
-  [How the data is stored](#how-the-data-is-stored)
+- **Storage without operations**: links and accounts in one SQLite file,
+  everything else in small JSON files – no database server, backup = copy
+  the folder, see [How the data is stored](#how-the-data-is-stored)
 
 ## Requirements
 
 - PHP 8.1 or newer
-- Extensions: `json`, `mbstring`, `pdo_sqlite` (default storage; not needed
-  with `'storage' => 'json'`), `gd` (for PNG/PDF), `fileinfo` (logo upload),
-  `openssl` (only for SMTP), `ldap` (only for LDAP sign-in)
+- Extensions: `json`, `mbstring`, `pdo_sqlite` (storage), `gd` (for
+  PNG/PDF), `fileinfo` (logo upload), `openssl` (only for SMTP), `ldap`
+  (only for LDAP sign-in)
 - A web server with `mod_rewrite` or an equivalent rewrite facility. The
   bundled `.htaccess` additionally provides a fallback via
   `ErrorDocument 404` in case rewrites don't take effect at your host.
@@ -249,6 +248,7 @@ switches:
 | --- | --- |
 | `site_name` | Display name in title, header and mails |
 | `base_url` | Fixed base URL; empty = automatic detection |
+| `sqlite_file` | Path of the storage file; empty = `data/flatlink.sqlite` |
 | `language` | Interface language of the instance (`de` is the source language, `en` ships along) |
 | `limits` | Links, statistics depth and logos per account (`0` = unlimited) |
 | `default_perms` | Permissions every signed-in account has without a group |
@@ -259,7 +259,6 @@ switches:
 | `mail` | `log` writes to `data/mail.log`, `smtp` really sends |
 | `safe_browsing_key` | Empty = off. See the note below |
 | `link_gc_years` | `0` = no automatic cleanup |
-| `storage` | `sqlite` (default: one file, no server) or `json` for plain JSON files |
 | `data_dir` | Keep runtime data outside the webroot – recommended |
 | `trusted_proxies` | Addresses of upstream proxies; needed for correct rate limits |
 
@@ -283,53 +282,29 @@ The README is the overview; the depth lives in dedicated documents:
 
 ## How the data is stored
 
-Everything under `data/`, as JSON, with `flock` against concurrent writes and
-atomic writing via temp file plus `rename`:
+**Links and accounts live in one SQLite file** (`data/flatlink.sqlite`).
+That is not infrastructure: no server, nothing to set up, nothing to
+maintain – the `pdo_sqlite` extension ships with practically every PHP. The
+full record sits as JSON in a `data` column; the remaining columns are
+derived copies for searching. Measured on an instance with one million links
+and a hundred thousand accounts: login page 9 ms, a single account 0.01 ms,
+a redirect lookup 0.01 ms – all within PHP's usual memory limit.
+
+Everything else is small JSON files under `data/`, with `flock` against
+concurrent writes and atomic writing via temp file plus `rename`:
 
 | File | Content |
 | --- | --- |
-| `links/<xx>.json` | Short links, spread over 256 shards: target, owner, group, kind, expiry, password hash |
-| `users.json` | Accounts: password hash, role, e-mail, groups, sign-in source |
+| `flatlink.sqlite` | Short links and accounts, see above |
+| `clicks/<code>.json` | Click counters – deliberately one mini file per code: the redirect path writes them on every scan, without a shared write lock |
 | `groups.json` | Groups: display name and permissions |
-| `links/owners/<xx>.json` | Owner index: which codes belong to which account – derived from the store, rebuilt on demand |
-| `clicks/<code>.json` | Click counters, see above |
 | `settings.json` | Settings changeable at runtime |
 | `logos/` | Uploaded logos for QR codes |
 | `ratelimit/` | Counters per IP hash (HMAC with the instance secret), deleted after 24 h |
 | `secret.key` | This instance's secret for the IP hashes – treat like a password |
 | `pending/` | Open confirmation tokens (registration, reset) |
 
-A backup is therefore a simple copy of the `data/` folder.
-
-The short links do not sit in one single file but are spread over 256 shards
-(assigned via the code hash). The reason is the redirect path: it runs on
-every scan of a printed code and thus reads a few kilobytes instead of the
-whole collection. Measured at 100,000 links: **0.4 instead of 51
-milliseconds** per redirect. Side effect: writes only lock their own shard.
-
-Lists and counts run over an **owner and group index** (`links/owners/`),
-derived from the store and rebuilt from it at any time. Measured at one
-million links: the limit check on creation dropped from 1.2 seconds to half a
-millisecond, and an account's link list runs within PHP's default memory
-limit instead of far beyond it.
-
-**By default, links and accounts live in one SQLite file**
-(`data/flatlink.sqlite`). That is not infrastructure – no server, nothing to
-maintain, the `pdo_sqlite` extension ships with practically every PHP, and
-the backup remains copying the `data/` folder. The full record sits as JSON
-in a `data` column – the same truth as in the file store, just kept
-differently; the remaining columns are derived copies for searching.
-Measured on an instance with one million links and **a hundred thousand
-accounts**: the login page in 9 ms and a single account in 0.01 ms, where a
-single `users.json` failed at PHP's memory limit; a redirect lookup takes
-0.01 ms.
-
-For plain JSON files instead, set `'storage' => 'json'` – the file store
-remains fully supported, and the tables above describe it. An existing
-instance on files keeps running unchanged after an update until the
-migration has run: a button under *Settings → Storage* (or
-`php migrate-sqlite.php`), idempotent, the JSON files remain in place as a
-backup.
+A backup therefore remains a simple copy of the `data/` folder.
 
 One honest limit remains: the admin's full list over *millions* of links still
 loads the whole stock into memory even with the database – whoever really
@@ -376,8 +351,7 @@ Bug reports and pull requests are welcome. One request up front: the freedom
 from dependencies is not an accident but the core of the project. A patch
 that requires Composer, a build step or a database *server* will not be
 merged – even if it makes things more elegant. (SQLite passes this test:
-one file under `data/`, no infrastructure – and the plain file store
-remains available as a mode.)
+one file under `data/`, no infrastructure.)
 
 ## License
 

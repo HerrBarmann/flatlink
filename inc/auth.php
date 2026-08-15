@@ -27,18 +27,11 @@ function auth_boot(): void
     session_start();
 }
 
-function users_file(): string
-{
-    return data_path() . '/users.json';
-}
-
 /**
  * Die drei Funktionen hierunter sind die gesamte Konten-Ablage – jeder
- * Zugriff im Projekt läuft über sie, nirgends sonst wird die Datei berührt.
- * Das ist Absicht: Ein anderes Backend (etwa SQLite für sehr große
- * Instanzen) müsste genau diese drei Stellen ersetzen – users_all() als
- * SELECT über alles, user_get() als SELECT eines Kontos, users_update()
- * als Transaktion – und der Rest des Projekts merkte nichts davon.
+ * Zugriff im Projekt läuft über sie (SQLite, siehe inc/db.php): users_all()
+ * als SELECT über alles, user_get() als SELECT eines Kontos, users_update()
+ * als Transaktion.
  */
 
 /**
@@ -60,7 +53,7 @@ function users_all(bool $frisch = false): array
         return [];
     }
     if ($cache === null) {
-        $cache = ($pdo = db()) !== null ? db_users_all($pdo) : json_read(users_file());
+        $cache = db_users_all(db());
     }
     return $cache;
 }
@@ -73,8 +66,7 @@ function users_all(bool $frisch = false): array
  */
 function user_get(string $username): ?array
 {
-    if (($pdo = db()) !== null) return db_user_get($pdo, $username);
-    return users_all()[$username] ?? null;
+    return db_user_get(db(), $username);
 }
 
 /**
@@ -90,38 +82,31 @@ function user_get(string $username): ?array
  */
 function users_update(callable $fn, ?string $konto = null): array
 {
-    if (($pdo = db()) !== null) {
-        $pdo->exec('BEGIN IMMEDIATE');
-        try {
-            if ($konto !== null) {
-                $alt = db_user_get($pdo, $konto);
-                $vorher = $alt === null ? [] : [$konto => $alt];
-            } else {
-                $vorher = db_users_all($pdo);
-            }
-            $nachher = $fn($vorher);
-            if ($nachher !== null) {
-                db_users_diff($pdo, $vorher, $nachher);
-            }
-            $pdo->exec('COMMIT');
-            users_all(true);
-            return $nachher ?? $vorher;
-        } catch (Throwable $e) {
-            $pdo->exec('ROLLBACK');
-            throw $e;
+    $pdo = db();
+    $pdo->exec('BEGIN IMMEDIATE');
+    try {
+        if ($konto !== null) {
+            $alt = db_user_get($pdo, $konto);
+            $vorher = $alt === null ? [] : [$konto => $alt];
+        } else {
+            $vorher = db_users_all($pdo);
         }
+        $nachher = $fn($vorher);
+        if ($nachher !== null) {
+            db_users_diff($pdo, $vorher, $nachher);
+        }
+        $pdo->exec('COMMIT');
+        users_all(true);
+        return $nachher ?? $vorher;
+    } catch (Throwable $e) {
+        $pdo->exec('ROLLBACK');
+        throw $e;
     }
-    $users = json_update(users_file(), $fn);
-    users_all(true);
-    return $users;
 }
 
 function users_exist(): bool
 {
-    if (($pdo = db()) !== null) {
-        return (int)$pdo->query('SELECT COUNT(*) FROM users')->fetchColumn() > 0;
-    }
-    return users_all() !== [];
+    return (int)db()->query('SELECT COUNT(*) FROM users')->fetchColumn() > 0;
 }
 
 /**
@@ -231,19 +216,10 @@ function auth_require_admin(): array
 function user_resolve(string $ident): ?string
 {
     $lower = strtolower($ident);
-    if (($pdo = db()) !== null) {
-        $st = $pdo->prepare('SELECT name FROM users WHERE name = ? OR name = ? OR email = ? LIMIT 1');
-        $st->execute([$ident, $lower, $lower]);
-        $name = $st->fetchColumn();
-        return $name === false ? null : (string)$name;
-    }
-    $users = users_all();
-    if (isset($users[$ident])) return $ident;
-    if (isset($users[$lower])) return $lower;
-    foreach ($users as $key => $u) {
-        if (strtolower($u['email'] ?? '') === $lower) return (string)$key;
-    }
-    return null;
+    $st = db()->prepare('SELECT name FROM users WHERE name = ? OR name = ? OR email = ? LIMIT 1');
+    $st->execute([$ident, $lower, $lower]);
+    $name = $st->fetchColumn();
+    return $name === false ? null : (string)$name;
 }
 
 /**
@@ -480,10 +456,7 @@ function verified_ip_gc(): void
 /** Anzahl der Administratoren – für den Schutz vor dem Aussperren */
 function admin_count(): int
 {
-    if (($pdo = db()) !== null) {
-        return (int)$pdo->query("SELECT COUNT(*) FROM users WHERE role = 'admin'")->fetchColumn();
-    }
-    return count(array_filter(users_all(), fn($u) => ($u['role'] ?? '') === 'admin'));
+    return (int)db()->query("SELECT COUNT(*) FROM users WHERE role = 'admin'")->fetchColumn();
 }
 
 /**

@@ -120,4 +120,4 @@ Only bulk operation beyond that hangs on the permission.
 
 How many rows a run then accepts is set in `'import_max_rows'` (default
 100). Whoever takes over a larger stock raises the value and lets the import
-run in peace – every row writes into its own shard.
+run in peace.
