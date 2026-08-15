@@ -84,11 +84,18 @@ Ergebnis.
 
 ## Weitere Härtung
 
-- **`qr.php` hat eine Bremse** (`qr_rate_limit`, Vorgabe 60/Stunde). Es war
-  der einzige öffentliche Weg ohne und zugleich der teuerste. Geprüft wird
-  erst kurz vor der Erzeugung, damit Fehleingaben kein Kontingent kosten;
-  angemeldete Konten sind ausgenommen. Eine Sitzung wird dabei nur gelesen,
-  wenn schon ein Cookie da ist – ein Bildabruf soll niemandem eines setzen.
+- **`qr.php` hat eine Bremse** – der einzige öffentliche Weg ohne und
+  zugleich der teuerste. Sie ist **gestaffelt**, und das ist der Punkt: Der
+  Designer zieht bei jedem Regler-Zug eine neue Vorschau, ein enges
+  Kontingent hätte den gestaltenden Menschen nach zwei Minuten ausgesperrt
+  und den Angreifer kaum gestört. Also `qr_rate_limit` (600/Stunde) für
+  alles und `qr_rate_limit_print` (60/Stunde) obendrauf für PDF, EPS und
+  große PNGs – Formate, die niemand im Sekundentakt braucht. Die
+  Lesbarkeitsprüfung zählt nicht als schwer, obwohl sie mit `format=png`
+  anfragt: Sie rechnet nur und gibt JSON zurück. Geprüft wird erst kurz vor
+  der Erzeugung, damit Fehleingaben kein Kontingent kosten; angemeldete
+  Konten sind ausgenommen. Eine Sitzung wird dabei nur gelesen, wenn schon
+  ein Cookie da ist – ein Bildabruf soll niemandem eines setzen.
 - **Ziele mit Namensteil und in privaten Bereichen sind gesperrt.**
   `https://sparkasse.de@boese.tld/` führt zu boese.tld und liest sich wie die
   Bank; `http://10.0.0.5/` macht den Kurzlink zur hübschen Verpackung für
@@ -116,8 +123,9 @@ stehen (`url_normalize`) – und die Ablehnung nennt den echten Grund, statt
 ## Aktualisieren
 
 Dateien austauschen. Kein Migrationsschritt, keine neuen Pflichtangaben. Neu
-ist die Datei `inc/probe.php`; zwei optionale Schalter kommen dazu
-(`qr_rate_limit`, `allow_private_targets`), beide mit brauchbarer Vorgabe.
+ist die Datei `inc/probe.php`; drei optionale Schalter kommen dazu
+(`qr_rate_limit`, `qr_rate_limit_print`, `allow_private_targets`), alle mit
+brauchbarer Vorgabe.
 
 **Wer Kurzlinks auf interne Adressen betreibt**, setzt vor dem Aktualisieren
 `'allow_private_targets' => true` – sonst lassen sich solche Links nicht mehr

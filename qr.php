@@ -235,19 +235,35 @@ if (strlen($payload) > QrCode::maxBytes($eccLevel)) {
         strlen($payload), QrCode::maxBytes($eccLevel)));
 }
 
-// Erzeugen kostet spürbar Rechenzeit – GD-Compositing beim PNG mit Logo,
-// Vektor-Aufbau bei PDF und EPS. Ohne Bremse ist das der billigste Hebel,
-// eine kleine Instanz auszulasten: eine Adresse, viele Anfragen. Angemeldete
-// Konten sind ausgenommen; sie hängen ohnehin an ihren eigenen Limits.
+// Erzeugen kostet Rechenzeit – GD-Compositing beim PNG mit Logo, Vektor-Aufbau
+// bei PDF und EPS. Ohne Bremse ist das der billigste Hebel, eine kleine Instanz
+// auszulasten. Sie ist aber gestaffelt, und das ist der Punkt: Der Designer
+// zieht bei JEDEM Regler-Zug eine neue Vorschau. Ein einziges enges Kontingent
+// hätte den gestaltenden Menschen nach zwei Minuten ausgesperrt und den
+// Angreifer kaum gestört – die Bremse wäre schlimmer gewesen als das, wovor sie
+// schützt. Deshalb ein weites Kontingent für alles und ein enges obendrauf für
+// die schweren Formate, die niemand im Sekundentakt braucht.
+//
 // Nur wer schon ein Sitzungs-Cookie mitbringt, bekommt eine Sitzung: qr.php
 // ist auch ein Bild-Endpunkt, und ein Bildabruf soll niemandem ein Cookie
-// setzen, der keines hat.
+// setzen, der keines hat. Angemeldete Konten sind ausgenommen; sie hängen
+// ohnehin an ihren eigenen Limits.
 if (isset($_COOKIE['kurzsid'])) auth_boot();
-if (auth_user() === null && !bucket_rate_ok('qr', (int)cfg('qr_rate_limit'))) {
-    http_response_code(429);
-    header('Retry-After: 600');
-    nosniff_header();
-    exit(t('Zu viele QR-Codes von dieser Adresse – bitte in einer Stunde erneut.'));
+if (auth_user() === null) {
+    // Was „schwer" ist: die Vektorformate und große PNGs. Die
+    // Lesbarkeitsprüfung (check=1) zählt ausdrücklich nicht dazu – sie
+    // rechnet Modulgrößen aus und gibt JSON zurück, obwohl sie mit
+    // format=png und 1024 px angefragt wird.
+    $pruefung = (qin('check') ?? '') !== '';
+    $schwer = !$pruefung
+        && (in_array($format, ['pdf', 'eps'], true) || ($format === 'png' && $size >= 1024));
+    if (!bucket_rate_ok('qr', (int)cfg('qr_rate_limit'))
+        || ($schwer && !bucket_rate_ok('qrdruck', (int)cfg('qr_rate_limit_print')))) {
+        http_response_code(429);
+        header('Retry-After: 600');
+        nosniff_header();
+        exit(t('Zu viele QR-Codes von dieser Adresse – bitte in einer Stunde erneut.'));
+    }
 }
 
 $qr = QrCode::encode($payload, $eccLevel);

@@ -61,11 +61,15 @@ return [
     'reserved' => ['admin', 'assets', 'data', 'inc', 'qr', 'go', 'index',
         'login', 'logout', 'api', 'register', 'reset', 'report'],
 
-    // Max. QR-Codes pro Adresse und Stunde ohne Anmeldung. Das Erzeugen
-    // kostet Rechenzeit (PNG mit Logo, PDF, EPS) und ist sonst der billigste
-    // Weg, eine kleine Instanz auszulasten. Angemeldete Konten sind
-    // ausgenommen.
-    'qr_rate_limit' => 60,
+    // Max. QR-Codes pro Adresse und Stunde ohne Anmeldung. Großzügig, weil der
+    // Designer bei jedem Regler-Zug eine neue Vorschau zieht – wer gestaltet,
+    // kommt leicht auf einige hundert Anfragen, ohne irgendetwas Böses zu tun.
+    'qr_rate_limit' => 600,
+
+    // Dasselbe für die schweren Formate (PDF, EPS, PNG über 2048 px): Sie
+    // kosten ein Vielfaches und werden zum Herunterladen erzeugt, nicht zum
+    // Ausprobieren. Angemeldete Konten sind von beidem ausgenommen.
+    'qr_rate_limit_print' => 60,
 
     // Max. Länge der Ziel-URL
     'max_url_length' => 2048,
