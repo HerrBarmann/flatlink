@@ -309,7 +309,7 @@ gleichzeitige Schreibzugriffe und atomarem Schreiben über Tempdatei plus
 
 | Datei | Inhalt |
 | --- | --- |
-| `flatlink.sqlite` | Kurzlinks und Konten, siehe oben |
+| `flatlink.sqlite` | Kurzlinks, Konten und Zugangsschlüssel, siehe oben |
 | `clicks/<code>.json` | Klickzähler – bewusst eine Mini-Datei je Code: Der Weiterleitungspfad schreibt sie bei jedem Scan, ohne gemeinsames Schreib-Lock |
 | `groups.json` | Gruppen: Anzeigename und Rechte |
 | `settings.json` | Zur Laufzeit änderbare Einstellungen |
@@ -318,7 +318,16 @@ gleichzeitige Schreibzugriffe und atomarem Schreiben über Tempdatei plus
 | `secret.key` | Geheimnis dieser Instanz für die IP-Hashes – wie ein Passwort behandeln |
 | `pending/` | Offene Bestätigungs-Token (Registrierung, Reset) |
 
-Ein Backup ist damit weiterhin ein simples Kopieren des `data/`-Ordners.
+Ein Backup ist damit weiterhin ein simples Kopieren des `data/`-Ordners –
+oder ein Klick auf *Sicherung herunterladen* in den Einstellungen.
+
+**Warum nicht alles in der Datenbank liegt:** In sie gehört, was mit dem
+Bestand wächst und deshalb nicht am Stück gelesen werden darf – Links,
+Konten, Zugangsschlüssel. Die Klickzähler bleiben bewusst Einzeldateien:
+Sie werden im Weiterleitungspfad bei *jedem* Scan geschrieben, und genau
+dort wäre ein gemeinsames Schreib-Lock die schlechteste aller Ideen. Der
+Rest – Einstellungen, Gruppen, Logo-Namen – ist klein, konstant und in
+einer Textdatei leichter zu reparieren als in einer Tabelle.
 
 Eine ehrliche Grenze bleibt: Die Admin-Gesamtliste über *Millionen* Links
 lädt auch mit Datenbank den ganzen Bestand in den Speicher – wer wirklich

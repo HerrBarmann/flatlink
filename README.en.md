@@ -308,7 +308,7 @@ concurrent writes and atomic writing via temp file plus `rename`:
 
 | File | Content |
 | --- | --- |
-| `flatlink.sqlite` | Short links and accounts, see above |
+| `flatlink.sqlite` | Short links, accounts and access keys, see above |
 | `clicks/<code>.json` | Click counters – deliberately one mini file per code: the redirect path writes them on every scan, without a shared write lock |
 | `groups.json` | Groups: display name and permissions |
 | `settings.json` | Settings changeable at runtime |
@@ -317,7 +317,16 @@ concurrent writes and atomic writing via temp file plus `rename`:
 | `secret.key` | This instance's secret for the IP hashes – treat like a password |
 | `pending/` | Open confirmation tokens (registration, reset) |
 
-A backup therefore remains a simple copy of the `data/` folder.
+A backup therefore remains a simple copy of the `data/` folder – or one
+click on *Download backup* in the settings.
+
+**Why not everything lives in the database:** into it goes what grows with
+the stock and therefore must not be read in one piece – links, accounts,
+access keys. The click counters deliberately stay individual files: they are
+written on *every* scan in the redirect path, and a shared write lock would
+be the worst possible idea exactly there. The rest – settings, groups, logo
+names – is small, constant, and easier to repair in a text file than in a
+table.
 
 One honest limit remains: the admin's full list over *millions* of links still
 loads the whole stock into memory even with the database – whoever really

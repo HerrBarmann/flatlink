@@ -68,6 +68,32 @@ function db_schema(PDO $pdo): void
     )');
     $pdo->exec('CREATE INDEX IF NOT EXISTS users_email ON users(email)');
     $pdo->exec('CREATE INDEX IF NOT EXISTS users_role ON users(role)');
+    // Zugangsschlüssel: nachgeschlagen wird über den Abdruck (Primärschlüssel),
+    // aufgelistet je Konto. Beides ohne die übrigen Zeilen anzufassen – bei
+    // jedem API-Aufruf die ganze Liste zu lesen war die eine Stelle, an der
+    // die alte Ablage mit der Zahl der Konten mitwuchs.
+    $pdo->exec('CREATE TABLE IF NOT EXISTS tokens (
+        fingerprint TEXT PRIMARY KEY,
+        id          TEXT,
+        owner       TEXT,
+        created     TEXT,
+        data        TEXT NOT NULL
+    )');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS tokens_owner ON tokens(owner)');
+
+    // Einmalige Übernahme einer vorhandenen tokens.json: Wer von einer
+    // älteren Fassung kommt, soll seine Schlüssel behalten, ohne etwas zu
+    // tun. Die Datei wird danach umbenannt statt gelöscht – ein Zurück
+    // bleibt möglich, solange niemand sie wegräumt.
+    $alt = data_path() . '/tokens.json';
+    if (is_file($alt)) {
+        foreach (json_read($alt) as $abdruck => $e) {
+            if (is_array($e) && is_string($abdruck) && $abdruck !== '') {
+                db_token_put($pdo, $abdruck, $e);
+            }
+        }
+        @rename($alt, $alt . '.uebernommen');
+    }
 }
 
 // ---- Links ----------------------------------------------------------------
@@ -131,6 +157,31 @@ function db_users_all(PDO $pdo): array
         if (is_array($d)) $out[(string)$zeile['name']] = $d;
     }
     return $out;
+}
+
+// ---- Zugangsschlüssel ------------------------------------------------------
+
+function db_token_put(PDO $pdo, string $abdruck, array $e): void
+{
+    $st = $pdo->prepare('REPLACE INTO tokens (fingerprint, id, owner, created, data)
+        VALUES (?, ?, ?, ?, ?)');
+    $st->execute([
+        $abdruck,
+        (string)($e['id'] ?? ''),
+        (string)($e['user'] ?? ''),
+        (string)($e['created'] ?? ''),
+        json_encode($e, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+    ]);
+}
+
+function db_token_get(PDO $pdo, string $abdruck): ?array
+{
+    $st = $pdo->prepare('SELECT data FROM tokens WHERE fingerprint = ?');
+    $st->execute([$abdruck]);
+    $zeile = $st->fetch();
+    if ($zeile === false) return null;
+    $d = json_decode((string)$zeile['data'], true);
+    return is_array($d) ? $d : null;
 }
 
 /** Pfad der Datenbank-Datei (leer konfiguriert = data/flatlink.sqlite) */

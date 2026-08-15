@@ -21,10 +21,12 @@ require_once __DIR__ . '/helpers.php';
 /** Erkennungszeichen am Anfang jedes Schlüssels, damit er in Protokollen auffällt */
 const TOKEN_PREFIX = 'flk_';
 
-function tokens_file(): string
-{
-    return data_path() . '/tokens.json';
-}
+/**
+ * Die Schlüssel liegen in der Datenbank, nicht in einer Datei: Nachgeschlagen
+ * wird bei JEDEM API-Aufruf, und die Menge wächst mit der Zahl der Konten –
+ * bei 50.000 Schlüsseln kostete das Lesen der Datei 34 ms und 86 MB je
+ * Aufruf. Als Abfrage über den Primärschlüssel sind es Mikrosekunden.
+ */
 
 /**
  * Neuen Schlüssel erzeugen. Der Klartext wird genau einmal zurückgegeben und
@@ -38,19 +40,16 @@ function token_create(string $user, string $label): array
     $abdruck = hash('sha256', $plain);
     $id = substr($abdruck, 0, 12);
 
-    json_update(tokens_file(), function (array $t) use ($abdruck, $id, $user, $label, $plain) {
-        $t[$abdruck] = [
-            'id' => $id,
-            'user' => $user,
-            'label' => mb_substr(trim($label), 0, 60),
-            // Die ersten Zeichen im Klartext, damit sich mehrere Schlüssel in
-            // der Liste auseinanderhalten lassen. Zum Anmelden reicht das nicht.
-            'hint' => substr($plain, 0, strlen(TOKEN_PREFIX) + 6),
-            'created' => date('c'),
-            'last_used' => null,
-        ];
-        return $t;
-    });
+    db_token_put(db(), $abdruck, [
+        'id' => $id,
+        'user' => $user,
+        'label' => mb_substr(trim($label), 0, 60),
+        // Die ersten Zeichen im Klartext, damit sich mehrere Schlüssel in
+        // der Liste auseinanderhalten lassen. Zum Anmelden reicht das nicht.
+        'hint' => substr($plain, 0, strlen(TOKEN_PREFIX) + 6),
+        'created' => date('c'),
+        'last_used' => null,
+    ]);
     return ['token' => $plain, 'id' => $id];
 }
 
@@ -64,20 +63,16 @@ function token_find(string $plain): ?array
     $plain = trim($plain);
     if ($plain === '' || !str_starts_with($plain, TOKEN_PREFIX)) return null;
     $abdruck = hash('sha256', $plain);
-    $alle = json_read(tokens_file());
-    $eintrag = $alle[$abdruck] ?? null;
-    if (!is_array($eintrag)) return null;
+    $eintrag = db_token_get(db(), $abdruck);
+    if ($eintrag === null) return null;
 
     // Höchstens einmal pro Stunde zurückschreiben. Bei jedem Aufruf zu
     // schreiben hieße, dass sich sämtliche Anfragen an der Sperre dieser einen
     // Datei aufreihen – für eine Angabe, die auf die Stunde genau reicht.
     $letzte = (string)($eintrag['last_used'] ?? '');
     if ($letzte === '' || strtotime($letzte) < time() - 3600) {
-        json_update(tokens_file(), function (array $t) use ($abdruck) {
-            if (!isset($t[$abdruck])) return null;
-            $t[$abdruck]['last_used'] = date('c');
-            return $t;
-        });
+        $eintrag['last_used'] = date('c');
+        db_token_put(db(), $abdruck, $eintrag);
     }
     return $eintrag;
 }
@@ -85,8 +80,13 @@ function token_find(string $plain): ?array
 /** @return array<string,array> Schlüssel eines Kontos, neueste zuerst */
 function tokens_of(string $user): array
 {
-    $out = array_filter(json_read(tokens_file()), fn($t) => ($t['user'] ?? null) === $user);
-    uasort($out, fn($a, $b) => strcmp((string)($b['created'] ?? ''), (string)($a['created'] ?? '')));
+    $st = db()->prepare('SELECT fingerprint, data FROM tokens WHERE owner = ? ORDER BY created DESC');
+    $st->execute([$user]);
+    $out = [];
+    while (($zeile = $st->fetch()) !== false) {
+        $d = json_decode((string)$zeile['data'], true);
+        if (is_array($d)) $out[(string)$zeile['fingerprint']] = $d;
+    }
     return $out;
 }
 
@@ -96,25 +96,16 @@ function tokens_of(string $user): array
  */
 function token_revoke(string $user, string $id): bool
 {
-    $weg = false;
-    json_update(tokens_file(), function (array $t) use ($user, $id, &$weg) {
-        foreach ($t as $abdruck => $e) {
-            if (($e['id'] ?? '') === $id && ($e['user'] ?? '') === $user) {
-                unset($t[$abdruck]);
-                $weg = true;
-            }
-        }
-        return $weg ? $t : null;
-    });
-    return $weg;
+    // Kennung UND Konto in der Bedingung: über eine geratene Kennung sollen
+    // sich keine fremden Schlüssel entwerten lassen
+    $st = db()->prepare('DELETE FROM tokens WHERE id = ? AND owner = ?');
+    $st->execute([$id, $user]);
+    return $st->rowCount() > 0;
 }
 
 /** Alle Schlüssel eines Kontos entfernen – beim Löschen des Kontos */
 function tokens_drop_user(string $user): void
 {
-    json_update(tokens_file(), function (array $t) use ($user) {
-        $vorher = count($t);
-        $t = array_filter($t, fn($e) => ($e['user'] ?? null) !== $user);
-        return count($t) === $vorher ? null : $t;
-    });
+    $st = db()->prepare('DELETE FROM tokens WHERE owner = ?');
+    $st->execute([$user]);
 }

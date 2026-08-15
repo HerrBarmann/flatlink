@@ -88,7 +88,7 @@ function backup_build(): array
 function backup_dateien(): array
 {
     return [
-        'settings.json', 'groups.json', 'tokens.json', 'logos.json',
+        'settings.json', 'groups.json', 'logos.json',
         'pending-users.json', 'secret.key', 'audit.log',
         'links-gc.json', 'links-gc-warned.json',
     ];
