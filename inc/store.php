@@ -590,7 +590,11 @@ function logo_meta_delete(string $id): void
 function rate_limit_ok(string $ip): bool
 {
     rate_limit_gc();
-    $file = data_path('ratelimit') . '/' . hash('sha256', $ip) . '.json';
+    // ip_hash() und nicht hash('sha256', …): Ein blanker SHA-256 über eine
+    // IPv4-Adresse ist keine Anonymisierung – der Adressraum ist so klein,
+    // dass sich eine vollständige Tabelle in Minuten rechnen lässt. Alle
+    // übrigen Stellen nutzten längst den HMAC; diese eine war übersehen.
+    $file = data_path('ratelimit') . '/' . ip_hash($ip) . '.json';
     $hour = date('YmdH');
     $ok = true;
     json_update($file, function (array $d) use ($hour, &$ok) {

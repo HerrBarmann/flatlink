@@ -67,6 +67,16 @@ show_flash();
     ?>
     <p class="muted small"><?= t('Der Bestand wird alle %d Tage erneut gegen Safe Browsing geprüft – gegen Ziele, die erst nach dem Anlegen bösartig werden. Treffer werden gesperrt, nicht gelöscht: Ein Fehlalarm lässt sich unten mit einem Klick zurücknehmen.', max(1, $tage)) ?>
         <?php if ($letzte): ?><br><?= t('Zuletzt: %s', e(date('d.m.Y H:i', $letzte))) ?><?php endif; ?></p>
+    <?php if (($ausfall = safety_fail_state()) !== null): ?>
+    <div class="flash flash-err">
+        <strong><?= t('Die Prüfung läuft ins Leere.') ?></strong>
+        <?= t('Seit %1$s sind %2$d Anfragen an Safe Browsing fehlgeschlagen (zuletzt %3$s). Solange das so ist, wird beim Anlegen NICHT geprüft – die Prüfung lässt bewusst durch, statt den Dienst anzuhalten. Häufigste Ursachen: abgelaufener oder falscher %4$s, erschöpftes Kontingent, oder der Server darf nicht nach außen.',
+            e(date('d.m.Y H:i', strtotime((string)$ausfall['seit']))),
+            (int)$ausfall['n'],
+            e(date('d.m.Y H:i', strtotime((string)$ausfall['zuletzt']))),
+            '<code>safe_browsing_key</code>') ?>
+    </div>
+    <?php endif; ?>
     <form method="post" action="" class="inline" data-confirm="<?= t('Alle aktiven Ziele jetzt gegen Safe Browsing prüfen? Das kann bei großen Beständen dauern.') ?>">
         <?= csrf_field() ?>
         <input type="hidden" name="action" value="recheck">

@@ -62,9 +62,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($action === 'totp_confirm') {
+        // Sechs Stellen sind ohne Bremse in überschaubarer Zeit durchprobiert.
+        // Gezählt statt gewartet – Warten belegt einen PHP-Prozess und wäre
+        // auf kleinen Instanzen der wirksamere Angriff (siehe inc/auth.php).
+        if (!bucket_rate_ok('nachweis', 20, $user['name'])) {
+            http_response_code(429);
+            flash(t('Zu viele Versuche – bitte später erneut.'), 'err');
+            redirect_to('profile.php');
+        }
         $codes = totp_confirm($user['name'], (string)($_POST['code'] ?? ''));
         if ($codes === null) {
-            sleep(1);
             flash(t('Der Code stimmt nicht – prüfe die Uhrzeit deines Geräts.'), 'err');
         } else {
             // Nur einmal zu sehen, wie bei den API-Schlüsseln
@@ -78,11 +85,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Abschalten verlangt denselben Nachweis wie das Löschen des Kontos:
         // Wer kurz an einem offenen Rechner sitzt, soll den Schutz nicht mit
         // einem Klick entfernen können.
+        if (!bucket_rate_ok('nachweis', 20, $user['name'])) {
+            http_response_code(429);
+            flash(t('Zu viele Versuche – bitte später erneut.'), 'err');
+            redirect_to('profile.php');
+        }
         $nachweis = $extern
             ? trim((string)($_POST['confirm'] ?? '')) === $user['name']
             : password_verify((string)($_POST['current'] ?? ''), user_get($user['name'])['pass'] ?? '');
         if (!$nachweis) {
-            sleep(1);
             flash(t('Nachweis fehlt – die zweite Stufe bleibt aktiv.'), 'err');
         } elseif (totp_required($user['role']) && !passkeys_active($user['name'])) {
             flash(t('Diese Instanz verlangt eine zweite Stufe – richte zuerst einen Passkey ein.'), 'err');
@@ -133,11 +144,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Nachweis, dass wirklich der Kontoinhaber vor dem Knopf sitzt. Wer
         // sich über LDAP oder SSO anmeldet, hat hier kein Passwort – dort
         // tritt das Abtippen der eigenen Kennung an dessen Stelle.
+        if (!bucket_rate_ok('nachweis', 20, $user['name'])) {
+            http_response_code(429);
+            flash(t('Zu viele Versuche – bitte später erneut.'), 'err');
+            redirect_to('profile.php');
+        }
         $nachweis = $extern
             ? trim((string)($_POST['confirm'] ?? '')) === $user['name']
             : password_verify((string)($_POST['current'] ?? ''), user_get($user['name'])['pass'] ?? '');
         if (!$nachweis) {
-            sleep(1);
             flash($extern
                 ? t('Zum Löschen bitte die Kennung genau so eintippen, wie sie oben steht.')
                 : t('Das Passwort stimmt nicht – es wurde nichts gelöscht.'), 'err');
@@ -208,8 +223,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $repeat = (string)($_POST['repeat'] ?? '');
 
         $stored = user_get($user['name'])['pass'] ?? '';
-        if (!password_verify($current, $stored)) {
-            sleep(1);
+        if (!bucket_rate_ok('nachweis', 20, $user['name'])) {
+            http_response_code(429);
+            flash(t('Zu viele Versuche – bitte später erneut.'), 'err');
+        } elseif (!password_verify($current, $stored)) {
             flash(t('Das aktuelle Passwort stimmt nicht.'), 'err');
         } elseif ($new !== $repeat) {
             flash(t('Die Wiederholung stimmt nicht mit dem neuen Passwort überein.'), 'err');

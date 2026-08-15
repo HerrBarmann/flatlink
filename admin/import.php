@@ -163,9 +163,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $cols = array_map('trim', csv_zerlegen($line, $sep));
         $holen = fn(string $feld) => ($map[$feld] ?? -1) >= 0 ? (string)($cols[$map[$feld]] ?? '') : '';
         $url = $holen('url');
-        if (!str_starts_with($url, 'http://') && !str_starts_with($url, 'https://') && $url !== '') {
-            $url = 'https://' . $url;
-        }
+        $url = url_normalize($url);
         $rows[] = [
             'zeile' => $i + 1,
             'url' => $url,

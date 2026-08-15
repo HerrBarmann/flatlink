@@ -358,6 +358,32 @@ function user_resolve(string $ident): ?string
  */
 const DUMMY_HASH = '$2y$10$usesomesillystringfore7hnbRJHxXVLeakoG8K30oukPsA.ztMG';
 
+/** Die Datei, in der die Fehlversuche zu IP+Kennung stehen */
+function login_throttle_file(string $username): string
+{
+    return data_path('ratelimit') . '/login-' . ip_hash(client_ip() . '|' . $username) . '.json';
+}
+
+/**
+ * Wie lange ist diese Kennung von dieser Adresse aus noch gesperrt?
+ *
+ * Aufrufer beantworten damit sofort mit 429, statt den Versuch überhaupt
+ * zu prüfen. Früher wartete die Antwort stattdessen zwei Sekunden – das
+ * bremste zwar den Angreifer, band aber für die Dauer einen PHP-Prozess.
+ * Auf einem Massenhoster mit einer Handvoll Prozessen ist das kein Schutz,
+ * sondern ein Hebel: Wer genug Fehlversuche parallel abfeuert, legt die
+ * Instanz für alle lahm – und zwar gerade WEIL die Bremse greift. Zählen
+ * kostet nichts, Warten kostet den Platz eines echten Besuchers.
+ *
+ * @return int Sekunden, 0 = nicht gesperrt
+ */
+function login_throttle_left(string $username): int
+{
+    $t = json_read(login_throttle_file($username), ['fails' => 0, 'until' => 0]);
+    if ((int)($t['fails'] ?? 0) < 5) return 0;
+    return max(0, (int)($t['until'] ?? 0) - time());
+}
+
 /** Login mit Throttling: nach 5 Fehlversuchen 60 s Sperre pro IP+Name */
 /**
  * Anmeldung mit Kennung und Passwort.
@@ -370,10 +396,9 @@ function auth_login(string $username, string $password, ?bool &$needs2fa = null)
 {
     $needs2fa = false;
     rate_limit_gc();
-    $throttleFile = data_path('ratelimit') . '/login-' . ip_hash(client_ip() . '|' . $username) . '.json';
+    $throttleFile = login_throttle_file($username);
     $t = json_read($throttleFile, ['fails' => 0, 'until' => 0]);
     if ($t['fails'] >= 5 && time() < $t['until']) {
-        sleep(2);
         return false;
     }
 
@@ -411,7 +436,6 @@ function auth_login(string $username, string $password, ?bool &$needs2fa = null)
     $t['until'] = time() + 60;
     json_write($throttleFile, $t);
     login_failure_note();
-    sleep(1);
     return false;
 }
 
@@ -423,9 +447,14 @@ function auth_login(string $username, string $password, ?bool &$needs2fa = null)
  * daran vorbei, weil kein einzelner Zähler auffällig wird. Ein gemeinsamer
  * Stundenzähler bremst genau das.
  *
- * Bewusst kein Sperren: Ein instanzweiter Riegel wäre ein Weg, alle
- * auszusperren. Verzögern genügt – automatisiertes Ausprobieren lebt von
- * Geschwindigkeit, ein Mensch merkt zwei Sekunden kaum.
+ * Bewusst kein instanzweiter Riegel: Er wäre ein Weg, alle auszusperren –
+ * ein Angreifer müsste nur genug Fehlversuche erzeugen. Gebremst wird
+ * deshalb an der Quelle: Fällt der Stundenzähler auffällig aus, gilt für
+ * jede einzelne Adresse eine harte Obergrenze an Fehlversuchen. Wer selbst
+ * nichts falsch macht, merkt davon nichts.
+ *
+ * Früher stand hier ein sleep(2). Es verzögerte den Angreifer und band
+ * dabei einen PHP-Prozess – auf kleinen Instanzen der wirksamere Angriff.
  */
 function login_failure_note(): void
 {
@@ -438,7 +467,23 @@ function login_failure_note(): void
         $n = $d['n'];
         return $d;
     });
-    if ($n > 30) sleep(2);
+    // Oberhalb der Auffälligkeitsschwelle bekommt jede Adresse ein eigenes,
+    // enges Fehlversuchs-Kontingent. bucket_rate_ok zählt nur – niemand
+    // wartet, und gesperrt ist immer nur die Quelle.
+    if ($n > 30) bucket_rate_ok('loginfail', 10);
+}
+
+/**
+ * Darf von dieser Adresse überhaupt noch ein Anmeldeversuch kommen?
+ *
+ * Greift nur, wenn instanzweit auffällig viel schiefgeht (siehe
+ * login_failure_note) – im Normalbetrieb ist das Kontingent nie erschöpft.
+ */
+function login_source_ok(): bool
+{
+    $file = data_path('ratelimit') . '/loginfail-' . ip_hash() . '.json';
+    $d = json_read($file, []);
+    return ($d['hour'] ?? '') !== date('YmdH') || (int)($d['n'] ?? 0) < 10;
 }
 
 function auth_logout(): void

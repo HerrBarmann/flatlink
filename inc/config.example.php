@@ -61,8 +61,20 @@ return [
     'reserved' => ['admin', 'assets', 'data', 'inc', 'qr', 'go', 'index',
         'login', 'logout', 'api', 'register', 'reset', 'report'],
 
+    // Max. QR-Codes pro Adresse und Stunde ohne Anmeldung. Das Erzeugen
+    // kostet Rechenzeit (PNG mit Logo, PDF, EPS) und ist sonst der billigste
+    // Weg, eine kleine Instanz auszulasten. Angemeldete Konten sind
+    // ausgenommen.
+    'qr_rate_limit' => 60,
+
     // Max. Länge der Ziel-URL
     'max_url_length' => 2048,
+
+    // Dürfen Kurzlinks auf private Adressbereiche zeigen (10.x, 192.168.x,
+    // localhost, fc00::/7)? Vorgabe nein: Auf einer erreichbaren Instanz
+    // wäre ein Kurzlink sonst eine hübsche Verpackung für interne Ziele.
+    // Eine rein interne Instanz schaltet das ein.
+    'allow_private_targets' => false,
 
     // ---- Wunsch-Codes ----
     // Mindestlänge selbst gewählter Codes; kürzere bleiben Admins vorbehalten.

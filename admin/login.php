@@ -41,7 +41,7 @@ if ($wartet !== null) {
             $daten = json_decode((string)($_POST['daten'] ?? ''), true);
             if (!is_array($daten)) wa_json(['error' => t('Antwort unlesbar.')], 400);
             $err = passkey_verify($wartet, $daten);
-            if ($err !== null) { sleep(1); wa_json(['error' => $err], 403); }
+            if ($err !== null) wa_json(['error' => $err], 403);
             auth_pending_complete();
             wa_json(['ok' => true, 'redirect' => 'index.php']);
         }
@@ -53,7 +53,6 @@ if ($wartet !== null) {
             auth_pending_complete();
             redirect_to('index.php');
         } else {
-            sleep(1);
             $fehler = t('Der Code stimmt nicht.');
         }
     }
@@ -117,7 +116,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = trim((string)($_POST['username'] ?? ''));
     $password = (string)($_POST['password'] ?? '');
 
-    if ($firstRun) {
+    // Gesperrt? Dann gar nicht erst prüfen, sondern sofort mit 429 antworten.
+    // Das ist die ehrliche Auskunft („komm in einer Minute wieder") und
+    // kostet den Server nichts – im Gegensatz zum früheren Warten, das
+    // einen ganzen PHP-Prozess für die Dauer belegte.
+    $wartezeit = $firstRun ? 0 : login_throttle_left($username);
+    if ($wartezeit > 0 || (!$firstRun && !login_source_ok())) {
+        http_response_code(429);
+        header('Retry-After: ' . max(1, $wartezeit ?: 60));
+        $error = $wartezeit > 0
+            ? t('Zu viele Fehlversuche. Bitte in %d Sekunden erneut.', $wartezeit)
+            : t('Zu viele Fehlversuche von dieser Adresse. Bitte später erneut.');
+    } elseif ($firstRun) {
         // Ersteinrichtung: ersten Admin anlegen (nur solange keine Nutzer existieren)
         $error = user_add($username, $password, 'admin');
         if ($error === null) {

@@ -9,6 +9,7 @@ require_once __DIR__ . '/../inc/groups.php';
 require_once __DIR__ . '/../inc/domains.php';
 require_once __DIR__ . '/../inc/zip.php';
 require_once __DIR__ . '/../inc/backup.php';
+require_once __DIR__ . '/../inc/probe.php';
 
 $user = auth_require_admin();
 $s = settings();
@@ -78,6 +79,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
         if ($fehler === null) $neu['domains'] = $liste;
+    }
+
+    if (isset($_POST['probe'])) {
+        probe_run(true);
+        flash(t('Prüfung durchgeführt.'));
+        redirect_to('settings.php');
     }
 
     if (isset($_POST['sicherung'])) {
@@ -232,10 +239,30 @@ $host = preg_replace('#^https?://#', '', base_url());
     <p class="muted small"><?= t('Die Domain muss zusätzlich beim Hoster auf dieses Verzeichnis zeigen und im Zertifikat stehen – das kann diese Oberfläche nicht für dich tun.') ?></p>
 </div>
 
-<?php if (data_dir_in_webroot()): ?>
-<div class="flash flash-err">
+<?php if (data_dir_in_webroot()): $probe = probe_last() ?? ['stand' => 'ungeprueft', 'zeit' => '', 'detail' => '']; ?>
+<div class="flash flash-<?= ($probe['stand'] ?? '') === 'dicht' ? 'ok' : 'err' ?>">
+    <?php if (($probe['stand'] ?? '') === 'offen'): ?>
+    <strong><?= t('Das Datenverzeichnis ist über das Web abrufbar.') ?></strong>
+    <?= t('Nachgeprüft am %s: Eine Testdatei in %s ließ sich von außen herunterladen. Damit sind auch Passwort-Hashes, gültige Reset-Token und das Instanz-Geheimnis abrufbar. Das ist kein Hinweis, sondern ein offener Zugang – bitte sofort handeln: entweder %s in %s auf einen Pfad außerhalb des Webroots stellen (Inhalt vorher kopieren) oder im Webserver einen Block für das Verzeichnis einrichten (siehe %s).',
+        e(date('d.m.Y H:i', strtotime((string)$probe['zeit']))),
+        '<code style="word-break:break-all">' . e(data_path()) . '</code>',
+        '<code>data_dir</code>', '<code>inc/config.php</code>', '<code>DEPLOYMENT.md</code>') ?>
+    <?php elseif (($probe['stand'] ?? '') === 'dicht'): ?>
+    <strong><?= t('Das Datenverzeichnis liegt im Webroot, ist aber dicht.') ?></strong>
+    <?= t('Nachgeprüft am %s: %s Der Schutz hängt damit an der Webserver-Konfiguration – wird sie beim nächsten Umzug oder Upload nicht mitgenommen, liegt alles offen. Ein Pfad außerhalb des Webroots (%s) hängt an nichts.',
+        e(date('d.m.Y H:i', strtotime((string)$probe['zeit']))), e((string)$probe['detail']), '<code>data_dir</code>') ?>
+    <?php else: ?>
     <strong><?= t('Das Datenverzeichnis liegt im Webroot') ?></strong> (<code style="word-break:break-all"><?= e(data_path()) ?></code>).
     <?= t('Geschützt ist es dort nur durch die %s – die nginx, Caddy und LiteSpeed ignorieren. Darin stehen Passwort-Hashes und gültige Reset-Token. Wenn dein Hosting einen Pfad außerhalb zulässt, trag ihn als %s in %s ein – den Inhalt vorher kopieren, erst danach die Konfiguration umstellen.', '<code>.htaccess</code>', '<code>data_dir</code>', '<code>inc/config.php</code>') ?>
+    <p class="small"><?= ($probe['stand'] ?? '') === 'ungeprueft'
+        ? t('Ob der Schutz wirklich greift, lässt sich nachmessen: Der Knopf legt eine Testdatei in das Verzeichnis, ruft sie über die eigene Adresse ab und löscht sie wieder.')
+        : t('Die Selbstprüfung konnte nichts feststellen: %s', e((string)($probe['detail'] ?? ''))) ?></p>
+    <?php endif; ?>
+    <form method="post" action="" style="margin-top:.6rem">
+        <?= csrf_field() ?>
+        <input type="hidden" name="probe" value="1">
+        <button class="btn btn-small" type="submit"><?= ($probe['stand'] ?? '') === 'ungeprueft' ? t('Jetzt nachmessen') : t('Jetzt erneut prüfen') ?></button>
+    </form>
 </div>
 <?php endif; ?>
 

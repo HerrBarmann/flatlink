@@ -37,9 +37,7 @@ function link_rules_create(array $user, array $in): array
     $group = $group === '' ? null : $group;
 
     // Adressen ohne Schema sind ein häufiger Tippfehler und keine Absicht
-    if ($url !== '' && !str_starts_with($url, 'http://') && !str_starts_with($url, 'https://')) {
-        $url = 'https://' . $url;
-    }
+    $url = url_normalize($url);
     // Kampagnen-Parameter noch vor der Prüfung anhängen: Geprüft und gemeldet
     // wird die Adresse, die am Ende auch aufgerufen wird.
     if (isset($in['utm']) && is_array($in['utm'])) $url = utm_apply($url, $in['utm']);
@@ -70,7 +68,7 @@ function link_rules_create(array $user, array $in): array
 
     $err = null;
     if (!valid_url($url)) {
-        $err = t('Ungültige Ziel-URL (nur http/https).');
+        $err = url_reject_reason($url);
     } elseif (!$isAdmin && link_count($user['name']) >= user_limit($user['name'], 'links')) {
         $err = t('Limit erreicht: %d aktive Links.', user_limit($user['name'], 'links'));
     } elseif ($code !== '' && !user_can($user['name'], 'custom_code')) {
@@ -120,9 +118,7 @@ function link_rules_create(array $user, array $in): array
 function link_rules_update(array $user, array $link, array $in): array
 {
     $url = trim((string)($in['url'] ?? ($link['url'] ?? '')));
-    if ($url !== '' && !str_starts_with($url, 'http://') && !str_starts_with($url, 'https://')) {
-        $url = 'https://' . $url;
-    }
+    $url = url_normalize($url);
     // Nur anfassen, wenn der Aufrufer die Parameter überhaupt mitschickt –
     // sonst verlöre ein Aufruf, der bloß den Titel ändert, die Kampagne.
     if (isset($in['utm']) && is_array($in['utm'])) $url = utm_apply($url, $in['utm']);
@@ -149,7 +145,7 @@ function link_rules_update(array $user, array $link, array $in): array
     $assignable = link_rules_assignable($user);
 
     if (!valid_url($url)) {
-        return [t('Ungültige Ziel-URL (nur http/https).'), []];
+        return [url_reject_reason($url), []];
     }
     // Eine bestehende Zuordnung darf bleiben, auch wenn sie nicht neu vergeben
     // werden könnte – sonst wäre ein geerbter Gruppenlink nicht mehr änderbar.

@@ -43,10 +43,18 @@ function urls_flagged(array $urls): array
         false,
         $ctx
     );
-    if ($resp === false) return [];
+    if ($resp === false) {
+        safety_fail_note();
+        return [];
+    }
 
     $data = json_decode($resp, true);
-    if (!is_array($data) || empty($data['matches'])) return [];
+    if (!is_array($data)) {
+        safety_fail_note();
+        return [];
+    }
+    safety_fail_reset();
+    if (empty($data['matches'])) return [];
 
     $flagged = [];
     foreach ($data['matches'] as $m) {
@@ -57,6 +65,43 @@ function urls_flagged(array $urls): array
             date('c') . ' ' . ($m['threatType'] ?? '?') . ' ' . $u . "\n", FILE_APPEND | LOCK_EX);
     }
     return array_unique($flagged);
+}
+
+/**
+ * Eine fehlgeschlagene Prüfung vermerken.
+ *
+ * Die Prüfung ist bewusst fail-open: Ein Ausfall bei Google darf nicht dazu
+ * führen, dass niemand mehr einen Link anlegen kann. Der Preis ist, dass ein
+ * dauerhafter Ausfall – abgelaufener Schlüssel, gesperrtes Kontingent,
+ * geschlossener Ausgang – lautlos ist: Es sieht alles aus wie immer, nur
+ * geprüft wird nichts mehr. Deshalb wird mitgezählt, seit wann.
+ */
+function safety_fail_note(): void
+{
+    $f = data_path() . '/safety-fails.json';
+    json_update($f, function (array $d) {
+        $d['n'] = (int)($d['n'] ?? 0) + 1;
+        if (($d['seit'] ?? '') === '') $d['seit'] = date('c');
+        $d['zuletzt'] = date('c');
+        return $d;
+    });
+}
+
+/** Nach einer geglückten Prüfung ist die Strähne vorbei */
+function safety_fail_reset(): void
+{
+    $f = data_path() . '/safety-fails.json';
+    if (is_file($f)) @unlink($f);
+}
+
+/**
+ * Läuft die Prüfung gerade ins Leere?
+ * @return array{n:int,seit:string,zuletzt:string}|null
+ */
+function safety_fail_state(): ?array
+{
+    $d = json_read(data_path() . '/safety-fails.json');
+    return isset($d['n']) && (int)$d['n'] > 0 ? $d : null;
 }
 
 /** Einzel-URL-Variante (siehe urls_flagged) */

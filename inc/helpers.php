@@ -289,9 +289,88 @@ function lookup_code_ok(string $code): bool
 
 function valid_url(string $url): bool
 {
-    return strlen($url) <= cfg('max_url_length')
-        && preg_match('#^https?://#i', $url) === 1
-        && filter_var($url, FILTER_VALIDATE_URL) !== false;
+    return url_reject_reason($url) === null;
+}
+
+/**
+ * Eine eingetippte Adresse vervollständigen.
+ *
+ * „example.com/pfad" meint https://example.com/pfad – das Schema wegzulassen
+ * ist der Normalfall beim Abtippen. Steht aber schon eines da, bleibt es
+ * stehen, auch ein unbrauchbares: Aus „ftp://x.de" wurde bisher
+ * „https://ftp://x.de" und daraus beim Speichern ein kaputter Link. Besser
+ * eine ehrliche Fehlermeldung als ein Kurzlink, der ins Nichts führt.
+ */
+function url_normalize(string $roh): string
+{
+    $roh = trim($roh);
+    if ($roh === '') return '';
+    // Ein Schema erkennt man am Doppelpunkt vor dem ersten Schrägstrich
+    if (preg_match('#^[a-z][a-z0-9+.-]*:#i', $roh) === 1) return $roh;
+    return 'https://' . $roh;
+}
+
+/**
+ * Warum eine Ziel-Adresse abgelehnt wird – oder null, wenn sie in Ordnung ist.
+ *
+ * Eigene Funktion, damit die Oberfläche den echten Grund nennen kann. „Nur
+ * http/https erlaubt" auf eine Adresse zu antworten, die mit https:// beginnt,
+ * ist die Sorte Fehlermeldung, an der Leute zu Recht verzweifeln.
+ */
+function url_reject_reason(string $url): ?string
+{
+    if (strlen($url) > cfg('max_url_length')) {
+        return t('Die Ziel-Adresse ist zu lang (max. %d Zeichen).', (int)cfg('max_url_length'));
+    }
+    if (preg_match('#^https?://#i', $url) !== 1 || filter_var($url, FILTER_VALIDATE_URL) === false) {
+        return t('Ungültige Ziel-URL (nur http/https).');
+    }
+
+    $teile = parse_url($url);
+    if (!is_array($teile) || ($teile['host'] ?? '') === '') {
+        return t('Ungültige Ziel-URL (nur http/https).');
+    }
+
+    // Kein Nutzerteil vor dem Host: https://sparkasse.de@boese.tld/ führt zu
+    // boese.tld, liest sich aber wie die Bank. Ein Kurzlink verbirgt sein Ziel
+    // ohnehin – ihm auch noch eine falsche Fährte mitzugeben, ist zu viel.
+    if (isset($teile['user']) || isset($teile['pass'])) {
+        return t('Adressen mit einem Namen vor dem Host (%s) sind nicht erlaubt – sie lesen sich wie eine Seite und führen zu einer anderen.', 'https://beispiel.de@andere.tld/');
+    }
+
+    if (url_intern_gesperrt((string)$teile['host'])) {
+        return t('Dieses Ziel liegt in einem privaten Adressbereich (%s). Auf einer erreichbaren Instanz wäre der Kurzlink nur eine Verpackung für eine interne Adresse.', e((string)$teile['host']));
+    }
+    return null;
+}
+
+/**
+ * Zeigt der Host ins eigene Netz, und ist das hier verboten?
+ *
+ * Für den Server selbst ist das keine Gefahr – er ruft Ziele nie ab. Auf
+ * einer Instanz im Intranet aber, also genau dort, wo flatlink hingehört,
+ * wird ein Kurzlink sonst zur hübschen Verpackung für interne Adressen:
+ * kurz.hochschule.de/personal führt auf 10.0.0.5, und niemand sieht es dem
+ * Link an. Wer das braucht (etwa eine rein interne Instanz), schaltet
+ * 'allow_private_targets' ein.
+ */
+function url_intern_gesperrt(string $host): bool
+{
+    if (cfg('allow_private_targets')) return false;
+    $host = strtolower(trim($host, '[]'));
+    if ($host === 'localhost' || str_ends_with($host, '.localhost') || str_ends_with($host, '.internal')) {
+        return true;
+    }
+    // Namen lösen wir bewusst NICHT auf: Das wäre eine Netzanfrage je
+    // Formularabsendung und damit selbst ein Hebel. Geprüft wird, was
+    // unmittelbar dasteht.
+    $bin = @inet_pton($host);
+    if ($bin === false) return false;
+    return ip_in_list($host, [
+        '127.0.0.0/8', '10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16',
+        '169.254.0.0/16', '0.0.0.0/8', '100.64.0.0/10',
+        '::1/128', 'fc00::/7', 'fe80::/10', '::/128',
+    ]);
 }
 
 /**
@@ -346,15 +425,55 @@ function client_ip(): string
 {
     $remote = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
     $trusted = (array)cfg('trusted_proxies');
-    if ($trusted === [] || !in_array($remote, $trusted, true)) return $remote;
+    if ($trusted === [] || !ip_in_list($remote, $trusted)) return $remote;
 
     $xff = (string)($_SERVER['HTTP_X_FORWARDED_FOR'] ?? '');
     foreach (array_reverse(explode(',', $xff)) as $part) {
         $ip = trim($part);
-        if ($ip === '' || in_array($ip, $trusted, true)) continue;
+        if ($ip === '' || ip_in_list($ip, $trusted)) continue;
         if (filter_var($ip, FILTER_VALIDATE_IP) !== false) return $ip;
     }
     return $remote;
+}
+
+/**
+ * Steht die Adresse in der Liste? Einträge dürfen Adressen oder Bereiche
+ * in CIDR-Schreibweise sein (10.0.0.0/8, 2400:cb00::/32).
+ *
+ * Ohne Bereiche ist die Liste hinter einem Proxy-Verbund wie Cloudflare
+ * nicht zu pflegen – und wer sie nicht pflegen kann, trägt am Ende gar
+ * nichts ein (dann zählen alle Limits auf die Proxy-Adresse) oder vertraut
+ * dem Weiterleitungs-Kopf blind. Beides ist schlimmer als 15 Zeilen Code.
+ *
+ * @param string[] $liste
+ */
+function ip_in_list(string $ip, array $liste): bool
+{
+    $bin = @inet_pton($ip);
+    if ($bin === false) return false;
+    foreach ($liste as $eintrag) {
+        $eintrag = trim((string)$eintrag);
+        if ($eintrag === '') continue;
+        if (!str_contains($eintrag, '/')) {
+            if ($eintrag === $ip) return true;
+            continue;
+        }
+        [$netz, $bits] = explode('/', $eintrag, 2);
+        $netzBin = @inet_pton(trim($netz));
+        // Ein Bereich gilt nur innerhalb derselben Adressfamilie
+        if ($netzBin === false || strlen($netzBin) !== strlen($bin)) continue;
+        $bits = (int)$bits;
+        if ($bits < 0 || $bits > strlen($bin) * 8) continue;
+        $ganze = intdiv($bits, 8);
+        $rest = $bits % 8;
+        if ($ganze > 0 && substr($bin, 0, $ganze) !== substr($netzBin, 0, $ganze)) continue;
+        if ($rest > 0) {
+            $maske = chr((0xFF << (8 - $rest)) & 0xFF);
+            if ((($bin[$ganze] ?? "\0") & $maske) !== (($netzBin[$ganze] ?? "\0") & $maske)) continue;
+        }
+        return true;
+    }
+    return false;
 }
 
 /**
@@ -405,12 +524,40 @@ function instance_secret(): string
  */
 function ip_hash(string $ip = ''): string
 {
-    return hash_hmac('sha256', $ip === '' ? client_ip() : $ip, instance_secret());
+    return hash_hmac('sha256', ip_bucket($ip === '' ? client_ip() : $ip), instance_secret());
 }
 
-/** Rate-Limit-/Login-Schutzdateien (gehashte IPs) älter als 24 h aufräumen */
-function rate_limit_gc(): void
+/**
+ * Die Einheit, auf die ein Limit zählt.
+ *
+ * Bei IPv4 die Adresse selbst. Bei IPv6 die ersten 64 Bit: Jeder Anschluss
+ * bekommt dort ein ganzes Präfix zugeteilt und kann darin durch Milliarden
+ * Adressen wandern. Zählte man je Adresse, wäre das Limit wirkungslos – und
+ * jede neue Adresse hinterließe eine eigene Datei, bis das Verzeichnis
+ * unbenutzbar wird. Ein Präfix ist ohnehin die ehrlichere Einheit: Dahinter
+ * steckt ein Haushalt, kein Gerät.
+ */
+function ip_bucket(string $ip): string
 {
+    $bin = @inet_pton($ip);
+    if ($bin === false || strlen($bin) !== 16) return $ip;   // IPv4 oder Unsinn
+    // ::ffff:1.2.3.4 ist eine IPv4-Adresse im v6-Kleid und bleibt vollständig
+    if (str_starts_with($bin, "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xff\xff")) return $ip;
+    return (string)inet_ntop(substr($bin, 0, 8) . str_repeat("\x00", 8)) . '/64';
+}
+
+/**
+ * Rate-Limit-/Login-Schutzdateien (gehashte IPs) älter als 24 h aufräumen.
+ *
+ * Nur in etwa jedem hundertsten Aufruf: Das glob() liest das ganze
+ * Verzeichnis, und genau dann, wenn jemand das Limit angreift, wäre das die
+ * teuerste Stelle des Systems – der Angriff finanzierte seine eigene Bremse.
+ * Bei hundertfach seltenerem Lauf bleibt der Bestand trotzdem klein, weil
+ * jeder Lauf alles Abgelaufene mitnimmt.
+ */
+function rate_limit_gc(bool $sofort = false): void
+{
+    if (!$sofort && random_int(1, 100) !== 1) return;
     foreach (glob(data_path('ratelimit') . '/*.json') ?: [] as $f) {
         if (filemtime($f) < time() - 86400) @unlink($f);
     }

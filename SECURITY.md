@@ -55,9 +55,28 @@ halber:
   an einen beliebigen absoluten Pfad außerhalb legen – dringend empfohlen.
   Bleibt es im Webroot, schützt es bei Apache die `.htaccess`, bei nginx die
   Blöcke aus der [Deployment-Anleitung](DEPLOYMENT.md#4-webserver-einrichten).
+  Ob dieser Schutz wirklich greift, prüft die Instanz seit 2.5.1 selbst: Sie
+  legt eine Kanarien-Datei ins Datenverzeichnis, ruft sie über die eigene
+  `base_url` ab und löscht sie wieder. Das Ergebnis steht unter *Einstellungen*
+  – „offen" ist eine rote Dauerwarnung, „unklar" (die Instanz erreicht sich
+  selbst nicht) ausdrücklich keine Entwarnung.
 - **Google Safe Browsing schlägt fail-open fehl:** Ist der Dienst nicht
   erreichbar, wird der Link angelegt statt abgelehnt. Verfügbarkeit geht hier
-  vor Vollständigkeit der Prüfung.
+  vor Vollständigkeit der Prüfung. Damit dieser Zustand nicht lautlos bleibt,
+  werden Fehlschläge gezählt und unter *Meldungen* angezeigt, sobald die
+  Prüfung anhaltend ins Leere läuft.
+- **Anmeldeversuche werden gezählt, nicht verzögert.** Bis 2.5.0 verzögerte
+  ein `sleep()` die Antwort nach Fehlversuchen. Das bremst zwar, belegt aber
+  für seine Dauer einen PHP-Prozess – auf Massenhosting mit einer Handvoll
+  Prozessen ist genau das der wirksamere Angriff. Seit 2.5.1 antwortet die
+  Instanz stattdessen sofort mit 429 und `Retry-After`.
+- **Ziele in privaten Adressbereichen sind gesperrt** (10.x, 172.16–31.x,
+  192.168.x, 127.x, `localhost`, `fc00::/7`, `fe80::/10`), ebenso Adressen mit
+  Nutzerteil (`https://bank.de@boese.tld/`). Der Server ruft Ziele nie ab, es
+  geht also nicht um SSRF, sondern um den Kurzlink als Verpackung für interne
+  Adressen. Namen werden dabei nicht aufgelöst – das wäre eine Netzanfrage je
+  Formularabsendung und damit selbst ein Hebel. Rein interne Instanzen setzen
+  `'allow_private_targets' => true`.
 - **IP-Hashes sind pseudonym, nicht anonym.** Sie werden mit einem
   instanzeigenen Geheimnis gebildet (`data/secret.key`) und sind damit ohne
   Serverzugriff nicht rückrechenbar – aber sie bleiben personenbezogene Daten
@@ -131,3 +150,11 @@ verwaltet werden.
 | 13.08.2026 | Sekundengenauer Zeitstempel des letzten Klicks | behoben (tagesgenau) |
 | 13.08.2026 | `verified_ip` unbefristet gespeichert | behoben (12 Monate) |
 | 13.08.2026 | Keine Selbstauskunft und keine Selbstlöschung im Profil | behoben |
+| 15.08.2026 | F1: Öffentliches Rate-Limit hashte IPs ohne Instanz-Geheimnis | behoben (`ip_hash`) |
+| 15.08.2026 | F2: `sleep()`-Throttling bindet PHP-Prozesse (DoS-Hebel) | behoben (Zähler + 429) |
+| 15.08.2026 | F3: Rate-Limit je IPv6-Adresse statt je Präfix; GC bei jeder Anfrage | behoben (/64-Bündelung, GC nur stichprobenweise) |
+| 15.08.2026 | F4: Webroot-Warnung prüfte die Konfiguration, nicht die Wirklichkeit | behoben (Selbsttest per HTTP-Abruf) |
+| 15.08.2026 | F5: `qr.php` ohne Rate-Limit (CPU-DoS) | behoben (`qr_rate_limit`) |
+| 15.08.2026 | F6: `valid_url()` erlaubt Userinfo und private Ziele | behoben |
+| 15.08.2026 | F7: `trusted_proxies` ohne CIDR-Bereiche | behoben (`ip_in_list`) |
+| 15.08.2026 | F8: Safe-Browsing-Ausfall bleibt unsichtbar | behoben (Zähler + Anzeige) |

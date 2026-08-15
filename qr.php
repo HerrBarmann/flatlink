@@ -235,6 +235,21 @@ if (strlen($payload) > QrCode::maxBytes($eccLevel)) {
         strlen($payload), QrCode::maxBytes($eccLevel)));
 }
 
+// Erzeugen kostet spürbar Rechenzeit – GD-Compositing beim PNG mit Logo,
+// Vektor-Aufbau bei PDF und EPS. Ohne Bremse ist das der billigste Hebel,
+// eine kleine Instanz auszulasten: eine Adresse, viele Anfragen. Angemeldete
+// Konten sind ausgenommen; sie hängen ohnehin an ihren eigenen Limits.
+// Nur wer schon ein Sitzungs-Cookie mitbringt, bekommt eine Sitzung: qr.php
+// ist auch ein Bild-Endpunkt, und ein Bildabruf soll niemandem ein Cookie
+// setzen, der keines hat.
+if (isset($_COOKIE['kurzsid'])) auth_boot();
+if (auth_user() === null && !bucket_rate_ok('qr', (int)cfg('qr_rate_limit'))) {
+    http_response_code(429);
+    header('Retry-After: 600');
+    nosniff_header();
+    exit(t('Zu viele QR-Codes von dieser Adresse – bitte in einer Stunde erneut.'));
+}
+
 $qr = QrCode::encode($payload, $eccLevel);
 $renderer = new QrRenderer($qr, [
     'style' => $style, 'eye' => $eye, 'fg' => $fg, 'bg' => $bg,

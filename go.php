@@ -76,6 +76,12 @@ if (!empty($link['pass'])) {
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $given = (string)($_POST['zugang'] ?? '');
         if (!bucket_rate_ok('golock', 20)) {
+            // Der Zähler war schon da, die Antwort log ihn bisher nicht mit:
+            // Wer abgewiesen wird, soll das auch am Status sehen – und ein
+            // automatisierter Versucher soll es auswerten können, statt
+            // weiterzuprobieren.
+            http_response_code(429);
+            header('Retry-After: 600');
             $fail = t('Zu viele Versuche – bitte später erneut.');
         } elseif ($given !== '' && password_verify($given, (string)$link['pass'])) {
             // Auch eine geschützte Bio-Seite wird nach dem Passwort gezeigt,
@@ -89,7 +95,10 @@ if (!empty($link['pass'])) {
             header('Location: ' . $link['url'], true, 302);
             exit;
         } else {
-            sleep(1);
+            // Kein Warten mehr an dieser Stelle: Der golock-Zähler oben
+            // bremst bereits, und ein sleep() hätte für seine Dauer einen
+            // PHP-Prozess belegt – auf kleinen Instanzen der wirksamere
+            // Angriff (siehe inc/auth.php).
             $fail = t('Falsches Passwort.');
         }
     }
