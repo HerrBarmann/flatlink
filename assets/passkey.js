@@ -9,6 +9,13 @@
 (function () {
     'use strict';
 
+    /* Übersetzungen: page_footer() legt sie als JSON-Datenblock in die Seite
+     * (die CSP erlaubt keine ausführbaren Inline-Skripte, Datenblöcke schon).
+     * Ohne Block – auf einer deutschen Instanz – bleibt der deutsche Text. */
+    var UEB = {};
+    try { UEB = JSON.parse(document.getElementById('lang-js').textContent); } catch (e) {}
+    function t(s) { return UEB[s] || s; }
+
     var vorhanden = window.PublicKeyCredential && navigator.credentials;
 
     function ab(b64u) {                       // base64url -> ArrayBuffer
@@ -52,10 +59,10 @@
     /* Der Browser meldet Abbruch und „geht hier nicht" mit derselben
      * Ausnahme. Für den Benutzer sind das zwei sehr verschiedene Dinge. */
     function fehlertext(e) {
-        if (e && e.name === 'NotAllowedError') return 'Abgebrochen oder zu lange gewartet.';
-        if (e && e.name === 'InvalidStateError') return 'Dieses Gerät ist hier bereits hinterlegt.';
-        if (e && e.name === 'SecurityError') return 'Passkeys brauchen eine gesicherte Verbindung (HTTPS).';
-        return (e && e.message) ? e.message : 'Es hat nicht geklappt.';
+        if (e && e.name === 'NotAllowedError') return t('Abgebrochen oder zu lange gewartet.');
+        if (e && e.name === 'InvalidStateError') return t('Dieses Gerät ist hier bereits hinterlegt.');
+        if (e && e.name === 'SecurityError') return t('Passkeys brauchen eine gesicherte Verbindung (HTTPS).');
+        return (e && e.message) ? e.message : t('Es hat nicht geklappt.');
     }
 
     document.querySelectorAll('[data-passkey]').forEach(function (btn) {
@@ -66,13 +73,13 @@
 
         if (!vorhanden) {
             btn.disabled = true;
-            melden(box, 'Dieser Browser kennt keine Passkeys.', true);
+            melden(box, t('Dieser Browser kennt keine Passkeys.'), true);
             return;
         }
 
         btn.addEventListener('click', function () {
             btn.disabled = true;
-            melden(box, modus === 'login' ? 'Warte auf dein Gerät …' : 'Folge der Abfrage deines Geräts …', false);
+            melden(box, modus === 'login' ? t('Warte auf dein Gerät …') : t('Folge der Abfrage deines Geräts …'), false);
 
             senden(url, { action: 'pk_challenge', _csrf: csrf }).then(function (opt) {
                 if (opt.error) throw new Error(opt.error);
@@ -110,7 +117,7 @@
                 });
             }).then(function (a) {
                 if (a && a.ok) { window.location.href = a.redirect || window.location.pathname; return; }
-                throw new Error((a && a.error) || 'Es hat nicht geklappt.');
+                throw new Error((a && a.error) || t('Es hat nicht geklappt.'));
             }).catch(function (e) {
                 melden(box, fehlertext(e), true);
                 btn.disabled = false;

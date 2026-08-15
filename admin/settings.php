@@ -51,6 +51,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $neu['custom_code_quota'] = max(0, min(100000, (int)($_POST['custom_code_quota'] ?? 0)));
         $modus = (string)($_POST['totp_required'] ?? 'off');
         $neu['totp_required'] = in_array($modus, ['off', 'admins', 'all'], true) ? $modus : 'off';
+        $sprache = (string)($_POST['language'] ?? 'de');
+        $neu['language'] = isset(lang_available()[$sprache]) ? $sprache : 'de';
     }
 
     if ($fehler === null && isset($_POST['domains'])) {
@@ -147,6 +149,15 @@ $host = preg_replace('#^https?://#', '', base_url());
         </div>
         <p class="muted small">Was hier nicht angekreuzt ist, lässt sich einzelnen Konten über
         eine Gruppe geben – so entsteht aus einem Recht ein Tarif.</p>
+
+        <label for="s-lang">Sprache der Oberfläche</label>
+        <select id="s-lang" name="language" style="max-width:22rem">
+            <?php foreach (lang_available() as $kuerzel => $eigenname): ?>
+            <option value="<?= e($kuerzel) ?>"<?= ($s['language'] ?? 'de') === $kuerzel ? ' selected' : '' ?>><?= e($eigenname) ?></option>
+            <?php endforeach; ?>
+        </select>
+        <p class="muted small">Gilt für die ganze Instanz. Deutsch ist die Quellsprache; was in
+        einer Übersetzung fehlt, bleibt sichtbar deutsch statt leer.</p>
 
         <label for="s-totp">Zwei-Faktor-Anmeldung verlangen</label>
         <select id="s-totp" name="totp_required" style="max-width:22rem">

@@ -6,6 +6,13 @@
  * im Markup angefordert, nicht über on*-Handler.
  */
 (function () {
+
+    /* Übersetzungen: page_footer() legt sie als JSON-Datenblock in die Seite
+     * (die CSP erlaubt keine ausführbaren Inline-Skripte, Datenblöcke schon).
+     * Ohne Block – auf einer deutschen Instanz – bleibt der deutsche Text. */
+    var UEB = {};
+    try { UEB = JSON.parse(document.getElementById('lang-js').textContent); } catch (e) {}
+    function t(s) { return UEB[s] || s; }
     'use strict';
 
     document.addEventListener('click', function (e) {
@@ -14,7 +21,7 @@
         if (!btn) return;
         var src = document.querySelector(btn.getAttribute('data-copy'));
         if (!src) return;
-        var done = btn.getAttribute('data-copied') || 'Kopiert';
+        var done = btn.getAttribute('data-copied') || t('Kopiert');
         navigator.clipboard.writeText(src.value || src.textContent).then(function () {
             btn.textContent = done;
         });

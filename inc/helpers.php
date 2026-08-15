@@ -4,6 +4,7 @@ declare(strict_types=1);
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // flatlink · Zusatzbedingung zur Namensnennung nach §7(b) AGPL: siehe LICENSE
 require_once __DIR__ . '/qrlib.php';
+require_once __DIR__ . '/lang.php';
 
 function cfg(?string $key = null): mixed
 {
@@ -217,6 +218,7 @@ function settings(): array
             'custom_code_quota' => (int)cfg('custom_code_quota'),
             'totp_required' => (string)cfg('totp_required'),
             'domains' => (array)cfg('domains'),
+            'language' => (string)cfg('language'),
         ];
         $s = array_merge($defaults, json_read(data_path() . '/settings.json'));
     }
@@ -557,40 +559,40 @@ function page_header(string $title, bool $admin = false, ?string $desc = null, ?
         echo '<a href="' . e($href) . '">' . e((string)$label) . '</a> ';
     }
     if ($u !== null) {
-        echo '<a href="' . $adm . 'index.php">Links</a> '
-            . '<a href="' . $pub . 'qr-designer.php">QR-Designer</a> '
-            . '<a href="' . $adm . 'qrzip.php">QR-Serie</a> ';
+        echo '<a href="' . $adm . 'index.php">' . t('Links') . '</a> '
+            . '<a href="' . $pub . 'qr-designer.php">' . t('QR-Designer') . '</a> '
+            . '<a href="' . $adm . 'qrzip.php">' . t('QR-Serie') . '</a> ';
         // Nur zeigen, wo es auch benutzbar ist – ein Punkt, der zur Absage
         // führt, ist keine Werbung, sondern eine Sackgasse.
         if (function_exists('user_can') && user_can($u['name'], 'bio_page')) {
-            echo '<a href="' . $adm . 'bio.php">Link-in-Bio</a> ';
+            echo '<a href="' . $adm . 'bio.php">' . t('Link-in-Bio') . '</a> ';
         }
         if ($u['role'] === 'admin') {
             // Die vier Verwaltungspunkte hinter einer Klappe. Sie werden selten
             // gebraucht, machten aber die Hälfte der Kopfzeile aus – auf dem
             // Handy brach sie dadurch auf drei Zeilen um.
             $verwaltung = [
-                'users.php' => 'Nutzer',
-                'groups.php' => 'Gruppen',
-                'reports.php' => 'Meldungen',
-                'settings.php' => 'Einstellungen',
+                'users.php' => t('Nutzer'),
+                'groups.php' => t('Gruppen'),
+                'reports.php' => t('Meldungen'),
+                'settings.php' => t('Einstellungen'),
             ];
             $hier = basename((string)($_SERVER['SCRIPT_NAME'] ?? ''));
             $drin = isset($verwaltung[$hier]);
             echo '<details class="nav-more"><summary' . ($drin ? ' class="here"' : '') . '>'
-                . ($drin ? e($verwaltung[$hier]) : 'Verwaltung') . '</summary><div class="nav-panel">';
+                . ($drin ? e($verwaltung[$hier]) : t('Verwaltung')) . '</summary><div class="nav-panel">';
             foreach ($verwaltung as $datei => $label) {
                 echo '<a href="' . $adm . $datei . '"' . ($datei === $hier ? ' class="here"' : '') . '>'
                     . e($label) . '</a>';
             }
             echo '</div></details> ';
         }
-        echo '<a class="who" href="' . $adm . 'profile.php" title="Profil / Passwort ändern">'
+        echo '<a class="who" href="' . $adm . 'profile.php" title="' . t('Profil / Passwort ändern') . '">'
             . e(mb_strimwidth($u['display'] ?? $u['name'], 0, 28, '…')) . '</a> '
-            . '<a class="btn btn-small" href="' . $adm . 'logout.php">Abmelden</a>';
+            . '<a class="btn btn-small" href="' . $adm . 'logout.php">' . t('Abmelden') . '</a>';
     } else {
-        if (settings()['registration'] === 'on') echo '<a href="' . $pub . 'register.php">Registrieren</a> ';
-        echo '<a href="' . $adm . '">Login</a>';
+        if (settings()['registration'] === 'on') echo '<a href="' . $pub . 'register.php">' . t('Registrieren') . '</a> ';
+        echo '<a href="' . $adm . '">' . t('Login') . '</a>';
     }
     echo '</nav>';
     echo '</header><main>';
@@ -621,8 +623,8 @@ function origin_note(): string
         $glyph = $svg === '' ? '' : str_replace('<svg ', '<svg class="origin-mark" aria-hidden="true" focusable="false" ', $svg);
     }
     $self = cfg('site_name') === 'flatlink'
-        ? 'flatlink ist ein Open-Source-Projekt von '
-        : 'Läuft mit flatlink, einem Open-Source-Projekt von ';
+        ? t('flatlink ist ein Open-Source-Projekt von ')
+        : t('Läuft mit flatlink, einem Open-Source-Projekt von ');
     return '<p class="origin">' . $glyph . '<span>' . $self
         . '<a href="https://1337.kiwi/flatlink" target="_blank" rel="noopener">1337.kiwi</a>'
         . '</span></p>';
@@ -650,7 +652,7 @@ function page_script(string $datei): void
 function page_footer(): void
 {
     $root = $GLOBALS['_page_root'] ?? '.';
-    $links = '<a href="' . $root . '/report.php">Missbrauch melden</a>';
+    $links = '<a href="' . $root . '/report.php">' . t('Missbrauch melden') . '</a>';
     // Eigene Fußzeilen-Links aus der Konfiguration – hier gehören Impressum
     // und Datenschutzerklärung hin, zu denen öffentliche Instanzen je nach
     // Land verpflichtet sind. Relative Ziele werden auf den Webroot bezogen.
@@ -662,6 +664,9 @@ function page_footer(): void
     }
     echo '</main><footer class="site-foot"><p>' . e(cfg('site_name'))
         . ' · ' . $links . '</p>' . origin_note() . '</footer></div>';
+    // Übersetzungen für die Skripte – ein JSON-Datenblock, kein ausführbares
+    // Inline-Skript, deshalb verträgt er sich mit der CSP
+    echo lang_js();
     foreach ((array)($GLOBALS['_page_js'] ?? []) as $js) {
         echo '<script src="' . e($root . '/' . ltrim($js, '/')) . '" defer></script>';
     }

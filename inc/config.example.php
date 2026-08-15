@@ -128,6 +128,12 @@ return [
     // Seite dafür hat, trägt sie hier ein.
     'api_doc_url' => 'API.md',
 
+    // Sprache der Oberfläche für die ganze Instanz: 'de' oder 'en'.
+    // Deutsch ist die Quellsprache; Englisch kommt aus inc/lang/en.php, und was
+    // dort (noch) fehlt, bleibt sichtbar deutsch statt leer. Auch zur Laufzeit
+    // unter Einstellungen änderbar.
+    'language' => 'de',
+
     // Weitere Domains für Kurzlinks. Alle zeigen auf dieselbe Installation;
     // die Verwaltung bleibt auf der Adresse aus 'base_url'. Ein Code gehört
     // der Instanz, nicht der Domain – er löst unter jeder von ihnen auf.

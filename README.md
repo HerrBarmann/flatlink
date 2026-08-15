@@ -1,7 +1,7 @@
 <h1 align="center">flatlink</h1>
 
 <p align="center">
-  <strong>Kurzlinks und QR-Codes, die ihre Besucher nicht vermessen.</strong><br>
+  <strong>Der Kurzlink-Dienst zum Selbstbetreiben – mit QR-Designer und Link-in-Bio.</strong><br>
   Reines PHP. Keine Datenbank, kein Composer, kein Build-Schritt –<br>
   Dateien auf einen Webspace kopieren, fertig.
 </p>
@@ -21,8 +21,18 @@
 
 ## Der Punkt
 
-Praktisch jeder Kurzlink-Dienst protokolliert, **wer** klickt. flatlink
-speichert je Link genau das hier – vollständig, nicht gekürzt:
+flatlink will der beste quelloffene Kurzlink-Dienst zum Selbstbetreiben sein –
+mit einem QR-Generator, der bis zur Druckerei reicht, und Link-in-Bio-Seiten.
+Gebaut ist er für die Orte, an denen so etwas am dringendsten fehlt:
+Hochschulen, Bibliotheken und Verwaltungen, die ihre Links nicht an einen
+Dienst außerhalb des Hauses geben wollen oder dürfen. Anmeldung über LDAP und
+Shibboleth, Gruppen mit Rechten und Limits, Namensräume je Abteilung und
+mehrere Domains sind deshalb keine Anbauten, sondern der Kern.
+
+Datenschutz ist bei diesem Einsatzzweck keine eigene Funktion – er geht mit
+einher, als Bauweise. Wo praktisch jeder Kurzlink-Dienst protokolliert,
+**wer** klickt, speichert flatlink je Link genau das hier – vollständig,
+nicht gekürzt:
 
 ```json
 { "n": 1840, "last": "2026-08-14", "days": { "2026-08-14": 72 } }
@@ -94,21 +104,22 @@ Admin-Konto an. Für den Dauerbetrieb: Dateien auf den Webspace kopieren,
 `data/` beschreibbar machen, `base_url` in der Konfiguration eintragen.
 Ausführlich unter [Installation](#installation).
 
-> **In English:** a self-hosted URL shortener and QR code generator written in
-> dependency-free PHP. No database, no Composer, no build step – just copy the
-> files onto any PHP 8.1 web space. Click statistics are a per-day counter and
-> nothing else: no IP addresses, no user agents, no referrers, no per-visit
-> records. Code comments and UI are in German. Licensed under the GNU AGPL
+> **In English:** a self-hosted URL shortener with a print-ready QR code
+> designer and link-in-bio pages, written in dependency-free PHP – built for
+> universities, libraries and public bodies that must keep their links in
+> house. No database, no Composer, no build step. Click statistics are a
+> per-day counter and nothing else: no IP addresses, no user agents, no
+> referrers, no per-visit records. Licensed under the GNU AGPL
 > v3 with an attribution term under section 7(b): every interface must keep a
 > visible notice naming flatlink and linking to the project.
 
 ## Für wen das gedacht ist
 
-- **Vereine, Praxen, Restaurants, kleine Betriebe**, die einen QR-Code drucken
-  und das Ziel später ändern wollen, ohne den Aufkleber zu tauschen.
-- **Bibliotheken, Schulen, Hochschulen, Verwaltungen**, die Kurzlinks nicht an
+- **Hochschulen, Bibliotheken, Schulen, Verwaltungen**, die Kurzlinks nicht an
   einen Dienst außerhalb Europas geben dürfen. Anmeldung über LDAP oder
   Shibboleth, Gruppen mit eigenen Rechten und Limits, Namensräume je Abteilung.
+- **Vereine, Praxen, Restaurants, kleine Betriebe**, die einen QR-Code drucken
+  und das Ziel später ändern wollen, ohne den Aufkleber zu tauschen.
 - **Agenturen**, die mehrere Marken bedienen: eigene Domains je Kunde,
   gemeinsame Arbeitsgruppen, Schnittstelle für die Automatisierung.
 - **Alle, die einen Satz belegen wollen statt ihn zu behaupten.** „Wir tracken
@@ -117,11 +128,12 @@ Ausführlich unter [Installation](#installation).
 
 ## Wo es im Einsatz ist
 
-Der Autor betreibt mit flatlink den öffentlichen Dienst
-[1337.kiwi](https://1337.kiwi) – dieselbe Software, nur mit eigenem Design und
-den Inhalten, die ein öffentliches Angebot braucht. Was dort läuft, steht hier
-im Quelltext; was hier für Organisationen dazukommt (zentrale Anmeldung,
-Gruppen, Rechte), braucht der öffentliche Dienst nicht.
+Dass die Software den Alltag aushält, lässt sich nachsehen: Auf derselben
+technischen Basis läuft der öffentliche Dienst [1337.kiwi](https://1337.kiwi)
+– ein Nebeneffekt des Projekts, mit eigenem Design und den Inhalten, die ein
+öffentliches Angebot braucht. Was sich dort im Betrieb bewährt, steht hier im
+Quelltext; was hier für Organisationen dazukommt (zentrale Anmeldung, Gruppen,
+Rechte), braucht der öffentliche Dienst nicht.
 
 Wer flatlink installiert, bekommt **kein Imitat davon**: ein neutrales Theme,
 das eigene Kürzel, die eigene Domain. Was bleibt, ist eine dezente

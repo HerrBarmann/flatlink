@@ -20,27 +20,27 @@ $link = lookup_code_ok($code) ? link_get($code) : null;
 
 if ($link === null) {
     http_response_code(404);
-    page_header('Nicht gefunden');
-    echo '<div class="card center"><h1>404</h1><p>Diesen Kurzlink gibt es (noch) nicht.</p>'
-        . '<p><a class="btn" href="./">Selbst einen anlegen</a></p></div>';
+    page_header(t('Nicht gefunden'));
+    echo '<div class="card center"><h1>404</h1><p>' . t('Diesen Kurzlink gibt es (noch) nicht.') . '</p>'
+        . '<p><a class="btn" href="./">' . t('Selbst einen anlegen') . '</a></p></div>';
     page_footer();
     exit;
 }
 
 if (!empty($link['disabled'])) {
     http_response_code(410);
-    page_header('Gesperrt');
-    echo '<div class="card center"><h1>Gesperrt</h1><p>Dieser Kurzlink wurde wegen Missbrauchs gesperrt.</p>'
-        . '<p><a class="btn" href="./">Zur Startseite</a></p></div>';
+    page_header(t('Gesperrt'));
+    echo '<div class="card center"><h1>' . t('Gesperrt') . '</h1><p>' . t('Dieser Kurzlink wurde wegen Missbrauchs gesperrt.') . '</p>'
+        . '<p><a class="btn" href="./">' . t('Zur Startseite') . '</a></p></div>';
     page_footer();
     exit;
 }
 
 if (link_expired($link)) {
     http_response_code(410);
-    page_header('Abgelaufen');
-    echo '<div class="card center"><h1>Abgelaufen</h1><p>Dieser Kurzlink ist nicht mehr gültig.</p>'
-        . '<p><a class="btn" href="./">Zur Startseite</a></p></div>';
+    page_header(t('Abgelaufen'));
+    echo '<div class="card center"><h1>' . t('Abgelaufen') . '</h1><p>' . t('Dieser Kurzlink ist nicht mehr gültig.') . '</p>'
+        . '<p><a class="btn" href="./">' . t('Zur Startseite') . '</a></p></div>';
     page_footer();
     exit;
 }
@@ -63,7 +63,7 @@ if (!empty($link['pass'])) {
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $given = (string)($_POST['zugang'] ?? '');
         if (!bucket_rate_ok('golock', 20)) {
-            $fail = 'Zu viele Versuche – bitte später erneut.';
+            $fail = t('Zu viele Versuche – bitte später erneut.');
         } elseif ($given !== '' && password_verify($given, (string)$link['pass'])) {
             // Auch eine geschützte Bio-Seite wird nach dem Passwort gezeigt,
             // statt weiterzuleiten – sie hat ja kein einzelnes Ziel.
@@ -77,19 +77,19 @@ if (!empty($link['pass'])) {
             exit;
         } else {
             sleep(1);
-            $fail = 'Falsches Passwort.';
+            $fail = t('Falsches Passwort.');
         }
     }
-    page_header('Geschützter Link');
-    echo '<div class="card narrow"><h1>Geschützter Link</h1>'
-        . '<p class="muted">Dieser Kurzlink ist passwortgeschützt.</p>';
+    page_header(t('Geschützter Link'));
+    echo '<div class="card narrow"><h1>' . t('Geschützter Link') . '</h1>'
+        . '<p class="muted">' . t('Dieser Kurzlink ist passwortgeschützt.') . '</p>';
     if ($fail !== null) {
         echo '<div class="flash flash-err">' . e($fail) . '</div>';
     }
     echo '<form method="post" action="">'
-        . '<label for="zugang">Passwort</label>'
+        . '<label for="zugang">' . t('Passwort') . '</label>'
         . '<input id="zugang" type="password" name="zugang" required autofocus>'
-        . '<p><button class="btn btn-primary" type="submit">Öffnen</button></p>'
+        . '<p><button class="btn btn-primary" type="submit">' . t('Öffnen') . '</button></p>'
         . '</form></div>';
     page_footer();
     exit;

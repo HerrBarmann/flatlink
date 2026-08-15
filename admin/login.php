@@ -29,17 +29,17 @@ if ($wartet !== null) {
         }
         // Passkey-Weg: antwortet mit JSON, wird vom Skript im Browser gerufen
         if (($_POST['action'] ?? '') === 'pk_challenge') {
-            if ($keys === []) wa_json(['error' => 'Für dieses Konto ist kein Passkey hinterlegt.'], 400);
+            if ($keys === []) wa_json(['error' => t('Für dieses Konto ist kein Passkey hinterlegt.')], 400);
             wa_json(passkey_request_options($wartet));
         }
         if (($_POST['action'] ?? '') === 'pk_verify') {
             // Auch dieser Weg wird gebremst. Zwar ist eine Unterschrift nicht
             // zu erraten, aber ein Fehlversuch kostet uns Rechenzeit.
             if (!bucket_rate_ok('totp', 20, $wartet)) {
-                wa_json(['error' => 'Zu viele Versuche – bitte später erneut.'], 429);
+                wa_json(['error' => t('Zu viele Versuche – bitte später erneut.')], 429);
             }
             $daten = json_decode((string)($_POST['daten'] ?? ''), true);
-            if (!is_array($daten)) wa_json(['error' => 'Antwort unlesbar.'], 400);
+            if (!is_array($daten)) wa_json(['error' => t('Antwort unlesbar.')], 400);
             $err = passkey_verify($wartet, $daten);
             if ($err !== null) { sleep(1); wa_json(['error' => $err], 403); }
             auth_pending_complete();
@@ -48,48 +48,47 @@ if ($wartet !== null) {
         // Auch die zweite Stufe wird gebremst – sechs Stellen sind sonst in
         // überschaubarer Zeit durchprobiert.
         if (!bucket_rate_ok('totp', 20, $wartet)) {
-            $fehler = 'Zu viele Versuche – bitte später erneut.';
+            $fehler = t('Zu viele Versuche – bitte später erneut.');
         } elseif ($mitApp && totp_check($wartet, (string)($_POST['code'] ?? ''))) {
             auth_pending_complete();
             redirect_to('index.php');
         } else {
             sleep(1);
-            $fehler = 'Der Code stimmt nicht.';
+            $fehler = t('Der Code stimmt nicht.');
         }
     }
-    page_header('Bestätigung', true);
+    page_header(t('Bestätigung'), true);
     ?>
     <div class="card narrow">
-        <h1>Noch ein Schritt</h1>
+        <h1><?= t('Noch ein Schritt') ?></h1>
         <?php if ($fehler !== null): ?><div class="flash flash-err"><?= e($fehler) ?></div><?php endif; ?>
 
         <?php if ($keys !== []): ?>
-        <p class="muted">Bestätige mit deinem Passkey – Fingerabdruck, Gesicht oder Geräte-PIN.</p>
+        <p class="muted"><?= t('Bestätige mit deinem Passkey – Fingerabdruck, Gesicht oder Geräte-PIN.') ?></p>
         <p><button class="btn btn-primary" type="button" style="width:100%"
                    data-passkey="login" data-url="login.php" data-csrf="<?= e(csrf_token()) ?>"
-                   data-status="pk-status">Mit Passkey bestätigen</button></p>
+                   data-status="pk-status"><?= t('Mit Passkey bestätigen') ?></button></p>
         <div id="pk-status" class="flash" style="display:none"></div>
         <?php endif; ?>
 
         <?php if ($mitApp): ?>
             <?php if ($keys !== []): ?>
-            <p class="muted small" style="text-align:center">oder mit einem Code aus der App:</p>
+            <p class="muted small" style="text-align:center"><?= t('oder mit einem Code aus der App:') ?></p>
             <?php else: ?>
-            <p class="muted">Gib den sechsstelligen Code aus deiner Authenticator-App ein.
-            Ein Wiederherstellungscode geht auch.</p>
+            <p class="muted"><?= t('Gib den sechsstelligen Code aus deiner Authenticator-App ein. Ein Wiederherstellungscode geht auch.') ?></p>
             <?php endif; ?>
         <form method="post" action="" data-enter-submit>
             <?= csrf_field() ?>
-            <label for="code">Code</label>
+            <label for="code"><?= t('Code') ?></label>
             <input id="code" type="text" name="code" required<?= $keys === [] ? ' autofocus' : '' ?>
                    autocomplete="one-time-code" inputmode="numeric" placeholder="123456">
-            <p><button class="btn<?= $keys === [] ? ' btn-primary' : '' ?>" type="submit">Bestätigen</button></p>
+            <p><button class="btn<?= $keys === [] ? ' btn-primary' : '' ?>" type="submit"><?= t('Bestätigen') ?></button></p>
         </form>
         <?php endif; ?>
         <form method="post" action="">
             <?= csrf_field() ?>
             <input type="hidden" name="abbruch" value="1">
-            <p class="muted small"><button class="btn btn-small" type="submit">Abbrechen</button></p>
+            <p class="muted small"><button class="btn btn-small" type="submit"><?= t('Abbrechen') ?></button></p>
         </form>
     </div>
     <?php
@@ -123,7 +122,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = user_add($username, $password, 'admin');
         if ($error === null) {
             auth_login($username, $password);
-            flash('Willkommen! Admin-Konto angelegt.');
+            flash(t('Willkommen! Admin-Konto angelegt.'));
             redirect_to('index.php');
         }
     } elseif (auth_login($username, $password, $braucht2fa)) {
@@ -132,19 +131,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Lokales Passwort hat nicht gepasst – jetzt das Verzeichnis fragen
         redirect_to('index.php');
     } else {
-        $error = 'Login fehlgeschlagen.';
+        $error = t('Login fehlgeschlagen.');
     }
 }
 
 $sso = sso_cfg();
-page_header($firstRun ? 'Ersteinrichtung' : 'Login', true);
+page_header($firstRun ? t('Ersteinrichtung') : t('Login'), true);
 ?>
 <div class="card narrow">
     <?php if ($firstRun): ?>
-        <h1>Ersteinrichtung</h1>
-        <p>Noch keine Nutzer vorhanden – leg dein Admin-Konto an.</p>
+        <h1><?= t('Ersteinrichtung') ?></h1>
+        <p><?= t('Noch keine Nutzer vorhanden – leg dein Admin-Konto an.') ?></p>
     <?php else: ?>
-        <h1>Login</h1>
+        <h1><?= t('Login') ?></h1>
     <?php endif; ?>
 
     <?php if ($error !== null): ?>
@@ -154,21 +153,21 @@ page_header($firstRun ? 'Ersteinrichtung' : 'Login', true);
     <?php if (!$firstRun && sso_enabled() && $sso['login_url'] !== ''): ?>
         <p><a class="btn btn-primary" style="display:block;text-align:center"
               href="<?= e((string)$sso['login_url']) ?>"><?= e((string)$sso['button_label']) ?></a></p>
-        <p class="muted small" style="text-align:center">oder mit lokalem Konto:</p>
+        <p class="muted small" style="text-align:center"><?= t('oder mit lokalem Konto:') ?></p>
     <?php endif; ?>
 
     <form method="post" action="" data-enter-submit>
         <?= csrf_field() ?>
-        <label for="username"><?= $firstRun ? 'Nutzername' : 'E-Mail oder Nutzername' ?></label>
+        <label for="username"><?= $firstRun ? t('Nutzername') : t('E-Mail oder Nutzername') ?></label>
         <input id="username" type="text" name="username" required autofocus autocomplete="username">
-        <label for="password">Passwort<?= $firstRun ? ' (mind. 8 Zeichen)' : '' ?></label>
+        <label for="password"><?= t('Passwort') ?><?= $firstRun ? ' ' . t('(mind. 8 Zeichen)') : '' ?></label>
         <input id="password" type="password" name="password" required autocomplete="<?= $firstRun ? 'new-password' : 'current-password' ?>">
-        <p><button class="btn btn-primary" type="submit"><?= $firstRun ? 'Admin anlegen' : 'Anmelden' ?></button></p>
+        <p><button class="btn btn-primary" type="submit"><?= $firstRun ? t('Admin anlegen') : t('Anmelden') ?></button></p>
     </form>
     <?php if (!$firstRun): ?>
-        <p class="muted small"><a href="../reset.php">Passwort vergessen?</a><?php if (settings()['registration'] === 'on'): ?> · Noch kein Konto? <a href="../register.php">Registrieren</a><?php endif; ?></p>
+        <p class="muted small"><a href="../reset.php"><?= t('Passwort vergessen?') ?></a><?php if (settings()['registration'] === 'on'): ?> · <?= t('Noch kein Konto?') ?> <a href="../register.php"><?= t('Registrieren') ?></a><?php endif; ?></p>
         <?php if (ldap_enabled()): ?>
-        <p class="muted small">Konten aus dem Verzeichnis melden sich hier mit ihrer gewohnten Kennung an.</p>
+        <p class="muted small"><?= t('Konten aus dem Verzeichnis melden sich hier mit ihrer gewohnten Kennung an.') ?></p>
         <?php endif; ?>
     <?php endif; ?>
 </div>

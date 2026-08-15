@@ -7,6 +7,13 @@
  * eingebettet werden muss und die CSP ohne Inline-Skripte auskommt.
  */
 (function () {
+
+    /* Übersetzungen: page_footer() legt sie als JSON-Datenblock in die Seite
+     * (die CSP erlaubt keine ausführbaren Inline-Skripte, Datenblöcke schon).
+     * Ohne Block – auf einer deutschen Instanz – bleibt der deutsche Text. */
+    var UEB = {};
+    try { UEB = JSON.parse(document.getElementById('lang-js').textContent); } catch (e) {}
+    function t(s) { return UEB[s] || s; }
     var stage = document.getElementById('qr-stage');
     if (!stage) return;
     var code = stage.getAttribute('data-code') || '';
@@ -159,7 +166,7 @@
             return;
         }
         if (e.target.id === 'ftext-preset' && $('opt-ftext')) {
-            $('opt-ftext').value = 'Scan mich!';
+            $('opt-ftext').value = t('Scan mich!');
             refresh();
         }
     });
