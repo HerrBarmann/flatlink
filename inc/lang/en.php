@@ -937,4 +937,5 @@ your password immediately and contact us.
     'Seiten der Linkliste' => 'Pages of the link list',
     '%s Kurzlinks – gezählt je Tag, mehr speichern wir nicht.' => '%s short links – counted per day, we store nothing more.',
     'Das Datenverzeichnis liegt im Webroot' => 'The data directory sits inside the webroot',
+    'Dieses SVG lässt sich nicht sicher übernehmen – bitte als einfache Grafik (Pfade und Flächen) exportieren oder PNG verwenden.' => 'This SVG cannot be adopted safely – please export it as a plain graphic (paths and shapes) or use PNG.',
 ];

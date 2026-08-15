@@ -124,6 +124,7 @@ verwaltet werden.
 | 13.08.2026 | Vollständiger Parse von `links.json` bei jedem Redirect | behoben (256 Ablagen) |
 | 13.08.2026 | Externe Anmeldung übernimmt gleichnamiges lokales Konto | behoben (Freigabe nötig) |
 | 13.08.2026 | `migrate-links.php` ohne POST/CSRF auslösbar | behoben |
+| 15.08.2026 | N7: SVG-Logos ungeprüft gespeichert (latentes Stored-XSS) | behoben (Allowlist-Bereinigung beim Upload, `inc/svg.php`) |
 | 13.08.2026 | Fehlendes `X-Content-Type-Options` auf `qr.php` | behoben |
 | 13.08.2026 | Wettlauf beim Anlegen von `data/secret.key` | behoben (atomar) |
 | 13.08.2026 | Leeres `data/links/` schaltet nicht migrierte Instanz um | behoben (Markierung) |

@@ -21,6 +21,7 @@ require_once __DIR__ . '/inc/groups.php';
 require_once __DIR__ . '/inc/safety.php';
 require_once __DIR__ . '/inc/linkrules.php';
 require_once __DIR__ . '/inc/qrpanel.php';
+require_once __DIR__ . '/inc/svg.php';
 
 auth_boot();
 $user = auth_user();
@@ -111,9 +112,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             };
             if ($ext === null) {
                 flash(t('Nur PNG, JPG, WebP oder SVG.'), 'err');
+            } elseif ($ext === 'svg' && ($svgSauber = svg_clean((string)file_get_contents($tmp))) === null) {
+                // Ein SVG ist ein Dokument, kein Bild – gespeichert wird nur
+                // eine bereinigte Neufassung (inc/svg.php). Was sich nicht
+                // bereinigen lässt, wird gar nicht erst angenommen.
+                flash(t('Dieses SVG lässt sich nicht sicher übernehmen – bitte als einfache Grafik (Pfade und Flächen) exportieren oder PNG verwenden.'), 'err');
             } else {
                 $id = bin2hex(random_bytes(8)) . '.' . $ext;
-                move_uploaded_file($tmp, $logosDir . '/' . $id);
+                if ($ext === 'svg') {
+                    file_put_contents($logosDir . '/' . $id, $svgSauber);
+                } else {
+                    move_uploaded_file($tmp, $logosDir . '/' . $id);
+                }
                 // Anzeigename: Wunschname aus dem Formular, sonst der Original-Dateiname
                 $name = trim((string)($_POST['name'] ?? ''));
                 if ($name === '') {
