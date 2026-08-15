@@ -350,50 +350,51 @@ show_flash();
     <p class="muted small" style="margin:0 0 0.5rem">
         <a class="btn btn-small" href="qrzip.php<?= $serieFilter !== [] ? '?' . e(http_build_query($serieFilter)) : '' ?>"><?= t('QR-Codes dieser %d Links als ZIP', count($links)) ?></a>
     </p>
-    <div class="table-scroll"><table>
-        <tr><th><?= t('Link') ?></th><th><?= t('Ziel') ?></th><th><?= t('Klicks') ?></th><th><?= t('Gruppe') ?></th><?php if ($isAdmin): ?><th><?= t('Besitzer') ?></th><?php endif; ?><th><?= t('Läuft ab') ?></th><th><?= t('Erstellt') ?></th><th></th></tr>
-        <?php foreach ($links as $code => $link): $clicks = clicks_get((string)$code); ?>
-        <tr<?= $code === $highlight ? ' class="row-hl"' : '' ?>>
-            <td><a href="<?= e(short_url((string)$code, (string)($link['domain'] ?? ''))) ?>" target="_blank" rel="noopener"><?= e((string)$code) ?></a><?=
-                ($link['domain'] ?? '') !== '' ? ' <span class="badge badge-quiet" title="' . e((string)$link['domain']) . '">' . e((string)$link['domain']) . '</span>' : '' ?><?=
-                !empty($link['pass']) ? ' <span class="badge badge-quiet" title="' . t('passwortgeschützt') . '">PW</span>' : '' ?>
-                <?php if (($link['title'] ?? '') !== ''): ?><br><span class="link-title"><?= e((string)$link['title']) ?></span><?php endif; ?>
-                <?php $utm = utm_extract((string)($link['url'] ?? '')); if ($utm !== []): ?>
-                <br><span class="badge badge-quiet" title="<?= t('Kampagne:') ?> <?= e(implode(' · ', $utm)) ?>">UTM<?=
-                    isset($utm['utm_campaign']) ? ' ' . e($utm['utm_campaign']) : '' ?></span>
-                <?php endif; ?>
-                <?php if (($link['tags'] ?? []) !== []): ?>
-                <br><span class="tag-row">
-                    <?php foreach ((array)$link['tags'] as $t): ?>
-                    <a class="tag<?= $t === $tagFilter ? ' tag-on' : '' ?>" href="index.php?tag=<?= e(rawurlencode($t)) ?>"><?= e($t) ?></a>
-                    <?php endforeach; ?>
-                </span>
-                <?php endif; ?></td>
-            <td class="url-cell" title="<?= e($link['url']) ?>"><?= e(mb_strimwidth($link['url'], 0, 60, '…')) ?></td>
-            <td><a href="stats.php?c=<?= e(rawurlencode((string)$code)) ?>" title="<?= t('Statistik') ?>"><?= (int)$clicks['n'] ?></a></td>
-            <td><?php
-                $g = $link['group'] ?? null;
-                echo $g === null
-                    ? '<span class="muted">–</span>'
-                    : '<span class="tag tag-on">' . e(group_label($g)) . '</span>';
-            ?></td>
-            <?php if ($isAdmin): ?><td><?php
-                $o = $link['owner'] ?? null;
-                echo $o === null
-                    ? '<span class="muted">–</span>'
-                    : '<span title="' . e($o) . '">' . e(user_display($o)) . '</span>';
-            ?></td><?php endif; ?>
-            <td><?php
-                if (($link['expires'] ?? null) === null) {
-                    echo '<span class="muted">–</span>';
-                } elseif (link_expired($link)) {
-                    echo '<span class="badge badge-expired" title="' . t('seit %s', e(date('d.m.Y', strtotime($link['expires'])))) . '">' . t('abgelaufen') . '</span>';
-                } else {
-                    echo e(date('d.m.Y', strtotime($link['expires'])));
-                }
-            ?></td>
-            <td><?= e(date('d.m.Y', strtotime($link['created']))) ?></td>
-            <td class="actions">
+    <div class="link-list">
+        <?php foreach ($links as $code => $link):
+            $clicks = clicks_get((string)$code);
+            $kurz = short_url((string)$code, (string)($link['domain'] ?? ''));
+            $utm = utm_extract((string)($link['url'] ?? ''));
+        ?>
+        <article class="link-row<?= $code === $highlight ? ' row-hl' : '' ?>">
+            <div class="link-main">
+                <div class="link-line">
+                    <a class="link-code" href="<?= e($kurz) ?>" target="_blank" rel="noopener"><?= e((string)$code) ?></a>
+                    <button class="btn btn-small btn-copy" type="button"
+                            data-copy-text="<?= e($kurz) ?>"><?= t('Kopieren') ?></button>
+                    <?php if (($link['domain'] ?? '') !== ''): ?><span class="badge badge-quiet" title="<?= e((string)$link['domain']) ?>"><?= e((string)$link['domain']) ?></span><?php endif; ?>
+                    <?php if (!empty($link['pass'])): ?><span class="badge badge-quiet" title="<?= t('passwortgeschützt') ?>">PW</span><?php endif; ?>
+                    <?php if ($utm !== []): ?><span class="badge badge-quiet" title="<?= t('Kampagne:') ?> <?= e(implode(' · ', $utm)) ?>">UTM<?= isset($utm['utm_campaign']) ? ' ' . e($utm['utm_campaign']) : '' ?></span><?php endif; ?>
+                    <?php if (($link['expires'] ?? null) !== null && link_expired($link)): ?>
+                        <span class="badge badge-expired" title="<?= t('seit %s', e(date('d.m.Y', strtotime($link['expires'])))) ?>"><?= t('abgelaufen') ?></span>
+                    <?php endif; ?>
+                </div>
+                <?php if (($link['title'] ?? '') !== ''): ?><div class="link-title"><?= e((string)$link['title']) ?></div><?php endif; ?>
+                <div class="link-ziel" title="<?= e($link['url']) ?>">→ <?= e(mb_strimwidth($link['url'], 0, 80, '…')) ?></div>
+                <div class="link-unter">
+                    <?php
+                    $g = $link['group'] ?? null;
+                    if ($g !== null) echo '<span class="tag tag-on">' . e(group_label($g)) . '</span>';
+                    ?>
+                    <?php if (($link['tags'] ?? []) !== []): ?>
+                        <?php foreach ((array)$link['tags'] as $t): ?>
+                        <a class="tag<?= $t === $tagFilter ? ' tag-on' : '' ?>" href="index.php?tag=<?= e(rawurlencode($t)) ?>"><?= e($t) ?></a>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                    <span class="muted small"><?= e(date('d.m.Y', strtotime($link['created']))) ?></span>
+                    <?php if (($link['expires'] ?? null) !== null && !link_expired($link)): ?>
+                        <span class="muted small" title="<?= t('Läuft ab') ?>">⏳ <?= e(date('d.m.Y', strtotime($link['expires']))) ?></span>
+                    <?php endif; ?>
+                    <?php if ($isAdmin && ($link['owner'] ?? null) !== null): ?>
+                        <span class="muted small" title="<?= e((string)$link['owner']) ?>"><?= e(user_display((string)$link['owner'])) ?></span>
+                    <?php endif; ?>
+                </div>
+            </div>
+            <a class="link-klicks" href="stats.php?c=<?= e(rawurlencode((string)$code)) ?>" title="<?= t('Statistik') ?>">
+                <strong><?= number_format((int)$clicks['n'], 0, t(','), t('.')) ?></strong>
+                <span><?= t('Klicks') ?></span>
+            </a>
+            <div class="link-actions actions">
                 <a class="btn btn-small" href="qrdesign.php?c=<?= e(rawurlencode((string)$code)) ?>">QR</a>
                 <a class="btn btn-small" href="index.php?edit=<?= e(rawurlencode((string)$code)) ?>"><?= t('Bearbeiten') ?></a>
                 <form method="post" action="" class="inline" data-confirm="<?= t('Kurzlink „%s“ wirklich löschen?', e((string)$code)) ?>">
@@ -402,10 +403,10 @@ show_flash();
                     <input type="hidden" name="code" value="<?= e((string)$code) ?>">
                     <button class="btn btn-small btn-danger" type="submit"><?= t('Löschen') ?></button>
                 </form>
-            </td>
-        </tr>
+            </div>
+        </article>
         <?php endforeach; ?>
-    </table></div>
+    </div>
     <?php endif; ?>
 </div>
 <?php page_footer(); ?>

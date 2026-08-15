@@ -16,13 +16,18 @@
     'use strict';
 
     document.addEventListener('click', function (e) {
-        // <button data-copy="#feldId" data-copied="Kopiert ✓">
-        var btn = e.target.closest('[data-copy]');
+        // <button data-copy="#feldId"> kopiert den Inhalt eines Elements,
+        // <button data-copy-text="…"> den angegebenen Text selbst
+        var btn = e.target.closest('[data-copy], [data-copy-text]');
         if (!btn) return;
-        var src = document.querySelector(btn.getAttribute('data-copy'));
-        if (!src) return;
+        var text = btn.getAttribute('data-copy-text');
+        if (text === null) {
+            var src = document.querySelector(btn.getAttribute('data-copy'));
+            if (!src) return;
+            text = src.value || src.textContent;
+        }
         var done = btn.getAttribute('data-copied') || t('Kopiert');
-        navigator.clipboard.writeText(src.value || src.textContent).then(function () {
+        navigator.clipboard.writeText(text).then(function () {
             btn.textContent = done;
         });
     });

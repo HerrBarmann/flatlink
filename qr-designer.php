@@ -20,6 +20,7 @@ require_once __DIR__ . '/inc/auth.php';
 require_once __DIR__ . '/inc/groups.php';
 require_once __DIR__ . '/inc/safety.php';
 require_once __DIR__ . '/inc/linkrules.php';
+require_once __DIR__ . '/inc/qrpanel.php';
 
 auth_boot();
 $user = auth_user();
@@ -154,19 +155,7 @@ if ($user !== null) {
     if ($l === null || !empty($l['disabled']) || link_expired($l)) $code = '';
 }
 
-$logoFiles = $darfLogo
-    ? array_values(array_filter(scandir($logosDir), fn($f) => preg_match('/^[a-f0-9]{16}\.(png|jpe?g|webp|svg)$/', $f)))
-    : [];
-$logoMeta = logos_meta();
-// id => Anzeigename (Altbestand ohne Metadaten behält die Datei-ID als Namen), sortiert nach Name.
-// Sichtbarkeit: jeder sieht nur die eigenen Logos; Admins sehen alle (inkl. Altbestand ohne Besitzer).
-$logos = [];
-foreach ($logoFiles as $f) {
-    if (!$isAdmin && ($logoMeta[$f]['by'] ?? null) !== $user['name']) continue;
-    $ext = strtoupper(pathinfo($f, PATHINFO_EXTENSION));
-    $logos[$f] = ($logoMeta[$f]['name'] ?? $f) . ' (' . $ext . ')';
-}
-asort($logos, SORT_NATURAL | SORT_FLAG_CASE);
+$logos = qr_logo_choices($user);
 
 // Die Instanz darf oberhalb und unterhalb eigene Texte einhängen – dort steht
 // bei 1337.kiwi der Erklärtext, der die Seite auffindbar macht.
@@ -255,138 +244,14 @@ $statischText = trim((string)($_GET['u'] ?? ''));
 
 <div class="designer">
     <div class="card controls">
-        <h3><?= t('Gestaltung') ?></h3>
-        <label><?= t('Modul-Form') ?></label>
-        <select id="opt-style">
-            <option value="square"><?= t('Quadratisch') ?></option>
-            <option value="rounded"><?= t('Abgerundet') ?></option>
-            <option value="smooth"><?= t('Stark abgerundet') ?></option>
-            <option value="dot"><?= t('Punkte') ?></option>
-            <option value="diamond"><?= t('Raute') ?></option>
-            <option value="bars-v"><?= t('Senkrechte Balken') ?></option>
-            <option value="bars-h"><?= t('Waagerechte Balken') ?></option>
-        </select>
-        <label><?= t('Augen-Form') ?></label>
-        <select id="opt-eye">
-            <option value="square"><?= t('Quadratisch') ?></option>
-            <option value="rounded"><?= t('Abgerundet') ?></option>
-            <option value="circle"><?= t('Kreis') ?></option>
-            <option value="leaf"><?= t('Blatt') ?></option>
-        </select>
-        <label for="opt-eyecore"><?= t('Augen-Kern') ?></label>
-        <select id="opt-eyecore">
-            <option value=""><?= t('wie der Ring') ?></option>
-            <option value="square"><?= t('Quadratisch') ?></option>
-            <option value="rounded"><?= t('Abgerundet') ?></option>
-            <option value="circle"><?= t('Kreis') ?></option>
-            <option value="leaf"><?= t('Blatt') ?></option>
-        </select>
-        <label class="check" style="margin:0.5rem 0 0.2rem">
-            <input id="opt-eyeown" type="checkbox">
-            <span><?= t('Augen eigene Farben geben') ?></span>
-        </label>
-        <div id="augenfarben" class="two-col" hidden>
-            <div><label for="opt-eyefg"><?= t('Augen-Ring') ?></label><input id="opt-eyefg" type="color" value="#C0392B"></div>
-            <div><label for="opt-eyecorefg"><?= t('Augen-Kern') ?></label><input id="opt-eyecorefg" type="color" value="#16181D"></div>
-        </div>
-        <div class="two-col">
-            <div><label><?= t('Vordergrund') ?></label><input id="opt-fg" type="color" value="#16181D"></div>
-            <div><label><?= t('Hintergrund') ?></label><input id="opt-bg" type="color" value="#ffffff"></div>
-        </div>
-        <label class="check">
-            <input id="opt-bgnone" type="checkbox">
-            <span><?= t('Hintergrund durchsichtig') ?> <span class="muted">(SVG + PNG)</span></span>
-        </label>
-        <div style="display:none">
-        </div>
-        <label for="opt-grad"><?= t('Farbverlauf') ?></label>
-        <div class="short-row grad-row">
-            <select id="opt-grad">
-                <option value=""><?= t('Kein Verlauf') ?></option>
-                <option value="linear"><?= t('Linear') ?></option>
-                <option value="radial"><?= t('Radial (von innen)') ?></option>
-            </select>
-            <input id="opt-fg2" type="color" value="#3B6EA8" title="<?= t('Zweite Farbe') ?>" aria-label="<?= t('Zweite Farbe des Verlaufs') ?>">
-        </div>
-        <div id="grad-winkel" hidden>
-            <label for="opt-ga"><?= t('Richtung:') ?> <span id="ga-val">45</span>°</label>
-            <input id="opt-ga" type="range" min="0" max="345" step="15" value="45">
-        </div>
-        <label><?= t('Verlaufs-Vorlagen') ?></label>
-        <div class="qr-links">
-            <button class="btn btn-small" type="button" data-grad="linear|45|#0B3D2E|#7ABA1C"><?= t('Wiese') ?></button>
-            <button class="btn btn-small" type="button" data-grad="linear|0|#1a1a2e|#8e2de2"><?= t('Nacht') ?></button>
-            <button class="btn btn-small" type="button" data-grad="radial|0|#3a1c71|#d76d77"><?= t('Sonne') ?></button>
-            <button class="btn btn-small" type="button" data-grad="linear|135|#134E5E|#71B280"><?= t('See') ?></button>
-        </div>
-
-        <label><?= t('Farbvorlagen') ?></label>
-        <div class="actions">
-            <button class="btn btn-small" type="button" data-preset="#16181D|#ffffff"><?= t('Klassik') ?></button>
-            <button class="btn btn-small" type="button" data-preset="#2C5480|#ffffff"><?= t('Akzent') ?></button>
-            <button class="btn btn-small" type="button" data-preset="#16181D|#F3F4F6"><?= t('Papier') ?></button>
-            <button class="btn btn-small" type="button" data-preset="#ffffff|#16181D" title="<?= t('Achtung: invertierte Codes lesen manche Scanner nicht') ?>"><?= t('Invertiert') ?></button>
-        </div>
-        <label><?= t('Fehlerkorrektur') ?> <span class="muted">(<?= t('mit Logo automatisch H') ?>)</span></label>
-        <select id="opt-ecc">
-            <option value="L">L – 7 %</option>
-            <option value="M" selected>M – 15 %</option>
-            <option value="Q">Q – 25 %</option>
-            <option value="H">H – 30 %</option>
-        </select>
-        <label><?= t('Rand (Quiet-Zone):') ?> <span id="margin-val">4</span> <?= t('Module') ?></label>
-        <input id="opt-margin" type="range" min="0" max="10" value="4">
-
-                <details class="druckfarben">
-            <summary><?= t('Druckfarben (CMYK)') ?></summary>
-            <p class="muted small"><?= t('Für Druckereien. Was hier steht, geht unverändert in PDF und EPS. Bildschirm, PNG und die Vorschau zeigen eine Umrechnung – ohne Farbprofil kann das nur eine Näherung sein, verbindlich ist die Druckdatei. Leer lassen heißt: die Bildschirmfarben oben gelten auch im Druck.') ?></p>
-            <label><?= t('Vordergrund') ?> <span class="muted">C / M / Y / K <?= t('in Prozent') ?></span></label>
-            <div class="cmyk-row">
-                <input id="opt-fgc-c" type="number" min="0" max="100" placeholder="C" aria-label="Vordergrund Cyan">
-                <input id="opt-fgc-m" type="number" min="0" max="100" placeholder="M" aria-label="Vordergrund Magenta">
-                <input id="opt-fgc-y" type="number" min="0" max="100" placeholder="Y" aria-label="Vordergrund Gelb">
-                <input id="opt-fgc-k" type="number" min="0" max="100" placeholder="K" aria-label="Vordergrund Schwarz">
-            </div>
-            <label><?= t('Hintergrund') ?></label>
-            <div class="cmyk-row">
-                <input id="opt-bgc-c" type="number" min="0" max="100" placeholder="C" aria-label="Hintergrund Cyan">
-                <input id="opt-bgc-m" type="number" min="0" max="100" placeholder="M" aria-label="Hintergrund Magenta">
-                <input id="opt-bgc-y" type="number" min="0" max="100" placeholder="Y" aria-label="Hintergrund Gelb">
-                <input id="opt-bgc-k" type="number" min="0" max="100" placeholder="K" aria-label="Hintergrund Schwarz">
-            </div>
-            <label for="opt-mm"><?= t('Breite auf dem Papier') ?> <span class="muted">(<?= t('mm, für PDF und EPS') ?>)</span></label>
-            <input id="opt-mm" type="number" min="10" max="1000" value="80" style="max-width:8rem">
-        </details>
-
-<?php if ($user !== null): ?>
-        <h3><?= t('Rahmen') ?></h3>
-        <label for="opt-ftext"><?= t('Text unter dem Code') ?> <span class="muted">(<?= t('leer = kein Rahmen, max. 24 Zeichen') ?>)</span></label>
-        <div class="short-row">
-            <input id="opt-ftext" type="text" maxlength="24" placeholder="<?= t('z. B. Scan mich!') ?>">
-            <button class="btn btn-small" type="button" id="ftext-preset">„<?= t('Scan mich!') ?>"</button>
-        </div>
-        <?php endif; ?>
+        <?= qr_design_panel([
+            // Rahmentext gibt es mit Konto; Logos, wenn das Konto sie hochladen darf
+            'frame' => $user !== null,
+            'logos' => $logos,
+        ]) ?>
 
         <?php if ($darfLogo): ?>
-        <h3><?= t('Logo') ?></h3>
-        <select id="opt-logo">
-            <option value=""><?= t('Kein Logo') ?></option>
-            <?php foreach ($logos as $id => $name): ?>
-                <option value="<?= e($id) ?>"><?= e($name) ?></option>
-            <?php endforeach; ?>
-        </select>
-        <label><?= t('Logo-Größe:') ?> <span id="ls-val">22</span> %</label>
-        <input id="opt-ls" type="range" min="10" max="35" value="22">
-        <label for="opt-lshape"><?= t('Freie Fläche hinter dem Logo') ?></label>
-        <select id="opt-lshape">
-            <option value="rounded"><?= t('abgerundet') ?></option>
-            <option value="square"><?= t('eckig') ?></option>
-            <option value="circle"><?= t('rund') ?></option>
-            <option value="none"><?= t('keine') ?></option>
-        </select>
-        <p class="muted small"><?= t('Ein Logo, das Module nur halb verdeckt, verwirrt die Erkennung mehr als eine sauber ausgesparte Fläche – die steckt die Fehlerkorrektur weg.') ?></p>
-        <p class="muted small"><?= t('SVG-Logos erscheinen nur im SVG-Export (PNG kann sie nicht rastern).') ?></p>
-
+        <?php if ($logos === []): ?><h3><?= t('Logo') ?></h3><?php endif; ?>
         <form method="post" action="" enctype="multipart/form-data">
             <?= csrf_field() ?>
             <input type="hidden" name="action" value="upload-logo">
@@ -437,5 +302,6 @@ $statischText = trim((string)($_GET['u'] ?? ''));
 
 </div><!-- /.designer-stage -->
 <?php if (function_exists('designer_outro')) echo designer_outro(); ?>
+<script src="assets/qroptions.js" defer></script>
 <script src="assets/qrdesign.js" defer></script>
 <?php page_footer(); ?>

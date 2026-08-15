@@ -470,3 +470,54 @@ details.druckfarben[open] > summary { margin-bottom: 0.4rem; color: var(--ink); 
 }
 .pruef-warn { border-left-color: #B4571F; }
 .pruef-info { border-left-color: var(--muted); color: var(--muted); }
+
+/* Linkliste — eine Karte je Link statt einer Tabellenzeile. Links liest man
+   nicht als Datensatz, sondern als Ding: vorn der Kurz-Code als Anfasser,
+   darunter Ziel und Schlagworte, rechts die Klickzahl und die Werkzeuge. */
+.link-list { display: grid; }
+.link-row {
+    display: flex; align-items: center; gap: 0.6rem 1.2rem; flex-wrap: wrap;
+    padding: 0.85rem 0.6rem;
+    border-bottom: 1px solid var(--line);
+}
+.link-row:last-child { border-bottom: 0; }
+.link-row:hover { background: var(--accent-tint); }
+.link-row.row-hl { background: var(--accent-tint); box-shadow: inset 3px 0 0 var(--accent); }
+.link-main { flex: 1 1 14rem; min-width: 0; display: grid; gap: 0.15rem; }
+.link-line { display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap; }
+.link-code {
+    font-family: var(--mono); font-weight: 700; font-size: 1.02rem;
+    color: var(--accent-deep); text-decoration: none;
+}
+.link-code:hover { text-decoration: underline; }
+/* Der Kopieren-Knopf drängt sich nicht vor – er erscheint mit der Zeile */
+.btn-copy { opacity: 0; transition: opacity 0.1s ease; }
+.link-row:hover .btn-copy, .btn-copy:focus-visible { opacity: 1; }
+@media (hover: none) { .btn-copy { opacity: 1; } }
+.link-ziel {
+    color: var(--muted); font-size: 0.88rem;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.link-unter { display: flex; align-items: center; gap: 0.3rem 0.6rem; flex-wrap: wrap; margin-top: 0.1rem; }
+.link-klicks {
+    flex: none; text-align: center; text-decoration: none;
+    min-width: 4.2rem; padding: 0.35rem 0.6rem;
+    border: 1px solid var(--line); border-radius: var(--radius);
+    background: var(--paper);
+}
+.link-klicks strong {
+    display: block; font-family: var(--mono); font-size: 1.05rem;
+    color: var(--ink); font-variant-numeric: tabular-nums;
+}
+.link-klicks span {
+    display: block; color: var(--muted); font-size: 0.68rem;
+    font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.06em;
+}
+.link-klicks:hover { border-color: var(--accent); text-decoration: none; }
+.link-klicks:hover strong { color: var(--accent-deep); }
+.link-actions { flex: none; }
+/* Schmale Sicht: Klicks und Werkzeuge rutschen unter den Linkblock */
+@media (max-width: 640px) {
+    .link-row { align-items: flex-start; }
+    .link-main { flex-basis: 100%; }
+}

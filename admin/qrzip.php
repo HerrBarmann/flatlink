@@ -19,6 +19,7 @@ require_once __DIR__ . '/../inc/groups.php';
 require_once __DIR__ . '/../inc/domains.php';
 require_once __DIR__ . '/../inc/qrlib.php';
 require_once __DIR__ . '/../inc/zip.php';
+require_once __DIR__ . '/../inc/qrpanel.php';
 
 $user = auth_require();
 
@@ -61,16 +62,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'zip')
         fn($c) => is_string($c) && isset($links[$c])
     ));
 
-    $format = in_array((string)($_POST['format'] ?? 'svg'), ['svg', 'png'], true)
-        ? (string)$_POST['format'] : 'svg';
-    $style = in_array((string)($_POST['style'] ?? ''), ['square', 'rounded', 'dot'], true)
-        ? (string)$_POST['style'] : 'square';
-    $eye = in_array((string)($_POST['eye'] ?? ''), ['square', 'rounded', 'circle'], true)
-        ? (string)$_POST['eye'] : 'square';
-    $farbe = fn(string $k, string $vor) => preg_match('/^#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/', (string)($_POST[$k] ?? '')) === 1
-        ? (string)$_POST[$k] : $vor;
-    $fg = $farbe('fg', '#16181D');
-    $bg = $farbe('bg', '#ffffff');
+    // Dieselben Gestaltungsparameter wie in qr.php, aus dem gemeinsamen
+    // Panel (inc/qrpanel.php). Gelesen wird mit denselben Mustern – was da
+    // nicht hineinpasst, fällt still auf die Vorgabe zurück.
+    $qpost = fn(string $k, string $vor, string $muster) =>
+        preg_match($muster, (string)($_POST[$k] ?? '')) === 1 ? (string)$_POST[$k] : $vor;
+    $format = $qpost('format', 'svg', '/^(svg|png)$/');
+    $style  = $qpost('style', 'square', '/^(square|rounded|smooth|dot|diamond|bars-v|bars-h)$/');
+    $eye    = $qpost('eye', 'square', '/^(square|rounded|circle|leaf)$/');
+    $eyeCore = $qpost('eyecore', '', '/^(square|rounded|circle|leaf)$/');
+    $hex = '/^#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/';
+    $fg = $qpost('fg', '#16181D', $hex);
+    $bg = ($_POST['bgnone'] ?? '') === '1' ? 'none' : $qpost('bg', '#ffffff', $hex);
+    // Augenfarben nur, wenn ausdrücklich gewünscht – sonst erben sie die Modulfarbe
+    $eigenAugen = ($_POST['eyeown'] ?? '') === '1';
+    $eyeFg = $eigenAugen ? $qpost('eyefg', '', $hex) : '';
+    $eyeCoreFg = $eigenAugen ? $qpost('eyecorefg', '', $hex) : '';
+    $grad = $qpost('grad', '', '/^(linear|radial)$/');
+    $gradTo = $qpost('fg2', '#3B6EA8', $hex);
+    $gradAngle = max(0, min(359, (int)($_POST['ga'] ?? 45)));
+    $ecc = $qpost('ecc', 'M', '/^[LMQH]$/');
+    $margin = max(0, min(10, (int)($_POST['margin'] ?? 4)));
+    $ftext = trim((string)preg_replace('/[\x00-\x1F\x7F]/u', '', (string)($_POST['ftext'] ?? '')));
+    $ftext = $ftext === '' ? null : mb_strimwidth($ftext, 0, 24, '');
+    // Logo aus der eigenen Bibliothek – nur, wer sie auch im Designer hätte
+    $logoDatei = null;
+    $logoId = $qpost('logo', '', '/^[a-f0-9]{16}\.(png|jpe?g|webp|svg)$/');
+    if ($logoId !== '' && isset(qr_logo_choices($user)[$logoId])) {
+        $kandidat = data_path('logos') . '/' . $logoId;
+        if (is_file($kandidat)) $logoDatei = $kandidat;
+    }
+    if ($logoDatei !== null) $ecc = 'H'; // mit Logo braucht es hohe Fehlerkorrektur
+    $ls = max(10, min(35, (int)($_POST['ls'] ?? 22))) / 100;
+    $logoShape = $qpost('lshape', 'rounded', '/^(rounded|square|circle|none)$/');
     $size = max(256, min(2048, (int)($_POST['size'] ?? 1024)));
 
     if ($gewaehlt === []) {
@@ -98,9 +122,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'zip')
             $glyphSvg = (string)cfg('qr_brand_glyph_svg');
             $glyphPng = (string)cfg('qr_brand_glyph_png');
 
-            $r = new QrRenderer(QrCode::encode($kurz, QrCode::ECC_M), [
+            $eccLevel = ['L' => QrCode::ECC_L, 'M' => QrCode::ECC_M,
+                'Q' => QrCode::ECC_Q, 'H' => QrCode::ECC_H][$ecc];
+            $r = new QrRenderer(QrCode::encode($kurz, $eccLevel), [
                 'style' => $style, 'eye' => $eye, 'fg' => $fg, 'bg' => $bg,
-                'size' => $size, 'margin' => 4,
+                'eyeCore' => $eyeCore, 'eyeFg' => $eyeFg, 'eyeCoreFg' => $eyeCoreFg,
+                'grad' => $grad === '' ? null : $grad, 'gradTo' => $gradTo, 'gradAngle' => $gradAngle,
+                'size' => $size, 'margin' => $margin,
+                'logo' => $logoDatei, 'logoScale' => $ls, 'logoShape' => $logoShape,
+                'frameText' => $ftext,
                 'brandText' => $marke === '' ? null : $marke,
                 'brandGlyphSvg' => $glyphSvg !== '' ? dirname(__DIR__) . '/assets/' . basename($glyphSvg) : null,
                 'brandGlyphPng' => $glyphPng !== '' ? dirname(__DIR__) . '/assets/' . basename($glyphPng) : null,
@@ -187,40 +217,43 @@ if ($fehler !== null) echo '<div class="flash flash-err">' . e($fehler) . '</div
         <?= csrf_field() ?>
         <input type="hidden" name="action" value="zip">
 
-        <div class="two-col">
-            <div>
-                <label for="z-format"><?= t('Format') ?></label>
-                <select id="z-format" name="format">
-                    <option value="svg">SVG – <?= t('verlustfrei skalierbar, für den Druck') ?></option>
-                    <option value="png">PNG – <?= t('Pixelbild, für Bildschirm und Office') ?></option>
-                </select>
+        <?php $beispielCode = (string)array_key_first($links); ?>
+        <div class="designer">
+            <div class="card controls">
+                <h3><?= t('Format') ?></h3>
+                <div class="two-col">
+                    <div>
+                        <label for="z-format"><?= t('Format') ?></label>
+                        <select id="z-format" name="format">
+                            <option value="svg">SVG – <?= t('verlustfrei skalierbar, für den Druck') ?></option>
+                            <option value="png">PNG – <?= t('Pixelbild, für Bildschirm und Office') ?></option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="z-size"><?= t('Kantenlänge in Pixeln') ?> <span class="muted"><?= t('(nur PNG)') ?></span></label>
+                        <input id="z-size" type="number" name="size" min="256" max="2048" step="128" value="1024">
+                    </div>
+                </div>
+                <?= qr_design_panel([
+                    // Klassische Formular-Abgabe: die Felder tragen name-Attribute.
+                    // CMYK entfällt – das Archiv enthält SVG und PNG, keine Druckdateien.
+                    'named' => true,
+                    'print' => false,
+                    'frame' => true,
+                    'logos' => qr_logo_choices($user),
+                ]) ?>
             </div>
-            <div>
-                <label for="z-size"><?= t('Kantenlänge in Pixeln') ?> <span class="muted"><?= t('(nur PNG)') ?></span></label>
-                <input id="z-size" type="number" name="size" min="256" max="2048" step="128" value="1024">
+            <div class="card preview" id="zip-stage" data-code="<?= e($beispielCode) ?>" data-base="../qr.php">
+                <h3><?= t('Vorschau') ?> <span class="muted small"><?= t('auf') ?></span>
+                    <button class="btn btn-small" type="button" data-pbg="#FAFCF6"><?= t('Hell') ?></button>
+                    <button class="btn btn-small" type="button" data-pbg="#16181D"><?= t('Dunkel') ?></button>
+                </h3>
+                <div id="preview-stage" style="display:inline-block; padding:1.2rem; border-radius:6px; background:#FAFCF6;">
+                    <img id="qr-preview" src="" alt="<?= t('QR-Code-Vorschau') ?>" width="280">
+                </div>
+                <div id="lesbarkeit" class="lesbarkeit" aria-live="polite"></div>
+                <p class="muted small"><?= t('Die Vorschau zeigt den ersten Link der Liste – die Gestaltung gilt für alle Codes im Archiv.') ?></p>
             </div>
-        </div>
-        <div class="two-col">
-            <div>
-                <label for="z-style"><?= t('Module') ?></label>
-                <select id="z-style" name="style">
-                    <option value="square"><?= t('eckig') ?></option>
-                    <option value="rounded"><?= t('abgerundet') ?></option>
-                    <option value="dot"><?= t('Punkte') ?></option>
-                </select>
-            </div>
-            <div>
-                <label for="z-eye"><?= t('Ecken') ?></label>
-                <select id="z-eye" name="eye">
-                    <option value="square"><?= t('eckig') ?></option>
-                    <option value="rounded"><?= t('abgerundet') ?></option>
-                    <option value="circle"><?= t('rund') ?></option>
-                </select>
-            </div>
-        </div>
-        <div class="two-col">
-            <div><label for="z-fg"><?= t('Vordergrund') ?></label><input id="z-fg" type="color" name="fg" value="#16181D"></div>
-            <div><label for="z-bg"><?= t('Hintergrund') ?></label><input id="z-bg" type="color" name="bg" value="#ffffff"></div>
         </div>
 
         <label class="check" style="margin-top:0.8rem">
@@ -248,4 +281,6 @@ if ($fehler !== null) echo '<div class="flash flash-err">' . e($fehler) . '</div
     </form>
     <?php endif; ?>
 </div>
+<script src="../assets/qroptions.js" defer></script>
+<script src="../assets/qrzip.js" defer></script>
 <?php page_footer(); ?>
