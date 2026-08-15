@@ -32,10 +32,51 @@ function users_file(): string
     return data_path() . '/users.json';
 }
 
-/** @return array<string,array> username => {pass, role, created} */
-function users_all(): array
+/**
+ * Die drei Funktionen hierunter sind die gesamte Konten-Ablage – jeder
+ * Zugriff im Projekt läuft über sie, nirgends sonst wird die Datei berührt.
+ * Das ist Absicht: Ein anderes Backend (etwa SQLite für sehr große
+ * Instanzen) müsste genau diese drei Stellen ersetzen – users_all() als
+ * SELECT über alles, user_get() als SELECT eines Kontos, users_update()
+ * als Transaktion – und der Rest des Projekts merkte nichts davon.
+ */
+
+/**
+ * Alle Konten, je Anfrage nur einmal von der Platte.
+ *
+ * Der Zwischenspeicher gilt für die Dauer eines Aufrufs – genau richtig,
+ * denn eine einzige Seite fragt die Liste leicht fünfmal an (Anmeldung,
+ * Navigation, Anzeigenamen in jeder Zeile), und zwischen zwei Anfragen
+ * lebt der Prozess ohnehin nicht weiter.
+ *
+ * @return array<string,array> username => {pass, role, created}
+ */
+function users_all(bool $frisch = false): array
 {
-    return json_read(users_file());
+    static $cache = null;
+    if ($frisch || $cache === null) {
+        $cache = json_read(users_file());
+    }
+    return $cache;
+}
+
+/** Ein einzelnes Konto – die häufigste Frage an die Ablage */
+function user_get(string $username): ?array
+{
+    return users_all()[$username] ?? null;
+}
+
+/**
+ * Konten ändern – die einzige Schreibstelle.
+ *
+ * Läuft unter Lock (json_update) und zieht danach den Zwischenspeicher
+ * nach, damit derselbe Aufruf seine eigene Änderung auch sieht.
+ */
+function users_update(callable $fn): array
+{
+    $users = json_update(users_file(), $fn);
+    users_all(true);
+    return $users;
 }
 
 function users_exist(): bool
@@ -71,7 +112,7 @@ function auth_pending(): ?string
         unset($_SESSION['pending_user'], $_SESSION['pending_since']);
         return null;
     }
-    return isset(users_all()[$n]) ? $n : null;
+    return user_get($n) !== null ? $n : null;
 }
 
 /** Zweite Stufe bestanden: aus dem wartenden wird ein angemeldeter Zustand */
@@ -89,7 +130,7 @@ function auth_user(): ?array
 {
     $name = $_SESSION['user'] ?? null;
     if (!is_string($name)) return null;
-    $u = users_all()[$name] ?? null;
+    $u = user_get($name);
     if ($u === null) return null;
     return [
         'name' => $name,
@@ -267,7 +308,7 @@ function user_add(string $username, string $password, string $role): ?string
     if (strlen($password) < 8) return t('Passwort: mindestens 8 Zeichen.');
     if (!in_array($role, ['admin', 'user'], true)) return t('Ungültige Rolle.');
     $err = null;
-    json_update(users_file(), function (array $users) use ($username, $password, $role, &$err) {
+    users_update(function (array $users) use ($username, $password, $role, &$err) {
         if (isset($users[$username])) {
             $err = t('Diesen Nutzer gibt es schon.');
             return null;
@@ -289,7 +330,7 @@ function user_set_password(string $username, string $password): ?string
 {
     if (strlen($password) < 8) return t('Passwort: mindestens 8 Zeichen.');
     $err = t('Nutzer nicht gefunden.');
-    json_update(users_file(), function (array $users) use ($username, $password, &$err) {
+    users_update(function (array $users) use ($username, $password, &$err) {
         if (!isset($users[$username])) return null;
         $users[$username]['pass'] = password_hash($password, PASSWORD_DEFAULT);
         $err = null;
@@ -309,7 +350,7 @@ function user_set_email(string $username, string $email): ?string
         return t('Ungültige E-Mail-Adresse.');
     }
     $err = t('Nutzer nicht gefunden.');
-    json_update(users_file(), function (array $users) use ($username, $email, &$err) {
+    users_update(function (array $users) use ($username, $email, &$err) {
         if (!isset($users[$username])) return null;
         foreach ($users as $key => $u) {
             if ($key === $username) continue;
@@ -355,7 +396,7 @@ function user_set_display_name(string $username, string $name): ?string
     $name = trim((string)preg_replace('/[\x00-\x1F\x7F]/u', '', $name));
     if (mb_strlen($name) > 80) return t('Anzeigename: höchstens 80 Zeichen.');
     $err = t('Nutzer nicht gefunden.');
-    json_update(users_file(), function (array $users) use ($username, $name, &$err) {
+    users_update(function (array $users) use ($username, $name, &$err) {
         if (!isset($users[$username])) return null;
         if ($name === '') {
             unset($users[$username]['display_name']);
@@ -378,7 +419,7 @@ function user_set_display_name(string $username, string $name): ?string
 function verified_ip_gc(): void
 {
     $grenze = date('c', strtotime('-12 months'));
-    json_update(users_file(), function (array $users) use ($grenze) {
+    users_update(function (array $users) use ($grenze) {
         $touched = false;
         foreach ($users as $k => $u) {
             if (isset($u['verified_ip']) && (string)($u['verified'] ?? '') < $grenze) {
@@ -409,7 +450,7 @@ function user_set_role(string $username, string $role): ?string
     if ($role !== 'admin' && ($users[$username]['role'] ?? '') === 'admin' && admin_count() <= 1) {
         return t('Das ist der letzte Administrator – erst einen zweiten ernennen.');
     }
-    json_update(users_file(), function (array $users) use ($username, $role) {
+    users_update(function (array $users) use ($username, $role) {
         if (!isset($users[$username])) return null;
         $users[$username]['role'] = $role;
         return $users;
@@ -424,7 +465,7 @@ function user_delete(string $username): ?string
     if (($users[$username]['role'] ?? '') === 'admin' && admin_count() <= 1) {
         return t('Das ist der letzte Administrator und kann nicht gelöscht werden.');
     }
-    json_update(users_file(), function (array $users) use ($username) {
+    users_update(function (array $users) use ($username) {
         unset($users[$username]);
         return $users;
     });
@@ -456,7 +497,7 @@ function user_email_taken(string $email): bool
 function user_activate(string $email, string $passHash): ?string
 {
     $err = null;
-    json_update(users_file(), function (array $users) use ($email, $passHash, &$err) {
+    users_update(function (array $users) use ($email, $passHash, &$err) {
         if (isset($users[$email])) {
             $err = t('Dieses Konto ist bereits aktiviert.');
             return null;

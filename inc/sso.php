@@ -247,13 +247,13 @@ function user_provision(string $username, string $source, ?string $email, array 
     // Der legitime Umstieg eines lokalen Kontos auf zentrale Anmeldung läuft
     // über die Warteschlange: Ein Administrator bestätigt die Verknüpfung
     // bewusst ($force).
-    $current = users_all()[$username] ?? null;
+    $current = user_get($username);
     if (!$force && $current !== null && ($current['auth'] ?? 'local') !== $source) {
         return t('Für diese Kennung gibt es bereits ein Konto mit anderer Anmeldeart.');
     }
     $err = null;
     $display = $display === null ? null : trim((string)preg_replace('/[\x00-\x1F\x7F]/u', '', $display));
-    json_update(users_file(), function (array $users) use ($username, $source, $email, $groups, $autoCreate, $display, &$err) {
+    users_update(function (array $users) use ($username, $source, $email, $groups, $autoCreate, $display, &$err) {
         $exists = isset($users[$username]);
         if (!$exists && !$autoCreate) {
             $err = t('Für diese Kennung gibt es hier kein Konto, und die automatische Anlage ist deaktiviert.');
@@ -294,7 +294,7 @@ function sso_start_session(string $username): void
     auth_boot();
     session_regenerate_id(true);
     $_SESSION['user'] = $username;
-    $_SESSION['auth_source'] = users_all()[$username]['auth'] ?? 'local';
+    $_SESSION['auth_source'] = user_get($username)['auth'] ?? 'local';
     unset($_SESSION['csrf']);
 }
 
@@ -366,7 +366,7 @@ function sso_attempt(): ?string
     $deny = access_denied_reason($id['user'], $id['groups'], $c);
     if ($deny !== null) return $deny;
 
-    $existing = users_all()[$id['user']] ?? null;
+    $existing = user_get($id['user']);
     $fremd = $existing !== null && ($existing['auth'] ?? 'local') !== 'sso';
     if ($existing === null && !$c['auto_create'] || $fremd) {
         if ($c['approval_queue']) {
@@ -506,7 +506,7 @@ function ldap_login(string $username, string $password): ?string
     $deny = access_denied_reason($id['user'], $id['groups'], $c);
     if ($deny !== null) return $deny;
 
-    $existing = users_all()[$id['user']] ?? null;
+    $existing = user_get($id['user']) ?? null;
     $fremd = $existing !== null && ($existing['auth'] ?? 'local') !== 'ldap';
     if ($existing === null && !$c['auto_create'] || $fremd) {
         if ($c['approval_queue']) {

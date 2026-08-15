@@ -134,6 +134,163 @@ function link_write(string $code, callable $fn): bool
     return $changed;
 }
 
+// ---- Besitzer- und Gruppen-Index ------------------------------------------
+//
+// Die Ablage ist nach Code-Hash aufgeteilt – gut für die Weiterleitung, blind
+// für die Frage „welche Links gehören diesem Konto?". Die beantwortete bisher
+// ein Vollscan über alles, und der wächst mit der Instanz: Bei einer Million
+// Links kostete schon das Anlegen eines einzigen über eine Sekunde, weil die
+// Limit-Prüfung den gesamten Bestand las.
+//
+// Der Index ist eine ABLEITUNG der Ablage, nie eine zweite Wahrheit: Er nennt
+// nur Codes, die Datensätze bleiben in den Ablagen. Fehlt er oder ist er
+// zweifelhaft, wird er aus der Ablage neu gebaut (Marker `owners/fertig`
+// löschen genügt); ein Code, der im Index steht, aber in der Ablage fehlt,
+// wird beim Lesen still übergangen. Ohne aufgeteilte Ablage (Altbestand vor
+// migrate-links.php) bleibt alles beim Vollscan.
+//
+// Mit Blick auf ein späteres Datenbank-Backend sind die Leser hier genau die
+// Abfragen, die dort ein Index beantworten würde: links_of_owner() ist
+// `WHERE owner = ?`, link_count() ist `COUNT(*)` – die Aufrufer müssten sich
+// nicht ändern.
+
+function owner_index_dir(): string
+{
+    return links_dir() . '/owners';
+}
+
+/** Der Index ist wie die Ablage aufgeteilt – nur nach Besitzer- statt Code-Hash */
+function owner_index_file(string $owner): string
+{
+    return owner_index_dir() . '/' . substr(sha1($owner), 0, 2) . '.json';
+}
+
+function group_index_file(): string
+{
+    return links_dir() . '/groups-index.json';
+}
+
+/**
+ * Steht der Index bereit? Baut ihn bei Bedarf auf – genau einmal: Wer den
+ * Aufbau-Lock nicht bekommt, arbeitet diesmal ohne Index weiter, statt zu
+ * warten oder doppelt zu bauen.
+ */
+function link_index_ready(): bool
+{
+    if (!links_sharded()) return false;
+    if (is_file(owner_index_dir() . '/fertig')) return true;
+
+    $lock = fopen(links_dir() . '/.index-bau.lock', 'c');
+    if ($lock === false || !flock($lock, LOCK_EX | LOCK_NB)) {
+        if (is_resource($lock)) fclose($lock);
+        return false;
+    }
+    try {
+        if (is_file(owner_index_dir() . '/fertig')) return true; // war schneller
+        $dir = owner_index_dir();
+        if (!is_dir($dir)) @mkdir($dir, 0770, true);
+        $owners = [];   // xx => owner => code => type
+        $groups = [];   // group => code => true
+        foreach (links_all() as $code => $l) {
+            $o = $l['owner'] ?? null;
+            if (is_string($o) && $o !== '') {
+                $owners[substr(sha1($o), 0, 2)][$o][(string)$code] = (string)($l['type'] ?? 'random');
+            }
+            $g = $l['group'] ?? null;
+            if (is_string($g) && $g !== '') $groups[$g][(string)$code] = true;
+        }
+        foreach ($owners as $xx => $daten) {
+            json_write($dir . '/' . $xx . '.json', $daten);
+        }
+        json_write(group_index_file(), $groups);
+        file_put_contents($dir . '/fertig', "abgeleitet aus der Ablage, siehe inc/store.php\n");
+        return true;
+    } finally {
+        flock($lock, LOCK_UN);
+        fclose($lock);
+    }
+}
+
+/** Einen Link im Index eintragen (nach dem Schreiben in die Ablage) */
+function link_index_add(string $code, ?string $owner, ?string $group, string $type): void
+{
+    if (!is_file(owner_index_dir() . '/fertig')) return;
+    if (is_string($owner) && $owner !== '') {
+        json_update(owner_index_file($owner), function (array $idx) use ($owner, $code, $type) {
+            $idx[$owner][$code] = $type;
+            return $idx;
+        });
+    }
+    if (is_string($group) && $group !== '') {
+        json_update(group_index_file(), function (array $idx) use ($group, $code) {
+            $idx[$group][$code] = true;
+            return $idx;
+        });
+    }
+}
+
+/**
+ * Einen Link aus dem Index austragen – nur die übergebenen Schlüssel.
+ *
+ * Eine dabei leer werdende Index-Datei bleibt stehen: Sie zu löschen wäre
+ * ein Wettlauf mit einem gleichzeitigen Eintrag, und ein leeres Wörterbuch
+ * liest sich genauso wie ein fehlendes.
+ */
+function link_index_remove(string $code, ?string $owner, ?string $group): void
+{
+    if (!is_file(owner_index_dir() . '/fertig')) return;
+    if (is_string($owner) && $owner !== '') {
+        json_update(owner_index_file($owner), function (array $idx) use ($owner, $code) {
+            unset($idx[$owner][$code]);
+            if (($idx[$owner] ?? []) === []) unset($idx[$owner]);
+            return $idx;
+        });
+    }
+    if (is_string($group) && $group !== '') {
+        json_update(group_index_file(), function (array $idx) use ($group, $code) {
+            unset($idx[$group][$code]);
+            if (($idx[$group] ?? []) === []) unset($idx[$group]);
+            return $idx;
+        });
+    }
+}
+
+/**
+ * Alle Links eines Kontos – ohne die übrige Sammlung anzufassen.
+ *
+ * Die Codes kommen aus dem Index, die Datensätze aus den Ablagen; gelesen
+ * wird jede betroffene Ablage genau einmal. Ein Konto mit zehn Links liest
+ * damit ein paar Kilobyte, egal ob die Instanz hundert oder eine Million
+ * Links trägt.
+ *
+ * @return array<string,array> code => Datensatz
+ */
+function links_of_owner(string $owner): array
+{
+    if (!link_index_ready()) {
+        return array_filter(links_all(), fn($l) => ($l['owner'] ?? null) === $owner);
+    }
+    $codes = array_keys(json_read(owner_index_file($owner))[$owner] ?? []);
+    $nachAblage = [];
+    foreach ($codes as $c) $nachAblage[link_shard((string)$c)][] = (string)$c;
+    $out = [];
+    foreach ($nachAblage as $xx => $liste) {
+        $ablage = json_read(links_dir() . '/' . $xx . '.json');
+        foreach ($liste as $c) {
+            // Im Index, aber nicht in der Ablage: die Ablage hat recht
+            if (isset($ablage[$c])) $out[$c] = $ablage[$c];
+        }
+    }
+    return $out;
+}
+
+/** Die Codes einer Arbeitsgruppe @return string[] */
+function link_codes_of_group(string $group): array
+{
+    if (!link_index_ready()) return [];
+    return array_keys(json_read(group_index_file())[$group] ?? []);
+}
+
 /**
  * Link anlegen. Gibt bei Erfolg den Code zurück, sonst eine Fehlermeldung.
  * @return array{0:bool,1:string} [ok, code|fehler]
@@ -192,7 +349,7 @@ function links_gc(): void
     /** E-Mail-Adresse zum Besitzer eines Links (null = nicht erreichbar) */
     $ownerMail = function (?string $owner): ?string {
         if ($owner === null) return null;
-        $u = users_all()[$owner] ?? null;
+        $u = user_get($owner);
         if ($u === null) return null;
         $mail = $u['email'] ?? (filter_var($owner, FILTER_VALIDATE_EMAIL) !== false ? $owner : null);
         return is_string($mail) ? $mail : null;
@@ -301,6 +458,10 @@ function link_create(string $url, ?string $code, ?string $owner, string $type, a
     });
 
     if ($taken) return [false, t('Dieser Code ist schon vergeben.')];
+    if ($ok) {
+        $g = is_string($group) && $group !== '' ? $group : null;
+        link_index_add($code, $owner, $g, $type);
+    }
     return $ok ? [true, $code] : [false, t('Anlegen fehlgeschlagen.')];
 }
 
@@ -405,17 +566,31 @@ function tags_counts(array $links): array
 /** Gruppenzuordnung eines Links setzen ($group = null hebt sie auf) */
 function link_set_group(string $code, ?string $group): bool
 {
-    return link_write($code, function (?array $l) use ($group) {
+    $vorher = link_get($code);
+    $ok = link_write($code, function (?array $l) use ($group) {
         if ($l === null) return false;
         if ($group === null || $group === '') unset($l['group']); else $l['group'] = $group;
         $l['updated'] = date('c');
         return $l;
     });
+    if ($ok && $vorher !== null) {
+        $alt = $vorher['group'] ?? null;
+        $neu = $group === '' ? null : $group;
+        if ($alt !== $neu) {
+            link_index_remove($code, null, $alt);
+            link_index_add($code, null, $neu, (string)($vorher['type'] ?? 'random'));
+        }
+    }
+    return $ok;
 }
 
 /** Anzahl aktiver Wunsch-Codes eines Kontos (für das Pro-Kontingent) */
 function custom_code_count(string $owner): int
 {
+    if (link_index_ready()) {
+        $meine = json_read(owner_index_file($owner))[$owner] ?? [];
+        return count(array_filter($meine, fn($typ) => $typ === 'custom'));
+    }
     $n = 0;
     foreach (links_all() as $l) {
         if (($l['owner'] ?? null) === $owner && ($l['type'] ?? '') === 'custom') $n++;
@@ -426,6 +601,9 @@ function custom_code_count(string $owner): int
 /** Anzahl aller aktiven Links eines Kontos (für das Tarif-Limit) */
 function link_count(string $owner): int
 {
+    if (link_index_ready()) {
+        return count(json_read(owner_index_file($owner))[$owner] ?? []);
+    }
     $n = 0;
     foreach (links_all() as $l) {
         if (($l['owner'] ?? null) === $owner) $n++;
@@ -457,8 +635,12 @@ function link_set_disabled(string $code, bool $disabled): bool
 
 function link_delete(string $code): void
 {
+    $vorher = link_get($code);
     link_write($code, fn(?array $l) => null);
     @unlink(clicks_file($code));
+    if ($vorher !== null) {
+        link_index_remove($code, $vorher['owner'] ?? null, $vorher['group'] ?? null);
+    }
 }
 
 /** Freien Zufallscode suchen (innerhalb des Locks aufgerufen), optional unter einem Prefix ("p/abc123") */

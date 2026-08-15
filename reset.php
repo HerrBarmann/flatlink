@@ -28,7 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Zentral verwaltete Konten (LDAP/SSO) haben hier kein Passwort,
             // das sich zurücksetzen ließe – eine Mail zu schicken würde nur in
             // die Irre führen. Nach außen bleibt die Antwort trotzdem gleich.
-            if ($key !== null && (users_all()[$key]['auth'] ?? 'local') !== 'local') {
+            if ($key !== null && (user_get($key)['auth'] ?? 'local') !== 'local') {
                 $key = null;
             }
             $link = mail_link('reset.php');

@@ -80,7 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // einem Klick entfernen können.
         $nachweis = $extern
             ? trim((string)($_POST['confirm'] ?? '')) === $user['name']
-            : password_verify((string)($_POST['current'] ?? ''), users_all()[$user['name']]['pass'] ?? '');
+            : password_verify((string)($_POST['current'] ?? ''), user_get($user['name'])['pass'] ?? '');
         if (!$nachweis) {
             sleep(1);
             flash(t('Nachweis fehlt – die zweite Stufe bleibt aktiv.'), 'err');
@@ -135,7 +135,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // tritt das Abtippen der eigenen Kennung an dessen Stelle.
         $nachweis = $extern
             ? trim((string)($_POST['confirm'] ?? '')) === $user['name']
-            : password_verify((string)($_POST['current'] ?? ''), users_all()[$user['name']]['pass'] ?? '');
+            : password_verify((string)($_POST['current'] ?? ''), user_get($user['name'])['pass'] ?? '');
         if (!$nachweis) {
             sleep(1);
             flash($extern
@@ -182,7 +182,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 t("Hallo,\n\nfür das Konto „%s“ bei %s soll diese Adresse\nals E-Mail-Adresse hinterlegt werden. Zum Bestätigen (angemeldet bleiben!):\n\n%s\n\nDer Link ist 24 Stunden gültig. Falls du das nicht warst, ignoriere diese Mail.\n\n– %s",
                     $user['name'], cfg('site_name'), mail_link('admin/profile.php') . '?token=' . $token, cfg('site_name')));
             // Sicherheits-Info an die bisherige Adresse, falls vorhanden
-            $old = users_all()[$user['name']]['email'] ?? null;
+            $old = user_get($user['name'])['email'] ?? null;
             if ($ok && $old !== null && strtolower($old) !== $new) {
                 mail_send($old, t('E-Mail-Änderung für dein Konto bei %s', cfg('site_name')),
                     t("Hallo,\n\nfür dein Konto wurde eine Änderung der E-Mail-Adresse angefordert\n(neue Adresse: %s). Wenn das nicht du warst, ändere bitte\numgehend dein Passwort und melde dich bei uns.\n\n– %s",
@@ -207,7 +207,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $new = (string)($_POST['new'] ?? '');
         $repeat = (string)($_POST['repeat'] ?? '');
 
-        $stored = users_all()[$user['name']]['pass'] ?? '';
+        $stored = user_get($user['name'])['pass'] ?? '';
         if (!password_verify($current, $stored)) {
             sleep(1);
             flash(t('Das aktuelle Passwort stimmt nicht.'), 'err');
@@ -270,7 +270,7 @@ show_flash();
     <?php endif; ?>
 
     <h2><?= t('E-Mail-Adresse') ?></h2>
-    <?php $email = users_all()[$user['name']]['email'] ?? null; ?>
+    <?php $email = user_get($user['name'])['email'] ?? null; ?>
     <?php if ($email !== null): ?>
         <p class="muted small"><?= t('Hinterlegt: %s – wird für Login und Passwort-Reset verwendet.', '<strong>' . e($email) . '</strong>') ?></p>
     <?php elseif (!$extern): ?>

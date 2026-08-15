@@ -32,7 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $err = user_set_password($name, (string)($_POST['password'] ?? ''));
         flash($err ?? t('Passwort von %s geändert.', $name), $err === null ? 'ok' : 'err');
     } elseif ($action === 'groups') {
-        if (!isset(users_all()[$name])) {
+        if (user_get($name) === null) {
             flash(t('Nutzer nicht gefunden.'), 'err');
         } else {
             $until = trim((string)($_POST['until'] ?? ''));
@@ -56,7 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Bleibt: jemand, der die Person kennt, schaltet den Schutz ab.
         if ($name === $user['name']) {
             flash(t('Den eigenen Schutz bitte im Profil verwalten – dort ist ein Nachweis fällig.'), 'err');
-        } elseif (!isset(users_all()[$name])) {
+        } elseif (user_get($name) === null) {
             flash(t('Nutzer nicht gefunden.'), 'err');
         } else {
             totp_disable($name);
@@ -116,7 +116,7 @@ show_flash();
                 <strong><?= e($e['display'] ?? t('(kein Name übermittelt)')) ?></strong>
                 <?php if (!empty($e['email'])): ?><br><span class="muted small"><?= e($e['email']) ?></span><?php endif; ?>
                 <?php if (($e['reason'] ?? '') === 'kollision'):
-                    $vorhanden = users_all()[$key] ?? null; ?>
+                    $vorhanden = user_get($key); ?>
                 <div class="flash flash-err small" style="margin:0.4rem 0 0">
                     <strong><?= t('Achtung:') ?></strong> <?= t('Unter dieser Kennung gibt es hier bereits ein Konto (Anmeldung: %s, Rolle: %s). Freischalten verknüpft beide: Das bisherige Passwort verfällt, und die Rolle wird auf %s zurückgesetzt. Nur bestätigen, wenn es dieselbe Person ist.',
                         e(match ($vorhanden['auth'] ?? 'local') { 'ldap' => 'LDAP', 'sso' => 'SSO', default => t('lokales Passwort') }),

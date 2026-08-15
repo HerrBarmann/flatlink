@@ -160,7 +160,7 @@ function group_delete(string $id): void
         unset($groups[$id]);
         return $groups;
     });
-    json_update(users_file(), function (array $users) use ($id) {
+    users_update(function (array $users) use ($id) {
         foreach ($users as $k => $u) {
             if (in_array($id, $u['groups'] ?? [], true)) {
                 $users[$k]['groups'] = array_values(array_diff($u['groups'], [$id]));
@@ -192,7 +192,7 @@ function group_delete(string $id): void
  */
 function user_groups(string $username): array
 {
-    $u = users_all()[$username] ?? null;
+    $u = user_get($username);
     if ($u === null) return [];
     $known = groups_all();
     $until = (array)($u['groups_until'] ?? []);
@@ -206,7 +206,7 @@ function user_groups(string $username): array
 /** Ablaufdatum einer Mitgliedschaft ('YYYY-MM-DD') oder null = unbefristet */
 function user_group_until(string $username, string $group): ?string
 {
-    $v = users_all()[$username]['groups_until'][$group] ?? null;
+    $v = user_get($username)['groups_until'][$group] ?? null;
     return is_string($v) ? $v : null;
 }
 
@@ -223,7 +223,7 @@ function user_set_groups(string $username, array $groups, ?string $until = null)
     $groups = array_values(array_unique(array_intersect($groups, $known)));
     if ($until !== null && preg_match('/^\d{4}-\d{2}-\d{2}$/', $until) !== 1) $until = null;
 
-    json_update(users_file(), function (array $users) use ($username, $groups, $until) {
+    users_update(function (array $users) use ($username, $groups, $until) {
         if (!isset($users[$username])) return null;
         $users[$username]['groups'] = $groups;
         // Befristungen nur für die jetzt gesetzten Gruppen führen
@@ -260,7 +260,7 @@ function group_members(string $id): array
  */
 function user_can(string $username, string $perm): bool
 {
-    $u = users_all()[$username] ?? null;
+    $u = user_get($username);
     if ($u === null) return false;
     if (($u['role'] ?? '') === 'admin') return true;
     return in_array($perm, user_perms($username), true);
@@ -279,7 +279,7 @@ function user_can(string $username, string $perm): bool
  */
 function user_limit(string $username, string $key): int
 {
-    $u = users_all()[$username] ?? null;
+    $u = user_get($username);
     if ($u !== null && ($u['role'] ?? '') === 'admin') return PHP_INT_MAX;
 
     $best = (int)(settings()['limits'][$key] ?? 0);
@@ -376,6 +376,21 @@ function user_shared_groups(string $username): array
 function links_visible(array $user): array
 {
     if (($user['role'] ?? '') === 'admin') return links_all();
+    // Über den Index: eigene Links plus die der eigenen Arbeitsgruppen. Der
+    // Index liefert nur die Kandidaten – ob ein Link wirklich sichtbar ist,
+    // entscheidet weiterhin link_access(), dieselbe Prüfung wie zuvor. Ohne
+    // Index (Altbestand, Aufbau läuft gerade woanders) der alte Vollscan.
+    if (link_index_ready()) {
+        $kandidaten = links_of_owner($user['name']);
+        foreach (user_shared_groups($user['name']) as $gid) {
+            foreach (link_codes_of_group($gid) as $code) {
+                if (isset($kandidaten[$code])) continue;
+                $l = link_get($code);
+                if ($l !== null) $kandidaten[$code] = $l;
+            }
+        }
+        return array_filter($kandidaten, fn($l) => link_access($user, $l));
+    }
     return array_filter(links_all(), fn($l) => link_access($user, $l));
 }
 
@@ -398,7 +413,7 @@ function group_limit(string $group, string $key): int
 /** @return string[] Alle Rechte eines Kontos */
 function user_perms(string $username): array
 {
-    $u = users_all()[$username] ?? null;
+    $u = user_get($username);
     if ($u === null) return [];
     if (($u['role'] ?? '') === 'admin') return array_keys(perms_all());
 

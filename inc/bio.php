@@ -113,11 +113,7 @@ function bio_write(string $code, array $items, string $text, bool $index, ?array
 /** Wie viele Bio-Seiten dieses Konto schon hat */
 function bio_count(string $owner): int
 {
-    $n = 0;
-    foreach (links_all() as $l) {
-        if (($l['owner'] ?? null) === $owner && bio_is($l)) $n++;
-    }
-    return $n;
+    return count(array_filter(links_of_owner($owner), 'bio_is'));
 }
 
 /**

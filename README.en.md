@@ -285,6 +285,7 @@ atomic writing via temp file plus `rename`:
 | `links/<xx>.json` | Short links, spread over 256 shards: target, owner, group, kind, expiry, password hash |
 | `users.json` | Accounts: password hash, role, e-mail, groups, sign-in source |
 | `groups.json` | Groups: display name and permissions |
+| `links/owners/<xx>.json` | Owner index: which codes belong to which account – derived from the store, rebuilt on demand |
 | `clicks/<code>.json` | Click counters, see above |
 | `settings.json` | Settings changeable at runtime |
 | `logos/` | Uploaded logos for QR codes |
@@ -300,8 +301,19 @@ every scan of a printed code and thus reads a few kilobytes instead of the
 whole collection. Measured at 100,000 links: **0.4 instead of 51
 milliseconds** per redirect. Side effect: writes only lock their own shard.
 
-This construction is deliberately meant for small to medium instances. Under
-very many concurrent writes, a database is the better choice – in exchange,
+Lists and counts run over an **owner and group index** (`links/owners/`),
+derived from the store and rebuilt from it at any time. Measured at one
+million links: the limit check on creation dropped from 1.2 seconds to half a
+millisecond, and an account's link list runs within PHP's default memory
+limit instead of far beyond it.
+
+This construction is deliberately meant for small to medium instances. The
+storage sits entirely behind a handful of functions (`inc/store.php`,
+`inc/auth.php`) – a database backend for very large instances would have to
+replace exactly these spots, not rebuild the project. Today's practical limit
+is the accounts file: from a few tens of thousands of accounts, `users.json`
+needs more than PHP's usual memory limit – that is where database territory
+begins. The same holds for very many concurrent writes – in exchange,
 flatlink needs neither setup nor maintenance nor migrations.
 
 ## What's not included

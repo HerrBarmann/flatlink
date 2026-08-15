@@ -215,7 +215,7 @@ function webauthn_possible(): bool
 /** @return array<int,array{id:string,pubkey:string,alg:int,sign_count:int,label:string,created:string,last_used:?string}> */
 function passkeys_of(string $user): array
 {
-    return array_values((array)(users_all()[$user]['passkeys'] ?? []));
+    return array_values((array)(user_get($user)['passkeys'] ?? []));
 }
 
 function passkeys_active(string $user): bool
@@ -232,11 +232,11 @@ function passkeys_active(string $user): bool
  */
 function passkey_user_handle(string $user): string
 {
-    $u = users_all()[$user] ?? [];
+    $u = user_get($user) ?? [];
     $h = (string)($u['wa_handle'] ?? '');
     if ($h !== '') return $h;
     $h = b64u_encode(random_bytes(16));
-    json_update(users_file(), function (array $users) use ($user, $h) {
+    users_update(function (array $users) use ($user, $h) {
         if (!isset($users[$user]) || ($users[$user]['wa_handle'] ?? '') !== '') return null;
         $users[$user]['wa_handle'] = $h;
         return $users;
@@ -404,7 +404,7 @@ function passkey_register(string $user, array $antwort, string $label): ?string
 
     $id = b64u_encode($auth['credId']);
     $doppelt = false;
-    json_update(users_file(), function (array $users) use ($user, $id, $pemKey, $alg, $auth, $label, &$doppelt) {
+    users_update(function (array $users) use ($user, $id, $pemKey, $alg, $auth, $label, &$doppelt) {
         if (!isset($users[$user])) return null;
         $liste = (array)($users[$user]['passkeys'] ?? []);
         foreach ($liste as $p) {
@@ -474,7 +474,7 @@ function passkey_verify(string $user, array $antwort): ?string
         return t('Der Passkey wurde möglicherweise kopiert – bitte einen neuen einrichten.');
     }
 
-    json_update(users_file(), function (array $users) use ($user, $id, $neu) {
+    users_update(function (array $users) use ($user, $id, $neu) {
         if (!isset($users[$user]['passkeys'])) return null;
         foreach ($users[$user]['passkeys'] as $i => $p) {
             if (($p['id'] ?? '') === $id) {
@@ -492,7 +492,7 @@ function passkey_verify(string $user, array $antwort): ?string
 function passkey_remove(string $user, string $id): bool
 {
     $weg = false;
-    json_update(users_file(), function (array $users) use ($user, $id, &$weg) {
+    users_update(function (array $users) use ($user, $id, &$weg) {
         $liste = (array)($users[$user]['passkeys'] ?? []);
         $neu = array_values(array_filter($liste, fn($p) => ($p['id'] ?? '') !== $id));
         if (count($neu) === count($liste)) return null;
@@ -506,7 +506,7 @@ function passkey_remove(string $user, string $id): bool
 /** Alle Passkeys eines Kontos entfernen */
 function passkeys_drop_user(string $user): void
 {
-    json_update(users_file(), function (array $users) use ($user) {
+    users_update(function (array $users) use ($user) {
         if (!isset($users[$user]['passkeys'])) return null;
         unset($users[$user]['passkeys']);
         return $users;

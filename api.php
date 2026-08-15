@@ -116,7 +116,7 @@ if ($eintrag === null) {
 }
 
 $name = (string)$eintrag['user'];
-$konto = users_all()[$name] ?? null;
+$konto = user_get($name);
 if ($konto === null) {
     api_fail(401, 'no_account', t('Das Konto zu diesem Schlüssel gibt es nicht mehr.'));
 }

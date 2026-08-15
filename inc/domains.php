@@ -109,7 +109,7 @@ function domains_for(?string $user): array
     // Administratoren verwalten die Domains – ihnen eine davon vorzuenthalten,
     // wäre eine Hürde ohne Schutzwirkung: Sie könnten die Gruppe im selben
     // Atemzug ändern.
-    if ($user !== null && (users_all()[$user]['role'] ?? '') === 'admin') return domains_all();
+    if ($user !== null && (user_get($user)['role'] ?? '') === 'admin') return domains_all();
     $meine = $user === null ? [] : user_groups($user);
     $out = [domain_main()];
     foreach (domains_extra() as $d) {

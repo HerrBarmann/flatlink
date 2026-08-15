@@ -283,6 +283,7 @@ und atomarem Schreiben über Tempdatei plus `rename`:
 | `links/<xx>.json` | Kurzlinks, auf 256 Ablagen verteilt: Ziel, Besitzer, Gruppe, Typ, Ablauf, Passwort-Hash |
 | `users.json` | Konten: Passwort-Hash, Rolle, E-Mail, Gruppen, Anmeldequelle |
 | `groups.json` | Gruppen: Anzeigename und Rechte |
+| `links/owners/<xx>.json` | Besitzer-Index: welche Codes gehören welchem Konto – eine Ableitung der Ablage, bei Bedarf neu aufgebaut |
 | `clicks/<code>.json` | Klickzähler, siehe oben |
 | `settings.json` | Zur Laufzeit änderbare Einstellungen |
 | `logos/` | Hochgeladene Logos für QR-Codes |
@@ -299,9 +300,20 @@ so nur wenige Kilobyte statt der gesamten Sammlung. Gemessen bei 100.000
 Links: **0,4 statt 51 Millisekunden** pro Weiterleitung. Nebeneffekt:
 Schreibvorgänge sperren nur ihre eigene Ablage.
 
-Diese Bauweise ist bewusst für kleine bis mittlere Instanzen gedacht. Bei
-sehr vielen gleichzeitigen Schreibzugriffen ist eine Datenbank die bessere
-Wahl – dafür braucht flatlink weder Einrichtung noch Wartung noch Migration.
+Listen und Zählungen laufen über einen **Besitzer- und Gruppen-Index**
+(`links/owners/`), der aus der Ablage abgeleitet ist und sich daraus jederzeit
+neu aufbaut. Gemessen bei einer Million Links: Die Limit-Prüfung beim Anlegen
+fiel von 1,2 Sekunden auf eine halbe Millisekunde, die Linkliste eines Kontos
+läuft in der Standard-Speichergrenze von PHP statt weit darüber.
+
+Diese Bauweise ist bewusst für kleine bis mittlere Instanzen gedacht. Die
+Ablage liegt vollständig hinter einer Handvoll Funktionen (`inc/store.php`,
+`inc/auth.php`) – ein Datenbank-Backend für sehr große Instanzen müsste genau
+diese Stellen ersetzen, nicht das Projekt umbauen. Die praktische Grenze ist
+heute die Konten-Datei: Ab einigen zehntausend Konten braucht `users.json`
+mehr als PHPs übliche Speichergrenze – dort beginnt das Gebiet der Datenbank.
+Bei sehr vielen gleichzeitigen Schreibzugriffen ebenso – dafür braucht
+flatlink im Gegenzug weder Einrichtung noch Wartung noch Migration.
 
 ## Was nicht drin ist
 

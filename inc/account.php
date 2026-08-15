@@ -31,7 +31,7 @@ require_once __DIR__ . '/token.php';
  */
 function account_export(string $username): array
 {
-    $u = users_all()[$username] ?? [];
+    $u = user_get($username) ?? [];
     $groups = groups_all();
     $perms = perms_all();
 
@@ -45,8 +45,7 @@ function account_export(string $username): array
     }
 
     $links = [];
-    foreach (links_all() as $code => $l) {
-        if (($l['owner'] ?? null) !== $username) continue;
+    foreach (links_of_owner($username) as $code => $l) {
         $c = clicks_get((string)$code);
         $links[] = [
             'kurzlink' => short_url((string)$code, (string)($l['domain'] ?? '')),
@@ -116,8 +115,7 @@ function account_delete_scope(string $username): array
 {
     $eigene = 0;
     $gruppe = 0;
-    foreach (links_all() as $l) {
-        if (($l['owner'] ?? null) !== $username) continue;
+    foreach (links_of_owner($username) as $l) {
         if (($l['group'] ?? '') !== '') $gruppe++; else $eigene++;
     }
     return ['eigene' => $eigene, 'gruppe' => $gruppe];
@@ -141,12 +139,11 @@ function account_delete(string $username): ?string
     }
     // Dieselbe Sperre wie in der Nutzerverwaltung: Eine Instanz ohne
     // Administrator ließe sich nicht mehr bedienen.
-    if ((users_all()[$username]['role'] ?? '') === 'admin' && admin_count() <= 1) {
+    if ((user_get($username)['role'] ?? '') === 'admin' && admin_count() <= 1) {
         return t('Du bist der letzte Administrator. Ernenne erst jemand anderen, dann geht das.');
     }
 
-    foreach (links_all() as $code => $l) {
-        if (($l['owner'] ?? null) !== $username) continue;
+    foreach (links_of_owner($username) as $code => $l) {
         if (($l['group'] ?? '') !== '') {
             link_write((string)$code, function (?array $l) {
                 if ($l === null) return false;
@@ -154,6 +151,8 @@ function account_delete(string $username): ?string
                 $l['updated'] = date('c');
                 return $l;
             });
+            // Der Link bleibt (er gehört der Gruppe), nur der Besitzer geht
+            link_index_remove((string)$code, $username, null);
         } else {
             link_delete((string)$code);
         }

@@ -132,7 +132,7 @@ function totp_qr_svg(string $konto, string $secret): string
 /** @return ?array{secret:string,confirmed:bool,last:int,recovery:string[]} */
 function totp_get(string $user): ?array
 {
-    $t = users_all()[$user]['totp'] ?? null;
+    $t = user_get($user)['totp'] ?? null;
     return is_array($t) ? $t : null;
 }
 
@@ -146,7 +146,7 @@ function totp_active(string $user): bool
 function totp_begin(string $user): string
 {
     $secret = totp_secret();
-    json_update(users_file(), function (array $users) use ($user, $secret) {
+    users_update(function (array $users) use ($user, $secret) {
         if (!isset($users[$user])) return null;
         $users[$user]['totp'] = ['secret' => $secret, 'confirmed' => false, 'last' => 0, 'recovery' => []];
         return $users;
@@ -182,7 +182,7 @@ function totp_confirm(string $user, string $eingabe): ?array
         // API-Schlüsseln, siehe inc/token.php).
         $hashes[] = hash('sha256', $code);
     }
-    json_update(users_file(), function (array $users) use ($user, $c, $hashes) {
+    users_update(function (array $users) use ($user, $c, $hashes) {
         if (!isset($users[$user]['totp'])) return null;
         $users[$user]['totp']['confirmed'] = true;
         $users[$user]['totp']['last'] = $c;
@@ -205,7 +205,7 @@ function totp_check(string $user, string $eingabe): bool
 
     $c = totp_verify((string)$t['secret'], $eingabe, (int)($t['last'] ?? 0));
     if ($c !== null) {
-        json_update(users_file(), function (array $users) use ($user, $c) {
+        users_update(function (array $users) use ($user, $c) {
             if (!isset($users[$user]['totp'])) return null;
             $users[$user]['totp']['last'] = $c;
             return $users;
@@ -217,7 +217,7 @@ function totp_check(string $user, string $eingabe): bool
     if (strlen($roh) !== 10) return false;
     $abdruck = hash('sha256', $roh);
     $treffer = false;
-    json_update(users_file(), function (array $users) use ($user, $abdruck, &$treffer) {
+    users_update(function (array $users) use ($user, $abdruck, &$treffer) {
         $liste = (array)($users[$user]['totp']['recovery'] ?? []);
         foreach ($liste as $i => $h) {
             if (hash_equals((string)$h, $abdruck)) {
@@ -235,7 +235,7 @@ function totp_check(string $user, string $eingabe): bool
 /** Zwei-Faktor abschalten */
 function totp_disable(string $user): void
 {
-    json_update(users_file(), function (array $users) use ($user) {
+    users_update(function (array $users) use ($user) {
         if (!isset($users[$user]['totp'])) return null;
         unset($users[$user]['totp']);
         return $users;
