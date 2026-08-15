@@ -939,4 +939,9 @@ your password immediately and contact us.
     'Im QR-Designer gestalten' => 'Style in the QR designer',
     'Mehr Optionen: Name, Schlagworte, Wunsch-Name, Kampagne …' => 'More options: name, tags, custom name, campaign …',
     'Viele auf einmal?' => 'Many at once?',
+    'Neuere' => 'Newer',
+    'Ältere' => 'Older',
+    'Seite %d von %d' => 'Page %d of %d',
+    'Seiten der Linkliste' => 'Pages of the link list',
+    '%s Kurzlinks – gezählt je Tag, mehr speichern wir nicht.' => '%s short links – counted per day, we store nothing more.',
 ];

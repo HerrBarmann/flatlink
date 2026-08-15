@@ -528,3 +528,6 @@ details.druckfarben[open] > summary { margin-bottom: 0.4rem; color: var(--ink); 
     .link-row { align-items: flex-start; }
     .link-main { flex-basis: 100%; }
 }
+
+/* Blättern unter der Linkliste: schlicht, mittig, mit den Filtern im Gepäck */
+.blaettern { display: flex; gap: 0.8rem; align-items: center; justify-content: center; margin-top: 1rem; }

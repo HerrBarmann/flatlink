@@ -116,15 +116,19 @@ $links = links_visible($user);
 // gefilterten Ausschnitt: Sie sollen beim Anlegen vollständig sein, egal
 // welcher Filter gerade in der Liste steht.
 $utmVorschlaege = utm_suggestions($links);
-// Zahlen für die Kopfzeile und die Liste in einem Durchgang: die Klickzähler
-// je Code einmal lesen, bevor die Filter den Bestand einengen.
+// Zahlen für die Kopfzeile: Die Klicksumme liest je Link eine Zählerdatei –
+// das lohnt bis ein paar tausend Links und wird darüber zur Bremse. Dann
+// entfällt sie, die Liste liest ihre Zahlen ohnehin nur noch je Seite.
 $klickVon = [];
-$klicksGesamt = 0;
-foreach ($links as $c => $l) {
-    $klickVon[$c] = (int)(clicks_get((string)$c)['n'] ?? 0);
-    $klicksGesamt += $klickVon[$c];
-}
+$klicksGesamt = null;
 $linksGesamt = count($links);
+if ($linksGesamt <= 2000) {
+    $klicksGesamt = 0;
+    foreach ($links as $c => $l) {
+        $klickVon[$c] = (int)(clicks_get((string)$c)['n'] ?? 0);
+        $klicksGesamt += $klickVon[$c];
+    }
+}
 if ($gFilter === '-') {
     $links = array_filter($links, fn($l) => ($l['group'] ?? null) === null);
 } elseif ($gFilter !== '') {
@@ -145,6 +149,17 @@ if ($q !== '') {
 }
 uasort($links, fn($a, $b) => strcmp($b['created'], $a['created']));
 
+// Blättern: 50 je Seite, neueste zuerst. $links bleibt der ganze gefilterte
+// Bestand (für Zählung, Tag-Wolke und den Serien-Knopf), gerendert wird nur
+// das aufgeschlagene Blatt – und nur dessen Klickzähler werden gelesen.
+$jeSeite = 50;
+$seiten = max(1, (int)ceil(count($links) / $jeSeite));
+$seite = max(1, min($seiten, (int)($_GET['p'] ?? 1)));
+$blatt = array_slice($links, ($seite - 1) * $jeSeite, $jeSeite, true);
+foreach ($blatt as $c => $l) {
+    if (!isset($klickVon[$c])) $klickVon[$c] = (int)(clicks_get((string)$c)['n'] ?? 0);
+}
+
 $editCode = (string)($_GET['edit'] ?? '');
 $editLink = $editCode !== '' ? link_get($editCode) : null;
 if ($editLink !== null && !link_access($user, $editLink)) $editLink = null;
@@ -160,9 +175,12 @@ show_flash();
 <div class="stage">
 <div class="hero">
     <h1><?= $isAdmin ? t('Alle Links.') : t('Deine Links.') ?> <span class="accent"><?= t('Gezählt, nicht getrackt.') ?></span></h1>
-    <p class="sub"><?= t('%s Kurzlinks · %s Klicks – ein Zähler je Tag, mehr speichern wir nicht.',
-        number_format($linksGesamt, 0, t(','), t('.')),
-        number_format($klicksGesamt, 0, t(','), t('.'))) ?></p>
+    <p class="sub"><?= $klicksGesamt !== null
+        ? t('%s Kurzlinks · %s Klicks – ein Zähler je Tag, mehr speichern wir nicht.',
+            number_format($linksGesamt, 0, t(','), t('.')),
+            number_format($klicksGesamt, 0, t(','), t('.')))
+        : t('%s Kurzlinks – gezählt je Tag, mehr speichern wir nicht.',
+            number_format($linksGesamt, 0, t(','), t('.'))) ?></p>
 </div>
 
 <?php
@@ -400,7 +418,7 @@ if ($neu !== null && link_access($user, $neu)):
         <a class="btn btn-small" href="qrzip.php<?= $serieFilter !== [] ? '?' . e(http_build_query($serieFilter)) : '' ?>"><?= t('QR-Codes dieser %d Links als ZIP', count($links)) ?></a>
     </p>
     <div class="link-list">
-        <?php foreach ($links as $code => $link):
+        <?php foreach ($blatt as $code => $link):
             $kurz = short_url((string)$code, (string)($link['domain'] ?? ''));
             $utm = utm_extract((string)($link['url'] ?? ''));
         ?>
@@ -455,6 +473,24 @@ if ($neu !== null && link_access($user, $neu)):
         </article>
         <?php endforeach; ?>
     </div>
+    <?php if ($seiten > 1):
+        // Filter wandern mit von Seite zu Seite; nur die Seitenzahl wechselt
+        $blattUrl = function (int $p) use ($gFilter, $tagFilter, $q): string {
+            $teile = array_filter(['g' => $gFilter, 'tag' => $tagFilter, 'q' => $q, 'p' => $p > 1 ? $p : ''],
+                fn($v) => $v !== '' && $v !== null);
+            return 'index.php' . ($teile !== [] ? '?' . http_build_query($teile) : '');
+        };
+    ?>
+    <nav class="blaettern" aria-label="<?= t('Seiten der Linkliste') ?>">
+        <?php if ($seite > 1): ?>
+            <a class="btn btn-small" href="<?= e($blattUrl($seite - 1)) ?>">← <?= t('Neuere') ?></a>
+        <?php endif; ?>
+        <span class="muted small"><?= t('Seite %d von %d', $seite, $seiten) ?></span>
+        <?php if ($seite < $seiten): ?>
+            <a class="btn btn-small" href="<?= e($blattUrl($seite + 1)) ?>"><?= t('Ältere') ?> →</a>
+        <?php endif; ?>
+    </nav>
+    <?php endif; ?>
     <?php endif; ?>
 </div>
 <?php page_footer(); ?>
