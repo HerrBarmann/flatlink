@@ -196,10 +196,16 @@ selbst eine mitliefert.
 Im Profil steht beides ohne Umweg über den Betreiber:
 
 **Daten herunterladen** liefert eine JSON-Datei mit allem, was zum Konto
-gespeichert ist – Kontodaten, Gruppen, Rechte, Limits und jeder Kurzlink mit
-Ziel, Datum und Klickzahlen. Der Passwort-Hash ist bewusst nicht dabei: Er ist
-ein Zugangsmittel und kein Inhalt, und eine Datei damit landet danach im
-Download-Ordner. Das deckt Art. 15 (Auskunft) und Art. 20 (Mitnahme).
+gespeichert ist – Kontodaten, angemeldete Geräte, der Stand der
+Zwei-Faktor-Anmeldung samt Passkey-Bezeichnungen, die Zugangsschlüssel der
+Schnittstelle, Gruppen, Rechte, Limits und jeder Kurzlink mit Ziel, Daten,
+Klickzahlen, den Änderungen am Ziel und – bei Link-in-Bio – der Seite selbst.
+Nicht dabei sind Zugangsmittel: Passwort-Hash, das Geheimnis der
+Authenticator-App, das Schlüsselmaterial der Passkeys, die Hashes der
+Zugangsschlüssel und der Abdruck laufender Sitzungen. Sie sind kein Inhalt,
+und eine Datei damit landet danach im Download-Ordner. Die Datei selbst zählt
+auf, was sie aus welchem Grund auslässt. Das deckt Art. 15 (Auskunft) und
+Art. 20 (Mitnahme).
 
 **Konto löschen** entfernt das Konto und alle Links, die nur daran hängen,
 samt Klickzählern. Links **mit Gruppenzuordnung bleiben** und verlieren nur

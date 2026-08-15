@@ -192,11 +192,16 @@ only overwritten if the directory itself supplies one.
 Both sit in the profile, with no detour via the operator:
 
 **Download data** delivers a JSON file with everything stored about the
-account – account data, groups, permissions, limits and every short link
-with target, date and click counts. The password hash is deliberately not
-included: it is a means of access, not content, and a file containing it
-would sit in the download folder afterwards. This covers Art. 15 (access)
-and Art. 20 (portability).
+account – account data, signed-in devices, the state of two-factor
+authentication including passkey labels, the API access keys, groups,
+permissions, limits and every short link with target, dates, click counts,
+the changes made to its target and – for link-in-bio – the page itself.
+Not included are means of access: the password hash, the authenticator
+app's secret, the passkeys' key material, the hashes of the access keys and
+the fingerprint of running sessions. They are not content, and a file
+containing them would sit in the download folder afterwards. The file itself
+lists what it leaves out and why. This covers Art. 15 (access) and Art. 20
+(portability).
 
 **Delete account** removes the account and all links that hang only on it,
 including click counters. Links **with a group assignment remain** and only

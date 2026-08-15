@@ -57,9 +57,30 @@ function account_export(string $username): array
             'gruppe' => $l['group'] ?? null,
             'angelegt' => $l['created'] ?? null,
             'geaendert' => $l['updated'] ?? null,
+            'startet_ab' => $l['starts'] ?? null,
             'laeuft_ab' => $l['expires'] ?? null,
             'passwortgeschuetzt' => isset($l['pass']),
             'gesperrt' => (bool)($l['disabled'] ?? false),
+            // Wer das Ziel wann geändert hat – dieselbe Liste, die in der
+            // Statistik des Links steht
+            'ziel_aenderungen' => array_map(fn($h) => [
+                'zeitpunkt' => $h['t'] ?? null,
+                'wer' => $h['wer'] ?? null,
+                'von' => $h['von'] ?? null,
+                'nach' => $h['nach'] ?? null,
+            ], (array)($l['history'] ?? [])),
+            // Link-in-Bio: die Seite selbst ist öffentlich, gehört aber
+            // genauso in die Auskunft wie jeder andere hinterlegte Inhalt
+            'bio_seite' => ($l['kind'] ?? '') !== 'bio' ? null : [
+                'einleitung' => $l['bio_text'] ?? null,
+                'in_suchmaschinen' => (bool)($l['bio_index'] ?? false),
+                'logo' => $l['bio_logo'] ?? null,
+                'farben' => (array)($l['bio_colors'] ?? []),
+                'ziele' => array_map(fn($i) => [
+                    'beschriftung' => $i['label'] ?? null,
+                    'ziel' => $i['url'] ?? null,
+                ], (array)($l['items'] ?? [])),
+            ],
             'klicks' => [
                 'gesamt' => $c['n'] ?? 0,
                 'letzter_aufruf' => $c['last'] ?? null,
@@ -88,6 +109,32 @@ function account_export(string $username): array
             'bestaetigung_ip_hash_gespeichert' => isset($u['verified_ip']),
             'letzte_anmeldung' => $u['last_login'] ?? null,
         ],
+        // Angemeldete Geräte: die Liste aus dem Profil. Der Abdruck der
+        // Sitzung selbst bleibt draußen – er ist der Schlüssel zur Sitzung,
+        // kein Inhalt, und stünde in einer Datei im Download-Ordner falsch.
+        'angemeldete_geraete' => array_values(array_map(fn($x) => [
+            'geraet' => $x['geraet'] ?? null,
+            'seit' => $x['seit'] ?? null,
+            'zuletzt_gesehen' => $x['zuletzt'] ?? null,
+        ], (array)($u['sessions'] ?? []))),
+        // Zwei-Faktor: dass es sie gibt, nicht womit sie rechnet
+        'zwei_faktor' => [
+            'app_eingerichtet' => (bool)($u['totp']['confirmed'] ?? false),
+            'wiederherstellungscodes_offen' => count((array)($u['totp']['recovery'] ?? [])),
+            'passkeys' => array_values(array_map(fn($p) => [
+                'bezeichnung' => $p['label'] ?? null,
+                'angelegt' => $p['created'] ?? null,
+                'zuletzt_benutzt' => $p['last_used'] ?? null,
+            ], (array)($u['passkeys'] ?? []))),
+        ],
+        // Zugangsschlüssel der Schnittstelle – ohne den Schlüssel selbst,
+        // den es nach der einmaligen Anzeige nirgends mehr gibt
+        'zugangsschluessel' => array_values(array_map(fn($t) => [
+            'bezeichnung' => $t['label'] ?? null,
+            'erkennungszeichen' => $t['hint'] ?? null,
+            'angelegt' => $t['created'] ?? null,
+            'zuletzt_benutzt' => $t['last_used'] ?? null,
+        ], tokens_of($username))),
         'gruppen' => $mitgliedschaften,
         'rechte' => array_values(array_map(
             fn($p) => $perms[$p] ?? $p,
@@ -101,6 +148,8 @@ function account_export(string $username): array
         'links' => $links,
         'nicht_enthalten' => [
             'Passwort-Hash – Zugangsmittel, kein Inhalt.',
+            'Das Geheimnis der Authenticator-App, die Hashes der Wiederherstellungscodes, das Schlüsselmaterial der Passkeys und die Hashes der Zugangsschlüssel – ebenfalls Zugangsmittel.',
+            'Der Abdruck laufender Sitzungen – er ist der Schlüssel zur Sitzung.',
             'Server-Protokolle des Hosting-Anbieters – liegen außerhalb dieser Anwendung.',
             'Einzelne Aufrufe von Kurzlinks – werden nie gespeichert, nur Tageszähler.',
         ],
