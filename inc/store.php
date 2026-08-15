@@ -136,6 +136,13 @@ function link_expired(array $link): bool
  */
 function links_gc(): void
 {
+    // Der Wiederholungslauf gegen Safe Browsing hängt an derselben
+    // Gelegenheit – ein Besucher löst beides aus –, führt aber seinen
+    // eigenen Zeitstempel: Aufräumen ist eine Jahresfrage, Missbrauch eine
+    // Wochenfrage.
+    require_once __DIR__ . '/safety.php';
+    safety_recheck();
+
     $marker = data_path() . '/links-gc.json';
     if (is_file($marker) && filemtime($marker) > time() - 7 * 86400) return;
     json_write($marker, ['last_run' => date('c')]);

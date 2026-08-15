@@ -398,4 +398,11 @@ return [
     // Leer lassen = deaktiviert.
     // https://developers.google.com/safe-browsing/v4/get-started
     'safe_browsing_key' => '',
+
+    // Wie oft der Bestand erneut gegen Safe Browsing geprüft wird (Tage).
+    // Die Prüfung beim Anlegen fängt nur, was schon bösartig ist – Ziele, die
+    // erst später übernommen werden, findet allein ein Wiederholungslauf.
+    // Er läuft nebenbei, ausgelöst von einem beliebigen Besucher, und sperrt
+    // Treffer (410) statt sie zu löschen. 0 = aus. Braucht einen Schlüssel.
+    'safety_recheck_days' => 7,
 ];

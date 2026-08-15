@@ -7,6 +7,8 @@ require_once __DIR__ . '/../inc/store.php';
 require_once __DIR__ . '/../inc/auth.php';
 require_once __DIR__ . '/../inc/groups.php';
 require_once __DIR__ . '/../inc/domains.php';
+require_once __DIR__ . '/../inc/zip.php';
+require_once __DIR__ . '/../inc/backup.php';
 
 $user = auth_require_admin();
 $s = settings();
@@ -76,6 +78,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
         if ($fehler === null) $neu['domains'] = $liste;
+    }
+
+    if (isset($_POST['sicherung'])) {
+        @set_time_limit(0);
+        [$archiv, $uebersicht] = backup_build();
+        audit(t('Sicherung heruntergeladen (%s)', number_format(strlen($archiv) / 1048576, 1, t(','), t('.')) . ' MB'));
+        nosniff_header();
+        header('Content-Type: application/zip');
+        header('Content-Disposition: attachment; filename="flatlink-sicherung-' . date('Y-m-d') . '.zip"');
+        header('Content-Length: ' . strlen($archiv));
+        header('Cache-Control: no-store');
+        echo $archiv;
+        exit;
     }
 
     if ($fehler !== null) {
@@ -272,4 +287,15 @@ $host = preg_replace('#^https?://#', '', base_url());
         <button class="btn btn-primary" type="submit" style="margin-top:1rem"><?= t('Speichern') ?></button>
     </form>
 </div>
+<div class="card">
+    <h2><?= t('Sicherung') ?></h2>
+    <p class="muted small"><?= t('Der beste Weg bleibt, das Datenverzeichnis zu kopieren. Wer dort nicht hinkommt – auf geteiltem Hosting die Regel –, bekommt hier dasselbe als Archiv: die Datenbank als in sich geschlossene Kopie (auch im laufenden Betrieb), dazu Einstellungen, Gruppen, Zugangsschlüssel, Klickzähler, Logos und Meldungen. Eine Anleitung zum Zurückspielen liegt bei.') ?></p>
+    <p class="muted small"><?= t('Nicht enthalten ist %s – sie trägt Zugangsdaten und das Instanz-Geheimnis und gehört nicht in eine Datei, die danach im Download-Ordner liegt.', '<code>inc/config.php</code>') ?></p>
+    <form method="post" action="">
+        <?= csrf_field() ?>
+        <input type="hidden" name="sicherung" value="1">
+        <button class="btn btn-primary" type="submit"><?= t('Sicherung herunterladen') ?></button>
+    </form>
+</div>
+
 <?php page_footer(); ?>

@@ -5,6 +5,7 @@ declare(strict_types=1);
 // flatlink · Zusatzbedingung zur Namensnennung nach §7(b) AGPL: siehe LICENSE
 require_once __DIR__ . '/../inc/store.php';
 require_once __DIR__ . '/../inc/auth.php';
+require_once __DIR__ . '/../inc/safety.php';
 
 $user = auth_require_admin();
 $reportsDir = data_path('reports');
@@ -27,6 +28,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         unlink($reportsDir . '/' . $file);
         flash(t('Meldung erledigt.'));
         audit(t('Meldung erledigt.'), $code ?? '');
+    } elseif ($action === 'recheck') {
+        @set_time_limit(0);
+        $z = safety_recheck(true);
+        if ($z === null) {
+            flash(t('Dafür fehlt der Safe-Browsing-Schlüssel in der Konfiguration.'), 'err');
+        } else {
+            flash(t('%d Ziele geprüft, %d gesperrt.', $z['geprueft'], count($z['gesperrt'])));
+            audit(t('%d Ziele geprüft, %d gesperrt.', $z['geprueft'], count($z['gesperrt'])));
+        }
     }
     redirect_to('reports.php');
 }
@@ -43,6 +53,18 @@ show_flash();
 
 <div class="card">
     <h2><?= t('Missbrauchs-Meldungen') ?> <span class="muted">(<?= count($reports) ?>)</span></h2>
+    <?php if ((string)cfg('safe_browsing_key') !== ''):
+        $letzte = @filemtime(data_path() . '/safety-recheck.json');
+        $tage = (int)cfg('safety_recheck_days');
+    ?>
+    <p class="muted small"><?= t('Der Bestand wird alle %d Tage erneut gegen Safe Browsing geprüft – gegen Ziele, die erst nach dem Anlegen bösartig werden. Treffer werden gesperrt, nicht gelöscht: Ein Fehlalarm lässt sich unten mit einem Klick zurücknehmen.', max(1, $tage)) ?>
+        <?php if ($letzte): ?><br><?= t('Zuletzt: %s', e(date('d.m.Y H:i', $letzte))) ?><?php endif; ?></p>
+    <form method="post" action="" class="inline" data-confirm="<?= t('Alle aktiven Ziele jetzt gegen Safe Browsing prüfen? Das kann bei großen Beständen dauern.') ?>">
+        <?= csrf_field() ?>
+        <input type="hidden" name="action" value="recheck">
+        <button class="btn btn-small" type="submit"><?= t('Jetzt prüfen') ?></button>
+    </form>
+    <?php endif; ?>
     <?php if ($reports === []): ?>
         <p class="muted"><?= t('Keine offenen Meldungen.') ?></p>
     <?php else: ?>

@@ -191,7 +191,11 @@ it requires.
 - **API** with access keys per account, see [API.md](API.md)
 - **Abuse protection**: rate limits per IP (only a keyed hash is stored, no
   plain addresses), a report form, a blocking function, optional Google Safe
-  Browsing
+  Browsing – optionally with a **re-check across the stock**, against targets
+  that turn malicious only after creation
+- **Backup as an archive**: one button that outputs the database (copied
+  consistently), settings, counters and logos as a ZIP with instructions –
+  for everyone who cannot reach the data directory
 - **Automatic cleanup** of never-visited links, with advance warning by mail
   (disabled by default)
 - **Storage without operations**: links and accounts in one SQLite file,
@@ -266,6 +270,7 @@ switches:
 | `custom_code_min_len` / `custom_code_quota` | Brakes against namespace squatting on public instances |
 | `mail` | `log` writes to `data/mail.log`, `smtp` really sends |
 | `safe_browsing_key` | Empty = off. See the note below |
+| `safety_recheck_days` | Re-check the stock every N days (`0` = off) |
 | `link_gc_years` | `0` = no automatic cleanup |
 | `data_dir` | Keep runtime data outside the webroot – recommended |
 | `trusted_proxies` | Addresses of upstream proxies; needed for correct rate limits |

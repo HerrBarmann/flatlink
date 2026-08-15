@@ -64,3 +64,70 @@ function url_flagged(string $url): bool
 {
     return urls_flagged([$url]) !== [];
 }
+
+/**
+ * Den Bestand erneut gegen Safe Browsing prüfen.
+ *
+ * Die Prüfung beim Anlegen fängt, was schon bösartig IST. Der häufigere Fall
+ * bei einem öffentlichen Dienst ist der andere: Eine harmlose Seite wird
+ * Wochen später übernommen, und der gedruckte Code zeigt seither auf
+ * Schadcode. Dagegen hilft nur, gelegentlich nachzusehen.
+ *
+ * Wie das Aufräumen (links_gc) hängt der Lauf an einem Zeitstempel und wird
+ * von irgendeinem Besucher ausgelöst – kein Cronjob nötig. Er kostet auch
+ * bei großen Beständen wenig, weil Safe Browsing 500 Adressen je Anfrage
+ * annimmt und nur geprüft wird, was noch nie oder lange nicht dran war.
+ *
+ * Was gefunden wird, wird NICHT gelöscht, sondern gesperrt: Der Code
+ * antwortet dann mit 410 statt weiterzuleiten, bleibt aber nachvollziehbar
+ * und wird nicht neu vergeben. Ein Fehlalarm ist damit in der
+ * Meldungsverwaltung mit einem Klick zurückzunehmen.
+ *
+ * @param bool $sofort true = ohne auf den Zeitstempel zu sehen (Knopf)
+ * @return array{geprueft:int,gesperrt:string[]}|null null = übersprungen
+ */
+function safety_recheck(bool $sofort = false): ?array
+{
+    if ((string)cfg('safe_browsing_key') === '') return null;
+    $tage = (int)cfg('safety_recheck_days');
+    if (!$sofort && $tage < 1) return null;
+
+    $marker = data_path() . '/safety-recheck.json';
+    if (!$sofort && is_file($marker) && filemtime($marker) > time() - $tage * 86400) return null;
+    json_write($marker, ['last_run' => date('c')]);
+
+    require_once __DIR__ . '/store.php';
+
+    // Nur aktive Links: Gesperrte sind schon erledigt, abgelaufene leiten
+    // ohnehin nicht mehr weiter – beide brauchen keine Anfrage an Google.
+    $kandidaten = [];
+    foreach (links_all() as $code => $l) {
+        if (!empty($l['disabled']) || link_expired($l)) continue;
+        $url = (string)($l['url'] ?? '');
+        if ($url === '') continue;
+        $kandidaten[(string)$code] = $url;
+    }
+    if ($kandidaten === []) return ['geprueft' => 0, 'gesperrt' => []];
+
+    // In Blöcken zu 500 – so viele nimmt die Schnittstelle je Anfrage an
+    $gesperrt = [];
+    foreach (array_chunk($kandidaten, 500, true) as $block) {
+        $treffer = urls_flagged(array_values($block));
+        if ($treffer === []) continue;
+        foreach ($block as $code => $url) {
+            if (!in_array($url, $treffer, true)) continue;
+            link_set_disabled($code, true);
+            $gesperrt[] = $code;
+            safety_log('recheck-gesperrt', $code, $url);
+        }
+    }
+    return ['geprueft' => count($kandidaten), 'gesperrt' => $gesperrt];
+}
+
+/** Eine Zeile ins Sicherheitsprotokoll */
+function safety_log(string $ereignis, string $code, string $url): void
+{
+    file_put_contents(data_path() . '/safety.log',
+        date('c') . ' ' . $ereignis . ' ' . $code . ' ' . $url . "\n",
+        FILE_APPEND | LOCK_EX);
+}

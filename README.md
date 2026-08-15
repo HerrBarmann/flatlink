@@ -189,7 +189,11 @@ auch alles, was sie verlangt.
   [API.md](API.md)
 - **Missbrauchsschutz**: Rate-Limits pro IP (gespeichert wird nur ein
   Schlüssel-Hash, kein Klartext), Meldeformular, Sperrfunktion, optional
-  Google Safe Browsing
+  Google Safe Browsing – auf Wunsch mit **Wiederholungslauf über den
+  Bestand**, gegen Ziele, die erst nach dem Anlegen bösartig werden
+- **Sicherung als Archiv**: ein Knopf, der Datenbank (konsistent kopiert),
+  Einstellungen, Zähler und Logos samt Anleitung als ZIP ausgibt – für alle,
+  die an das Datenverzeichnis nicht herankommen
 - **Automatisches Aufräumen** nie aufgerufener Links, mit Vorwarnung per Mail
   (standardmäßig deaktiviert)
 - **Ablage ohne Betrieb**: Links und Konten in einer SQLite-Datei, alles
@@ -263,6 +267,7 @@ Alles steckt in `inc/config.php`; die kommentierte Vorlage ist
 | `custom_code_min_len` / `custom_code_quota` | Bremsen gegen Namensraum-Squatting auf öffentlichen Instanzen |
 | `mail` | `log` schreibt nach `data/mail.log`, `smtp` versendet echt |
 | `safe_browsing_key` | Leer = aus. Siehe Warnung unten |
+| `safety_recheck_days` | Bestand alle N Tage erneut prüfen (`0` = aus) |
 | `link_gc_years` | `0` = kein automatisches Aufräumen |
 | `data_dir` | Laufzeitdaten außerhalb des Webroots ablegen – empfohlen |
 | `trusted_proxies` | Adressen vorgelagerter Proxys; nötig für korrekte Rate-Limits |
