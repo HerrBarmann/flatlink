@@ -132,6 +132,45 @@ page_header(t('Statistik'), true);
        <a class="btn" href="stats.php?c=<?= e(rawurlencode($code)) ?>&amp;format=csv"><?= t('CSV-Export') ?></a></p>
 </div>
 
+<?php
+// Woher die Aufrufe kamen – drei Merkmale, jedes eine Gruppe und keine Person.
+$dims = [
+    'refs' => [t('Herkunft'), t('Von welcher Seite aus der Kurzlink angeklickt wurde. %s steht für Direktaufrufe: getippt, aus einem QR-Code, aus einer App oder von einer Seite, die ihre Herkunft nicht mitschickt. Aufgehoben wird nur der Hostname – der Pfad einer verweisenden Seite kann eine Suchanfrage enthalten.')],
+    'devs' => [t('Gerät'), t('Grobe Gattung aus der Browser-Kennung: Handy, Tablet, Rechner. Die Kennung selbst wird nicht gespeichert.')],
+    'langs' => [t('Sprache'), t('Die bevorzugte Sprache des Browsers, auf zwei Buchstaben gekürzt.')],
+];
+$hatDims = false;
+foreach ($dims as $feld => $_) if (!empty($clicks[$feld])) $hatDims = true;
+if ($hatDims): ?>
+<div class="card">
+    <h2><?= t('Woher die Klicks kamen') ?></h2>
+    <p class="muted small"><?= t('Gezählt wird je Merkmal, nicht je Besuch: Es entsteht kein Datensatz pro Aufruf, keine Uhrzeit, keine Adresse, keine Browser-Kennung. Jede Zeile ist eine Summe über alle Aufrufe seit dem Anlegen – aus ihr lässt sich kein einzelner Besuch herauslesen.') ?></p>
+    <div class="dim-grid">
+    <?php foreach ($dims as $feld => [$titel, $hilfe]):
+        $werte = (array)($clicks[$feld] ?? []);
+        if ($werte === []) continue;
+        arsort($werte);
+        $summe = max(1, array_sum($werte)); ?>
+        <div class="dim-block">
+            <h3><?= e($titel) ?></h3>
+            <table class="dim-table">
+            <?php foreach (array_slice($werte, 0, 12, true) as $wert => $n):
+                $label = $wert === '-' ? t('Direkt') : ($wert === '*' ? t('Übrige') : $wert);
+                if ($feld === 'devs') $label = ['mobile' => t('Handy'), 'tablet' => t('Tablet'), 'desktop' => t('Rechner')][$wert] ?? $label; ?>
+                <tr>
+                    <td class="dim-name" title="<?= e((string)$wert) ?>"><?= e(mb_strimwidth((string)$label, 0, 24, '…')) ?></td>
+                    <td class="dim-bar"><span style="width:<?= round((int)$n / $summe * 100) ?>%"></span></td>
+                    <td class="dim-n"><?= (int)$n ?></td>
+                </tr>
+            <?php endforeach; ?>
+            </table>
+            <p class="muted small"><?= $hilfe === '' ? '' : e(sprintf($hilfe, '„' . t('Direkt') . '"')) ?></p>
+        </div>
+    <?php endforeach; ?>
+    </div>
+</div>
+<?php endif; ?>
+
 <?php $historie = array_reverse((array)($link['history'] ?? [])); if ($historie !== []): ?>
 <div class="card">
     <h2><?= t('Änderungen am Ziel') ?></h2>

@@ -85,6 +85,11 @@ function account_export(string $username): array
                 'gesamt' => $c['n'] ?? 0,
                 'letzter_aufruf' => $c['last'] ?? null,
                 'je_tag' => $c['days'] ?? [],
+                // Summen je Merkmal, keine Einzelaufrufe – dieselben Zahlen,
+                // die in der Statistik des Links stehen
+                'je_herkunft' => $c['refs'] ?? [],
+                'je_geraet' => $c['devs'] ?? [],
+                'je_sprache' => $c['langs'] ?? [],
             ],
         ];
     }

@@ -150,13 +150,22 @@ Löscht Link und Klickzähler. Antwort `{"deleted": "abc123"}`.
 ### `GET /links/{code}/stats`
 
 ```json
-{ "code": "abc123", "total": 42, "last": "2026-08-14", "days": { "2026-08-14": 7 } }
+{ "code": "abc123", "total": 42, "last": "2026-08-14", "days": { "2026-08-14": 7 },
+  "refs": { "google.com": 12, "-": 30 },
+  "devices": { "mobile": 28, "desktop": 14 },
+  "languages": { "de": 35, "en": 7 } }
 ```
 
-Nur so weit zurück, wie das Konto Statistik sehen darf. **`last` ist
-tagesgenau, nicht sekundengenau** — es gibt keine feinere Angabe, weil keine
-gespeichert wird. Einzelne Aufrufe existieren nicht, also auch nicht in der
-Schnittstelle: keine Herkunft, kein Gerät, kein Land.
+`refs`, `devices` und `languages` sind Summen über alle Aufrufe – keine
+Zeitreihe und kein Datensatz je Aufruf. Sie fehlen, wenn die Instanz
+`'click_dims' => false` gesetzt hat. `-` steht für Aufrufe ohne erkennbare
+Herkunft (getippt, QR-Code, App).
+
+`days` reicht nur so weit zurück, wie das Konto Statistik sehen darf.
+**`last` ist tagesgenau, nicht sekundengenau** — es gibt keine feinere Angabe,
+weil keine gespeichert wird. Einzelne Aufrufe existieren nicht, also auch nicht
+in der Schnittstelle: Es gibt keinen Endpunkt, der einen einzelnen Klick,
+seine Uhrzeit oder seine Adresse liefert, weil so etwas nirgends steht.
 
 ---
 

@@ -71,6 +71,13 @@ return [
     // Ausprobieren. Angemeldete Konten sind von beidem ausgenommen.
     'qr_rate_limit_print' => 60,
 
+    // Zählt je Kurzlink zusätzlich, WOHER die Aufrufe kamen: Hostname der
+    // verweisenden Seite, Gerätegattung (Handy/Tablet/Rechner) und Sprache –
+    // ausschließlich als Summen, ohne Datensatz je Aufruf. Aus: Es bleibt bei
+    // den reinen Zählern, und der Beleg in der Statistik ist so knapp wie
+    // möglich. Siehe SECURITY.md.
+    'click_dims' => true,
+
     // Max. Länge der Ziel-URL
     'max_url_length' => 2048,
 

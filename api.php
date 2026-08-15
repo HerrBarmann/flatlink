@@ -277,12 +277,21 @@ if ($ressource === 'links') {
             $days = array_filter($days, fn($t) => $t >= $grenze, ARRAY_FILTER_USE_KEY);
         }
         ksort($days);
-        api_out(200, [
+        $antwort = [
             'code' => $code,
             'total' => (int)($c['n'] ?? 0),
             'last' => $c['last'] ?? null,
             'days' => (object)$days,
-        ]);
+        ];
+        // Die Merkmals-Summen nur, wenn die Instanz sie überhaupt führt –
+        // sonst stünden dort drei leere Objekte, die etwas versprechen,
+        // was nicht kommt.
+        if (cfg('click_dims')) {
+            $antwort['refs'] = (object)($c['refs'] ?? []);
+            $antwort['devices'] = (object)($c['devs'] ?? []);
+            $antwort['languages'] = (object)($c['langs'] ?? []);
+        }
+        api_out(200, $antwort);
     }
 
     if ($unter !== '') api_fail(404, 'not_found', t('Diesen Endpunkt gibt es nicht.'));

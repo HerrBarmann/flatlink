@@ -87,8 +87,16 @@ halber:
   hinter die mitgelieferte Zugriffssperre.
 - **Klick-Zeitstempel sind bewusst nur tagesgenau.** Der Zähler hält fest, wie
   oft ein Link insgesamt und je Kalendertag aufgerufen wurde, dazu den Tag des
-  letzten Aufrufs – keine Uhrzeit, keine IP, keinen User-Agent, keinen Referrer
-  und keinen Datensatz je Aufruf. Ein sekundengenauer Zeitpunkt wäre bei einem
+  letzten Aufrufs – keine Uhrzeit, keine IP und keinen Datensatz je Aufruf.
+- **Herkunft, Gerätegattung und Sprache werden als Summen gezählt.** Aus der
+  Anfrage werden drei grobe Merkmale gebildet und je Link aufaddiert: der
+  Hostname der verweisenden Seite (nie der Pfad – der kann eine Suchanfrage
+  enthalten), „Handy/Tablet/Rechner" aus der Browser-Kennung und zwei
+  Buchstaben aus der Sprachliste. Gespeichert wird ausschließlich die Summe je
+  Wert; Referrer und Browser-Kennung selbst werden nicht abgelegt, und es
+  entsteht weiterhin kein Datensatz je Aufruf. Je Merkmal höchstens 40
+  verschiedene Werte, Weiteres sammelt sich unter „Übrige" – auch damit
+  niemand die Zählerdatei über erfundene Herkünfte aufblähen kann. Ein sekundengenauer Zeitpunkt wäre bei einem
   selten aufgerufenen Link der einzige Wert im Bestand, über den sich ein
   einzelner Besuch zeitlich verorten ließe. Wer feinere Statistik braucht, baut
   sie über `inc/local.php` an – und passt die Datenschutzerklärung an.

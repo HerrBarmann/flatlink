@@ -37,12 +37,23 @@ of building. Where practically every URL shortener logs **who** clicks,
 flatlink stores exactly this per link – in full, not abridged:
 
 ```json
-{ "n": 1840, "last": "2026-08-14", "days": { "2026-08-14": 72 } }
+{ "n": 1840, "last": "2026-08-14", "days": { "2026-08-14": 72 },
+  "refs": { "google.com": 210, "-": 1630 },
+  "devs": { "mobile": 1402, "desktop": 438 },
+  "langs": { "de": 1701, "en": 139 } }
 ```
 
-One counter per day. No record for individual visits, hence no IP addresses,
-no device or browser fingerprints, no referrers. No individual visitor can be
-reconstructed from this data, because no individual visitor is ever stored.
+Counters, nothing else. No record for individual visits, hence no IP addresses
+and no stored device or browser fingerprints. The lower three lines answer the
+most common question asked of any statistic – *where do my clicks come from?* –
+without following visitors to do it: three coarse attributes are derived from
+each request and **added up**. From the referrer only the hostname survives
+(never the path, which can carry a search query), from the browser identifier
+one of three words, from the language list two letters. No single visit can be
+read out of a total, because no single visit is ever stored.
+
+For anyone to whom even that is too much: switch it off
+(`'click_dims' => false`) and the first line is all that remains.
 
 Even the last visit is only recorded to the day. For a link with a handful of
 clicks, a time of day would otherwise be the single value in the whole data

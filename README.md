@@ -38,13 +38,24 @@ einher, als Bauweise. Wo praktisch jeder Kurzlink-Dienst protokolliert,
 nicht gekürzt:
 
 ```json
-{ "n": 1840, "last": "2026-08-14", "days": { "2026-08-14": 72 } }
+{ "n": 1840, "last": "2026-08-14", "days": { "2026-08-14": 72 },
+  "refs": { "google.com": 210, "-": 1630 },
+  "devs": { "mobile": 1402, "desktop": 438 },
+  "langs": { "de": 1701, "en": 139 } }
 ```
 
-Ein Zähler pro Tag. Kein Datensatz für einzelne Aufrufe, also auch keine
-IP-Adressen, keine Geräte- oder Browser-Kennungen, keine Referrer. Aus diesen
-Daten lässt sich kein einzelner Besucher rekonstruieren, weil nie ein einzelner
-Besucher gespeichert wird.
+Zähler, sonst nichts. Kein Datensatz für einzelne Aufrufe, also keine
+IP-Adressen und keine gespeicherten Geräte- oder Browser-Kennungen. Die drei
+unteren Zeilen beantworten die häufigste Frage an eine Statistik – *woher
+kommen meine Klicks?* –, ohne dafür Besucher zu verfolgen: Aus jeder Anfrage
+werden drei grobe Merkmale gebildet und **aufaddiert**. Vom Referrer bleibt nur
+der Hostname (nie der Pfad, der eine Suchanfrage enthalten kann), von der
+Browser-Kennung eines von drei Wörtern, von der Sprachliste zwei Buchstaben.
+Aus einer Summe lässt sich kein einzelner Besuch herauslesen, weil nie ein
+einzelner Besuch gespeichert wird.
+
+Wem selbst das zu viel ist, schaltet es ab (`'click_dims' => false`) und hat
+wieder genau die erste Zeile.
 
 Auch der letzte Aufruf steht nur tagesgenau da. Bei einem Link mit einer
 Handvoll Aufrufe wäre eine Uhrzeit sonst der einzige Wert im ganzen Bestand,

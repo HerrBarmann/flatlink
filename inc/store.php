@@ -520,6 +520,80 @@ function clicks_get(string $code): array
     return json_read(clicks_file($code), ['n' => 0, 'last' => null, 'days' => []]);
 }
 
+/** Wie viele verschiedene Werte je Merkmal aufgehoben werden */
+const CLICK_DIM_MAX = 40;
+
+/**
+ * Woher ein Aufruf kam – als drei grobe Merkmale, nicht als Datensatz.
+ *
+ * Die häufigste Frage an eine Statistik ist „woher kommen meine Klicks?", und
+ * sie ist der meistgenannte Grund, zu einem Dienst zu wechseln, der dafür
+ * Besucher verfolgt. Das ist nicht nötig: Herkunftsseite, Sprache und
+ * Gerätegattung stehen in der Anfrage selbst und lassen sich zählen, ohne
+ * irgendetwas über den einzelnen Besuch zu behalten.
+ *
+ * Was hier NICHT entsteht: kein Datensatz je Aufruf, keine Uhrzeit, keine
+ * Adresse, keine Browser-Kennung. Aus der Herkunft wird ausschließlich der
+ * Host genommen – der Pfad einer verweisenden Seite kann eine Suchanfrage
+ * oder eine Kennung enthalten und hat in einem Zähler nichts verloren. Aus
+ * der Sprachliste werden zwei Buchstaben, aus der Browser-Kennung eines von
+ * drei Wörtern. Damit bleibt jeder Wert eine Gruppe, keine Person.
+ *
+ * @return array<string,string> Feldname => Wert
+ */
+function click_dims(): array
+{
+    // Abschaltbar, und das ist kein Feigenblatt: Der Beleg „das hier ist
+    // alles, was gespeichert wird" ist für manche Instanz das stärkste
+    // Argument, und er wird mit jedem zusätzlichen Feld schwächer. Wer ihn
+    // in seiner knappsten Form behalten will, schaltet die Merkmale aus und
+    // hat wieder nichts als Zähler.
+    if (!cfg('click_dims')) return [];
+
+    $out = [];
+
+    $ref = (string)($_SERVER['HTTP_REFERER'] ?? '');
+    if ($ref !== '') {
+        $host = strtolower((string)(parse_url($ref, PHP_URL_HOST) ?? ''));
+        if (str_starts_with($host, 'www.')) $host = substr($host, 4);
+        // Der eigene Host ist keine Herkunft, sondern der Weg über die
+        // eigene Übersicht oder eine Bio-Seite.
+        $eigen = strtolower((string)(parse_url(base_url(), PHP_URL_HOST) ?? ''));
+        if ($host !== '' && $host !== $eigen && preg_match('/^[a-z0-9.-]{1,60}$/', $host) === 1) {
+            $out['refs'] = $host;
+        }
+    }
+    if (!isset($out['refs'])) $out['refs'] = '-';   // Direktaufruf, QR-Code, App
+
+    $al = (string)($_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? '');
+    if (preg_match('/^\s*([a-zA-Z]{2})/', $al, $m) === 1) {
+        $out['langs'] = strtolower($m[1]);
+    }
+
+    $ua = (string)($_SERVER['HTTP_USER_AGENT'] ?? '');
+    if ($ua !== '') {
+        $out['devs'] = preg_match('/iPad|Tablet|PlayBook|Silk|Android(?!.*Mobile)/i', $ua) === 1 ? 'tablet'
+            : (preg_match('/Mobi|iPhone|iPod|Android|Windows Phone/i', $ua) === 1 ? 'mobile' : 'desktop');
+    }
+    return $out;
+}
+
+/**
+ * Einen Wert in einer Merkmalsliste hochzählen.
+ *
+ * Gedeckelt bei CLICK_DIM_MAX Einträgen: Ohne Grenze könnte jemand über
+ * erfundene Herkunftsseiten die Zählerdatei beliebig wachsen lassen – sie
+ * wird bei jeder Weiterleitung geschrieben. Ist die Liste voll, wandert
+ * alles Weitere in einen Sammeleintrag; die Summe bleibt damit richtig,
+ * auch wenn die Aufschlüsselung endet.
+ */
+function click_dim_bump(array $liste, string $wert): array
+{
+    if (!isset($liste[$wert]) && count($liste) >= CLICK_DIM_MAX) $wert = '*';
+    $liste[$wert] = (int)($liste[$wert] ?? 0) + 1;
+    return $liste;
+}
+
 /**
  * Aufruf zählen.
  *
@@ -529,7 +603,8 @@ function clicks_get(string $code): array
  */
 function clicks_bump(string $code, ?int $item = null): void
 {
-    json_update(clicks_file($code), function (array $c) use ($item) {
+    $herkunft = $item === null ? click_dims() : [];
+    json_update(clicks_file($code), function (array $c) use ($item, $herkunft) {
         $today = date('Y-m-d');
         $zaehle = function (array $z) use ($today): array {
             $days = $z['days'] ?? [];
@@ -548,7 +623,11 @@ function clicks_bump(string $code, ?int $item = null): void
         if ($item === null) {
             // Die Ziel-Zähler bleiben unangetastet – deshalb wird ergänzt und
             // nicht ersetzt.
-            return $zaehle($c) + $c;
+            $neu = $zaehle($c) + $c;
+            foreach ($herkunft as $feld => $wert) {
+                $neu[$feld] = click_dim_bump((array)($neu[$feld] ?? []), $wert);
+            }
+            return $neu;
         }
         $c['items'] ??= [];
         $c['items'][(string)$item] = $zaehle((array)($c['items'][(string)$item] ?? []));
