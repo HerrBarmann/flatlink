@@ -19,6 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             (array)($_POST['limits'] ?? []), (string)($_POST['prefix'] ?? ''),
             ($_POST['art'] ?? '') === 'shared');
         flash($err ?? t('Gruppe „%s“ gespeichert.', $id), $err === null ? 'ok' : 'err');
+        if ($err === null) audit(t('Gruppe „%s“ gespeichert.', $id), $id);
     } elseif ($action === 'delete') {
         if (group_get($id) === null) {
             flash(t('Diese Gruppe gibt es nicht.'), 'err');
@@ -27,6 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             group_delete($id);
             flash(t('Gruppe „%s“ gelöscht', $id) . ($n > 0 ? ' ' . t('(%d Mitgliedschaften aufgehoben)', $n) : '')
                 . '. ' . t('Die Links der Gruppe bleiben bei ihren Besitzern.'));
+            audit(t('Gruppe „%s“ gelöscht', $id) . ($n > 0 ? ' ' . t('(%d Mitgliedschaften aufgehoben)', $n) : ''), $id);
         }
     }
     redirect_to('groups.php');

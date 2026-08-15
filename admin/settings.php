@@ -60,6 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (($_POST['domain_del'] ?? '') !== '') {
             $weg = domain_clean((string)$_POST['domain_del']);
             $liste = array_values(array_filter($liste, fn($d) => $d['host'] !== $weg));
+            audit(t('Domain „%s“ entfernt', $weg), $weg);
         } else {
             $host = domain_clean((string)($_POST['domain_host'] ?? ''));
             $grp = (string)($_POST['domain_group'] ?? '');
@@ -71,6 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $fehler = t('Diese Domain ist schon eingetragen.');
             } else {
                 $liste[] = ['host' => $host, 'group' => isset(groups_all()[$grp]) ? $grp : ''];
+                audit(t('Domain „%s“ hinzugefügt', $host), $host);
             }
         }
         if ($fehler === null) $neu['domains'] = $liste;
@@ -81,6 +83,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         settings_save($neu);
         flash(t('Einstellungen gespeichert.'));
+        audit(t('Einstellungen gespeichert.'));
     }
     redirect_to('settings.php');
 }

@@ -299,6 +299,7 @@ function sso_start_session(string $username): void
     auth_boot();
     session_regenerate_id(true);
     $_SESSION['user'] = $username;
+    session_register($username);
     $_SESSION['auth_source'] = user_get($username)['auth'] ?? 'local';
     unset($_SESSION['csrf']);
 }

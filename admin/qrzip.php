@@ -140,7 +140,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'zip')
                 $format === 'png' ? $r->png() : $r->svg(),
                 strtotime((string)($l['created'] ?? 'now')) ?: time());
 
-            $csv .= implode(';', array_map('qrzip_csv', [
+            $csv .= implode(';', array_map('csv_feld', [
                 $code, $kurz, (string)($l['url'] ?? ''), (string)($l['title'] ?? ''),
                 implode(', ', (array)($l['tags'] ?? [])),
             ])) . "\n";
@@ -173,17 +173,6 @@ function qrzip_filename(string $code, string $titel, string $format): string
     // aber kurz muss es bleiben – manche Entpacker kürzen lange Pfade hart.
     if ($slug !== '') $basis .= '-' . mb_substr($slug, 0, 40);
     return $basis . '.' . $format;
-}
-
-/** Ein CSV-Feld für die Übersicht */
-function qrzip_csv(string $wert): string
-{
-    $w = (string)preg_replace('/[\x00-\x1F\x7F]/u', '', $wert);
-    // Führendes =, +, - oder @ macht aus einem Feld in Excel eine Formel.
-    // Der Kurzlink ist harmlos, ein selbst vergebener Name muss es nicht sein.
-    if ($w !== '' && str_contains('=+-@', $w[0])) $w = "'" . $w;
-    return str_contains($w, ';') || str_contains($w, '"')
-        ? '"' . str_replace('"', '""', $w) . '"' : $w;
 }
 
 // ---- Oberfläche ---------------------------------------------------------

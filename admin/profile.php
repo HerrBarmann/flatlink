@@ -215,9 +215,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             flash(t('Die Wiederholung stimmt nicht mit dem neuen Passwort überein.'), 'err');
         } else {
             $err = user_set_password($user['name'], $new);
-            flash($err ?? 'Passwort geändert.', $err === null ? 'ok' : 'err');
+            if ($err === null) {
+                // Ein neues Passwort meldet alle anderen Geräte ab – wer es
+                // ändert, weil das alte in falsche Hände geriet, will genau das
+                sessions_revoke($user['name'], session_fingerprint());
+            }
+            flash($err ?? t('Passwort geändert. Alle anderen Sitzungen sind abgemeldet.'), $err === null ? 'ok' : 'err');
         }
     }
+    if ($action === 'session_revoke') {
+        // Einzeln oder alle anderen – die eigene Sitzung bleibt immer
+        $fp = (string)($_POST['sitzung'] ?? '');
+        if ($fp === 'andere') {
+            sessions_revoke($user['name'], session_fingerprint());
+            flash(t('Alle anderen Sitzungen sind abgemeldet.'));
+        } elseif (preg_match('/^[a-f0-9]{64}$/', $fp) === 1 && $fp !== session_fingerprint()) {
+            sessions_revoke($user['name'], null, $fp);
+            flash(t('Sitzung abgemeldet.'));
+        }
+    }
+
     redirect_to('profile.php');
 }
 
@@ -309,6 +326,45 @@ show_flash();
     </form>
     <?php endif; ?>
 
+    <h2><?= t('Sitzungen') ?></h2>
+    <p class="muted small"><?= t('Wo dieses Konto gerade angemeldet ist. Abgemeldete Sitzungen enden mit ihrem nächsten Seitenaufruf; ein Passwortwechsel meldet alle anderen von selbst ab.') ?></p>
+    <?php
+    $sitzungen = (array)(user_get($user['name'])['sessions'] ?? []);
+    // Neueste zuerst, die eigene erkennbar
+    uasort($sitzungen, fn($a, $b) => strcmp((string)($b['zuletzt'] ?? ''), (string)($a['zuletzt'] ?? '')));
+    $eigeneSitzung = session_fingerprint();
+    ?>
+    <ul class="key-list">
+        <?php foreach ($sitzungen as $fp => $sz): ?>
+        <li>
+            <div>
+                <strong><?= e((string)($sz['geraet'] ?? '') !== '' ? (string)$sz['geraet'] : t('Unbekanntes Gerät')) ?></strong>
+                <?php if ($fp === $eigeneSitzung): ?><span class="tag tag-on"><?= t('diese Sitzung') ?></span><?php endif; ?><br>
+                <span class="muted small"><?= t('angemeldet seit') ?> <?= e(date('d.m.Y H:i', strtotime((string)($sz['seit'] ?? '')))) ?>
+                    · <?= t('zuletzt aktiv') ?> <?= e(date('d.m.Y H:i', strtotime((string)($sz['zuletzt'] ?? '')))) ?></span>
+            </div>
+            <?php if ($fp !== $eigeneSitzung): ?>
+            <form method="post" action="" class="inline">
+                <?= csrf_field() ?>
+                <input type="hidden" name="action" value="session_revoke">
+                <input type="hidden" name="sitzung" value="<?= e((string)$fp) ?>">
+                <button class="btn btn-small btn-danger" type="submit"><?= t('Abmelden') ?></button>
+            </form>
+            <?php endif; ?>
+        </li>
+        <?php endforeach; ?>
+    </ul>
+    <?php if (count($sitzungen) > 1): ?>
+    <form method="post" action="" data-confirm="<?= t('Alle anderen Sitzungen abmelden? Diese hier bleibt bestehen.') ?>">
+        <?= csrf_field() ?>
+        <input type="hidden" name="action" value="session_revoke">
+        <input type="hidden" name="sitzung" value="andere">
+        <button class="btn btn-small" type="submit"><?= t('Alle anderen Sitzungen abmelden') ?></button>
+    </form>
+    <?php endif; ?>
+</div>
+
+<div class="card">
     <h2><?= t('Zwei-Faktor-Anmeldung') ?></h2>
     <?php
     $t = totp_get($user['name']);

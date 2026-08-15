@@ -6,6 +6,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/qrlib.php';
 require_once __DIR__ . '/lang.php';
 require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/audit.php';
 
 function cfg(?string $key = null): mixed
 {
@@ -137,6 +138,22 @@ function redirect_to(string $url): never
 }
 
 // ---- JSON-Dateien mit Locking ----
+
+/**
+ * Ein Feld für eine CSV-Ausgabe säubern und quoten.
+ *
+ * Steuerzeichen raus; ein führendes =, +, - oder @ macht aus einem Feld in
+ * Excel eine Formel – der Kurzlink ist harmlos, ein selbst vergebener Name
+ * muss es nicht sein. Semikolon und Anführungszeichen werden RFC-konform
+ * eingefasst.
+ */
+function csv_feld(string $wert): string
+{
+    $w = (string)preg_replace('/[\x00-\x1F\x7F]/u', '', $wert);
+    if ($w !== '' && str_contains('=+-@', $w[0])) $w = "'" . $w;
+    return str_contains($w, ';') || str_contains($w, '"') || str_contains($w, ',')
+        ? '"' . str_replace('"', '""', $w) . '"' : $w;
+}
 
 function json_read(string $file, array $default = []): array
 {
@@ -576,6 +593,7 @@ function page_header(string $title, bool $admin = false, ?string $desc = null, ?
                 'users.php' => t('Nutzer'),
                 'groups.php' => t('Gruppen'),
                 'reports.php' => t('Meldungen'),
+                'audit.php' => t('Protokoll'),
                 'settings.php' => t('Einstellungen'),
             ];
             $hier = basename((string)($_SERVER['SCRIPT_NAME'] ?? ''));

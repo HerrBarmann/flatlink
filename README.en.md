@@ -172,6 +172,14 @@ it requires.
 - **Data access and deletion in the profile**: data export as JSON and a
   button that really removes the account and its links – GDPR Art. 15, 17
   and 20 without a ticket system
+- **Session management in the profile**: a list of active sign-ins, revoke
+  one or all others; a password change signs the rest out automatically
+- **An audit log of administrative actions**: who blocked, approved or
+  changed what and when – administration only, never visitors; JSON lines,
+  ready for a central log
+- **CSV export of the link list** in the format of the built-in import –
+  whoever wants to leave takes everything along; lock-in fear is not a
+  business model
 - **Central sign-in** via LDAP/Active Directory or via the web server
   (Shibboleth, SAML, OpenID Connect) – see
   [Accounts and sign-in](docs/konten.en.md)

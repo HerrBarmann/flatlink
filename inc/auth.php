@@ -129,6 +129,128 @@ function second_factor_active(string $user): bool
     return totp_active($user) || passkeys_active($user);
 }
 
+// ---- Sitzungen je Konto ---------------------------------------------------
+//
+// Jede Anmeldung wird am Konto vermerkt – als Hash der Session-Kennung, nie
+// als Kennung selbst: Wer die Ablage liest, kann damit keine Sitzung
+// übernehmen. So bekommt das Profil eine Liste der aktiven Anmeldungen und
+// den Hebel „überall sonst abmelden": Was nicht (mehr) im Verzeichnis
+// steht, ist bei der nächsten Anfrage abgemeldet. Ein Passwortwechsel
+// widerruft die übrigen Sitzungen gleich mit.
+//
+// Konten aus der Zeit vor dieser Liste haben das Feld noch nicht – ihre
+// laufende Sitzung bleibt gültig und trägt sich beim nächsten Aufruf selbst
+// ein, statt alle beim Update auszusperren.
+
+/** Der Fingerabdruck dieser Sitzung – ein Hash, nie die Kennung selbst */
+function session_fingerprint(): string
+{
+    return hash('sha256', session_id());
+}
+
+/**
+ * Grobe Gerätekennzeichnung für die Liste im Profil – Browser- und
+ * Systemfamilie, ohne Versionen: gerade genug, um die eigene Sitzung von
+ * einer fremden zu unterscheiden, und zu wenig für ein Fingerprinting.
+ */
+function session_geraet(): string
+{
+    $ua = (string)($_SERVER['HTTP_USER_AGENT'] ?? '');
+    $browser = match (true) {
+        str_contains($ua, 'Firefox') => 'Firefox',
+        str_contains($ua, 'Edg') => 'Edge',
+        str_contains($ua, 'OPR') || str_contains($ua, 'Opera') => 'Opera',
+        str_contains($ua, 'Chrome') => 'Chrome',
+        str_contains($ua, 'Safari') => 'Safari',
+        $ua === '' => '',
+        default => t('Browser'),
+    };
+    $system = match (true) {
+        str_contains($ua, 'Android') => 'Android',
+        str_contains($ua, 'iPhone') || str_contains($ua, 'iPad') => 'iOS',
+        str_contains($ua, 'Windows') => 'Windows',
+        str_contains($ua, 'Mac OS') => 'macOS',
+        str_contains($ua, 'Linux') => 'Linux',
+        default => '',
+    };
+    return trim($browser . ($browser !== '' && $system !== '' ? ' · ' : '') . $system);
+}
+
+/** Die laufende Sitzung am Konto vermerken (bei jeder Anmeldung) */
+function session_register(string $username): void
+{
+    $fp = session_fingerprint();
+    users_update(function (array $users) use ($username, $fp) {
+        if (!isset($users[$username])) return null;
+        $s = (array)($users[$username]['sessions'] ?? []);
+        $s[$fp] = ['seit' => date('c'), 'zuletzt' => date('c'), 'geraet' => session_geraet()];
+        // Höchstens zehn: mehr parallele Anmeldungen hat niemand, und die
+        // Liste im Profil soll eine Liste bleiben, kein Archiv
+        if (count($s) > 10) {
+            uasort($s, fn($a, $b) => strcmp((string)($a['zuletzt'] ?? ''), (string)($b['zuletzt'] ?? '')));
+            $s = array_slice($s, count($s) - 10, null, true);
+        }
+        $users[$username]['sessions'] = $s;
+        return $users;
+    }, $username);
+}
+
+/**
+ * Gilt die laufende Sitzung noch? Nebenbei: Altbestand trägt sich nach,
+ * und der Zeitstempel wird höchstens alle zehn Minuten geschrieben – nicht
+ * bei jeder Anfrage.
+ *
+ * @return bool false = widerrufen, die Sitzung ist zu beenden
+ */
+function session_check(string $username, array $u): bool
+{
+    // Einmal je Anfrage genügt – auth_user() läuft viele Male
+    static $ergebnis = null;
+    if ($ergebnis !== null) return $ergebnis;
+
+    $fp = session_fingerprint();
+    if (!isset($u['sessions'])) {
+        // Konto aus der Zeit vor der Sitzungsliste: gültig, und ab jetzt geführt
+        session_register($username);
+        return $ergebnis = true;
+    }
+    if (!isset($u['sessions'][$fp])) {
+        return $ergebnis = false;  // widerrufen (oder woanders abgemeldet)
+    }
+    $zuletzt = strtotime((string)($u['sessions'][$fp]['zuletzt'] ?? '')) ?: 0;
+    if ($zuletzt < time() - 600) {
+        users_update(function (array $users) use ($username, $fp) {
+            if (!isset($users[$username]['sessions'][$fp])) return null;
+            $users[$username]['sessions'][$fp]['zuletzt'] = date('c');
+            return $users;
+        }, $username);
+    }
+    return $ergebnis = true;
+}
+
+/**
+ * Sitzungen eines Kontos widerrufen.
+ *
+ * $behalten nennt den Fingerabdruck, der bleiben darf (die eigene Sitzung
+ * bei „überall sonst abmelden"); $einzeln widerruft genau einen. Ohne
+ * beides fliegen alle – etwa wenn ein Administrator ein fremdes Passwort
+ * neu setzt.
+ */
+function sessions_revoke(string $username, ?string $behalten = null, ?string $einzeln = null): void
+{
+    users_update(function (array $users) use ($username, $behalten, $einzeln) {
+        if (!isset($users[$username])) return null;
+        $s = (array)($users[$username]['sessions'] ?? []);
+        if ($einzeln !== null) {
+            unset($s[$einzeln]);
+        } else {
+            $s = $behalten !== null && isset($s[$behalten]) ? [$behalten => $s[$behalten]] : [];
+        }
+        $users[$username]['sessions'] = $s;
+        return $users;
+    }, $username);
+}
+
 function auth_pending(): ?string
 {
     $n = $_SESSION['pending_user'] ?? null;
@@ -148,6 +270,7 @@ function auth_pending_complete(): void
     session_regenerate_id(true);
     unset($_SESSION['pending_user'], $_SESSION['pending_since'], $_SESSION['csrf']);
     $_SESSION['user'] = $n;
+    session_register($n);
 }
 
 /** @return ?array{name:string,role:string,auth:string,display:string} */
@@ -157,6 +280,12 @@ function auth_user(): ?array
     if (!is_string($name)) return null;
     $u = user_get($name);
     if ($u === null) return null;
+    // Widerrufene Sitzung: hier endet sie – beim nächsten Aufruf jeder
+    // geschützten Seite, egal wo sie herkam
+    if (!session_check($name, $u)) {
+        auth_logout();
+        return null;
+    }
     return [
         'name' => $name,
         'role' => $u['role'],
@@ -275,6 +404,7 @@ function auth_login(string $username, string $password, ?bool &$needs2fa = null)
             return true;
         }
         $_SESSION['user'] = $username;
+        session_register($username);
         return true;
     }
     $t['fails']++;
@@ -313,6 +443,11 @@ function login_failure_note(): void
 
 function auth_logout(): void
 {
+    // Erst austragen, dann zerstören – solange die Kennung noch da ist
+    $name = $_SESSION['user'] ?? null;
+    if (is_string($name) && session_id() !== '') {
+        sessions_revoke($name, null, session_fingerprint());
+    }
     $_SESSION = [];
     if (ini_get('session.use_cookies')) {
         $p = session_get_cookie_params();

@@ -24,6 +24,7 @@ if (!$closed && isset($_GET['token'])) {
         if ($err === null) {
             session_regenerate_id(true);
             $_SESSION['user'] = $d['email'];
+            session_register($d['email']);
             unset($_SESSION['csrf']);
             flash(t('Konto bestätigt – willkommen!'));
             redirect_to('admin/');

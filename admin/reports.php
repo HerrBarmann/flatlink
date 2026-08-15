@@ -18,12 +18,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'block' && lookup_code_ok($code)) {
         link_set_disabled($code, true);
         flash(t('Kurzlink „%s“ gesperrt.', $code));
+        audit(t('Kurzlink „%s“ gesperrt.', $code), $code);
     } elseif ($action === 'unblock' && lookup_code_ok($code)) {
         link_set_disabled($code, false);
         flash(t('Kurzlink „%s“ entsperrt.', $code));
+        audit(t('Kurzlink „%s“ entsperrt.', $code), $code);
     } elseif ($action === 'dismiss' && preg_match('/^[0-9-]+-[a-f0-9]{8}\.json$/', $file) && is_file($reportsDir . '/' . $file)) {
         unlink($reportsDir . '/' . $file);
         flash(t('Meldung erledigt.'));
+        audit(t('Meldung erledigt.'), $code ?? '');
     }
     redirect_to('reports.php');
 }

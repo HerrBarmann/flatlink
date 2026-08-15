@@ -169,6 +169,15 @@ auch alles, was sie verlangt.
 - **Auskunft und Löschung im Profil**: Datenexport als JSON und ein Knopf, der
   Konto und Links wirklich entfernt – Art. 15, 17 und 20 DSGVO ohne
   Ticketsystem
+- **Sitzungsverwaltung im Profil**: Liste der aktiven Anmeldungen, einzeln
+  oder alle anderen abmelden; ein Passwortwechsel meldet die übrigen von
+  selbst ab
+- **Protokoll der Verwaltungshandlungen**: wer hat wann gesperrt,
+  freigeschaltet, geändert – nur Verwaltung, nie Besucher; als JSON-Zeilen
+  auch für ein zentrales Log geeignet
+- **CSV-Export der Linkliste** im Format des eigenen Imports – wer gehen
+  will, nimmt alles mit; die Angst vor dem Eingesperrtsein ist kein
+  Geschäftsmodell
 - **Zentrale Anmeldung** über LDAP/Active Directory oder über den Webserver
   (Shibboleth, SAML, OpenID Connect) – siehe [Konten und Anmeldung](docs/konten.md)
 - **Gruppen** in zwei Betriebsarten: als Rechtegruppe (Berechtigungen und

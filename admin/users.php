@@ -24,6 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             user_set_display_name($name, (string)($_POST['display_name'] ?? ''));
         }
         flash($err ?? t('Nutzer %s angelegt.', $name), $err === null ? 'ok' : 'err');
+        if ($err === null) audit(t('Nutzer %s angelegt.', $name), $name);
     } elseif ($action === 'display') {
         $err = user_set_display_name($name, (string)($_POST['display_name'] ?? ''));
         flash($err ?? t('Anzeigename von %s: %s.', $name, user_has_display($name) ? user_display($name) : t('(keiner)')),
@@ -31,6 +32,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ($action === 'password') {
         $err = user_set_password($name, (string)($_POST['password'] ?? ''));
         flash($err ?? t('Passwort von %s geändert.', $name), $err === null ? 'ok' : 'err');
+        if ($err === null) {
+            audit(t('Passwort von %s geändert.', $name), $name);
+            // Ein fremdgesetztes Passwort beendet alle Sitzungen des Kontos –
+            // wer es bekommt, meldet sich damit neu an
+            sessions_revoke($name);
+        }
     } elseif ($action === 'groups') {
         if (user_get($name) === null) {
             flash(t('Nutzer nicht gefunden.'), 'err');
@@ -38,6 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $until = trim((string)($_POST['until'] ?? ''));
             user_set_groups($name, (array)($_POST['groups'] ?? []), $until === '' ? null : $until);
             $now = user_groups($name);
+            audit(t('Gruppen von %s: %s', $name, $now === [] ? t('keine') : implode(', ', $now)), $name);
             flash(t('Gruppen von %s: %s', $name, $now === [] ? t('keine') : implode(', ', array_map('group_label', $now)))
                 . ($until !== '' ? ' ' . t('(befristet bis %s)', date('d.m.Y', strtotime($until))) : '') . '.');
         }
@@ -48,6 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             $err = user_set_role($name, $role);
             flash($err ?? t('Rolle von %s: %s.', $name, $role), $err === null ? 'ok' : 'err');
+            if ($err === null) audit(t('Rolle von %s: %s.', $name, $role), $name);
         }
     } elseif ($action === 'reset2fa') {
         // Der Weg zurück, wenn jemand sein Gerät verloren hat. Ein Passkey
@@ -62,20 +71,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             totp_disable($name);
             passkeys_drop_user($name);
             flash(t('Zweite Stufe für %s zurückgesetzt. Vergewissere dich, dass die Anfrage wirklich von dieser Person kam – danach schützt nur noch das Passwort.', $name));
+            audit(t('Zweite Stufe für %s zurückgesetzt', $name), $name);
         }
     } elseif ($action === 'approve') {
         $err = pending_user_approve($name, (string)($_POST['source'] ?? 'sso'));
         flash($err ?? t('Zugang für %s freigeschaltet – die nächste Anmeldung geht durch.', $name),
             $err === null ? 'ok' : 'err');
+        if ($err === null) audit(t('Zugang für %s freigeschaltet – die nächste Anmeldung geht durch.', $name), $name);
     } elseif ($action === 'reject') {
         pending_user_drop($name);
         flash(t('Anfrage verworfen. Bei einem erneuten Anmeldeversuch taucht sie wieder auf.'));
+        audit(t('Anfrage verworfen. Bei einem erneuten Anmeldeversuch taucht sie wieder auf.'), (string)($_POST['username'] ?? ''));
     } elseif ($action === 'delete') {
         if ($name === $user['name']) {
             flash(t('Du kannst dich nicht selbst löschen.'), 'err');
         } else {
             $err = user_delete($name);
             flash($err ?? t('Nutzer %s gelöscht. Seine Links bleiben bestehen.', $name), $err === null ? 'ok' : 'err');
+            if ($err === null) audit(t('Nutzer %s gelöscht. Seine Links bleiben bestehen.', $name), $name);
         }
     }
     redirect_to('users.php');

@@ -149,6 +149,38 @@ if ($q !== '') {
 }
 uasort($links, fn($a, $b) => strcmp($b['created'], $a['created']));
 
+// CSV-Export des gefilterten Bestands – bewusst im Format des eigenen
+// Imports (die Kopfzeile wird dort an den Namen erkannt): Wer exportiert,
+// kann dieselbe Datei anderswo oder hier wieder einlesen. Der Rückweg ist
+// kein Zusatz, sondern das Gegenstück zum Umzug HIERHER – niemand soll
+// bleiben müssen, weil er seine Links nicht mitnehmen kann.
+if (($_GET['export'] ?? '') === 'csv') {
+    $csv = "code;url;name;schlagworte;ablaufdatum;gruppe;domain;klicks;angelegt
+";
+    foreach ($links as $code => $l) {
+        $csv .= implode(';', array_map('csv_feld', [
+            (string)$code,
+            (string)($l['url'] ?? ''),
+            (string)($l['title'] ?? ''),
+            implode(', ', (array)($l['tags'] ?? [])),
+            (string)($l['expires'] ?? ''),
+            (string)($l['group'] ?? ''),
+            (string)($l['domain'] ?? ''),
+            (string)(int)(clicks_get((string)$code)['n'] ?? 0),
+            (string)($l['created'] ?? ''),
+        ])) . "
+";
+    }
+    nosniff_header();
+    header('Content-Type: text/csv; charset=UTF-8');
+    header('Content-Disposition: attachment; filename="links-' . date('Y-m-d') . '.csv"');
+    header('Cache-Control: no-store');
+    // BOM, damit Excel die Umlaute nicht verstümmelt – dieselbe Rücksicht
+    // wie beim Serien-Export und beim Datenexport im Profil
+    echo "ï»¿" . $csv;
+    exit;
+}
+
 // Blättern: 50 je Seite, neueste zuerst. $links bleibt der ganze gefilterte
 // Bestand (für Zählung, Tag-Wolke und den Serien-Knopf), gerendert wird nur
 // das aufgeschlagene Blatt – und nur dessen Klickzähler werden gelesen.
@@ -416,6 +448,7 @@ if ($neu !== null && link_access($user, $neu)):
     ?>
     <p class="muted small" style="margin:0 0 0.5rem">
         <a class="btn btn-small" href="qrzip.php<?= $serieFilter !== [] ? '?' . e(http_build_query($serieFilter)) : '' ?>"><?= t('QR-Codes dieser %d Links als ZIP', count($links)) ?></a>
+        <a class="btn btn-small" href="index.php?<?= e(http_build_query($serieFilter + ['export' => 'csv'])) ?>"><?= t('CSV-Export') ?></a>
     </p>
     <div class="link-list">
         <?php foreach ($blatt as $code => $link):
