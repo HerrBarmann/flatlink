@@ -5,6 +5,7 @@ declare(strict_types=1);
 // flatlink · Zusatzbedingung zur Namensnennung nach §7(b) AGPL: siehe LICENSE
 require_once __DIR__ . '/qrlib.php';
 require_once __DIR__ . '/lang.php';
+require_once __DIR__ . '/db.php';
 
 function cfg(?string $key = null): mixed
 {

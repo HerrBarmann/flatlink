@@ -186,6 +186,8 @@ it requires.
   Browsing
 - **Automatic cleanup** of never-visited links, with advance warning by mail
   (disabled by default)
+- **Optional SQLite backend** for large instances – one file instead of a
+  database server, see [How the data is stored](#how-the-data-is-stored)
 
 ## Requirements
 
@@ -254,6 +256,7 @@ switches:
 | `mail` | `log` writes to `data/mail.log`, `smtp` really sends |
 | `safe_browsing_key` | Empty = off. See the note below |
 | `link_gc_years` | `0` = no automatic cleanup |
+| `storage` | `json` (default: files) or `sqlite` for large instances |
 | `data_dir` | Keep runtime data outside the webroot – recommended |
 | `trusted_proxies` | Addresses of upstream proxies; needed for correct rate limits |
 
@@ -307,14 +310,26 @@ million links: the limit check on creation dropped from 1.2 seconds to half a
 millisecond, and an account's link list runs within PHP's default memory
 limit instead of far beyond it.
 
-This construction is deliberately meant for small to medium instances. The
-storage sits entirely behind a handful of functions (`inc/store.php`,
-`inc/auth.php`) – a database backend for very large instances would have to
-replace exactly these spots, not rebuild the project. Today's practical limit
-is the accounts file: from a few tens of thousands of accounts, `users.json`
-needs more than PHP's usual memory limit – that is where database territory
-begins. The same holds for very many concurrent writes – in exchange,
-flatlink needs neither setup nor maintenance nor migrations.
+This construction is deliberately meant for small to medium instances – in
+exchange it needs neither setup nor maintenance nor migrations.
+
+**For large instances there is a SQLite backend** (`'storage' => 'sqlite'`):
+links and accounts then live in one SQLite file, everything else stays as it
+is. That is not infrastructure – no server, nothing to maintain, the
+`pdo_sqlite` extension ships with practically every PHP, and the backup
+remains copying the `data/` folder. Migrating is one run of
+`php migrate-sqlite.php` plus flipping the switch; the JSON files stay in
+place as a safety net. Measured on an instance with one million links and
+**a hundred thousand accounts**: the login page in 9 ms and a single account
+in 0.01 ms, where the single `users.json` previously failed at PHP's memory
+limit; a redirect lookup takes 0.01 ms. The full record sits as JSON in a
+`data` column – the same truth as in the file store, just kept differently;
+the remaining columns are derived copies for searching.
+
+One honest limit remains: the admin's full list over *millions* of links still
+loads the whole stock into memory even with the database – whoever really
+gets there raises `memory_limit`. A per-page query is the next step, when
+someone needs it.
 
 ## What's not included
 
@@ -354,8 +369,10 @@ once through the URL, and compared byte by byte.
 
 Bug reports and pull requests are welcome. One request up front: the freedom
 from dependencies is not an accident but the core of the project. A patch
-that introduces Composer, a build step or a database will not be merged –
-even if it makes things more elegant.
+that requires Composer, a build step or a database *server*, or that
+replaces the file store as the default, will not be merged – even if it
+makes things more elegant. (The optional SQLite backend passes this test:
+one file, no infrastructure, and the default remains the file store.)
 
 ## License
 

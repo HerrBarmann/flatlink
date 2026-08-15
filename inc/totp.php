@@ -150,7 +150,7 @@ function totp_begin(string $user): string
         if (!isset($users[$user])) return null;
         $users[$user]['totp'] = ['secret' => $secret, 'confirmed' => false, 'last' => 0, 'recovery' => []];
         return $users;
-    });
+    }, $user);
     return $secret;
 }
 
@@ -188,7 +188,7 @@ function totp_confirm(string $user, string $eingabe): ?array
         $users[$user]['totp']['last'] = $c;
         $users[$user]['totp']['recovery'] = $hashes;
         return $users;
-    });
+    }, $user);
     return $klar;
 }
 
@@ -209,7 +209,7 @@ function totp_check(string $user, string $eingabe): bool
             if (!isset($users[$user]['totp'])) return null;
             $users[$user]['totp']['last'] = $c;
             return $users;
-        });
+        }, $user);
         return true;
     }
 
@@ -228,7 +228,7 @@ function totp_check(string $user, string $eingabe): bool
             }
         }
         return null;
-    });
+    }, $user);
     return $treffer;
 }
 
@@ -239,7 +239,7 @@ function totp_disable(string $user): void
         if (!isset($users[$user]['totp'])) return null;
         unset($users[$user]['totp']);
         return $users;
-    });
+    }, $user);
 }
 
 /** Wie viele Wiederherstellungscodes noch übrig sind */

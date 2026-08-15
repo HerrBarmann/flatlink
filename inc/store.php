@@ -80,6 +80,9 @@ function link_shard_file(string $code): string
  */
 function links_all(): array
 {
+    if (($pdo = db()) !== null) {
+        return db_links_rows($pdo->query('SELECT code, data FROM links'));
+    }
     $all = [];
     foreach (link_store_files() as $f) {
         foreach (json_read($f) as $code => $l) $all[$code] = $l;
@@ -93,6 +96,14 @@ function links_all(): array
  */
 function link_get(string $code): ?array
 {
+    if (($pdo = db()) !== null) {
+        $st = $pdo->prepare('SELECT data FROM links WHERE code = ?');
+        $st->execute([$code]);
+        $zeile = $st->fetch();
+        if ($zeile === false) return null;
+        $d = json_decode((string)$zeile['data'], true);
+        return is_array($d) ? $d : null;
+    }
     if (!links_sharded()) return json_read(links_file())[$code] ?? null;
     return json_read(link_shard_file($code))[$code] ?? null;
 }
@@ -116,6 +127,33 @@ function link_store_files(): array
  */
 function link_write(string $code, callable $fn): bool
 {
+    if (($pdo = db()) !== null) {
+        // BEGIN IMMEDIATE nimmt das Schreib-Lock sofort – das Gegenstück zum
+        // flock der Datei-Ablage: lesen, ändern, schreiben als ein Vorgang.
+        $pdo->exec('BEGIN IMMEDIATE');
+        try {
+            $st = $pdo->prepare('SELECT data FROM links WHERE code = ?');
+            $st->execute([$code]);
+            $zeile = $st->fetch();
+            $alt = $zeile === false ? null : json_decode((string)$zeile['data'], true);
+            $neu = $fn(is_array($alt) ? $alt : null);
+            if ($neu === false) {                     // false = nichts ändern
+                $pdo->exec('ROLLBACK');
+                return false;
+            }
+            if ($neu === null) {
+                $del = $pdo->prepare('DELETE FROM links WHERE code = ?');
+                $del->execute([$code]);
+            } else {
+                db_link_put($pdo, $code, $neu);
+            }
+            $pdo->exec('COMMIT');
+            return true;
+        } catch (Throwable $e) {
+            $pdo->exec('ROLLBACK');
+            throw $e;
+        }
+    }
     $file = links_sharded() ? link_shard_file($code) : links_file();
     // Frische Instanz: Markierung anlegen, sobald zum ersten Mal geschrieben
     // wird. Ab da ist der Zustand ausdrücklich festgehalten.
@@ -177,6 +215,9 @@ function group_index_file(): string
  */
 function link_index_ready(): bool
 {
+    // Mit Datenbank gibt es keinen Datei-Index – dort beantworten die
+    // Spalten owner und grp dieselben Fragen unmittelbar.
+    if (db() !== null) return false;
     if (!links_sharded()) return false;
     if (is_file(owner_index_dir() . '/fertig')) return true;
 
@@ -224,6 +265,7 @@ function link_index_ready(): bool
 /** Einen Link im Index eintragen (nach dem Schreiben in die Ablage) */
 function link_index_add(string $code, ?string $owner, ?string $group, string $type): void
 {
+    if (db() !== null) return; // die Spalten schreibt link_write bereits mit
     if (!is_file(owner_index_dir() . '/fertig')) return;
     if (is_string($owner) && $owner !== '') {
         json_update(owner_index_file($owner), function (array $idx) use ($owner, $code, $type) {
@@ -248,6 +290,7 @@ function link_index_add(string $code, ?string $owner, ?string $group, string $ty
  */
 function link_index_remove(string $code, ?string $owner, ?string $group): void
 {
+    if (db() !== null) return;
     if (!is_file(owner_index_dir() . '/fertig')) return;
     if (is_string($owner) && $owner !== '') {
         json_update(owner_index_file($owner), function (array $idx) use ($owner, $code) {
@@ -277,6 +320,11 @@ function link_index_remove(string $code, ?string $owner, ?string $group): void
  */
 function links_of_owner(string $owner): array
 {
+    if (($pdo = db()) !== null) {
+        $st = $pdo->prepare('SELECT code, data FROM links WHERE owner = ?');
+        $st->execute([$owner]);
+        return db_links_rows($st);
+    }
     if (!link_index_ready()) {
         return array_filter(links_all(), fn($l) => ($l['owner'] ?? null) === $owner);
     }
@@ -297,6 +345,11 @@ function links_of_owner(string $owner): array
 /** Die Codes einer Arbeitsgruppe @return string[] */
 function link_codes_of_group(string $group): array
 {
+    if (($pdo = db()) !== null) {
+        $st = $pdo->prepare('SELECT code FROM links WHERE grp = ?');
+        $st->execute([$group]);
+        return array_map('strval', $st->fetchAll(PDO::FETCH_COLUMN));
+    }
     if (!link_index_ready()) return [];
     return array_keys(json_read(group_index_file())[$group] ?? []);
 }
@@ -603,6 +656,11 @@ function link_set_group(string $code, ?string $group): bool
 /** Anzahl aktiver Wunsch-Codes eines Kontos (für das Pro-Kontingent) */
 function custom_code_count(string $owner): int
 {
+    if (($pdo = db()) !== null) {
+        $st = $pdo->prepare("SELECT COUNT(*) FROM links WHERE owner = ? AND type = 'custom'");
+        $st->execute([$owner]);
+        return (int)$st->fetchColumn();
+    }
     if (link_index_ready()) {
         $meine = json_read(owner_index_file($owner))[$owner] ?? [];
         return count(array_filter($meine, fn($typ) => $typ === 'custom'));
@@ -617,6 +675,11 @@ function custom_code_count(string $owner): int
 /** Anzahl aller aktiven Links eines Kontos (für das Tarif-Limit) */
 function link_count(string $owner): int
 {
+    if (($pdo = db()) !== null) {
+        $st = $pdo->prepare('SELECT COUNT(*) FROM links WHERE owner = ?');
+        $st->execute([$owner]);
+        return (int)$st->fetchColumn();
+    }
     if (link_index_ready()) {
         return count(json_read(owner_index_file($owner))[$owner] ?? []);
     }

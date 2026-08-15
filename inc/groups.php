@@ -238,7 +238,7 @@ function user_set_groups(string $username, array $groups, ?string $until = null)
             $users[$username]['groups_until'] = $map;
         }
         return $users;
-    });
+    }, $username);
 }
 
 /** @return string[] Kontonamen mit gültiger Mitgliedschaft in dieser Gruppe */
@@ -380,7 +380,7 @@ function links_visible(array $user): array
     // Index liefert nur die Kandidaten – ob ein Link wirklich sichtbar ist,
     // entscheidet weiterhin link_access(), dieselbe Prüfung wie zuvor. Ohne
     // Index (Altbestand, Aufbau läuft gerade woanders) der alte Vollscan.
-    if (link_index_ready()) {
+    if (db() !== null || link_index_ready()) {
         $kandidaten = links_of_owner($user['name']);
         foreach (user_shared_groups($user['name']) as $gid) {
             foreach (link_codes_of_group($gid) as $code) {

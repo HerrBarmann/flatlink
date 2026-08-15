@@ -38,7 +38,7 @@ $perms = perms_all();
 
 // Links je Gruppe zählen, damit sichtbar ist, was an einer Gruppe hängt
 $linkCount = [];
-if (link_index_ready()) {
+if (db() !== null || link_index_ready()) {
     foreach (array_keys($groups) as $gid) {
         $n = count(link_codes_of_group((string)$gid));
         if ($n > 0) $linkCount[(string)$gid] = $n;

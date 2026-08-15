@@ -240,7 +240,7 @@ function passkey_user_handle(string $user): string
         if (!isset($users[$user]) || ($users[$user]['wa_handle'] ?? '') !== '') return null;
         $users[$user]['wa_handle'] = $h;
         return $users;
-    });
+    }, $user);
     return $h;
 }
 
@@ -422,7 +422,7 @@ function passkey_register(string $user, array $antwort, string $label): ?string
         ];
         $users[$user]['passkeys'] = array_values($liste);
         return $users;
-    });
+    }, $user);
     return $doppelt ? 'Dieser Passkey ist bereits hinterlegt (oder es sind schon zehn).' : null;
 }
 
@@ -484,7 +484,7 @@ function passkey_verify(string $user, array $antwort): ?string
             }
         }
         return null;
-    });
+    }, $user);
     return null;
 }
 
@@ -499,7 +499,7 @@ function passkey_remove(string $user, string $id): bool
         $weg = true;
         if ($neu === []) unset($users[$user]['passkeys']); else $users[$user]['passkeys'] = $neu;
         return $users;
-    });
+    }, $user);
     return $weg;
 }
 
@@ -510,5 +510,5 @@ function passkeys_drop_user(string $user): void
         if (!isset($users[$user]['passkeys'])) return null;
         unset($users[$user]['passkeys']);
         return $users;
-    });
+    }, $user);
 }

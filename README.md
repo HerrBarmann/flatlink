@@ -183,6 +183,8 @@ auch alles, was sie verlangt.
   Google Safe Browsing
 - **Automatisches Aufräumen** nie aufgerufener Links, mit Vorwarnung per Mail
   (standardmäßig deaktiviert)
+- **Optionales SQLite-Backend** für große Instanzen – eine Datei statt eines
+  Datenbank-Servers, siehe [Wie die Daten liegen](#wie-die-daten-liegen)
 
 ## Voraussetzungen
 
@@ -250,6 +252,7 @@ Alles steckt in `inc/config.php`; die kommentierte Vorlage ist
 | `mail` | `log` schreibt nach `data/mail.log`, `smtp` versendet echt |
 | `safe_browsing_key` | Leer = aus. Siehe Warnung unten |
 | `link_gc_years` | `0` = kein automatisches Aufräumen |
+| `storage` | `json` (Vorgabe: Dateien) oder `sqlite` für große Instanzen |
 | `data_dir` | Laufzeitdaten außerhalb des Webroots ablegen – empfohlen |
 | `trusted_proxies` | Adressen vorgelagerter Proxys; nötig für korrekte Rate-Limits |
 
@@ -306,14 +309,27 @@ neu aufbaut. Gemessen bei einer Million Links: Die Limit-Prüfung beim Anlegen
 fiel von 1,2 Sekunden auf eine halbe Millisekunde, die Linkliste eines Kontos
 läuft in der Standard-Speichergrenze von PHP statt weit darüber.
 
-Diese Bauweise ist bewusst für kleine bis mittlere Instanzen gedacht. Die
-Ablage liegt vollständig hinter einer Handvoll Funktionen (`inc/store.php`,
-`inc/auth.php`) – ein Datenbank-Backend für sehr große Instanzen müsste genau
-diese Stellen ersetzen, nicht das Projekt umbauen. Die praktische Grenze ist
-heute die Konten-Datei: Ab einigen zehntausend Konten braucht `users.json`
-mehr als PHPs übliche Speichergrenze – dort beginnt das Gebiet der Datenbank.
-Bei sehr vielen gleichzeitigen Schreibzugriffen ebenso – dafür braucht
-flatlink im Gegenzug weder Einrichtung noch Wartung noch Migration.
+Diese Bauweise ist bewusst für kleine bis mittlere Instanzen gedacht – dafür
+braucht sie weder Einrichtung noch Wartung noch Migration.
+
+**Für große Instanzen gibt es ein SQLite-Backend** (`'storage' => 'sqlite'`):
+Links und Konten liegen dann in einer SQLite-Datei, alles Übrige bleibt wie
+gehabt. Das ist keine Infrastruktur – kein Server, nichts zu warten, die
+Erweiterung `pdo_sqlite` bringt praktisch jedes PHP mit, und das Backup
+bleibt das Kopieren des `data/`-Ordners. Der Umzug ist ein Aufruf von
+`php migrate-sqlite.php` plus das Umlegen des Schalters; die JSON-Dateien
+bleiben als Sicherung liegen. Gemessen an einer Instanz mit einer Million
+Links und **hunderttausend Konten**: Anmeldeseite 9 ms und ein einzelnes
+Konto in 0,01 ms, wo die eine `users.json` vorher an PHPs Speichergrenze
+scheiterte; die Weiterleitung liegt bei 0,01 ms je Nachschlag. Der
+vollständige Datensatz liegt dabei als JSON in einer `data`-Spalte –
+dieselbe Wahrheit wie in der Datei-Ablage, nur anders abgelegt; die übrigen
+Spalten sind abgeleitete Kopien für die Suche.
+
+Eine ehrliche Grenze bleibt: Die Admin-Gesamtliste über *Millionen* Links
+lädt auch mit Datenbank den ganzen Bestand in den Speicher – wer wirklich
+dort ankommt, hebt `memory_limit` an. Die gezielte Abfrage je Seite ist der
+nächste Schritt, wenn ihn jemand braucht.
 
 ## Was nicht drin ist
 
@@ -354,8 +370,11 @@ Renderer und einmal über die Adresse, und Byte für Byte verglichen.
 
 Fehlerberichte und Pull Requests sind willkommen. Eine Bitte vorab: Die
 Abhängigkeitsfreiheit ist kein Zufall, sondern der Kern des Projekts. Ein
-Patch, der Composer, einen Build-Schritt oder eine Datenbank einführt, wird
-nicht übernommen – auch wenn er die Sache eleganter macht.
+Patch, der Composer, einen Build-Schritt oder einen Datenbank-*Server*
+voraussetzt oder die Datei-Ablage als Vorgabe ersetzt, wird nicht
+übernommen – auch wenn er die Sache eleganter macht. (Das optionale
+SQLite-Backend besteht diese Prüfung: eine Datei, keine Infrastruktur,
+und die Vorgabe bleibt die Datei-Ablage.)
 
 ## Lizenz
 

@@ -253,7 +253,12 @@ function user_provision(string $username, string $source, ?string $email, array 
     }
     $err = null;
     $display = $display === null ? null : trim((string)preg_replace('/[\x00-\x1F\x7F]/u', '', $display));
-    users_update(function (array $users) use ($username, $source, $email, $groups, $autoCreate, $display, &$err) {
+    // Vor dem Schreiben, nicht darin: Ob dies das allererste Konto der
+    // Instanz ist, entscheidet die Rolle – der Schreibvorgang selbst fasst
+    // dann nur noch dieses eine Konto an und bleibt auch mit Datenbank ein
+    // einzelner Datensatz statt aller.
+    $ersteAnlage = !users_exist();
+    users_update(function (array $users) use ($username, $source, $email, $groups, $autoCreate, $display, $ersteAnlage, &$err) {
         $exists = isset($users[$username]);
         if (!$exists && !$autoCreate) {
             $err = t('Für diese Kennung gibt es hier kein Konto, und die automatische Anlage ist deaktiviert.');
@@ -261,7 +266,7 @@ function user_provision(string $username, string $source, ?string $email, array 
         }
         if (!$exists) {
             $users[$username] = [
-                'role' => $users === [] ? 'admin' : 'user',
+                'role' => $ersteAnlage ? 'admin' : 'user',
                 'created' => date('c'),
             ];
         } elseif (($users[$username]['auth'] ?? 'local') !== $source) {
@@ -284,7 +289,7 @@ function user_provision(string $username, string $source, ?string $email, array 
         $users[$username]['groups'] = $groups;
         $users[$username]['last_login'] = date('c');
         return $users;
-    });
+    }, $username);
     return $err;
 }
 
