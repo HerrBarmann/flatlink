@@ -35,40 +35,9 @@ if (PHP_SAPI !== 'cli') {
 require_once __DIR__ . '/inc/store.php';
 require_once __DIR__ . '/inc/auth.php';
 
-// Absichtlich NICHT über db(): Die Instanz darf noch auf 'json' stehen –
-// genau dann läuft dieser Umzug ja. Verbindung und Schema von Hand.
-$datei = (string)cfg('sqlite_file');
-if ($datei === '') $datei = data_path() . '/flatlink.sqlite';
-
-$pdo = new PDO('sqlite:' . $datei, null, null, [
-    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-]);
-$pdo->exec('PRAGMA journal_mode = WAL');
-db_schema($pdo);
-
-echo "Ziel: $datei\n";
-
-// Konten – gelesen über die Datei-Ablage, egal was 'storage' sagt
-$konten = json_read(users_file());
-$pdo->exec('BEGIN');
-foreach ($konten as $name => $u) {
-    db_user_put($pdo, (string)$name, $u);
-}
-$pdo->exec('COMMIT');
-printf("Konten:    %s übernommen\n", number_format(count($konten), 0, ',', '.'));
-
-// Links – Ablage für Ablage, damit der Speicher flach bleibt
-$n = 0;
-foreach (link_store_files() as $f) {
-    $pdo->exec('BEGIN');
-    foreach (json_read($f) as $code => $l) {
-        db_link_put($pdo, (string)$code, $l);
-        $n++;
-    }
-    $pdo->exec('COMMIT');
-}
-printf("Kurzlinks: %s übernommen\n", number_format($n, 0, ',', '.'));
-
-echo "\nJetzt in inc/config.php umstellen:  'storage' => 'sqlite',\n";
+echo "Ziel: " . db_file() . "\n";
+$z = sqlite_migrate();
+printf("Konten:    %s übernommen\n", number_format($z['konten'], 0, ',', '.'));
+printf("Kurzlinks: %s übernommen\n", number_format($z['links'], 0, ',', '.'));
+echo "\nSteht 'storage' auf 'sqlite' (Vorgabe), gilt die Datenbank ab sofort.\n";
 echo "Die JSON-Dateien bleiben als Sicherung liegen.\n";

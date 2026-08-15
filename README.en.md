@@ -2,7 +2,7 @@
 
 <p align="center">
   <strong>The self-hosted URL shortener – with a QR designer and link-in-bio pages.</strong><br>
-  Plain PHP. No database, no Composer, no build step –<br>
+  Plain PHP. No database server, no Composer, no build step –<br>
   copy the files to a web space and you're done.
 </p>
 
@@ -10,7 +10,7 @@
   <a href="LICENSE"><img alt="AGPL-3.0 license" src="https://img.shields.io/badge/License-AGPL--3.0-1a7f37"></a>
   <img alt="PHP 8.1+" src="https://img.shields.io/badge/PHP-8.1%2B-777bb4">
   <img alt="Zero dependencies" src="https://img.shields.io/badge/Dependencies-0-0a7ea4">
-  <img alt="No database" src="https://img.shields.io/badge/Database-none-555">
+  <img alt="No database server" src="https://img.shields.io/badge/Database%20server-none-555">
 </p>
 
 <p align="center">
@@ -186,19 +186,22 @@ it requires.
   Browsing
 - **Automatic cleanup** of never-visited links, with advance warning by mail
   (disabled by default)
-- **Optional SQLite backend** for large instances – one file instead of a
-  database server, see [How the data is stored](#how-the-data-is-stored)
+- **SQLite as the store for links and accounts** – one file instead of a
+  database server, carries very large instances too; for plain JSON files
+  set `'storage' => 'json'` – see
+  [How the data is stored](#how-the-data-is-stored)
 
 ## Requirements
 
 - PHP 8.1 or newer
-- Extensions: `json`, `mbstring`, `gd` (for PNG/PDF), `fileinfo` (logo
-  upload), `openssl` (only for SMTP), `ldap` (only for LDAP sign-in)
+- Extensions: `json`, `mbstring`, `pdo_sqlite` (default storage; not needed
+  with `'storage' => 'json'`), `gd` (for PNG/PDF), `fileinfo` (logo upload),
+  `openssl` (only for SMTP), `ldap` (only for LDAP sign-in)
 - A web server with `mod_rewrite` or an equivalent rewrite facility. The
   bundled `.htaccess` additionally provides a fallback via
   `ErrorDocument 404` in case rewrites don't take effect at your host.
 
-No database, no Composer, no build step.
+No database server, no Composer, no build step.
 
 ## Installation
 
@@ -256,7 +259,7 @@ switches:
 | `mail` | `log` writes to `data/mail.log`, `smtp` really sends |
 | `safe_browsing_key` | Empty = off. See the note below |
 | `link_gc_years` | `0` = no automatic cleanup |
-| `storage` | `json` (default: files) or `sqlite` for large instances |
+| `storage` | `sqlite` (default: one file, no server) or `json` for plain JSON files |
 | `data_dir` | Keep runtime data outside the webroot – recommended |
 | `trusted_proxies` | Addresses of upstream proxies; needed for correct rate limits |
 
@@ -310,21 +313,23 @@ million links: the limit check on creation dropped from 1.2 seconds to half a
 millisecond, and an account's link list runs within PHP's default memory
 limit instead of far beyond it.
 
-This construction is deliberately meant for small to medium instances – in
-exchange it needs neither setup nor maintenance nor migrations.
+**By default, links and accounts live in one SQLite file**
+(`data/flatlink.sqlite`). That is not infrastructure – no server, nothing to
+maintain, the `pdo_sqlite` extension ships with practically every PHP, and
+the backup remains copying the `data/` folder. The full record sits as JSON
+in a `data` column – the same truth as in the file store, just kept
+differently; the remaining columns are derived copies for searching.
+Measured on an instance with one million links and **a hundred thousand
+accounts**: the login page in 9 ms and a single account in 0.01 ms, where a
+single `users.json` failed at PHP's memory limit; a redirect lookup takes
+0.01 ms.
 
-**For large instances there is a SQLite backend** (`'storage' => 'sqlite'`):
-links and accounts then live in one SQLite file, everything else stays as it
-is. That is not infrastructure – no server, nothing to maintain, the
-`pdo_sqlite` extension ships with practically every PHP, and the backup
-remains copying the `data/` folder. Migrating is one run of
-`php migrate-sqlite.php` plus flipping the switch; the JSON files stay in
-place as a safety net. Measured on an instance with one million links and
-**a hundred thousand accounts**: the login page in 9 ms and a single account
-in 0.01 ms, where the single `users.json` previously failed at PHP's memory
-limit; a redirect lookup takes 0.01 ms. The full record sits as JSON in a
-`data` column – the same truth as in the file store, just kept differently;
-the remaining columns are derived copies for searching.
+For plain JSON files instead, set `'storage' => 'json'` – the file store
+remains fully supported, and the tables above describe it. An existing
+instance on files keeps running unchanged after an update until the
+migration has run: a button under *Settings → Storage* (or
+`php migrate-sqlite.php`), idempotent, the JSON files remain in place as a
+backup.
 
 One honest limit remains: the admin's full list over *millions* of links still
 loads the whole stock into memory even with the database – whoever really
@@ -369,10 +374,10 @@ once through the URL, and compared byte by byte.
 
 Bug reports and pull requests are welcome. One request up front: the freedom
 from dependencies is not an accident but the core of the project. A patch
-that requires Composer, a build step or a database *server*, or that
-replaces the file store as the default, will not be merged – even if it
-makes things more elegant. (The optional SQLite backend passes this test:
-one file, no infrastructure, and the default remains the file store.)
+that requires Composer, a build step or a database *server* will not be
+merged – even if it makes things more elegant. (SQLite passes this test:
+one file under `data/`, no infrastructure – and the plain file store
+remains available as a mode.)
 
 ## License
 

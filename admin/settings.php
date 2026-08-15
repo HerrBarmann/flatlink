@@ -76,6 +76,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($fehler === null) $neu['domains'] = $liste;
     }
 
+    // Der Umzug in die Datenbank – bewusst hier statt nur auf der
+    // Kommandozeile: Auf Shared Hosting gibt es oft keine Shell, und genau
+    // dort läuft flatlink. Idempotent, die Dateien bleiben als Sicherung.
+    if (isset($_POST['sqlite_migration'])) {
+        if (!db_migration_offen()) {
+            flash(t('Es gibt nichts zu migrieren.'), 'err');
+        } else {
+            @set_time_limit(0);
+            $z = sqlite_migrate();
+            flash(t('Umzug abgeschlossen: %s Konten und %s Kurzlinks in der Datenbank. Die JSON-Dateien bleiben als Sicherung liegen.',
+                number_format($z['konten'], 0, t(','), t('.')),
+                number_format($z['links'], 0, t(','), t('.'))));
+        }
+        redirect_to('settings.php');
+    }
+
     if ($fehler !== null) {
         flash($fehler, 'err');
     } else {
@@ -223,6 +239,24 @@ $host = preg_replace('#^https?://#', '', base_url());
     ?>
     <p class="muted small"><?= t('Laufzeitdaten liegen in') ?><br>
     <code style="word-break:break-all"><?= e($dataPath) ?></code></p>
+    <p class="muted small"><?= t('Links und Konten:') ?>
+        <?php if (db() !== null): ?>
+            <strong>SQLite</strong> (<code><?= e(basename(db_file())) ?></code>)
+        <?php elseif (db_migration_offen()): ?>
+            <strong><?= t('Dateien – Umzug in die Datenbank steht aus') ?></strong>
+        <?php else: ?>
+            <strong><?= t('Dateien') ?></strong> (<code>'storage' => 'json'</code>)
+        <?php endif; ?></p>
+    <?php if (db_migration_offen()): ?>
+    <div class="flash flash-err" style="margin-top:0.8rem">
+        <p style="margin:0 0 0.6rem"><?= t('Diese Instanz läuft noch auf JSON-Dateien; die Vorgabe ist inzwischen eine SQLite-Datenbank – schneller bei großen Beständen, weiterhin ohne Server und ohne Wartung. Der Umzug kopiert Konten und Links; die Dateien bleiben unangetastet als Sicherung liegen. Bis dahin läuft alles unverändert weiter.') ?></p>
+        <form method="post" action="" data-confirm="<?= t('Konten und Links jetzt in die Datenbank kopieren? Die Dateien bleiben als Sicherung liegen.') ?>">
+            <?= csrf_field() ?>
+            <input type="hidden" name="sqlite_migration" value="1">
+            <button class="btn btn-primary" type="submit"><?= t('In die Datenbank umziehen') ?></button>
+        </form>
+    </div>
+    <?php endif; ?>
     <?php if ($imWebroot): ?>
     <div class="flash flash-err" style="margin-top:0.8rem">
         <strong><?= t('Das Verzeichnis liegt im Webroot.') ?></strong> <?= t('Geschützt ist es dort nur durch die %s – die nginx, Caddy und LiteSpeed ignorieren. Darin stehen Passwort-Hashes und gültige Reset-Token. Wenn dein Hosting einen Pfad außerhalb zulässt, trag ihn als %s in %s ein – den Inhalt vorher kopieren, erst danach die Konfiguration umstellen.', '<code>.htaccess</code>', '<code>data_dir</code>', '<code>inc/config.php</code>') ?>

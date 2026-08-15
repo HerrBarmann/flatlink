@@ -944,4 +944,12 @@ your password immediately and contact us.
     'Seite %d von %d' => 'Page %d of %d',
     'Seiten der Linkliste' => 'Pages of the link list',
     '%s Kurzlinks – gezählt je Tag, mehr speichern wir nicht.' => '%s short links – counted per day, we store nothing more.',
+    'Es gibt nichts zu migrieren.' => 'There is nothing to migrate.',
+    'Umzug abgeschlossen: %s Konten und %s Kurzlinks in der Datenbank. Die JSON-Dateien bleiben als Sicherung liegen.' => 'Migration complete: %s accounts and %s short links in the database. The JSON files remain in place as a backup.',
+    'Links und Konten:' => 'Links and accounts:',
+    'Dateien – Umzug in die Datenbank steht aus' => 'Files – migration to the database pending',
+    'Dateien' => 'Files',
+    'Diese Instanz läuft noch auf JSON-Dateien; die Vorgabe ist inzwischen eine SQLite-Datenbank – schneller bei großen Beständen, weiterhin ohne Server und ohne Wartung. Der Umzug kopiert Konten und Links; die Dateien bleiben unangetastet als Sicherung liegen. Bis dahin läuft alles unverändert weiter.' => 'This instance still runs on JSON files; the default is now a SQLite database – faster on large stocks, still without a server and without maintenance. The migration copies accounts and links; the files remain untouched as a backup. Until then everything keeps running unchanged.',
+    'Konten und Links jetzt in die Datenbank kopieren? Die Dateien bleiben als Sicherung liegen.' => 'Copy accounts and links into the database now? The files remain in place as a backup.',
+    'In die Datenbank umziehen' => 'Migrate to the database',
 ];

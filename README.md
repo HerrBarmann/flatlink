@@ -2,7 +2,7 @@
 
 <p align="center">
   <strong>Der Kurzlink-Dienst zum Selbstbetreiben – mit QR-Designer und Link-in-Bio.</strong><br>
-  Reines PHP. Keine Datenbank, kein Composer, kein Build-Schritt –<br>
+  Reines PHP. Kein Datenbank-Server, kein Composer, kein Build-Schritt –<br>
   Dateien auf einen Webspace kopieren, fertig.
 </p>
 
@@ -10,7 +10,7 @@
   <a href="LICENSE"><img alt="AGPL-3.0-Lizenz" src="https://img.shields.io/badge/Lizenz-AGPL--3.0-1a7f37"></a>
   <img alt="PHP 8.1+" src="https://img.shields.io/badge/PHP-8.1%2B-777bb4">
   <img alt="Keine Abhängigkeiten" src="https://img.shields.io/badge/Abh%C3%A4ngigkeiten-0-0a7ea4">
-  <img alt="Keine Datenbank" src="https://img.shields.io/badge/Datenbank-keine-555">
+  <img alt="Kein Datenbank-Server" src="https://img.shields.io/badge/Datenbank--Server-keiner-555">
 </p>
 
 <p align="center">
@@ -183,19 +183,23 @@ auch alles, was sie verlangt.
   Google Safe Browsing
 - **Automatisches Aufräumen** nie aufgerufener Links, mit Vorwarnung per Mail
   (standardmäßig deaktiviert)
-- **Optionales SQLite-Backend** für große Instanzen – eine Datei statt eines
-  Datenbank-Servers, siehe [Wie die Daten liegen](#wie-die-daten-liegen)
+- **SQLite als Ablage für Links und Konten** – eine Datei statt eines
+  Datenbank-Servers, trägt auch sehr große Instanzen; wer reine JSON-Dateien
+  will, stellt `'storage' => 'json'` – siehe
+  [Wie die Daten liegen](#wie-die-daten-liegen)
 
 ## Voraussetzungen
 
 - PHP 8.1 oder neuer
-- Erweiterungen: `json`, `mbstring`, `gd` (für PNG/PDF), `fileinfo` (Logo-Upload),
-  `openssl` (nur für SMTP-Versand), `ldap` (nur für die LDAP-Anmeldung)
+- Erweiterungen: `json`, `mbstring`, `pdo_sqlite` (Standard-Ablage; entfällt
+  im `'storage' => 'json'`-Betrieb), `gd` (für PNG/PDF), `fileinfo`
+  (Logo-Upload), `openssl` (nur für SMTP-Versand), `ldap` (nur für die
+  LDAP-Anmeldung)
 - Ein Webserver mit `mod_rewrite` oder gleichwertiger Umschreibung.
   Die mitgelieferte `.htaccess` bringt zusätzlich einen Fallback über
   `ErrorDocument 404`, falls Rewrites beim Hoster nicht greifen.
 
-Keine Datenbank, kein Composer, kein Build-Schritt.
+Kein Datenbank-Server, kein Composer, kein Build-Schritt.
 
 ## Installation
 
@@ -252,7 +256,7 @@ Alles steckt in `inc/config.php`; die kommentierte Vorlage ist
 | `mail` | `log` schreibt nach `data/mail.log`, `smtp` versendet echt |
 | `safe_browsing_key` | Leer = aus. Siehe Warnung unten |
 | `link_gc_years` | `0` = kein automatisches Aufräumen |
-| `storage` | `json` (Vorgabe: Dateien) oder `sqlite` für große Instanzen |
+| `storage` | `sqlite` (Vorgabe: eine Datei, kein Server) oder `json` für reine JSON-Dateien |
 | `data_dir` | Laufzeitdaten außerhalb des Webroots ablegen – empfohlen |
 | `trusted_proxies` | Adressen vorgelagerter Proxys; nötig für korrekte Rate-Limits |
 
@@ -309,22 +313,24 @@ neu aufbaut. Gemessen bei einer Million Links: Die Limit-Prüfung beim Anlegen
 fiel von 1,2 Sekunden auf eine halbe Millisekunde, die Linkliste eines Kontos
 läuft in der Standard-Speichergrenze von PHP statt weit darüber.
 
-Diese Bauweise ist bewusst für kleine bis mittlere Instanzen gedacht – dafür
-braucht sie weder Einrichtung noch Wartung noch Migration.
+**Links und Konten liegen in der Vorgabe in einer SQLite-Datei**
+(`data/flatlink.sqlite`). Das ist keine Infrastruktur – kein Server, nichts
+zu warten, die Erweiterung `pdo_sqlite` bringt praktisch jedes PHP mit, und
+das Backup bleibt das Kopieren des `data/`-Ordners. Der vollständige
+Datensatz liegt dabei als JSON in einer `data`-Spalte – dieselbe Wahrheit
+wie in der Datei-Ablage, nur anders abgelegt; die übrigen Spalten sind
+abgeleitete Kopien für die Suche. Gemessen an einer Instanz mit einer
+Million Links und **hunderttausend Konten**: Anmeldeseite 9 ms und ein
+einzelnes Konto in 0,01 ms, wo eine einzelne `users.json` an PHPs
+Speichergrenze scheiterte; die Weiterleitung liegt bei 0,01 ms je
+Nachschlag.
 
-**Für große Instanzen gibt es ein SQLite-Backend** (`'storage' => 'sqlite'`):
-Links und Konten liegen dann in einer SQLite-Datei, alles Übrige bleibt wie
-gehabt. Das ist keine Infrastruktur – kein Server, nichts zu warten, die
-Erweiterung `pdo_sqlite` bringt praktisch jedes PHP mit, und das Backup
-bleibt das Kopieren des `data/`-Ordners. Der Umzug ist ein Aufruf von
-`php migrate-sqlite.php` plus das Umlegen des Schalters; die JSON-Dateien
-bleiben als Sicherung liegen. Gemessen an einer Instanz mit einer Million
-Links und **hunderttausend Konten**: Anmeldeseite 9 ms und ein einzelnes
-Konto in 0,01 ms, wo die eine `users.json` vorher an PHPs Speichergrenze
-scheiterte; die Weiterleitung liegt bei 0,01 ms je Nachschlag. Der
-vollständige Datensatz liegt dabei als JSON in einer `data`-Spalte –
-dieselbe Wahrheit wie in der Datei-Ablage, nur anders abgelegt; die übrigen
-Spalten sind abgeleitete Kopien für die Suche.
+Wer stattdessen reine JSON-Dateien will, stellt `'storage' => 'json'` – die
+Datei-Ablage bleibt vollwertig und die obigen Tabellen beschreiben sie.
+Eine Bestandsinstanz auf Dateien läuft nach einem Update unverändert
+weiter, bis der Umzug gelaufen ist: ein Knopf unter *Einstellungen →
+Ablage* (oder `php migrate-sqlite.php`), idempotent, die JSON-Dateien
+bleiben als Sicherung liegen.
 
 Eine ehrliche Grenze bleibt: Die Admin-Gesamtliste über *Millionen* Links
 lädt auch mit Datenbank den ganzen Bestand in den Speicher – wer wirklich
@@ -371,10 +377,9 @@ Renderer und einmal über die Adresse, und Byte für Byte verglichen.
 Fehlerberichte und Pull Requests sind willkommen. Eine Bitte vorab: Die
 Abhängigkeitsfreiheit ist kein Zufall, sondern der Kern des Projekts. Ein
 Patch, der Composer, einen Build-Schritt oder einen Datenbank-*Server*
-voraussetzt oder die Datei-Ablage als Vorgabe ersetzt, wird nicht
-übernommen – auch wenn er die Sache eleganter macht. (Das optionale
-SQLite-Backend besteht diese Prüfung: eine Datei, keine Infrastruktur,
-und die Vorgabe bleibt die Datei-Ablage.)
+voraussetzt, wird nicht übernommen – auch wenn er die Sache eleganter
+macht. (SQLite besteht diese Prüfung: eine Datei unter `data/`, keine
+Infrastruktur – und die reine Datei-Ablage bleibt als Modus erhalten.)
 
 ## Lizenz
 
