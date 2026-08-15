@@ -152,6 +152,7 @@ function api_link(string $code, array $l): array
         'expires' => $l['expires'] ?? null,
         'expired' => link_expired($l),
         'starts' => $l['starts'] ?? null,
+        'history' => array_values((array)($l['history'] ?? [])),
         'pending' => link_pending($l),
         'password_protected' => isset($l['pass']),
         'disabled' => (bool)($l['disabled'] ?? false),

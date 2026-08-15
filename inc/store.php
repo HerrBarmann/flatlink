@@ -303,13 +303,43 @@ function link_create(string $url, ?string $code, ?string $owner, string $type, a
  */
 function link_update(string $code, string $url, array $opts = []): bool
 {
-    return link_write($code, function (?array $l) use ($url, $opts) {
+    // Wer den Vorgang auslöst, steht in der Sitzung – im Schreib-Callback
+    // wäre der Aufruf zu spät, er liefe dann innerhalb der Transaktion.
+    $wer = function_exists('auth_user') ? (auth_user()['name'] ?? null) : null;
+    return link_write($code, function (?array $l) use ($url, $opts, $wer) {
         if ($l === null) return false;
+        $vorher = (string)($l['url'] ?? '');
         $l['url'] = $url;
         $l['expires'] = $opts['expires'] ?? null;
         $l['updated'] = date('c');
+        // Nur das Ziel wird nachgehalten: Es ist die eine Angabe, deren
+        // stille Änderung jemandem schadet – ein gedruckter Code führt dann
+        // woandershin, ohne dass es jemand merkt. Titel oder Schlagworte
+        // sind Ordnung, keine Zusage.
+        if ($vorher !== '' && $vorher !== $url) {
+            $l = link_history_add($l, $vorher, $url, $wer);
+        }
         return link_apply_meta($l, $opts);
     });
+}
+
+/** Wie viele Änderungen je Link aufgehoben werden */
+const LINK_HISTORY_MAX = 20;
+
+/**
+ * Eine Ziel-Änderung in die Historie des Datensatzes schreiben.
+ *
+ * Aufgehoben werden die letzten LINK_HISTORY_MAX Änderungen – genug, um eine
+ * stille Umleitung zu bemerken, und wenig genug, dass der Datensatz nicht
+ * wächst, der bei jeder Weiterleitung gelesen wird.
+ */
+function link_history_add(array $l, string $von, string $nach, ?string $wer): array
+{
+    $h = (array)($l['history'] ?? []);
+    $h[] = ['t' => date('c'), 'wer' => $wer ?? 'system', 'von' => $von, 'nach' => $nach];
+    if (count($h) > LINK_HISTORY_MAX) $h = array_slice($h, -LINK_HISTORY_MAX);
+    $l['history'] = $h;
+    return $l;
 }
 
 /**

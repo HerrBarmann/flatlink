@@ -131,4 +131,22 @@ page_header(t('Statistik'), true);
        <a class="btn" href="qrdesign.php?c=<?= e(rawurlencode($code)) ?>">QR-Designer</a>
        <a class="btn" href="stats.php?c=<?= e(rawurlencode($code)) ?>&amp;format=csv"><?= t('CSV-Export') ?></a></p>
 </div>
+
+<?php $historie = array_reverse((array)($link['history'] ?? [])); if ($historie !== []): ?>
+<div class="card">
+    <h2><?= t('Änderungen am Ziel') ?></h2>
+    <p class="muted small"><?= t('Ein gedruckter Code lässt sich nicht zurückrufen – wohin er führt, schon. Deshalb steht hier, wer das Ziel wann geändert hat. Die letzten %d Änderungen; Name, Schlagworte und Gestaltung bleiben außen vor, sie sind Ordnung und keine Zusage.', LINK_HISTORY_MAX) ?></p>
+    <div class="table-scroll"><table>
+        <tr><th><?= t('Zeit') ?></th><th><?= t('Konto') ?></th><th><?= t('Von') ?></th><th><?= t('Nach') ?></th></tr>
+        <?php foreach ($historie as $h): ?>
+        <tr>
+            <td class="small" style="white-space:nowrap"><?= e(date('d.m.Y H:i', strtotime((string)($h['t'] ?? '')))) ?></td>
+            <td class="small"><?= e(user_display((string)($h['wer'] ?? ''))) ?></td>
+            <td class="url-cell" title="<?= e((string)($h['von'] ?? '')) ?>"><?= e(mb_strimwidth((string)($h['von'] ?? ''), 0, 44, '…')) ?></td>
+            <td class="url-cell" title="<?= e((string)($h['nach'] ?? '')) ?>"><?= e(mb_strimwidth((string)($h['nach'] ?? ''), 0, 44, '…')) ?></td>
+        </tr>
+        <?php endforeach; ?>
+    </table></div>
+</div>
+<?php endif; ?>
 <?php page_footer(); ?>

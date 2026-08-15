@@ -980,4 +980,8 @@ your password immediately and contact us.
     'Dieser Kurzlink führt ab dem %s weiter.' => 'This short link will forward from %s.',
     'Ungültiges Startdatum (JJJJ-MM-TT).' => 'Invalid start date (YYYY-MM-DD).',
     'Der Link kann nicht ablaufen, bevor er beginnt.' => 'The link cannot expire before it starts.',
+    'Änderungen am Ziel' => 'Changes to the target',
+    'Ein gedruckter Code lässt sich nicht zurückrufen – wohin er führt, schon. Deshalb steht hier, wer das Ziel wann geändert hat. Die letzten %d Änderungen; Name, Schlagworte und Gestaltung bleiben außen vor, sie sind Ordnung und keine Zusage.' => 'A printed code cannot be recalled – where it leads can be. So here is who changed the target and when. The last %d changes; label, tags and styling stay out of it, they are order, not a promise.',
+    'Von' => 'From',
+    'Nach' => 'To',
 ];
