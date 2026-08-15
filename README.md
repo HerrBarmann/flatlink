@@ -99,11 +99,13 @@ Ziel, ohne Besucher-Datensatz.</p>
 git clone https://github.com/HerrBarmann/flatlink.git
 cd flatlink
 cp inc/config.example.php inc/config.php
-php -S localhost:8080
+php -S localhost:8080 router.php
 ```
 
 Im Browser `http://localhost:8080/admin/` öffnen – der erste Aufruf legt das
-Admin-Konto an. Für den Dauerbetrieb: Dateien auf den Webspace kopieren,
+Admin-Konto an. (`router.php` bildet für den eingebauten Server nach, was im
+Betrieb die `.htaccess` erledigt – ohne ihn führt ein Kurzlink zur Startseite
+statt zum Ziel.) Für den Dauerbetrieb: Dateien auf den Webspace kopieren,
 `data/` beschreibbar machen, `base_url` in der Konfiguration eintragen.
 Ausführlich unter [Installation](#installation).
 
@@ -205,10 +207,12 @@ Danach `inc/config.php` anpassen (mindestens `site_name`), die Dateien in den
 Webroot legen und sicherstellen, dass der Webserver in das Verzeichnis
 schreiben darf – `data/` wird beim ersten Aufruf selbst angelegt.
 
-Zum Ausprobieren reicht der eingebaute Server:
+Zum Ausprobieren reicht der eingebaute Server. Er kennt keine Rewrites,
+deshalb das mitgelieferte Wegweiser-Skript dazu – es bildet die Regeln der
+`.htaccess` nach, damit auch Kurzlinks und `/api/…` funktionieren:
 
 ```bash
-php -S localhost:8080
+php -S localhost:8080 router.php
 ```
 
 **Erstes Konto:** Über `register.php` registrieren. Im Standard steht der
@@ -318,7 +322,7 @@ Keine Test-Bibliothek, keine Konfiguration – zwei PHP-Dateien, die man mit dem
 eingebauten Server laufen lässt:
 
 ```bash
-php -S localhost:8080 -t . &
+php -S localhost:8080 router.php &
 php tests/optionen.php http://localhost:8080
 ```
 

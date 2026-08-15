@@ -101,12 +101,14 @@ per target, without visitor records.</p>
 git clone https://github.com/HerrBarmann/flatlink.git
 cd flatlink
 cp inc/config.example.php inc/config.php
-php -S localhost:8080
+php -S localhost:8080 router.php
 ```
 
 Open `http://localhost:8080/admin/` in the browser – the first visit creates
-the admin account. For production: copy the files to your web space, make
-`data/` writable, set `base_url` in the configuration. Details under
+the admin account. (`router.php` emulates for the built-in server what the
+`.htaccess` does in production – without it, a short link leads to the start
+page instead of its target.) For production: copy the files to your web space,
+make `data/` writable, set `base_url` in the configuration. Details under
 [Installation](#installation). For an English interface, set
 `'language' => 'en'` in `inc/config.php` or switch it later under *Settings*.
 
@@ -208,10 +210,12 @@ Then adjust `inc/config.php` (at least `site_name`), put the files into the
 webroot and make sure the web server may write into the directory – `data/`
 is created on first use.
 
-For a quick try, the built-in server is enough:
+For a quick try, the built-in server is enough. It knows no rewrites, hence
+the bundled router script – it emulates the `.htaccess` rules so short links
+and `/api/…` work too:
 
 ```bash
-php -S localhost:8080
+php -S localhost:8080 router.php
 ```
 
 **First account:** register via `register.php`. By default, mail delivery is
@@ -318,7 +322,7 @@ No test library, no configuration – two PHP files run against the built-in
 server:
 
 ```bash
-php -S localhost:8080 -t . &
+php -S localhost:8080 router.php &
 php tests/optionen.php http://localhost:8080
 ```
 

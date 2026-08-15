@@ -21,7 +21,7 @@ declare(strict_types=1);
  * verlorengegangen.
  *
  * Aufruf (der eingebaute Server genügt):
- *   php -S localhost:8080 -t .
+ *   php -S localhost:8080 router.php
  *   php tests/optionen.php http://localhost:8080
  */
 require_once __DIR__ . '/../inc/qrlib.php';
