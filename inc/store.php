@@ -180,6 +180,13 @@ function link_index_ready(): bool
     if (!links_sharded()) return false;
     if (is_file(owner_index_dir() . '/fertig')) return true;
 
+    // Höchstens ein Bauversuch je Anfrage: Schlägt er fehl (etwa wegen
+    // Dateirechten), soll nicht jede weitere Abfrage derselben Seite den
+    // Bestand erneut durchkämmen – der Vollscan-Fallback ist dann billiger.
+    static $versucht = false;
+    if ($versucht) return false;
+    $versucht = true;
+
     $lock = fopen(links_dir() . '/.index-bau.lock', 'c');
     if ($lock === false || !flock($lock, LOCK_EX | LOCK_NB)) {
         if (is_resource($lock)) fclose($lock);
@@ -203,8 +210,11 @@ function link_index_ready(): bool
             json_write($dir . '/' . $xx . '.json', $daten);
         }
         json_write(group_index_file(), $groups);
-        file_put_contents($dir . '/fertig', "abgeleitet aus der Ablage, siehe inc/store.php\n");
-        return true;
+        // Die Markierung macht den Index gültig – erst prüfen, dann bejahen:
+        // Ein als fertig gemeldeter Index, dessen Markierung nie ankam, hieße
+        // bei jeder Anfrage ein Neuaufbau.
+        return file_put_contents($dir . '/fertig',
+            "abgeleitet aus der Ablage, siehe inc/store.php\n") !== false;
     } finally {
         flock($lock, LOCK_UN);
         fclose($lock);
@@ -459,6 +469,12 @@ function link_create(string $url, ?string $code, ?string $owner, string $type, a
 
     if ($taken) return [false, t('Dieser Code ist schon vergeben.')];
     if ($ok) {
+        // Aufbau anstoßen, nicht nur pflegen: Auf einer Instanz, deren Listen
+        // nur Administratoren sehen, liefe sonst nie ein Leser, der den Index
+        // erstmals ableitet – Admin-Wege umgehen die Limit-Prüfungen.
+        // Der frisch angelegte Link ist im Aufbau bereits enthalten; das
+        // link_index_add danach ist dann ein Wiederholen desselben Eintrags.
+        link_index_ready();
         $g = is_string($group) && $group !== '' ? $group : null;
         link_index_add($code, $owner, $g, $type);
     }
