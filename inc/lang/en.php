@@ -1060,4 +1060,13 @@ your password immediately and contact us.
     'Missbrauchs-Meldung eingegangen' => 'Abuse report received',
     'Konto wartet auf Freischaltung' => 'Account awaiting approval',
     'Titel' => 'Title',
+    'Browser-Erweiterung' => 'Browser extension',
+    'Kürzt die geöffnete Seite mit einem Klick – für Chrome, Edge, Firefox und Verwandte. Das Archiv ist auf %s vorbereitet: Adresse und Symbole stehen schon drin, eingerichtet werden muss nichts. Im Archiv liegt eine kurze Anleitung zum Laden.' => 'Shortens the page you are on with one click – for Chrome, Edge, Firefox and relatives. The archive comes prepared for %s: address and icons are already in it, nothing needs setting up. A short loading guide is included.',
+    'Zugangsschlüssel gleich mitliefern' => 'Include an access key',
+    'Legt einen neuen Schlüssel für dieses Konto an und schreibt ihn in die Erweiterung – dann ist sie sofort benutzbar. Das Archiv enthält damit ein Zugangsmittel: nicht weitergeben, und im Zweifel oben zurückziehen. Ohne Haken fragt die Erweiterung beim ersten Öffnen danach.' => 'Creates a new key for this account and writes it into the extension – it then works right away. The archive thereby contains a means of access: do not pass it on, and revoke it above if in doubt. Without the tick, the extension asks for one when first opened.',
+    'Erweiterung herunterladen' => 'Download extension',
+    'Die Erweiterung steht auf dieser Instanz nicht bereit.' => 'The extension is not available on this instance.',
+    'Browser-Erweiterung heruntergeladen%s' => 'Browser extension downloaded%s',
+    ' (mit Schlüssel)' => ' (with key)',
+    'Die geöffnete Seite auf %s kürzen – ein Klick, fertig.' => 'Shorten the page you are on via %s – one click, done.',
 ];

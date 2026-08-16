@@ -8,6 +8,20 @@ Der Unterschied zu den Erweiterungen der bekannten Dienste: Sie redet mit
 genau einer Adresse, nämlich der, die du einträgst. Es gibt keinen Anbieter
 dahinter, der mitliest, welche Seiten du kürzt.
 
+## Der bequeme Weg: fertig vorbereitet aus der Instanz
+
+Wer ein Konto auf einer flatlink-Instanz hat, braucht diesen Ordner gar
+nicht: Unter **Profil → Browser-Erweiterung** liegt ein Knopf, der ein Archiv
+baut, in dem alles schon steht – Adresse, Name und Symbole der Instanz und
+auf Wunsch ein eigens dafür erzeugter Zugangsschlüssel. Laden, fertig.
+
+Die vorbereitete Fassung verlangt außerdem weniger: Weil die Adresse
+feststeht, fragt sie nach Zugriff auf genau diese eine – nicht nach der
+Möglichkeit, überhaupt eine anzugeben.
+
+Was unten steht, ist der Weg für alle anderen: Entwickler, Instanzen ohne
+Konto, oder wer lieber selbst einträgt.
+
 ## Einrichten
 
 1. In deiner Instanz unter **Profil → Zugangsschlüssel** einen Schlüssel

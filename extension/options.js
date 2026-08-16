@@ -9,7 +9,12 @@ const $ = (id) => document.getElementById(id);
 function sauber(u) {
     u = u.trim().replace(/\/+$/, '');
     if (u && !/^https?:\/\//i.test(u)) u = 'https://' + u;
-    return u;
+    // Die Adresse ist die STARTSEITE der Instanz, nicht die Seite, auf der man
+    // gerade war. Wer seine Links verwaltet, hat /admin in der Adresszeile –
+    // und trägt genau das hier ein. Das ergäbe /admin/api/me und damit 404.
+    // Statt einer Fehlermeldung: die bekannten Enden abschneiden.
+    u = u.replace(/\/(admin|index\.php|api|api\.php)(\/.*)?$/i, '');
+    return u.replace(/\/+$/, '');
 }
 
 async function anzeigen() {
@@ -40,10 +45,22 @@ async function pruefen() {
         const erlaubt = await chrome.permissions.request({ origins: [instanz + '/*'] });
         if (!erlaubt) throw new Error('Ohne Zugriff auf diese Adresse kann die Erweiterung nicht mit deiner Instanz sprechen.');
 
-        const antwort = await fetch(instanz + '/api/me', {
+        // Zwei Wege zur Schnittstelle: /api/… setzt mod_rewrite voraus (die
+        // mitgelieferte .htaccess), /api.php/… geht immer. Erst der schöne
+        // Weg, bei 404 der sichere – so läuft die Erweiterung auch auf
+        // Instanzen, deren Hoster keine Umschreibungen erlaubt.
+        let antwort = await fetch(instanz + '/api/me', {
             headers: { 'Authorization': 'Bearer ' + token },
         });
+        let pfad = '/api';
+        if (antwort.status === 404) {
+            antwort = await fetch(instanz + '/api.php/me', {
+                headers: { 'Authorization': 'Bearer ' + token },
+            });
+            pfad = '/api.php';
+        }
         if (antwort.status === 401) throw new Error('Der Zugangsschlüssel gilt nicht. Stimmt er, und gehört er zu dieser Instanz?');
+        if (antwort.status === 404) throw new Error('Unter dieser Adresse antwortet keine flatlink-Schnittstelle. Gemeint ist die Startseite der Instanz – ohne /admin und ohne Pfad dahinter.');
         if (!antwort.ok) throw new Error('Die Instanz antwortet mit ' + antwort.status + '. Ist die Adresse richtig?');
 
         const daten = await antwort.json();
@@ -51,7 +68,9 @@ async function pruefen() {
         // optional und fehlt bei den meisten Konten.
         const konto = daten?.display_name || daten?.account || 'unbekannt';
 
-        await chrome.storage.local.set({ instanz, token, konto });
+        // Der gefundene Weg wird gemerkt, damit das Popup nicht jedes Mal
+        // beide durchprobieren muss.
+        await chrome.storage.local.set({ instanz, token, konto, pfad });
         $('stand').textContent = 'Gespeichert. Verbunden als ' + konto + '.';
         $('stand').hidden = false;
     } catch (e) {

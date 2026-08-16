@@ -1,0 +1,249 @@
+<?php
+declare(strict_types=1);
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// flatlink · Zusatzbedingung zur Namensnennung nach §7(b) AGPL: siehe LICENSE
+/**
+ * Die Browser-Erweiterung fertig eingerichtet ausliefern.
+ *
+ * Der Ordner `extension/` enthält die Erweiterung im Rohzustand: Wer sie so
+ * lädt, muss Adresse und Zugangsschlüssel von Hand eintragen. Das ist für
+ * Entwickler in Ordnung und für alle anderen eine Hürde – zumal der Schlüssel
+ * erst im Profil angelegt werden will.
+ *
+ * Diese Datei baut daraus ein Archiv, in dem alles schon steht: die Adresse
+ * dieser Instanz, ihr Name, ihre Symbole und auf Wunsch ein eigens dafür
+ * erzeugter Zugangsschlüssel. Laden, fertig.
+ *
+ * Zum Schlüssel: Er wird **neu** angelegt, nicht wiederverwendet, und trägt
+ * eine erkennbare Bezeichnung. Damit lässt er sich im Profil einzeln
+ * zurückziehen, ohne dass andere Programme stehenbleiben – und wer das Archiv
+ * weitergibt, gibt einen Schlüssel weiter, den er gezielt widerrufen kann.
+ * Genau deshalb liegt die Entscheidung beim Herunterladen und nicht in einer
+ * Voreinstellung.
+ */
+require_once __DIR__ . '/zip.php';
+require_once __DIR__ . '/token.php';
+
+/** Steht der Ordner mit den Quelldateien überhaupt zur Verfügung? */
+function ext_available(): bool
+{
+    return is_file(ext_dir() . '/manifest.json');
+}
+
+function ext_dir(): string
+{
+    return dirname(__DIR__) . '/extension';
+}
+
+/**
+ * Das Archiv bauen.
+ *
+ * @param string $konto    Für wen der Schlüssel erzeugt wird
+ * @param bool   $mitKey   Schlüssel einbetten?
+ * @return array{0:string,1:?string} [ZIP-Inhalt, Klartext-Schlüssel oder null]
+ */
+function ext_build(string $konto, bool $mitKey): array
+{
+    $zip = new ZipWriter();
+    $jetzt = time();
+    $basis = base_url(true) ?: base_url();
+    $name = (string)cfg('site_name');
+
+    $schluessel = null;
+    if ($mitKey) {
+        // Eigene Bezeichnung mit Datum: In der Liste im Profil ist damit auf
+        // einen Blick zu sehen, welcher Schlüssel zu welchem Browser gehört.
+        $schluessel = (string)(token_create($konto, 'Browser-Erweiterung ' . date('d.m.Y'))['token'] ?? '');
+    }
+
+    foreach (['popup.html', 'popup.css', 'popup.js', 'options.html', 'options.js'] as $datei) {
+        $inhalt = (string)file_get_contents(ext_dir() . '/' . $datei);
+        if ($datei === 'popup.js' || $datei === 'options.js') {
+            $inhalt = ext_vorbelegen($inhalt, $basis, $schluessel);
+        }
+        $zip->add($datei, $inhalt, $jetzt);
+    }
+
+    $zip->add('manifest.json', ext_manifest($name, $basis), $jetzt);
+    foreach (ext_icons() as $groesse => $png) {
+        $zip->add('icons/' . $groesse . '.png', $png, $jetzt);
+    }
+    $zip->add('README.txt', ext_anleitung($name, $basis, $schluessel !== null), $jetzt);
+
+    return [$zip->build(), $schluessel];
+}
+
+/**
+ * Adresse und Schlüssel in die Skripte schreiben.
+ *
+ * Beide Dateien lesen ihre Einstellungen über chrome.storage. Statt den Code
+ * umzubauen, wird eine Vorbelegung vorangestellt: Fehlt ein Wert im Speicher,
+ * tritt der eingebaute an seine Stelle. Damit bleibt die Erweiterung
+ * identisch mit der aus dem Ordner – und der Nutzer kann in den Einstellungen
+ * trotzdem alles ändern.
+ */
+function ext_vorbelegen(string $js, string $basis, ?string $schluessel): string
+{
+    $vor = "// Von " . addslashes((string)cfg('site_name')) . " vorbereitet: Adresse"
+        . ($schluessel !== null ? " und Zugangsschlüssel" : "") . " stehen schon drin.\n"
+        . "// Änderbar bleibt beides in den Einstellungen der Erweiterung.\n"
+        . "const VORGABE = {\n"
+        . "    instanz: " . json_encode($basis, JSON_UNESCAPED_SLASHES) . ",\n"
+        . "    token: " . json_encode((string)$schluessel, JSON_UNESCAPED_SLASHES) . ",\n"
+        . "};\n\n";
+
+    // In beiden Dateien wird chrome.storage.local.get benutzt; die Vorgabe
+    // greift genau dort, wo ein Wert fehlt.
+    $js = str_replace(
+        "const d = await chrome.storage.local.get(['instanz', 'token', 'pfad']);",
+        "const d = await chrome.storage.local.get(['instanz', 'token', 'pfad']);\n"
+        . "    if (!d.instanz) d.instanz = VORGABE.instanz;\n"
+        . "    if (!d.token) d.token = VORGABE.token;",
+        $js
+    );
+    $js = str_replace(
+        "const d = await chrome.storage.local.get(['instanz', 'token', 'konto']);",
+        "const d = await chrome.storage.local.get(['instanz', 'token', 'konto']);\n"
+        . "    if (!d.instanz) d.instanz = VORGABE.instanz;\n"
+        . "    if (!d.token) d.token = VORGABE.token;",
+        $js
+    );
+    return $vor . $js;
+}
+
+/** Das Manifest mit dem Namen dieser Instanz */
+function ext_manifest(string $name, string $basis): string
+{
+    $roh = json_decode((string)file_get_contents(ext_dir() . '/manifest.json'), true);
+    if (!is_array($roh)) $roh = [];
+
+    $roh['name'] = mb_substr($name, 0, 45);
+    $roh['description'] = mb_substr(t('Die geöffnete Seite auf %s kürzen – ein Klick, fertig.', $name), 0, 132);
+    $roh['homepage_url'] = $basis;
+    // Der Host steht fest, also darf die Berechtigung fest stehen: Die
+    // vorbereitete Fassung fragt nicht nach „allen Seiten", sondern nur nach
+    // dieser einen Adresse. Das ist der eigentliche Gewinn gegenüber der
+    // Fassung zum Selbsteinrichten.
+    unset($roh['optional_host_permissions']);
+    $roh['host_permissions'] = [rtrim($basis, '/') . '/*'];
+    // Eine eigene Kennung je Instanz, sonst hält Firefox zwei vorbereitete
+    // Erweiterungen für dieselbe.
+    $roh['browser_specific_settings']['gecko']['id'] =
+        'flatlink-' . substr(hash('sha256', $basis), 0, 12) . '@instanz';
+
+    return (string)json_encode($roh, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+}
+
+/**
+ * Die Symbole der Erweiterung: das Logo der Instanz, sonst die mitgelieferten.
+ *
+ * Gesucht wird in assets/ nach dem, was die Instanz ohnehin als Symbol führt
+ * (`icons`-Konfiguration, dann die üblichen Namen). Ein quadratisches PNG
+ * genügt; skaliert wird hier.
+ *
+ * @return array<int,string> Kantenlänge => PNG-Inhalt
+ */
+function ext_icons(): array
+{
+    $quelle = ext_icon_quelle();
+    if ($quelle === null || !extension_loaded('gd')) {
+        // Rückfall: die Symbole aus dem Ordner, unverändert
+        $out = [];
+        foreach ([16, 32, 48, 128] as $n) {
+            $p = ext_dir() . '/icons/' . $n . '.png';
+            if (is_file($p)) $out[$n] = (string)file_get_contents($p);
+        }
+        return $out;
+    }
+
+    $bild = @imagecreatefromstring((string)file_get_contents($quelle));
+    if ($bild === false) return ext_icons_standard();
+
+    $out = [];
+    $bw = imagesx($bild);
+    $bh = imagesy($bild);
+    foreach ([16, 32, 48, 128] as $n) {
+        $ziel = imagecreatetruecolor($n, $n);
+        imagealphablending($ziel, false);
+        imagesavealpha($ziel, true);
+        imagefill($ziel, 0, 0, imagecolorallocatealpha($ziel, 0, 0, 0, 127));
+        imagecopyresampled($ziel, $bild, 0, 0, 0, 0, $n, $n, $bw, $bh);
+        ob_start();
+        imagepng($ziel, null, 9);
+        $out[$n] = (string)ob_get_clean();
+    }
+    return $out;
+}
+
+/** @return array<int,string> */
+function ext_icons_standard(): array
+{
+    $out = [];
+    foreach ([16, 32, 48, 128] as $n) {
+        $p = ext_dir() . '/icons/' . $n . '.png';
+        if (is_file($p)) $out[$n] = (string)file_get_contents($p);
+    }
+    return $out;
+}
+
+/** Ein quadratisches PNG dieser Instanz – oder null */
+function ext_icon_quelle(): ?string
+{
+    $assets = dirname(__DIR__) . '/assets/';
+    $kandidaten = [];
+    foreach ((array)cfg('icons') as $wert) {
+        if (is_string($wert) && str_ends_with(strtolower($wert), '.png')) $kandidaten[] = $wert;
+    }
+    $ogImage = (string)cfg('og_image');
+    if ($ogImage !== '' && str_ends_with(strtolower($ogImage), '.png')) $kandidaten[] = $ogImage;
+    // Die üblichen Namen, falls nichts konfiguriert ist
+    array_push($kandidaten, 'icon-512.png', 'icon-192.png', 'apple-touch-icon.png', 'favicon-96.png');
+
+    foreach ($kandidaten as $k) {
+        $p = $assets . basename($k);
+        if (is_file($p)) {
+            $masse = @getimagesize($p);
+            // Quadratisch muss es sein, sonst wird das Symbol verzerrt
+            if ($masse !== false && $masse[0] === $masse[1]) return $p;
+        }
+    }
+    return null;
+}
+
+/** Der Zettel im Archiv */
+function ext_anleitung(string $name, string $basis, bool $mitKey): string
+{
+    $text = "$name – Browser-Erweiterung\n"
+        . str_repeat('=', mb_strlen($name) + 24) . "\n\n"
+        . "Kürzt die geöffnete Seite auf $basis.\n\n";
+
+    $text .= $mitKey
+        ? "Adresse und Zugangsschlüssel stehen schon drin. Nach dem Laden ist\n"
+        . "die Erweiterung sofort benutzbar.\n\n"
+        . "Der Schlüssel gehört zu deinem Konto und steht in deinem Profil\n"
+        . "unter „Zugangsschlüssel“. Dort lässt er sich jederzeit zurückziehen –\n"
+        . "danach fragt die Erweiterung nach einem neuen. Gib dieses Archiv\n"
+        . "deshalb nicht weiter: Wer es hat, kann in deinem Namen Kurzlinks\n"
+        . "anlegen.\n\n"
+        : "Die Adresse steht schon drin. Beim ersten Öffnen fragt die\n"
+        . "Erweiterung nach einem Zugangsschlüssel – den legst du in deinem\n"
+        . "Profil unter „Zugangsschlüssel“ an.\n\n";
+
+    return $text
+        . "LADEN\n\n"
+        . "Chrome, Edge, Brave, Vivaldi:\n"
+        . "  1. Archiv entpacken\n"
+        . "  2. chrome://extensions öffnen\n"
+        . "  3. Entwicklermodus einschalten\n"
+        . "  4. „Entpackte Erweiterung laden“ → den entpackten Ordner wählen\n\n"
+        . "Firefox:\n"
+        . "  1. Archiv entpacken\n"
+        . "  2. about:debugging#/runtime/this-firefox öffnen\n"
+        . "  3. „Temporäres Add-on laden“ → manifest.json im Ordner wählen\n"
+        . "  Firefox vergisst temporäre Add-ons beim Beenden. Dauerhaft geht es\n"
+        . "  nur signiert (addons.mozilla.org) oder in ESR/Developer Edition.\n\n"
+        . "WAS SIE DARF\n\n"
+        . "Die Adresse des Tabs, in dem du auf das Symbol klickst – nur dann.\n"
+        . "Verbindung ausschließlich zu $basis. Keine Seiteninhalte, keine\n"
+        . "Skripte in Seiten, kein Hintergrundprozess, kein anderer Server.\n";
+}

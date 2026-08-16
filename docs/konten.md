@@ -207,6 +207,14 @@ und eine Datei damit landet danach im Download-Ordner. Die Datei selbst zählt
 auf, was sie aus welchem Grund auslässt. Das deckt Art. 15 (Auskunft) und
 Art. 20 (Mitnahme).
 
+**Browser-Erweiterung** baut ein Archiv, das schon auf diese Instanz
+eingerichtet ist: Adresse, Name und Symbole stehen drin, auf Wunsch auch ein
+frisch erzeugter Zugangsschlüssel – dann ist die Erweiterung nach dem Laden
+sofort benutzbar. Der Schlüssel ist ein eigener (Bezeichnung
+„Browser-Erweiterung" mit Datum) und lässt sich einzeln zurückziehen, ohne
+andere Programme lahmzulegen. Wer den Haken wegnimmt, bekommt ein Archiv ohne
+Zugangsmittel; die Erweiterung fragt dann beim ersten Öffnen danach.
+
 **Konto löschen** entfernt das Konto und alle Links, die nur daran hängen,
 samt Klickzählern. Links **mit Gruppenzuordnung bleiben** und verlieren nur
 ihren Besitzer – sie gehören der Gruppe, andere arbeiten damit weiter, und

@@ -18,8 +18,14 @@ let einst = {};
 /** Einstellungen holen – bewusst storage.local: Ein Zugangsschlüssel hat in
  *  der Browser-Synchronisierung nichts verloren. */
 async function laden() {
-    const d = await chrome.storage.local.get(['instanz', 'token']);
-    return { instanz: (d.instanz || '').replace(/\/+$/, ''), token: d.token || '' };
+    const d = await chrome.storage.local.get(['instanz', 'token', 'pfad']);
+    return {
+        instanz: (d.instanz || '').replace(/\/+$/, ''),
+        token: d.token || '',
+        // Beim Einrichten wurde festgestellt, welcher Weg zur Schnittstelle
+        // führt – /api (mit Umschreibung) oder /api.php (ohne).
+        pfad: d.pfad || '/api',
+    };
 }
 
 async function start() {
@@ -59,7 +65,7 @@ async function kuerzen() {
     if (code) rumpf.code = code;
 
     try {
-        const antwort = await fetch(einst.instanz + '/api/links', {
+        const antwort = await fetch(einst.instanz + einst.pfad + '/links', {
             method: 'POST',
             headers: {
                 'Authorization': 'Bearer ' + einst.token,

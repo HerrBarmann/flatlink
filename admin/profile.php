@@ -5,6 +5,7 @@ declare(strict_types=1);
 // flatlink · Zusatzbedingung zur Namensnennung nach §7(b) AGPL: siehe LICENSE
 require_once __DIR__ . '/../inc/auth.php';
 require_once __DIR__ . '/../inc/groups.php';
+require_once __DIR__ . '/../inc/extbuild.php';
 require_once __DIR__ . '/../inc/store.php';
 require_once __DIR__ . '/../inc/account.php';
 require_once __DIR__ . '/../inc/token.php';
@@ -124,6 +125,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $ok = token_revoke($user['name'], (string)($_POST['id'] ?? ''));
         flash($ok ? t('Zugangsschlüssel zurückgezogen.') : t('Diesen Schlüssel gibt es nicht.'), $ok ? 'ok' : 'err');
         redirect_to('profile.php');
+    }
+
+    if ($action === 'extension') {
+        if (!user_can($user['name'], 'api_access') || !ext_available()) {
+            flash(t('Die Erweiterung steht auf dieser Instanz nicht bereit.'), 'err');
+            redirect_to('profile.php');
+        }
+        @set_time_limit(0);
+        [$archiv, $schluessel] = ext_build($user['name'], ($_POST['mit_key'] ?? '') === '1');
+        audit(t('Browser-Erweiterung heruntergeladen%s', $schluessel !== null ? t(' (mit Schlüssel)') : ''));
+        nosniff_header();
+        header('Content-Type: application/zip');
+        header('Content-Disposition: attachment; filename="' . preg_replace('/[^A-Za-z0-9_.-]/', '', str_replace(' ', '-', (string)cfg('site_name'))) . '-erweiterung.zip"');
+        header('Content-Length: ' . strlen($archiv));
+        header('Cache-Control: no-store');
+        echo $archiv;
+        exit;
     }
 
     if ($action === 'export') {
@@ -539,6 +557,21 @@ show_flash();
                 <button class="btn" type="submit"><?= t('Anlegen') ?></button>
             </div>
         </form>
+    <?php endif; ?>
+
+    <?php if (ext_available() && user_can($user['name'], 'api_access')): ?>
+    <h2><?= t('Browser-Erweiterung') ?></h2>
+    <p class="muted small"><?= t('Kürzt die geöffnete Seite mit einem Klick – für Chrome, Edge, Firefox und Verwandte. Das Archiv ist auf %s vorbereitet: Adresse und Symbole stehen schon drin, eingerichtet werden muss nichts. Im Archiv liegt eine kurze Anleitung zum Laden.', e(cfg('site_name'))) ?></p>
+    <form method="post" action="">
+        <?= csrf_field() ?>
+        <input type="hidden" name="action" value="extension">
+        <label class="radio">
+            <input type="checkbox" name="mit_key" value="1" checked>
+            <span><?= t('Zugangsschlüssel gleich mitliefern') ?><br>
+            <span class="muted small"><?= t('Legt einen neuen Schlüssel für dieses Konto an und schreibt ihn in die Erweiterung – dann ist sie sofort benutzbar. Das Archiv enthält damit ein Zugangsmittel: nicht weitergeben, und im Zweifel oben zurückziehen. Ohne Haken fragt die Erweiterung beim ersten Öffnen danach.') ?></span></span>
+        </label>
+        <p><button class="btn" type="submit"><?= t('Erweiterung herunterladen') ?></button></p>
+    </form>
     <?php endif; ?>
 
     <h2><?= t('Deine Daten') ?></h2>
