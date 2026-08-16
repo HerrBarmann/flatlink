@@ -108,6 +108,14 @@ Zeilen – nachlesbar an einem Nachmittag.
 | „Diesem Konto fehlt die Berechtigung" | Recht `api_access` fehlt (oder `custom_code` beim Wunsch-Namen) |
 | „Zu viele Anfragen" | Stundengrenze der Schnittstelle erreicht (`api_rate_limit`) |
 
+## In die Läden bringen
+
+Wer die Erweiterung im Chrome Web Store oder bei addons.mozilla.org anbieten
+will – als generische Fassung oder gebrandet für die eigene Instanz –, findet
+in [docs/store-einreichung.md](../docs/store-einreichung.md) alles dafür:
+Bau-Befehle, Beschreibungstexte, die Begründungen zu jeder Berechtigung und
+die Antworten auf die Datenschutz-Fragebögen.
+
 ## Version
 
 1.0.0 – gebaut gegen die Schnittstelle von flatlink 2.6.0.

@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>flatlink – Bühne für Store-Bildschirmfotos</title>
+<style>
+/* Eine Bühne für die Bildschirmfotos der Erweiterungs-Läden.
+   Chrome verlangt 1280×800 oder 640×400, Firefox nimmt beides.
+
+   Aufnahme: Fenster auf 1280×800 stellen (in den Entwicklerwerkzeugen unter
+   „Responsive"), diese Seite öffnen, Vollbild-Screenshot machen. Das Popup
+   läuft dabei in einem Rahmen wie im Browser – aber es ist das echte,
+   nicht nachgebaut. */
+html, body { margin: 0; height: 100%; }
+body {
+    display: grid;
+    place-items: center;
+    background: var(--grund, linear-gradient(160deg, #eef3e6, #dfe9d2));
+    font: 16px/1.5 system-ui, -apple-system, sans-serif;
+    color: #1a2410;
+}
+.szene { display: flex; align-items: center; gap: 3.5rem; }
+.text { max-width: 22rem; }
+.text h1 { font-size: 2rem; margin: 0 0 0.6rem; letter-spacing: -0.02em; }
+.text p { margin: 0 0 0.8rem; color: #33461f; }
+.text ul { margin: 0; padding-left: 1.1rem; color: #33461f; }
+.text li { margin-bottom: 0.3rem; }
+.rahmen {
+    width: 22rem;
+    background: #fff;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 18px 50px rgba(20, 40, 10, .22), 0 2px 6px rgba(20, 40, 10, .12);
+}
+iframe { display: block; width: 100%; border: 0; }
+</style>
+</head>
+<body>
+<div class="szene">
+  <div class="text">
+    <h1>Ein Klick, ein Kurzlink.</h1>
+    <p>Die geöffnete Seite kürzen – auf <strong>deiner eigenen Instanz</strong>,
+       ohne fremden Dienst dazwischen.</p>
+    <ul>
+      <li>Kurzlink sofort in der Zwischenablage</li>
+      <li>QR-Code aus der eigenen Instanz</li>
+      <li>Wunsch-Name statt Zufallscode</li>
+      <li>Kein Tracking, keine Konten bei Dritten</li>
+    </ul>
+  </div>
+  <div class="rahmen">
+    <!-- Das echte Popup. Vor der Aufnahme in den Einstellungen der
+         Erweiterung eine Instanz eintragen, sonst zeigt es die Einrichtung. -->
+    <iframe src="../extension/popup.html" height="330" title="flatlink"></iframe>
+  </div>
+</div>
+</body>
+</html>

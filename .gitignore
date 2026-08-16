@@ -16,3 +16,8 @@ inc/local.php
 .DS_Store
 *.tmp.*
 *.lock
+
+# Gebaute Store-Pakete – Ergebnis von tools/store-build.php, gehören nicht
+# in die Versionsverwaltung
+/dist/
+*.zip
