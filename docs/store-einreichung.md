@@ -10,6 +10,8 @@ Zwei Fassungen, weil sie verschiedene Zwecke haben:
 | Adresse | wird beim Einrichten erfragt | steht fest |
 | Berechtigung | „Zugriff auf Websites, die du angibst" | „Zugriff auf 1337.kiwi" |
 | Einzurichten | Adresse **und** Schlüssel | nur der Schlüssel |
+| Akzentfarbe | die des Systems | die der Instanz |
+| Wortlaut | „deine Instanz" | der Name der Instanz |
 
 Die gebrandete Fassung verlangt **weniger** Rechte – das ist ihr eigentlicher
 Vorteil, und es lohnt sich, das in der Beschreibung zu sagen.
@@ -18,10 +20,10 @@ Vorteil, und es lohnt sich, das in der Beschreibung zu sagen.
 
 ```bash
 # generisch
-php tools/store-build.php --out=./dist --version=1.0.0
+php tools/store-build.php --out=./dist --version=1.2.1
 
 # gebrandet (Beispiel 1337.kiwi)
-php tools/store-build.php --out=./dist --version=1.0.0 \
+php tools/store-build.php --out=./dist --version=1.2.1 \
   --instanz=https://1337.kiwi --name="1337.kiwi" \
   --icon=/pfad/zu/icon-512.png --farbe="#7ABA1C" --farbetext="#101408"
 ```
@@ -29,6 +31,10 @@ php tools/store-build.php --out=./dist --version=1.0.0 \
 Ein Zugangsschlüssel kommt **nie** ins Paket: Ein Paket im Laden bekommen
 alle, ein Schlüssel gehört einem. Den gibt es weiterhin nur über das Profil
 der eigenen Instanz.
+
+Die Läden nehmen keine zweite Einreichung mit derselben Versionsnummer an –
+`--version=` also bei jedem Anlauf hochzählen, auch wenn der erste an einem
+Formularfehler gescheitert ist.
 
 ---
 
@@ -40,11 +46,6 @@ Einmalig 5 USD Entwicklergebühr, Prüfung dauert meist zwei bis fünf Tage.
 
 > Kurzlinks auf deiner eigenen flatlink-Instanz anlegen – ein Klick in der
 > Werkzeugleiste, ohne fremden Dienst.
-
-gebrandet:
-
-> Die geöffnete Seite auf 1337.kiwi kürzen – ein Klick, fertig. Ohne fremden
-> Dienst dazwischen.
 
 **Ausführliche Beschreibung**
 
@@ -58,6 +59,9 @@ gebrandet:
 >
 > WAS SIE KANN
 > • Die Adresse des aktuellen Tabs kürzen, Name und Wunsch-Adresse optional
+> • Schlagworte und Ablaufdatum gleich mitgeben
+> • Erkennt, wenn du diese Seite schon einmal gekürzt hast, und zeigt den
+>   vorhandenen Kurzlink statt einen zweiten anzulegen
 > • Kurzlink mit einem Klick in die Zwischenablage
 > • Ein Klick weiter zum QR-Designer deiner Instanz – mit Farben, Formen,
 >   Logo und Druckdateien
@@ -128,9 +132,7 @@ Kostenlos. Zwei Wege:
 * **Listed** – im Verzeichnis auffindbar, mit Prüfung.
 * **Unlisted** – nur signiert, nicht im Verzeichnis. Das Paket kommt signiert
   zurück und lässt sich selbst ausliefern: Ein Link auf die `.xpi` ist dann
-  ein echter Ein-Klick-Installer. **Das ist der Weg für die gebrandete
-  Fassung** – sie taugt ohnehin nur für eine Instanz und hat im Verzeichnis
-  wenig verloren.
+  ein echter Ein-Klick-Installer.
 
 **Zusammenfassung** (bis 250 Zeichen)
 
@@ -159,6 +161,141 @@ die Aufzählungen dürfen dort `<ul><li>` sein).
 Der letzte Satz ist wichtig: Firefox verlangt sonst die Quellen des
 Build-Prozesses. Hier gibt es keinen.
 
+### Die Angabe zur Datenerhebung
+
+Seit 2025 verlangt Mozilla im Manifest ein Feld dazu; ohne es bricht der
+Upload mit *„The data_collection_permissions property is missing"* ab. Es
+steht unter `browser_specific_settings.gecko`:
+
+```json
+"data_collection_permissions": { "required": ["none"] }
+```
+
+`none` ist Mozillas Wert für „sammelt keine Daten", und das ist hier die
+zutreffende Angabe: Die Erweiterung überträgt die Adresse, die der Nutzer
+kürzen will, an dessen **eigene** Instanz – so wie ein FTP-Programm Dateien
+überträgt. An den Entwickler oder an Dritte geht nichts, gespeichert wird
+nur, was der Nutzer selbst anlegt, und der Zugangsschlüssel bleibt im lokalen
+Speicher seines Browsers.
+
+Wer das für seine Instanz anders einschätzt – etwa weil sie die Adressen
+auswertet –, gibt stattdessen die Kategorien des AMO-Formulars an
+(`websiteActivity`, `technicalAndInteraction` …). Das Build-Werkzeug nimmt
+sie kommagetrennt entgegen:
+
+```bash
+php tools/store-build.php … --daten=websiteActivity
+```
+
+Im AMO-Formular tauchen dieselben Angaben noch einmal zum Anklicken auf –
+sie müssen zum Manifest passen, sonst kommt das Paket aus der Prüfung zurück.
+
+---
+
+## Die Fassung für 1337.kiwi
+
+Fertig zum Kopieren. Sie unterscheidet sich in der Sache an einer Stelle vom
+generischen Text: Es gibt nichts einzurichten außer dem Schlüssel, und die
+Erweiterung kann gar nicht woandershin sprechen.
+
+**Name:** `1337.kiwi`
+
+Kurz, weil er in der Werkzeugleiste und in der Erweiterungsliste steht. Wer
+lieber gefunden werden will, baut mit `--name="1337.kiwi – Links kürzen"`;
+der Name aus dem Manifest ist auch der Name im Laden.
+
+**Kurzbeschreibung** (Chrome, max. 132 Zeichen – dieser Text steht schon im
+Manifest, also gleich beim Bauen gesetzt)
+
+> Die geöffnete Seite auf 1337.kiwi kürzen – ein Klick, fertig. Ohne fremden
+> Dienst dazwischen.
+
+**Zusammenfassung** (Firefox, max. 250 Zeichen)
+
+> Kürzt die geöffnete Seite auf 1337.kiwi: ein Klick in der Werkzeugleiste,
+> Kurzlink in der Zwischenablage, von dort weiter zum QR-Designer. Sie
+> spricht mit keiner anderen Adresse als 1337.kiwi – niemand sitzt
+> dazwischen und liest mit.
+
+**Ausführliche Beschreibung**
+
+> Ein Klick in der Werkzeugleiste, und die Seite, auf der du gerade bist,
+> hat einen Kurzlink auf 1337.kiwi. Kein Tab-Wechsel, kein Einfügen, kein
+> Formular.
+>
+> Der Unterschied zu den Erweiterungen der bekannten Anbieter ist nicht die
+> Funktion, sondern wer mitliest. Diese hier kennt genau eine Adresse:
+> 1337.kiwi. Sie kann technisch gar nicht woandershin sprechen – der Browser
+> lässt sie nur an diesen einen Host. Was sie überträgt, ist die Adresse, die
+> du kürzen willst, und nichts sonst.
+>
+> WAS SIE KANN
+> • Die Adresse des aktuellen Tabs kürzen – Titel und Wunsch-Name optional
+> • Schlagworte und Ablaufdatum gleich mitgeben
+> • Erkennt, wenn du diese Seite schon einmal gekürzt hast, und zeigt den
+>   vorhandenen Kurzlink – statt einen zweiten anzulegen, der dieselbe Seite
+>   noch einmal zählt
+> • Kurzlink mit einem Klick in die Zwischenablage
+> • Von dort weiter in den QR-Designer von 1337.kiwi: Farben, Formen, Logo,
+>   Rahmen mit Text und Druckdateien in PDF und EPS
+>
+> WAS SIE NICHT TUT
+> • Keine Seiteninhalte lesen, keine Skripte in Seiten einspritzen
+> • Keine Verbindung zu irgendeiner anderen Adresse als 1337.kiwi
+> • Keine Analyse, keine Kennungen, kein Hintergrundprozess
+>
+> BERECHTIGUNGEN
+> • „Aktiver Tab": die Adresse des Tabs, in dem du auf das Symbol klickst –
+>   nur dann, nur diese
+> • „Zugriff auf 1337.kiwi": dorthin geht die Anfrage
+> • „Speicher": dein Zugangsschlüssel, bewusst im lokalen Speicher dieses
+>   Browsers statt in der Browser-Synchronisierung – ein Schlüssel hat in
+>   fremden Rechenzentren nichts verloren
+>
+> EINRICHTEN
+> Ein Konto bei 1337.kiwi genügt. Unter Profil → Browser-Erweiterung einen
+> Verbindungscode erzeugen, hier einfügen, fertig. Der Schlüssel wird dabei
+> eigens für die Erweiterung angelegt und lässt sich einzeln zurückziehen,
+> ohne dass andere Programme stehenbleiben.
+>
+> WAS DAHINTERSTECKT
+> 1337.kiwi läuft auf flatlink, das quelloffen unter der AGPL steht:
+> github.com/HerrBarmann/flatlink. Diese Erweiterung ist dort Teil des
+> Quelltextes – vier Dateien, gut 300 Zeilen, nachlesbar an einem
+> Nachmittag. Wer lieber selbst hostet, nimmt dieselbe Erweiterung in der
+> neutralen Fassung und trägt seine eigene Adresse ein.
+
+**Kategorie (Chrome):** Produktivität
+**Kategorien (Firefox):** Lesezeichen, Produktivität
+**Schlagworte:** kurzlink, url-shortener, qr-code, 1337.kiwi, datenschutz
+**Sprache:** Deutsch
+**Lizenz:** AGPL-3.0-or-later
+**Startseite:** `https://1337.kiwi`
+**Datenschutz:** `https://1337.kiwi/datenschutz.php`
+**Support:** `https://1337.kiwi/impressum.php`
+
+**Für die Prüfenden**
+
+> Diese Fassung gehört zum Dienst 1337.kiwi und spricht ausschließlich mit
+> https://1337.kiwi – der Host-Zugriff im Manifest ist entsprechend fest
+> gesetzt. Zum Testen: unter https://1337.kiwi ein kostenloses Konto anlegen,
+> im Profil unter „Browser-Erweiterung" einen Verbindungscode erzeugen und
+> ihn in den Einstellungen der Erweiterung einfügen. Danach genügt ein Klick
+> auf das Symbol, um die geöffnete Seite zu kürzen.
+>
+> Kein Build-Schritt: Der Quelltext im Paket ist der ausgelieferte Code, es
+> gibt keine Minifizierung und keine Bündelung. Er ist quelloffen unter
+> github.com/HerrBarmann/flatlink (Ordner `extension/`); diese Fassung
+> entsteht daraus mit `tools/store-build.php`, das lediglich Name, Adresse,
+> Symbole und Akzentfarbe einsetzt.
+
+**Bildunterschriften** (Chrome zeigt keine, Firefox schon)
+
+1. Ein Klick in der Werkzeugleiste – die Adresse steht schon da
+2. Fertig: Kurzlink in der Zwischenablage, weiter zum QR-Designer
+3. Kennt die Seite schon einen Kurzlink, zeigt sie ihn statt einen zweiten anzulegen
+4. Einrichten mit einem Verbindungscode aus dem Profil
+
 ---
 
 ## Bildschirmfotos
@@ -166,19 +303,49 @@ Build-Prozesses. Hier gibt es keinen.
 Chrome verlangt mindestens eines, 1280×800 oder 640×400 (PNG oder JPEG).
 Firefox nimmt beliebige Größen, empfiehlt aber dasselbe Maß.
 
-Die Vorlage dafür liegt bei: `tools/screenshot.html`. Sie zeigt das **echte**
-Popup in einem Fensterrahmen neben einer kurzen Erklärung. Vorgehen:
+`tools/screenshots.php` baut die Bühnen dafür. Es malt nichts nach: Es nimmt
+`popup.html` und `popup.css` **aus einem entpackten Paket**, setzt daran
+genau das, was sonst `popup.js` zur Laufzeit setzt – welcher Abschnitt
+sichtbar ist, was in den Feldern steht –, und stellt das Ergebnis in eine
+Bühne mit Fensterrahmen und Erklärtext. Was auf dem Bild steht, steht so auch
+im Paket.
 
-1. Erweiterung im Browser laden und einrichten (sonst zeigt das Popup die
-   Einrichtung statt der Eingabemaske).
-2. `tools/screenshot.html` über einen lokalen Server öffnen – als `file://`
-   lädt der Rahmen das Popup nicht.
-3. Fenster auf 1280×800 stellen (Entwicklerwerkzeuge → Responsive) und einen
-   Vollbild-Screenshot machen.
+```bash
+unzip -q dist/1337-kiwi-1.2.1.zip -d /tmp/paket
+php tools/screenshots.php --paket=/tmp/paket --out=/tmp/bilder \
+  --name="1337.kiwi" --instanz=https://1337.kiwi \
+  --logo=/pfad/zu/icon-512.png --mono=/pfad/zu/mono.ttf \
+  --farbe="#7ABA1C" --farbetext="#101408" --farbetief="#507A14"
+```
 
-Drei Bilder reichen: die Eingabemaske, das Ergebnis mit Kurzlink, und – wenn
-die Instanz mehrere Domains führt – die Eingabemaske mit aufgeklappter
-Domain-Auswahl.
+Heraus kommen vier HTML-Dateien in 1024×640 CSS-Pixeln. Gerendert wird mit
+einem Browser – unter macOS reicht Quick Look, das WebKit benutzt:
+
+```bash
+cd /tmp/bilder
+for f in *.html; do
+  qlmanage -t -s 2560 -o . "$f"
+  magick "$f.png" -crop 2560x1600+0+0 +repage -resize 1280x800 "${f%.html}.png"
+  rm "$f.png"
+done
+```
+
+Der Faktor dahinter: Quick Look rendert mit **1024** CSS-Pixeln Breite und
+skaliert das Ergebnis auf die mit `-s` angegebene Kantenlänge. 2560 sind also
+2,5× – 640 CSS-Pixel Höhe landen bei 1600, der Rest des quadratischen Bildes
+ist Füllung und wird weggeschnitten. Das Herunterrechnen auf 1280×800 ergibt
+saubere Kanten.
+
+Zwei Fallen, beide beim ersten Anlauf zugeschnappt:
+
+* **Farbe.** Die neutrale Fassung holt sich die Akzentfarbe des Systems
+  (`AccentColor`). Im Browser ist das richtig, auf einem Bildschirmfoto aber
+  Zufall – es zeigte die Systemfarbe des Rechners, auf dem gebaut wurde. Die
+  Bühne setzt deshalb den dokumentierten Rückfall bzw. die Farbe der Instanz.
+* **Zwei Stylesheets, ein Dokument.** Bühne und Popup benutzen dieselben
+  Namen – beide haben ein `h1`, beide setzen Regeln auf `body`. Ungebunden
+  gewinnt das spätere, und das Popup zog die ganze Bühne auf 22 rem zusammen.
+  `css_binden()` hängt jeden Selektor an `.popup`.
 
 ---
 
@@ -187,7 +354,3 @@ Domain-Auswahl.
 Beide Läden zeigen eine feste Kennung an. Die gehört in die Instanz, sobald
 sie feststeht – dann kann der Knopf im Profil künftig direkt in den Laden
 verlinken, statt ein Archiv zu bauen.
-
-Und die Versionsnummer: Sie steht im Manifest und wird beim Bauen gesetzt
-(`--version=`). Die Läden nehmen keine zweite Einreichung mit derselben
-Nummer an.

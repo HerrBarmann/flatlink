@@ -128,16 +128,55 @@ $jetzt = time();
 
 foreach (['popup.html', 'popup.css', 'popup.js', 'options.html', 'options.js'] as $datei) {
     $inhalt = (string)file_get_contents($quelle . '/' . $datei);
+    if ($instanz !== '' && ($datei === 'popup.html' || $datei === 'options.html')) {
+        // „deiner Instanz" ist die richtige Ansprache, solange die Fassung
+        // keine kennt. Hier kennt sie eine – dann gehört ihr Name hin.
+        $inhalt = str_replace(
+            ['Adresse deiner Instanz', 'in deiner Instanz', 'In deiner Instanz', 'deiner Instanz'],
+            ['Adresse', 'bei ' . $name, 'Bei ' . $name, $name],
+            $inhalt
+        );
+        $inhalt = str_replace('<title>flatlink', '<title>' . $name, $inhalt);
+        $inhalt = str_replace('<h1>flatlink</h1>', '<h1>' . $name . '</h1>', $inhalt);
+    }
     if ($datei === 'popup.css' && $farbe !== '') {
         if (preg_match('/^#[0-9a-f]{3,8}$/i', $farbe) !== 1) exit("--farbe erwartet einen Hex-Wert wie #7ABA1C\n");
-        // Nur der Rückfall wird ersetzt. Wer sein System auf eine
-        // Akzentfarbe eingestellt hat, behält sie – die Erweiterung soll
-        // sich in den Browser einfügen, nicht gegen ihn anfärben.
         $inhalt = str_replace(
             ['--akzent: #3b6ea8;', '--akzentschrift: #fff;'],
             ['--akzent: ' . $farbe . ';', '--akzentschrift: ' . $farbeText . ';'],
             $inhalt
         );
+        // Und der @supports-Block muss weg. Die neutrale Fassung holt sich
+        // dort AccentColor, damit sie sich in den Browser einfügt – das ist
+        // richtig, solange sie niemandem gehört. Bei einer gebrandeten
+        // Fassung gewinnt sonst IMMER die Systemfarbe: AccentColor können
+        // alle aktuellen Browser, der Rückfall darüber greift also nie.
+        // Wer --farbe angibt, will sie sehen.
+        $ohne = (string)preg_replace(
+            '/@supports \(color: AccentColor\)\s*\{(?:[^{}]|\{[^{}]*\})*\}\s*/', '', $inhalt);
+        // Der erklärende Kommentar darüber stimmt in dieser Fassung nicht mehr
+        $ohne = str_replace(
+            "    /* Rückfall zuerst: AccentColor gibt es erst in neueren Browsern, und ohne
+"
+            . "       Rückfall wäre der Hauptknopf dort durchsichtig – ein Knopf, den man
+"
+            . "       nicht als Knopf erkennt. Der Wert ist das Blau des neutralen
+"
+            . "       flatlink-Themes. */
+",
+            "    /* Die Farbe der Instanz, zu der diese Fassung gehört. Die neutrale
+"
+            . "       Fassung übernimmt hier die Akzentfarbe des Systems; wo ein Logo
+"
+            . "       klebt, gehört die Farbe dazu. */
+",
+            $ohne
+        );
+        if ($ohne === $inhalt || strpos($ohne, 'AccentColor') !== false) {
+            exit("popup.css: Der @supports-Block ließ sich nicht entfernen – sonst\n"
+               . "überschriebe die Systemfarbe die angegebene Markenfarbe.\n");
+        }
+        $inhalt = $ohne;
     }
     if ($instanz !== '' && ($datei === 'popup.js' || $datei === 'options.js')) {
         // Nur die Adresse, kein Schlüssel – siehe Kopf dieser Datei

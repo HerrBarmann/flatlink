@@ -24,6 +24,12 @@
 
 * { box-sizing: border-box; }
 
+/* Das hidden-Attribut muss gewinnen. Die Regel der Browser dafür ist
+   [hidden]{display:none} – dieselbe Spezifität wie eine Klasse. Wer danach
+   .hinweis-kasten{display:flex} schreibt, überstimmt sie und hat einen
+   leeren Kasten im Fenster stehen, den niemand wegbekommt. */
+[hidden] { display: none !important; }
+
 body {
     width: 22rem;
     margin: 0;
