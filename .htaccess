@@ -15,7 +15,11 @@ RewriteRule ^(inc|data)(/|$) - [F,L]
 
 # Programmierschnittstelle unter /api/… erreichbar machen. Muss vor der
 # Kurzcode-Regel stehen, sonst hielte diese „api" für einen Kurzcode.
-RewriteRule ^api(/.*)?$ api.php [L,QSA,E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+# Der Rest des Pfads muss mit: Ohne das $1 landet er nirgends, api.php sähe
+# jede Anfrage als Aufruf ohne Endpunkt (und antwortete mit „Unbekannter
+# Endpunkt"). Sollte ein Server PATH_INFO trotzdem verschlucken, liest
+# api.php den Pfad zusätzlich aus der Adresse.
+RewriteRule ^api(/.*)?$ api.php$1 [L,QSA,E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 
 # Der Kopf Authorization wird von manchen Servern nicht an PHP durchgereicht.
 # Diese Zeile legt ihn zusätzlich als Umgebungsvariable ab; api.php sucht dort.

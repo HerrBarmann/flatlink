@@ -53,8 +53,29 @@ function api_fail(int $status, string $code, string $message): never
 
 $method = strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET'));
 
+/**
+ * Der angefragte Endpunkt.
+ *
+ * PATH_INFO ist der saubere Weg – aber er kommt nicht überall an. Die
+ * mitgelieferte Umschreibung `^api(/.*)?$ api.php` schreibt auf die Datei um,
+ * ohne den Rest anzuhängen; Apache setzt PATH_INFO dann nicht, und die
+ * Schnittstelle sah jede Anfrage als Aufruf ohne Endpunkt. Auffällig wurde
+ * das erst beim POST, weil ein GET ohne Schlüssel schon vorher mit 401
+ * antwortet – ein Aufruf von /api/me sah deshalb richtig aus, obwohl der
+ * Pfad nie ankam.
+ *
+ * Deshalb drei Quellen in dieser Reihenfolge: PATH_INFO, die Adresse selbst
+ * (alles hinter /api oder /api.php), und ?p= als letzte Möglichkeit für
+ * Server, die weder das eine noch das andere hergeben.
+ */
 $pfad = (string)($_SERVER['PATH_INFO'] ?? '');
+if ($pfad === '') $pfad = (string)parse_url((string)($_SERVER['REQUEST_URI'] ?? ''), PHP_URL_PATH);
 if ($pfad === '') $pfad = (string)($_GET['p'] ?? '');
+// Der eigene Name kann vorne stehen oder nicht – je nach Server. Der
+// eingebaute PHP-Server legt in PATH_INFO den vollen Pfad ab („/api/me"),
+// Apache mit PATH_INFO-Unterstützung nur den Rest („/me"), und ohne sie
+// bleibt nur die Adresse. Nach dem Abschneiden ist die Herkunft egal.
+$pfad = (string)preg_replace('#^/?api(?:\.php)?(?=/|$)#i', '', $pfad);
 $teile = array_values(array_filter(explode('/', trim($pfad, '/')), fn($t) => $t !== ''));
 
 /** Körper der Anfrage: JSON oder Formularfelder, beides ist erlaubt */
