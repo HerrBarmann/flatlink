@@ -11,13 +11,31 @@ beziehen.
 
 ## Was eingebaut ist
 
-**Textkontraste.** Alle Textfarben des mitgelieferten Themes wurden gegen
-ihren tatsächlichen Hintergrund gerechnet (nicht geschätzt): 42 Textelemente
-der Startseite, keines unter der geforderten Schwelle von 4,5:1 für normalen
-und 3:1 für großen Text. Auch die gedämpfte Schrift (`.muted`, `.small`) und
-die hellen Texte auf den dunklen Bändern liegen darüber. Wer eigene Farben
-setzt (`assets/custom.css`), muss selbst nachrechnen – die Prüfung gilt für
-die Auslieferung.
+**Textkontraste.** Gerechnet, nicht geschätzt – und zwar über die
+Farbpaare, die das mitgelieferte Theme tatsächlich verwendet:
+
+| Kombination | Kontrast | gefordert |
+| --- | --- | --- |
+| Fließtext auf Karte | 16,1:1 | 4,5:1 |
+| gedämpfter Text (`.muted`, Beschriftungen) | 5,6:1 | 4,5:1 |
+| Textlink | 7,1:1 | 4,5:1 |
+| Hauptknopf (Schrift auf Akzent) | 5,3:1 | 4,5:1 |
+| Eingabefeld | 17,2:1 | 4,5:1 |
+| Sprunglink | 5,1:1 | 4,5:1 |
+
+Ein Wort zur Methode, weil sie hier eine Falle hat: Eine rein automatische
+Prüfung über den DOM misst bei diesem Projekt **falsch**, sobald eine Fläche
+ihren Hintergrund über ein Pseudo-Element malt – etwa bei den schrägen
+Farbbändern der 1337.kiwi-Variante. Ein Skript, das nur
+`background-color` der Elternkette liest, sieht dort den hellen Grund
+darunter und meldet reihenweise Verstöße, die keine sind; eines, das
+Pseudo-Elemente mitnimmt, hält den dekorativen Strich über einer Überschrift
+für den Hintergrund und rechnet ebenso falsch. Beide Irrwege wurden hier
+gegangen, bevor die Paare von Hand gerechnet wurden. Wer nachprüft, sollte
+das wissen.
+
+Wer eigene Farben setzt (`assets/custom.css`), verlässt den geprüften Stand
+und muss selbst nachrechnen.
 
 **Tastaturbedienung.** Jede Funktion ist ohne Maus erreichbar. Der Fokus ist
 sichtbar: `:focus-visible` legt einen 2 px starken Rahmen in der Akzentfarbe
@@ -59,6 +77,9 @@ QR-Designer (Live-Vorschau) und das Kopieren in die Zwischenablage.
 
 ## Was nicht geprüft ist
 
+- **Keine vollständige automatische Prüfung** aller Seiten und Zustände,
+  aus dem oben genannten Grund: Sie wäre bei diesem Layout unzuverlässiger
+  als die Handrechnung der Paare.
 - **Kein Test mit Screenreadern** (NVDA, JAWS, VoiceOver) durch Menschen, die
   sie täglich benutzen. Die Auszeichnung ist nach bestem Wissen gesetzt, aber
   ob sie sich gut anhört, hat niemand gehört.

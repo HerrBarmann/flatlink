@@ -197,7 +197,11 @@ a:focus-visible, button:focus-visible, summary:focus-visible,
    sich jede Tastaturbedienung erst durch die Kopfzeile arbeiten. */
 .skip {
     position: absolute; left: -9999px; top: 0; z-index: 100;
-    padding: 0.6rem 1rem; background: var(--accent); color: var(--paper);
+    /* Tinte auf Papier, nicht Akzent auf Papier: Der Akzent ist eine
+       Signalfarbe und in hellen Themes zu hell für Text darauf – nachgemessen
+       kam er auf 2,29:1, gefordert sind 4,5:1. Tinte und Papier haben den
+       Kontrast per Definition, sonst wäre der Fließtext unlesbar. */
+    padding: 0.6rem 1rem; background: var(--ink); color: var(--paper);
     font-family: var(--mono); text-decoration: none; border-radius: 0 0 var(--radius) 0;
 }
 .skip:focus { left: 0; }
