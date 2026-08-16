@@ -10,6 +10,7 @@ require_once __DIR__ . '/../inc/domains.php';
 require_once __DIR__ . '/../inc/zip.php';
 require_once __DIR__ . '/../inc/backup.php';
 require_once __DIR__ . '/../inc/probe.php';
+require_once __DIR__ . '/../inc/extbuild.php';
 
 $user = auth_require_admin();
 $s = settings();
@@ -79,6 +80,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
         if ($fehler === null) $neu['domains'] = $liste;
+    }
+
+    if ($fehler === null && isset($_POST['erweiterung'])) {
+        $laeden = [];
+        foreach (array_keys(ext_laden_namen()) as $laden) {
+            $laeden[$laden] = trim((string)($_POST['ext_' . $laden] ?? ''));
+        }
+        // Eine Adresse, die nicht in ihren Laden zeigt, wird gar nicht erst
+        // gespeichert: Sonst stünde sie im Feld, ohne zu wirken, und niemand
+        // wüsste warum. Der Fehler nennt den Laden.
+        foreach ($laeden as $laden => $url) {
+            if ($url !== '' && !ext_store_gueltig($laden, $url)) {
+                $fehler = t('Diese Adresse zeigt nicht in den Laden „%s“.', ext_laden_namen()[$laden]);
+                break;
+            }
+        }
+        if ($fehler === null) {
+            $neu['ext_stores'] = $laeden;
+            $neu['ext_download'] = ($_POST['ext_download'] ?? '') === '1';
+            audit(t('Einstellungen zur Browser-Erweiterung geändert'));
+        }
     }
 
     if (isset($_POST['probe'])) {
@@ -237,6 +259,37 @@ $host = preg_replace('#^https?://#', '', base_url());
         <p><button class="btn" type="submit"><?= t('Domain hinzufügen') ?></button></p>
     </form>
     <p class="muted small"><?= t('Die Domain muss zusätzlich beim Hoster auf dieses Verzeichnis zeigen und im Zertifikat stehen – das kann diese Oberfläche nicht für dich tun.') ?></p>
+</div>
+
+<div class="card">
+    <h2><?= t('Browser-Erweiterung') ?></h2>
+    <p class="muted small"><?= t('Wie Nutzende im Profil zu ihr kommen. Steht eine Adresse in einem Laden, erscheint dort ein Knopf dahin; das Archiv zum Selbstladen lässt sich daneben abschalten. Der Verbindungscode bleibt in jedem Fall – er richtet eine installierte Erweiterung mit einem Einfügen ein.') ?></p>
+
+    <form method="post" action="">
+        <?= csrf_field() ?>
+        <input type="hidden" name="erweiterung" value="1">
+        <?php $muster = [
+            'chrome' => 'https://chromewebstore.google.com/detail/…',
+            'firefox' => 'https://addons.mozilla.org/firefox/addon/…',
+            'edge' => 'https://microsoftedge.microsoft.com/addons/detail/…',
+        ]; ?>
+        <?php foreach (ext_laden_namen() as $laden => $titel): ?>
+        <label for="ext-<?= e($laden) ?>"><?= e($titel) ?></label>
+        <input id="ext-<?= e($laden) ?>" type="url" name="ext_<?= e($laden) ?>" autocomplete="off"
+               placeholder="<?= e($muster[$laden] ?? '') ?>" spellcheck="false"
+               value="<?= e((string)($s['ext_stores'][$laden] ?? '')) ?>">
+        <?php endforeach; ?>
+        <p class="muted small"><?= t('Angenommen wird nur %s und nur die Adresse des jeweiligen Ladens – ein Knopf „Installieren“ ist eine Empfehlung und soll nicht irgendwohin zeigen können.', '<code>https</code>') ?></p>
+
+        <label class="radio" style="margin-top:.8rem">
+            <input type="checkbox" name="ext_download" value="1"<?= !empty($s['ext_download']) ? ' checked' : '' ?><?= ext_available() ? '' : ' disabled' ?>>
+            <span><?= t('Archiv zum Selbstladen anbieten') ?><br>
+            <span class="muted small"><?= ext_available()
+                ? t('Für eine Instanz ohne Eintrag in den Läden der einzige Weg: fertig eingerichtet, aber von Hand zu entpacken und im Entwicklermodus zu laden – und es aktualisiert sich nie. Wer im Laden steht, schaltet es besser ab.')
+                : t('Nicht möglich: Der Ordner %s liegt nicht auf dieser Instanz.', '<code>extension/</code>') ?></span></span>
+        </label>
+        <p><button class="btn" type="submit"><?= t('Speichern') ?></button></p>
+    </form>
 </div>
 
 <?php if (data_dir_in_webroot()): $probe = probe_last() ?? ['stand' => 'ungeprueft', 'zeit' => '', 'detail' => '']; ?>

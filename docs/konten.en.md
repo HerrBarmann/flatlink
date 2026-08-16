@@ -203,6 +203,26 @@ containing them would sit in the download folder afterwards. The file itself
 lists what it leaves out and why. This covers Art. 15 (access) and Art. 20
 (portability).
 
+**Browser extension** shows what the instance offers – which depends on what
+is set under *Settings → Browser extension*.
+
+*Connection code* is always available. It holds the address and a freshly
+created access key and sets up an already installed extension with a single
+paste. The key is its own (labelled "Browser-Erweiterung" with a date) and can
+be revoked separately without stopping other programs.
+
+*Store buttons* appear as soon as addresses are entered there – for instances
+whose extension is in the Chrome Web Store, the Firefox Add-ons or the Edge
+Add-ons.
+
+*Archive for self-installation* builds a package already configured for this
+instance: address, name and icons are inside, and on request the access key as
+well – then the extension works the moment it is loaded. Without the tick you
+get an archive without a means of access; the extension then asks for one when
+first opened. For an instance with no store listing this is the only way – but
+it has to be unpacked by hand and loaded in developer mode, and it never
+updates itself. If you are in a store, switch it off in the settings.
+
 **Delete account** removes the account and all links that hang only on it,
 including click counters. Links **with a group assignment remain** and only
 lose their owner – they belong to the group, others keep working with them,

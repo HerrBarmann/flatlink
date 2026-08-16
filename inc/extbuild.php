@@ -57,6 +57,67 @@ function ext_available(): bool
     return is_file(ext_dir() . '/manifest.json');
 }
 
+/**
+ * Die Erweiterung in den Läden – Adressen, die wirklich dorthin führen.
+ *
+ * @return array<string,string> Laden => Adresse, leere Einträge fallen weg
+ */
+function ext_stores(): array
+{
+    $out = [];
+    foreach ((array)(settings()['ext_stores'] ?? []) as $laden => $url) {
+        if (ext_store_gueltig((string)$laden, (string)$url)) $out[$laden] = trim((string)$url);
+    }
+    return $out;
+}
+
+/**
+ * Die Läden, die flatlink kennt – Schlüssel und Anzeigename.
+ *
+ * @return array<string,string>
+ */
+function ext_laden_namen(): array
+{
+    return [
+        'chrome' => t('Chrome Web Store'),
+        'firefox' => t('Firefox-Add-ons'),
+        'edge' => t('Edge-Add-ons'),
+    ];
+}
+
+/**
+ * Zeigt diese Adresse wirklich in diesen Laden?
+ *
+ * Nur https und nur die Häuser, die es gibt. Das Feld steht in der Verwaltung
+ * offen, und ein Knopf „Installieren" ist eine Empfehlung – die soll nicht
+ * irgendwohin zeigen können.
+ */
+function ext_store_gueltig(string $laden, string $url): bool
+{
+    $erlaubt = [
+        'chrome' => ['chromewebstore.google.com', 'chrome.google.com'],
+        'firefox' => ['addons.mozilla.org'],
+        'edge' => ['microsoftedge.microsoft.com'],
+    ];
+    $url = trim($url);
+    if ($url === '' || !isset($erlaubt[$laden])) return false;
+    return parse_url($url, PHP_URL_SCHEME) === 'https'
+        && in_array(strtolower((string)parse_url($url, PHP_URL_HOST)), $erlaubt[$laden], true);
+}
+
+/**
+ * Darf die Instanz das Archiv zum Selbstladen anbieten?
+ *
+ * Für eine Instanz ohne Store-Eintrag ist es der einzige Weg. Wer in den
+ * Läden ist, schaltet es ab: Ein Archiv, das man von Hand entpacken und im
+ * Entwicklermodus laden muss, ist neben einem Ein-Klick-Knopf keine
+ * Alternative, sondern eine Zumutung – und es aktualisiert sich nie.
+ */
+function ext_download_erlaubt(): bool
+{
+    return ext_available() && (bool)(settings()['ext_download'] ?? true);
+}
+
 function ext_dir(): string
 {
     return dirname(__DIR__) . '/extension';

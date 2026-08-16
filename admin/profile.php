@@ -139,7 +139,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($action === 'extension') {
-        if (!user_can($user['name'], 'api_access') || !ext_available()) {
+        // ext_download_erlaubt() statt ext_available(): Wer das Archiv in den
+        // Einstellungen abschaltet, hat es abgeschaltet – ein ausgeblendeter
+        // Knopf ist keine Sperre, der Aufruf geht auch von Hand.
+        if (!user_can($user['name'], 'api_access') || !ext_download_erlaubt()) {
             flash(t('Die Erweiterung steht auf dieser Instanz nicht bereit.'), 'err');
             redirect_to('profile.php');
         }
@@ -570,9 +573,26 @@ show_flash();
         </form>
     <?php endif; ?>
 
-    <?php if (ext_available() && user_can($user['name'], 'api_access')): ?>
+    <?php if (user_can($user['name'], 'api_access')):
+        $laeden = ext_stores();
+        $archivAn = ext_download_erlaubt();
+        $ladenNamen = ext_laden_namen();
+    ?>
     <h2><?= t('Browser-Erweiterung') ?></h2>
-    <p class="muted small"><?= t('Kürzt die geöffnete Seite mit einem Klick – für Chrome, Edge, Firefox und Verwandte. Das Archiv ist auf %s vorbereitet: Adresse und Symbole stehen schon drin, eingerichtet werden muss nichts. Im Archiv liegt eine kurze Anleitung zum Laden.', e(cfg('site_name'))) ?></p>
+    <p class="muted small"><?= $laeden !== []
+        ? t('Kürzt die geöffnete Seite mit einem Klick. Aus dem Laden installieren, dann unten einen Verbindungscode erzeugen und ihn in den Einstellungen der Erweiterung einfügen – Adresse und Zugangsschlüssel stehen darin.')
+        : ($archivAn
+            ? t('Kürzt die geöffnete Seite mit einem Klick – für Chrome, Edge, Firefox und Verwandte. Das Archiv ist auf %s vorbereitet: Adresse und Symbole stehen schon drin, eingerichtet werden muss nichts. Im Archiv liegt eine kurze Anleitung zum Laden.', e(cfg('site_name')))
+            : t('Kürzt die geöffnete Seite mit einem Klick. Sobald sie in den Läden von Chrome und Firefox steht, findest du den Link hier. Ist sie schon installiert, richtet ein Verbindungscode sie ein.')) ?></p>
+
+    <?php if ($laeden !== []): ?>
+    <p class="short-row">
+        <?php foreach ($laeden as $laden => $url): ?>
+        <a class="btn" href="<?= e($url) ?>" target="_blank" rel="noopener">
+            <?= e($ladenNamen[$laden] ?? $laden) ?></a>
+        <?php endforeach; ?>
+    </p>
+    <?php endif; ?>
     <?php $code = $_SESSION['connect_code'] ?? null; unset($_SESSION['connect_code']); ?>
     <?php if ($code !== null): ?>
     <div class="flash flash-ok">
@@ -592,6 +612,7 @@ show_flash();
     </p>
     <p class="muted small"><?= t('Für eine Erweiterung, die schon installiert ist – etwa aus dem Chrome Web Store oder von addons.mozilla.org. Einmal kopieren, einmal einfügen, fertig.') ?></p>
 
+    <?php if ($archivAn): ?>
     <p class="muted small" style="margin-top:1rem"><strong><?= t('Oder als Archiv:') ?></strong></p>
     <form method="post" action="">
         <?= csrf_field() ?>
@@ -603,6 +624,7 @@ show_flash();
         </label>
         <p><button class="btn" type="submit"><?= t('Erweiterung herunterladen') ?></button></p>
     </form>
+    <?php endif; ?>
     <?php endif; ?>
 
     <h2><?= t('Deine Daten') ?></h2>

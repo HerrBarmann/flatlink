@@ -185,6 +185,22 @@ return [
     // Domain vorbehalten sein soll:
     //   ['host' => 'kunde.link', 'group' => 'kunde'],
     // Auch zur Laufzeit unter Einstellungen pflegbar.
+    // ---- Browser-Erweiterung ------------------------------------------
+    // Zwei Wege, wie Nutzende zu ihr kommen. Beide lassen sich in der
+    // Verwaltung unter „Einstellungen" ändern, ohne hier anzufassen.
+    //
+    // Adressen in den Läden. Stehen sie hier, zeigt das Profil einen Knopf
+    // dorthin. Nur https und nur die Läden selbst werden angenommen.
+    'ext_stores' => [
+        'chrome' => '',   // https://chromewebstore.google.com/detail/...
+        'firefox' => '',  // https://addons.mozilla.org/firefox/addon/...
+        'edge' => '',     // https://microsoftedge.microsoft.com/addons/detail/...
+    ],
+    // Das fertig eingerichtete Archiv zum Selbstladen anbieten? Für eine
+    // Instanz ohne Store-Eintrag der einzige Weg. Wer im Laden ist, setzt
+    // das auf false – dann bleibt der Verbindungscode als Einrichtung.
+    'ext_download' => true,
+
     'domains' => [],
 
     // Zwei-Faktor-Anmeldung verlangen: 'off' | 'admins' | 'all'.

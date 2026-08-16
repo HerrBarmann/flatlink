@@ -207,13 +207,27 @@ und eine Datei damit landet danach im Download-Ordner. Die Datei selbst zählt
 auf, was sie aus welchem Grund auslässt. Das deckt Art. 15 (Auskunft) und
 Art. 20 (Mitnahme).
 
-**Browser-Erweiterung** baut ein Archiv, das schon auf diese Instanz
-eingerichtet ist: Adresse, Name und Symbole stehen drin, auf Wunsch auch ein
-frisch erzeugter Zugangsschlüssel – dann ist die Erweiterung nach dem Laden
-sofort benutzbar. Der Schlüssel ist ein eigener (Bezeichnung
+**Browser-Erweiterung** zeigt, was die Instanz anbietet – das hängt davon ab,
+was unter *Einstellungen → Browser-Erweiterung* eingetragen ist.
+
+*Verbindungscode* gibt es immer. Er enthält Adresse und einen frisch
+erzeugten Zugangsschlüssel und richtet eine bereits installierte Erweiterung
+mit einem Einfügen ein. Der Schlüssel ist ein eigener (Bezeichnung
 „Browser-Erweiterung" mit Datum) und lässt sich einzeln zurückziehen, ohne
-andere Programme lahmzulegen. Wer den Haken wegnimmt, bekommt ein Archiv ohne
-Zugangsmittel; die Erweiterung fragt dann beim ersten Öffnen danach.
+andere Programme lahmzulegen.
+
+*Knöpfe in die Läden* erscheinen, sobald dort Adressen hinterlegt sind – für
+Instanzen, deren Erweiterung im Chrome Web Store, bei den Firefox-Add-ons
+oder den Edge-Add-ons steht.
+
+*Archiv zum Selbstladen* baut ein Paket, das schon auf diese Instanz
+eingerichtet ist: Adresse, Name und Symbole stehen drin, auf Wunsch auch der
+Zugangsschlüssel – dann ist die Erweiterung nach dem Laden sofort benutzbar.
+Wer den Haken wegnimmt, bekommt ein Archiv ohne Zugangsmittel; die Erweiterung
+fragt dann beim ersten Öffnen danach. Für eine Instanz ohne Store-Eintrag ist
+das der einzige Weg – aber es muss von Hand entpackt und im Entwicklermodus
+geladen werden und aktualisiert sich nie. Wer im Laden steht, schaltet es in
+den Einstellungen ab.
 
 **Konto löschen** entfernt das Konto und alle Links, die nur daran hängen,
 samt Klickzählern. Links **mit Gruppenzuordnung bleiben** und verlieren nur

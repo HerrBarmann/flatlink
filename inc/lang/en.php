@@ -1076,4 +1076,18 @@ your password immediately and contact us.
     'Für eine Erweiterung, die schon installiert ist – etwa aus dem Chrome Web Store oder von addons.mozilla.org. Einmal kopieren, einmal einfügen, fertig.' => 'For an extension that is already installed – from the Chrome Web Store or addons.mozilla.org, say. Copy once, paste once, done.',
     'Oder als Archiv:' => 'Or as an archive:',
     'Verbindungscode für die Erweiterung erzeugt' => 'Connection code for the extension created',
+
+    // Wege zur Erweiterung: Läden, Archiv
+    'Chrome Web Store' => 'Chrome Web Store',
+    'Firefox-Add-ons' => 'Firefox Add-ons',
+    'Edge-Add-ons' => 'Edge Add-ons',
+    'Kürzt die geöffnete Seite mit einem Klick. Aus dem Laden installieren, dann unten einen Verbindungscode erzeugen und ihn in den Einstellungen der Erweiterung einfügen – Adresse und Zugangsschlüssel stehen darin.' => 'Shortens the page you are on with one click. Install it from the store, then create a connection code below and paste it into the extension\'s settings – address and access key are inside.',
+    'Kürzt die geöffnete Seite mit einem Klick. Sobald sie in den Läden von Chrome und Firefox steht, findest du den Link hier. Ist sie schon installiert, richtet ein Verbindungscode sie ein.' => 'Shortens the page you are on with one click. As soon as it is in the Chrome and Firefox stores, the link will be here. If it is already installed, a connection code sets it up.',
+    'Wie Nutzende im Profil zu ihr kommen. Steht eine Adresse in einem Laden, erscheint dort ein Knopf dahin; das Archiv zum Selbstladen lässt sich daneben abschalten. Der Verbindungscode bleibt in jedem Fall – er richtet eine installierte Erweiterung mit einem Einfügen ein.' => 'How people get it from their profile. If a store address is set, a button to it appears there; the self-hosted archive can be switched off alongside. The connection code always stays – it sets up an installed extension with a single paste.',
+    'Angenommen wird nur %s und nur die Adresse des jeweiligen Ladens – ein Knopf „Installieren“ ist eine Empfehlung und soll nicht irgendwohin zeigen können.' => 'Only %s is accepted, and only the address of the store in question – an "Install" button is a recommendation, and it must not be able to point just anywhere.',
+    'Diese Adresse zeigt nicht in den Laden „%s“.' => 'This address does not point to the "%s" store.',
+    'Archiv zum Selbstladen anbieten' => 'Offer the archive for self-installation',
+    'Für eine Instanz ohne Eintrag in den Läden der einzige Weg: fertig eingerichtet, aber von Hand zu entpacken und im Entwicklermodus zu laden – und es aktualisiert sich nie. Wer im Laden steht, schaltet es besser ab.' => 'For an instance with no store listing this is the only way: ready configured, but unpacked by hand and loaded in developer mode – and it never updates itself. If you are in a store, better switch it off.',
+    'Nicht möglich: Der Ordner %s liegt nicht auf dieser Instanz.' => 'Not possible: the %s folder is not present on this instance.',
+    'Einstellungen zur Browser-Erweiterung geändert' => 'Browser extension settings changed',
 ];

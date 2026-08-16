@@ -237,6 +237,8 @@ function settings(): array
             'totp_required' => (string)cfg('totp_required'),
             'domains' => (array)cfg('domains'),
             'language' => (string)cfg('language'),
+            'ext_stores' => (array)cfg('ext_stores'),
+            'ext_download' => (bool)cfg('ext_download'),
         ];
         $s = array_merge($defaults, json_read(data_path() . '/settings.json'));
     }

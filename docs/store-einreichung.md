@@ -351,6 +351,26 @@ Zwei Fallen, beide beim ersten Anlauf zugeschnappt:
 
 ## Nach der Veröffentlichung
 
-Beide Läden zeigen eine feste Kennung an. Die gehört in die Instanz, sobald
-sie feststeht – dann kann der Knopf im Profil künftig direkt in den Laden
-verlinken, statt ein Archiv zu bauen.
+Sobald die Adresse im Laden feststeht, gehört sie in die Instanz:
+**Einstellungen → Browser-Erweiterung**. Dann zeigt das Profil einen Knopf
+dorthin statt eines Archivs. Kein FTP nötig – der Wert liegt in
+`data/settings.json`, nicht in `inc/config.php`.
+
+Angenommen werden nur `https` und nur die Adressen der Läden selbst
+(`chromewebstore.google.com`, `chrome.google.com`, `addons.mozilla.org`,
+`microsoftedge.microsoft.com`). Ein Knopf „Installieren" ist eine Empfehlung,
+und die soll nicht irgendwohin zeigen können; wer sich vertippt, bekommt eine
+Fehlermeldung statt eines stillen Knopfs ins Leere.
+
+Im selben Formular steht der Schalter **„Archiv zum Selbstladen anbieten"**.
+Für eine Instanz ohne Store-Eintrag ist das Archiv der einzige Weg – aber es
+muss von Hand entpackt und im Entwicklermodus geladen werden, und es
+aktualisiert sich nie. Wer im Laden steht, schaltet es ab. Der
+Verbindungscode bleibt in jedem Fall: Er ist genau das, was eine aus dem
+Laden installierte Erweiterung zum Einrichten braucht.
+
+Die Voreinstellung für frische Installationen steht in `inc/config.php`
+(`ext_stores`, `ext_download`); was in der Verwaltung geändert wird,
+überschreibt sie. Bestehende Instanzen verlieren beim Update nichts: Fehlen
+die Schlüssel in der Konfiguration, greift der Wert aus
+`inc/config.example.php` – und dort ist das Archiv an.
