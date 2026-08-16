@@ -45,6 +45,12 @@ $iconQuelle = (string)($opt['icon'] ?? '');
 $farbe = (string)($opt['farbe'] ?? '');
 $farbeText = (string)($opt['farbetext'] ?? '#fff');
 $version = (string)($opt['version'] ?? '1.0.0');
+// Mozillas Pflichtangabe zur Datenerhebung. „none" heißt: Diese Erweiterung
+// sammelt keine Daten – sie überträgt die Adresse, die der Nutzer kürzen
+// will, an dessen eigene Instanz, so wie ein FTP-Programm Dateien überträgt.
+// Wer das anders einschätzt, gibt hier die Kategorien an, die das
+// AMO-Formular auflistet (kommagetrennt).
+$daten = (string)($opt['daten'] ?? 'none');
 
 $quelle = dirname(__DIR__) . '/extension';
 if (!is_file($quelle . '/manifest.json')) {
@@ -76,6 +82,12 @@ if ($instanz !== '') {
     $manifest['description'] = mb_substr(
         'Kurzlinks auf deiner eigenen flatlink-Instanz anlegen – ein Klick in der Werkzeugleiste, ohne fremden Dienst.', 0, 132);
 }
+
+// Ohne dieses Feld weist addons.mozilla.org den Upload ab
+// („The data_collection_permissions property is missing").
+$manifest['browser_specific_settings']['gecko']['data_collection_permissions'] = [
+    'required' => array_values(array_filter(array_map('trim', explode(',', $daten)))),
+];
 
 // ---- Symbole -------------------------------------------------------------
 
@@ -167,3 +179,4 @@ printf("  Zugriff auf: %s\n", $instanz !== ''
     : 'nichts im Voraus (wird beim Einrichten erfragt)');
 printf("  Symbole:     %s\n", $iconQuelle !== '' && is_file($iconQuelle) ? basename($iconQuelle) : 'mitgeliefert');
 printf("  Akzent:      %s\n", $farbe !== '' ? $farbe . ' auf ' . $farbeText : 'Systemfarbe, sonst flatlink-Blau');
+printf("  Datenangabe: %s\n", $daten);
