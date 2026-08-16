@@ -1069,4 +1069,11 @@ your password immediately and contact us.
     'Browser-Erweiterung heruntergeladen%s' => 'Browser extension downloaded%s',
     ' (mit Schlüssel)' => ' (with key)',
     'Die geöffnete Seite auf %s kürzen – ein Klick, fertig.' => 'Shorten the page you are on via %s – one click, done.',
+    'Dein Verbindungscode:' => 'Your connection code:',
+    'Verbindungscode' => 'Connection code',
+    'Verbindungscode erzeugen' => 'Create connection code',
+    'In der Erweiterung unter „Einstellungen“ einfügen – Adresse und Schlüssel stehen darin. Er enthält ein Zugangsmittel: nicht weitergeben. Zurückziehen lässt er sich oben unter „Zugangsschlüssel“.' => 'Paste it into the extension under "Settings" – address and key are inside. It contains a means of access: do not pass it on. It can be revoked above under "Access keys".',
+    'Für eine Erweiterung, die schon installiert ist – etwa aus dem Chrome Web Store oder von addons.mozilla.org. Einmal kopieren, einmal einfügen, fertig.' => 'For an extension that is already installed – from the Chrome Web Store or addons.mozilla.org, say. Copy once, paste once, done.',
+    'Oder als Archiv:' => 'Or as an archive:',
+    'Verbindungscode für die Erweiterung erzeugt' => 'Connection code for the extension created',
 ];

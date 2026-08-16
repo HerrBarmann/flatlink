@@ -127,6 +127,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         redirect_to('profile.php');
     }
 
+    if ($action === 'connect_code') {
+        if (!user_can($user['name'], 'api_access')) {
+            flash(t('Für den Zugriff über die Schnittstelle fehlt deinem Konto die Berechtigung.'), 'err');
+            redirect_to('profile.php');
+        }
+        // Wie beim frisch angelegten Schlüssel: einmal anzeigen, dann weg
+        $_SESSION['connect_code'] = ext_connect_code($user['name']);
+        audit(t('Verbindungscode für die Erweiterung erzeugt'));
+        redirect_to('profile.php');
+    }
+
     if ($action === 'extension') {
         if (!user_can($user['name'], 'api_access') || !ext_available()) {
             flash(t('Die Erweiterung steht auf dieser Instanz nicht bereit.'), 'err');
@@ -562,6 +573,26 @@ show_flash();
     <?php if (ext_available() && user_can($user['name'], 'api_access')): ?>
     <h2><?= t('Browser-Erweiterung') ?></h2>
     <p class="muted small"><?= t('Kürzt die geöffnete Seite mit einem Klick – für Chrome, Edge, Firefox und Verwandte. Das Archiv ist auf %s vorbereitet: Adresse und Symbole stehen schon drin, eingerichtet werden muss nichts. Im Archiv liegt eine kurze Anleitung zum Laden.', e(cfg('site_name'))) ?></p>
+    <?php $code = $_SESSION['connect_code'] ?? null; unset($_SESSION['connect_code']); ?>
+    <?php if ($code !== null): ?>
+    <div class="flash flash-ok">
+        <strong><?= t('Dein Verbindungscode:') ?></strong>
+        <p><input type="text" value="<?= e($code) ?>" readonly onclick="this.select()"
+                  style="font-family:var(--mono);font-size:0.85rem" aria-label="<?= t('Verbindungscode') ?>"></p>
+        <p class="small"><?= t('In der Erweiterung unter „Einstellungen“ einfügen – Adresse und Schlüssel stehen darin. Er enthält ein Zugangsmittel: nicht weitergeben. Zurückziehen lässt er sich oben unter „Zugangsschlüssel“.') ?></p>
+    </div>
+    <?php endif; ?>
+
+    <p class="short-row">
+        <form method="post" action="" class="inline">
+            <?= csrf_field() ?>
+            <input type="hidden" name="action" value="connect_code">
+            <button class="btn" type="submit"><?= t('Verbindungscode erzeugen') ?></button>
+        </form>
+    </p>
+    <p class="muted small"><?= t('Für eine Erweiterung, die schon installiert ist – etwa aus dem Chrome Web Store oder von addons.mozilla.org. Einmal kopieren, einmal einfügen, fertig.') ?></p>
+
+    <p class="muted small" style="margin-top:1rem"><strong><?= t('Oder als Archiv:') ?></strong></p>
     <form method="post" action="">
         <?= csrf_field() ?>
         <input type="hidden" name="action" value="extension">

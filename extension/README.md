@@ -8,6 +8,35 @@ Der Unterschied zu den Erweiterungen der bekannten Dienste: Sie redet mit
 genau einer Adresse, nämlich der, die du einträgst. Es gibt keinen Anbieter
 dahinter, der mitliest, welche Seiten du kürzt.
 
+## Warum es keinen „Jetzt installieren"-Knopf gibt
+
+Weil die Browser ihn abgeschafft haben, nicht weil er fehlt:
+
+* **Chrome** erlaubt Installationen seit 2018 ausschließlich aus dem Web
+  Store. Eine `.crx` von der eigenen Seite lässt sich nur per
+  Unternehmens-Richtlinie ausrollen.
+* **Firefox** installiert eine `.xpi` per Klick von jeder Seite – aber nur,
+  wenn sie **von Mozilla signiert** ist. Das geht kostenlos und ohne
+  Store-Eintrag („unlisted" bei addons.mozilla.org), müsste aber je Instanz
+  gemacht werden, weil deren Adresse im Manifest steht.
+
+Für den Weg über die Läden braucht es also eine **generische** Fassung, die
+erst beim Einrichten erfährt, zu welcher Instanz sie gehört. Genau dafür gibt
+es den Verbindungscode.
+
+## Der schnellste Weg: Verbindungscode
+
+Erweiterung installiert (aus einem Laden oder als Archiv), dann:
+
+1. In der Instanz unter **Profil → Browser-Erweiterung** einen
+   **Verbindungscode** erzeugen – ein Klick.
+2. In den Einstellungen der Erweiterung einfügen, *Einlösen* – ein Klick.
+
+Im Code stehen Adresse und ein frisch erzeugter Zugangsschlüssel. Er wird
+geprüft, bevor etwas gespeichert wird. Weitergeben sollte man ihn nicht: Wer
+ihn hat, kann im eigenen Namen Kurzlinks anlegen – zurückziehen lässt er sich
+unter *Profil → Zugangsschlüssel*.
+
 ## Der bequeme Weg: fertig vorbereitet aus der Instanz
 
 Wer ein Konto auf einer flatlink-Instanz hat, braucht diesen Ordner gar

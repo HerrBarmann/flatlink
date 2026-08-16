@@ -24,6 +24,33 @@ declare(strict_types=1);
 require_once __DIR__ . '/zip.php';
 require_once __DIR__ . '/token.php';
 
+/**
+ * Ein Verbindungscode für eine schon installierte Erweiterung.
+ *
+ * Aus den Läden (Chrome Web Store, addons.mozilla.org) kommt die Erweiterung
+ * ohne Wissen über diese Instanz – die Adresse dort steht für alle gleich.
+ * Statt beides abzutippen, gibt es diesen Code: Adresse und ein frisch
+ * erzeugter Schlüssel in einer Zeichenkette, die sich mit einem Klick
+ * kopieren und in der Erweiterung mit einem Klick einfügen lässt.
+ *
+ * Kein Geheimnisträger mehr als der Schlüssel selbst: Der Code ist bloß
+ * base64 und verbirgt nichts – er ist eine Transportform, keine
+ * Verschlüsselung. Wer ihn weitergibt, gibt den Schlüssel weiter; das steht
+ * auch daneben.
+ */
+function ext_connect_code(string $konto): string
+{
+    $schluessel = (string)(token_create($konto, 'Browser-Erweiterung ' . date('d.m.Y'))['token'] ?? '');
+    $roh = json_encode([
+        'u' => base_url(true) ?: base_url(),
+        't' => $schluessel,
+        'n' => (string)cfg('site_name'),
+    ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    // base64url, damit der Code per Doppelklick am Stück markiert wird und
+    // in keiner Adresszeile zerbricht
+    return 'flc_' . rtrim(strtr(base64_encode((string)$roh), '+/', '-_'), '=');
+}
+
 /** Steht der Ordner mit den Quelldateien überhaupt zur Verfügung? */
 function ext_available(): bool
 {

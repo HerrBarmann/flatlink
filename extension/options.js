@@ -92,6 +92,36 @@ async function loeschen() {
     $('fehler').hidden = true;
 }
 
+/**
+ * Verbindungscode einlösen.
+ *
+ * Der Code trägt Adresse und Schlüssel; geprüft wird trotzdem, bevor etwas
+ * gespeichert wird – ein abgetippter oder halb kopierter Code soll nicht
+ * still danebengehen.
+ */
+async function einloesen() {
+    const roh = $('code').value.trim();
+    $('fehler').hidden = true;
+    $('stand').hidden = true;
+    try {
+        if (!/^flc_/.test(roh)) throw new Error('Das sieht nicht nach einem Verbindungscode aus – er beginnt mit „flc_".');
+        const b64 = roh.slice(4).replace(/-/g, '+').replace(/_/g, '/');
+        const daten = JSON.parse(decodeURIComponent(escape(atob(b64))));
+        if (!daten.u || !daten.t) throw new Error('Der Code ist unvollständig. Vielleicht wurde er nicht ganz kopiert?');
+        $('instanz').value = daten.u;
+        $('token').value = daten.t;
+        $('code').value = '';
+        await pruefen();
+    } catch (e) {
+        $('fehler').textContent = e instanceof SyntaxError
+            ? 'Der Code lässt sich nicht lesen. Vielleicht wurde er nicht ganz kopiert?'
+            : e.message;
+        $('fehler').hidden = false;
+    }
+}
+
+$('einloesen').addEventListener('click', einloesen);
+$('code').addEventListener('keydown', (e) => { if (e.key === 'Enter') einloesen(); });
 $('pruefen').addEventListener('click', pruefen);
 $('loeschen').addEventListener('click', loeschen);
 anzeigen();
