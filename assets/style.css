@@ -392,6 +392,23 @@ td a { font-family: var(--mono); }
 }
 .check input { width: auto; margin: 0; accent-color: var(--accent); }
 .check-row { display: flex; flex-wrap: wrap; gap: 0.15rem 1.1rem; }
+
+/* Rechte kommen in zwei Sorten: was ein Konto selbst darf (auf einer Instanz
+   mit Tarifen ist das der Tarif) und was jemand für andere darf. Die
+   Überschrift dazwischen soll auffallen, bevor jemand hakt. */
+.perm-titel {
+    width: 100%;
+    margin: 0 0 0.1rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+}
+.perm-hinweis { width: 100%; margin: 0 0 0.35rem; }
+.perm-trenner {
+    width: 100%;
+    border: 0;
+    border-top: 1px solid var(--line);
+    margin: 0.9rem 0 0.7rem;
+}
 .tag {
     display: inline-block; font-family: var(--mono); font-size: 0.75rem;
     padding: 0.1rem 0.45rem; border: 1px solid var(--line);

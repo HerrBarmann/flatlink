@@ -91,12 +91,17 @@ show_flash();
 
         <div>
             <label><?= t('Rechte der Mitglieder') ?></label>
-            <?php foreach ($perms as $key => $label): ?>
+            <?php foreach (perms_sections() as $i => $abschnitt): ?>
+            <?php if ($i > 0): ?><hr class="perm-trenner"><?php endif; ?>
+            <p class="perm-titel"><?= e($abschnitt['titel']) ?></p>
+            <p class="muted small perm-hinweis"><?= e($abschnitt['hinweis']) ?></p>
+            <?php foreach ($abschnitt['perms'] as $key => $label): ?>
             <label class="check">
                 <input type="checkbox" name="perms[]" value="<?= e($key) ?>"
                     <?= in_array($key, $edit['perms'] ?? [], true) ? ' checked' : '' ?>>
                 <?= e($label) ?>
             </label>
+            <?php endforeach; ?>
             <?php endforeach; ?>
             <p class="muted small"><?= t('Zusätzlich gelten die Standardrechte aus %s für alle angemeldeten Konten. Administratoren dürfen ohnehin alles.', '<code>config.php</code>') ?></p>
         </div>

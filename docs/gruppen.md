@@ -17,8 +17,16 @@ Kollegin, die ihn angelegt hat, noch im Haus ist. Wer den Link ursprünglich
 angelegt hat, behält ihn unabhängig von der Gruppe.
 
 **Rechte.** Jede Gruppe trägt eine Menge von Rechten, die ihre Mitglieder
-bekommen. Ein Konto in mehreren Gruppen hat die Summe aller Rechte. Verfügbar
-sind:
+bekommen. Ein Konto in mehreren Gruppen hat die Summe aller Rechte.
+
+Sie zerfallen in zwei Sorten, und die Unterscheidung ist keine Kosmetik: Die
+erste sagt, **was ein Konto mit den eigenen Links tun darf** – auf einer Instanz
+mit Tarifen ist genau das der Tarif. Die zweite sagt, **was jemand für andere
+tun darf**, und beschreibt eine Rolle in der Organisation. Die Oberfläche zeigt
+sie deshalb in zwei beschrifteten Blöcken; wer eine Arbeitsgruppe „Marketing"
+anlegt, soll nicht versehentlich etwas anhaken, das Geld kostet.
+
+*Was ein Konto selbst darf:*
 
 | Recht | Bedeutung |
 | --- | --- |
@@ -26,9 +34,24 @@ sind:
 | `csv_import` | darf viele Links auf einmal importieren |
 | `logo_upload` | darf eigene Logos für QR-Codes hochladen |
 | `qr_unbranded` | erzeugt QR-Codes ohne die Absenderzeile |
+| `api_access` | darf die Schnittstelle nutzen – und damit die Browser-Erweiterung |
+| `bio_page` | darf Link-in-Bio-Seiten anlegen |
+| `bio_style` | darf sie gestalten (Logo und Farben) |
 | `link_rules` | darf Weichen stellen (Ziel je nach Gerät, Sprache, Land) |
+
+*Was jemand für andere darf:*
+
+| Recht | Bedeutung |
+| --- | --- |
 | `links_all` | sieht und verwaltet **alle** Links der Instanz |
 | `reports_manage` | bearbeitet Missbrauchs-Meldungen und sperrt Links |
+
+Ein Recht, das an einer Gruppe hängt, endet mit der Mitgliedschaft – auch mit
+einer befristeten. Was damit **angelegt** wurde, bleibt aber: Bestehende Weichen
+leiten weiter, eine gestaltete Bio-Seite behält ihr Aussehen, Wunsch-Adressen
+bleiben bearbeitbar. Nur Neues folgt wieder den Regeln ohne das Recht. Wer
+Tarife abbildet, sollte das so lassen: Ein gedruckter Code, der ins Leere zeigt,
+weil eine Rechnung offen ist, schadet mehr als die entgangenen Einnahmen.
 
 ### Eine Redaktion ohne Administratorrechte
 

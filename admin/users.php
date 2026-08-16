@@ -111,7 +111,6 @@ if ($q !== '') {
 uksort($users, fn($a, $b) => strcasecmp(user_display((string)$a), user_display((string)$b)));
 $groups = groups_all();
 ksort($groups);
-$perms = perms_all();
 
 page_header(t('Nutzer'), true);
 show_flash();

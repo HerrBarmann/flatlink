@@ -113,9 +113,20 @@ return [
     // ---- Rechte ----
     // Rechte werden über Gruppen vergeben (Admin-Bereich → Gruppen). Was hier
     // steht, gilt zusätzlich für JEDES angemeldete Konto, auch ohne Gruppe.
-    // Verfügbar: 'custom_code' (Wunsch-Namen), 'csv_import', 'logo_upload'.
     // Leer lassen = alles nur über Gruppen. Administratoren dürfen immer alles.
-    'default_perms' => ['logo_upload'],
+    //
+    // Die vollständige Liste steht in perms_sections() (inc/groups.php) und
+    // zerfällt in zwei Sorten: was ein Konto mit den EIGENEN Links darf
+    // ('custom_code', 'csv_import', 'logo_upload', 'qr_unbranded',
+    // 'api_access', 'bio_page', 'bio_style', 'link_rules') und was jemand FÜR
+    // ANDERE darf ('links_all', 'reports_manage'). Die zweite Sorte gehört
+    // nie hierher: Sie beschreibt eine Rolle, keine Grundausstattung.
+    //
+    // 'api_access' ist bewusst dabei: Ohne die Schnittstelle gibt es keinen
+    // Verbindungscode, und ohne den ist die Browser-Erweiterung unbenutzbar.
+    // Wer sie einschränken will, nimmt sie hier heraus und hängt sie an eine
+    // Gruppe.
+    'default_perms' => ['logo_upload', 'api_access'],
 
     // ---- Nutzungs-Limits (gelten je Konto; Admins haben keine Limits) ----
     // links: gleichzeitig aktive Links · stats_days: Tiefe der Klick-Statistik

@@ -183,12 +183,16 @@ $host = preg_replace('#^https?://#', '', base_url());
 
         <label><?= t('Rechte, die jedes Konto hat') ?></label>
         <div class="check-row">
-            <?php foreach (perms_all() as $key => $label): ?>
+            <?php foreach (perms_sections() as $i => $abschnitt): ?>
+            <?php if ($i > 0): ?><hr class="perm-trenner"><?php endif; ?>
+            <p class="perm-titel"><?= e($abschnitt['titel']) ?></p>
+            <?php foreach ($abschnitt['perms'] as $key => $label): ?>
             <label class="check">
                 <input type="checkbox" name="default_perms[]" value="<?= e($key) ?>"
                     <?= in_array($key, (array)($s['default_perms'] ?? []), true) ? ' checked' : '' ?>>
                 <?= e($label) ?>
             </label>
+            <?php endforeach; ?>
             <?php endforeach; ?>
         </div>
         <p class="muted small"><?= t('Was hier nicht angekreuzt ist, lässt sich einzelnen Konten über eine Gruppe geben – so entsteht aus einem Recht ein Tarif.') ?></p>

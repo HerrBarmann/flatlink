@@ -18,7 +18,15 @@ of the group.
 
 **Permissions.** Every group carries a set of permissions its members
 receive. An account in several groups has the union of all permissions.
-Available are:
+
+They come in two kinds, and the distinction is not cosmetic: the first says
+**what an account may do with its own links** – on an instance with paid plans
+that is precisely the plan. The second says **what someone may do for others**,
+and describes a role in the organisation. The interface therefore shows them in
+two labelled blocks; whoever sets up a "Marketing" work group should not tick
+something that costs money by accident.
+
+*What an account may do itself:*
 
 | Permission | Meaning |
 | --- | --- |
@@ -26,9 +34,24 @@ Available are:
 | `csv_import` | may import many links at once |
 | `logo_upload` | may upload custom logos for QR codes |
 | `qr_unbranded` | produces QR codes without the attribution line |
+| `api_access` | may use the API – and with it the browser extension |
+| `bio_page` | may create link-in-bio pages |
+| `bio_style` | may style them (logo and colours) |
 | `link_rules` | may set switches (target by device, language, country) |
+
+*What someone may do for others:*
+
+| Permission | Meaning |
+| --- | --- |
 | `links_all` | sees and manages **all** links of the instance |
 | `reports_manage` | handles abuse reports and blocks links |
+
+A permission attached to a group ends with the membership – including a
+time-limited one. What was **created** with it stays, though: existing switches
+keep redirecting, a styled bio page keeps its looks, custom names remain
+editable. Only new things follow the rules without the permission again. Anyone
+modelling paid plans should keep it that way: a printed code pointing nowhere
+because an invoice is open does more damage than the lost revenue.
 
 ### An editorial team without administrator rights
 

@@ -21,23 +21,65 @@ require_once __DIR__ . '/store.php';
  */
 
 /** Alle vergebbaren Rechte mit Beschriftung für die Oberfläche */
+/**
+ * Alle Rechte, flach – Schlüssel => Beschriftung.
+ *
+ * Für Prüfungen und alles, was nur die Namen braucht. Wer sie einem Menschen
+ * zur Auswahl stellt, nimmt besser perms_sections(): Die Liste enthält zwei
+ * sehr verschiedene Sorten, und flach nebeneinander verteilt man leicht
+ * versehentlich das Falsche.
+ *
+ * @return array<string,string>
+ */
 function perms_all(): array
 {
+    $out = [];
+    foreach (perms_sections() as $abschnitt) {
+        foreach ($abschnitt['perms'] as $key => $label) $out[$key] = $label;
+    }
+    return $out;
+}
+
+/**
+ * Dieselben Rechte, nach Sorte geordnet.
+ *
+ * Die Trennung ist keine Kosmetik. Der erste Block sagt, **was ein Konto mit
+ * seinen eigenen Links tun darf** – auf einer Instanz mit Tarifen ist genau
+ * das der Tarif. Der zweite Block sagt, **was jemand für andere tun darf**,
+ * und beschreibt damit eine Rolle in der Organisation.
+ *
+ * Wer eine Arbeitsgruppe „Marketing" anlegt und die flache Liste vor sich
+ * hat, hakt schnell etwas an, das eigentlich Geld kostet – oder umgekehrt
+ * eine Redakteurin ohne Absicht auf einen Tarif hoch. Zwei beschriftete
+ * Blöcke machen den Unterschied sichtbar, bevor jemand klickt.
+ *
+ * @return array<int,array{titel:string,hinweis:string,perms:array<string,string>}>
+ */
+function perms_sections(): array
+{
     return [
-        'custom_code' => t('Wunsch-Namen vergeben'),
-        'csv_import'  => t('Links per CSV importieren'),
-        'logo_upload' => t('Eigene Logos hochladen'),
-        'qr_unbranded' => t('QR-Codes ohne Absenderzeile'),
-        'api_access' => t('Zugriff über die Programmierschnittstelle (API)'),
-        'bio_page' => t('Link-in-Bio-Seiten anlegen'),
-        'bio_style' => t('Link-in-Bio-Seiten gestalten (Logo und Farben)'),
-        // Die beiden hier machen aus einem Konto eine Redaktion: Sie sehen
-        // und verwalten alles, was Links betrifft – aber keine Konten,
-        // Domains oder Einstellungen. Genau die Zwischenstufe, die zwischen
-        // „nur die eigenen" und „darf alles" fehlte.
-        'link_rules' => t('Weichen stellen: je nach Gerät, Sprache oder Land woandershin'),
-        'links_all' => t('Alle Links der Instanz sehen und verwalten'),
-        'reports_manage' => t('Missbrauchs-Meldungen bearbeiten und Links sperren'),
+        [
+            'titel' => t('Was ein Konto selbst darf'),
+            'hinweis' => t('Betrifft nur die eigenen Links und Seiten. Auf einer Instanz mit Tarifen ist das der Tarif.'),
+            'perms' => [
+                'custom_code' => t('Wunsch-Namen vergeben'),
+                'csv_import'  => t('Links per CSV importieren'),
+                'logo_upload' => t('Eigene Logos hochladen'),
+                'qr_unbranded' => t('QR-Codes ohne Absenderzeile'),
+                'api_access' => t('Zugriff über die Programmierschnittstelle (API)'),
+                'bio_page' => t('Link-in-Bio-Seiten anlegen'),
+                'bio_style' => t('Link-in-Bio-Seiten gestalten (Logo und Farben)'),
+                'link_rules' => t('Weichen stellen: je nach Gerät, Sprache oder Land woandershin'),
+            ],
+        ],
+        [
+            'titel' => t('Was jemand für andere darf'),
+            'hinweis' => t('Reicht über das eigene Konto hinaus – das ist eine Rolle, kein Tarif. Diese beiden zusammen ergeben eine Redaktion: alles, was Links betrifft, aber keine Konten, Domains oder Einstellungen.'),
+            'perms' => [
+                'links_all' => t('Alle Links der Instanz sehen und verwalten'),
+                'reports_manage' => t('Missbrauchs-Meldungen bearbeiten und Links sperren'),
+            ],
+        ],
     ];
 }
 
