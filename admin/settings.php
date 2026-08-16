@@ -22,7 +22,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // der bestehende Stand als Grundlage genommen und nur überschrieben, was in
     // dieser Anfrage tatsächlich vorkommt – sonst löschte jedes Formular beim
     // Speichern die Felder der anderen.
-    $neu = settings();
+    //
+    // Grundlage ist bewusst die DATEI, nicht der aufgelöste Stand aus
+    // settings(): Der enthält auch alles, was nur in inc/config.php steht.
+    // Schriebe man ihn zurück, wären nach dem ersten Speichern eines
+    // beliebigen Formulars sämtliche Werte in data/settings.json eingefroren –
+    // und eine spätere Änderung an der Konfigurationsdatei bliebe wirkungslos,
+    // ohne dass irgendwo etwas davon zu sehen wäre. Genau so ist einmal ein
+    // Standardrecht verlorengegangen, das per Upload nachgereicht wurde.
+    $neu = json_read(data_path() . '/settings.json');
     $fehler = null;
 
     if (isset($_POST['public_mode'])) {
