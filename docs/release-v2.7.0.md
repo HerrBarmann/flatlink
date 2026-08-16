@@ -75,6 +75,19 @@ Einrichten erfährt, wohin sie gehört. Genau dafür ist der Verbindungscode da.
 - **Zweiter Weg zur Schnittstelle.** Antwortet `/api/…` mit 404, wird
   `/api.php/…` versucht – für Instanzen, deren Hoster keine Umschreibungen
   erlaubt. Der gefundene Weg wird gemerkt.
+- **Die Schnittstelle fand ihren eigenen Endpunkt nicht.** Unter Apache
+  antwortete jeder Aufruf mit „Unbekannter Endpunkt": Die mitgelieferte
+  Umschreibung `^api(/.*)?$ api.php` ließ den Rest des Pfades fallen (jetzt
+  `api.php$1`), und `PATH_INFO` enthält je nach Server etwas anderes – beim
+  eingebauten PHP-Server den vollen Pfad, bei Apache nur den Rest, ohne
+  Unterstützung gar nichts. `api.php` liest den Pfad jetzt aus drei Quellen
+  und schneidet ein führendes `/api` bzw. `/api.php` ab.
+
+  Dass keiner der früheren Tests das fand, hat einen Grund, der es wert ist,
+  festgehalten zu werden: Die Prüfung des Zugangsschlüssels läuft **vor** der
+  Auswertung des Pfades. Ein Aufruf von `/api/me` ohne Schlüssel antwortet
+  deshalb mit 401 – und sieht damit richtig aus, obwohl der Pfad nie ankam.
+  Genau das galt als Beleg, dass die Route steht.
 
 Beim Bauen selbst gefunden und behoben: Die Einstellungen lasen `daten.user`,
 während die Schnittstelle das Feld `account` nennt. Das Popup hatte einen
