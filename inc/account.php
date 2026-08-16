@@ -69,6 +69,18 @@ function account_export(string $username): array
                 'von' => $h['von'] ?? null,
                 'nach' => $h['nach'] ?? null,
             ], (array)($l['history'] ?? [])),
+            // Weichen und Vorschau-Angaben sind hinterlegte Inhalte wie
+            // jeder andere – sie gehören in die Auskunft.
+            'weichen' => array_map(fn($r) => [
+                'wenn' => $r['wenn'] ?? null,
+                'ist' => $r['ist'] ?? null,
+                'ziel' => $r['url'] ?? null,
+            ], (array)($l['rules'] ?? [])),
+            'vorschau' => ($l['og_title'] ?? '') === '' ? null : [
+                'titel' => $l['og_title'] ?? null,
+                'text' => $l['og_text'] ?? null,
+                'bild' => $l['og_image'] ?? null,
+            ],
             // Link-in-Bio: die Seite selbst ist öffentlich, gehört aber
             // genauso in die Auskunft wie jeder andere hinterlegte Inhalt
             'bio_seite' => ($l['kind'] ?? '') !== 'bio' ? null : [
