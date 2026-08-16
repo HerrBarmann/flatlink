@@ -301,6 +301,7 @@ Die vier Handbücher gibt es auch auf Englisch (`.en.md` daneben):
 | [Konten und Anmeldung](docs/konten.md) | Passkeys und Einmalkennwörter, LDAP, Shibboleth/SAML/OIDC, Auskunft und Löschung |
 | [Gruppen, Rechte und Domains](docs/gruppen.md) | Rechte- und Arbeitsgruppen, Limits, Namensräume, mehrere Domains je Instanz |
 | [API.md](API.md) | die Programmierschnittstelle |
+| [Browser-Erweiterung](extension/README.md) | „diese Seite kürzen" für Chrome und Firefox, gegen die eigene Instanz |
 | [DEPLOYMENT.md](DEPLOYMENT.md) | Installation für den Dauerbetrieb, von Dateirechten bis Shibboleth |
 | [CUSTOMIZATION.md](CUSTOMIZATION.md) | eigenes Aussehen ohne Änderungen am Kern |
 | [Was flatlink nie tun wird](docs/niemals.md) | die Funktionen, die es hier nie geben wird – und warum |

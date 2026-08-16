@@ -1,0 +1,117 @@
+/* Das Fenster ist klein und wird für zehn Sekunden benutzt – entsprechend
+   wenig steht hier. Farben kommen aus dem System, damit die Erweiterung
+   nicht gegen den Browser des Nutzers anfärbt. */
+:root {
+    color-scheme: light dark;
+    --grund: Canvas;
+    --schrift: CanvasText;
+    --leise: color-mix(in srgb, CanvasText 60%, Canvas);
+    --linie: color-mix(in srgb, CanvasText 25%, Canvas);
+    /* Rückfall zuerst: AccentColor gibt es erst in neueren Browsern, und ohne
+       Rückfall wäre der Hauptknopf dort durchsichtig – ein Knopf, den man
+       nicht als Knopf erkennt. Der Wert ist das Blau des neutralen
+       flatlink-Themes. */
+    --akzent: #3b6ea8;
+    --akzentschrift: #fff;
+}
+
+@supports (color: AccentColor) {
+    :root {
+        --akzent: AccentColor;
+        --akzentschrift: AccentColorText;
+    }
+}
+
+* { box-sizing: border-box; }
+
+body {
+    width: 22rem;
+    margin: 0;
+    padding: 0.9rem 1rem 1rem;
+    background: var(--grund);
+    color: var(--schrift);
+    font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+h1 { margin: 0 0 0.6rem; font-size: 1rem; }
+
+label {
+    display: block;
+    margin: 0.6rem 0 0.2rem;
+    font-size: 0.8rem;
+}
+
+.leise { color: var(--leise); font-weight: normal; }
+
+input[type="text"] {
+    width: 100%;
+    padding: 0.45rem 0.55rem;
+    border: 1px solid var(--linie);
+    border-radius: 6px;
+    background: var(--grund);
+    color: var(--schrift);
+    /* 16px verhindert das Hineinzoomen auf Touch-Geräten – dieselbe Regel
+       wie in der Anwendung selbst */
+    font-size: 16px;
+}
+
+input:focus-visible, button:focus-visible, a:focus-visible {
+    outline: 2px solid var(--akzent);
+    outline-offset: 2px;
+}
+
+button {
+    padding: 0.45rem 0.8rem;
+    border: 1px solid var(--linie);
+    border-radius: 6px;
+    background: transparent;
+    color: var(--schrift);
+    font: inherit;
+    cursor: pointer;
+}
+button:hover { border-color: var(--akzent); }
+button.primary {
+    background: var(--akzent);
+    color: var(--akzentschrift);
+    border-color: transparent;
+    font-weight: 600;
+}
+button[disabled] { opacity: 0.6; cursor: default; }
+
+.ziel {
+    margin: 0.2rem 0 0.6rem;
+    padding: 0.4rem 0.55rem;
+    border-radius: 6px;
+    background: color-mix(in srgb, CanvasText 7%, Canvas);
+    color: var(--leise);
+    font-size: 0.8rem;
+    /* Lange Adressen brechen um, statt das Fenster zu sprengen */
+    overflow-wrap: anywhere;
+}
+
+.ergebnis { margin: 0.4rem 0 0.8rem; font-size: 1.05rem; overflow-wrap: anywhere; }
+.ergebnis a { color: var(--akzent); font-weight: 600; }
+
+.knopfreihe { display: flex; gap: 0.4rem; margin: 0; flex-wrap: wrap; }
+
+.fehler {
+    margin: 0.6rem 0 0;
+    padding: 0.45rem 0.55rem;
+    border-radius: 6px;
+    background: color-mix(in srgb, #d33 18%, Canvas);
+    font-size: 0.85rem;
+}
+
+.hinweis { margin: 0.5rem 0 0; color: var(--leise); font-size: 0.8rem; }
+
+/* :not([hidden]) ist hier nicht Zierde: Eine Regel mit display überstimmt
+   das hidden-Attribut (das nur über das Standard-Stylesheet wirkt) – ohne
+   diesen Zusatz stünde das leere Bild von Anfang an als kaputtes Symbol da. */
+#qrbild:not([hidden]) {
+    display: block;
+    width: 100%;
+    max-width: 12rem;
+    margin: 0.7rem auto 0;
+    border-radius: 6px;
+    background: #fff;
+}

@@ -1,0 +1,70 @@
+# Browser-Erweiterung
+
+Kürzt die geöffnete Seite auf **deiner eigenen** flatlink-Instanz – ein Klick
+in der Werkzeugleiste, Kurzlink in der Zwischenablage, auf Wunsch der QR-Code
+dazu.
+
+Der Unterschied zu den Erweiterungen der bekannten Dienste: Sie redet mit
+genau einer Adresse, nämlich der, die du einträgst. Es gibt keinen Anbieter
+dahinter, der mitliest, welche Seiten du kürzt.
+
+## Einrichten
+
+1. In deiner Instanz unter **Profil → Zugangsschlüssel** einen Schlüssel
+   anlegen. Er wird nur einmal angezeigt.
+2. Die Erweiterung laden (siehe unten) und in ihren Einstellungen die Adresse
+   deiner Instanz und den Schlüssel eintragen.
+3. **Prüfen und speichern** – dabei fragt der Browser die Berechtigung für
+   genau diese Adresse ab. Erst wenn `/api/me` antwortet, wird gespeichert.
+
+Das Konto braucht das Recht `api_access`; für Wunsch-Namen zusätzlich
+`custom_code`.
+
+## Laden
+
+**Chrome, Edge, Brave, Vivaldi**
+
+1. `chrome://extensions` öffnen
+2. *Entwicklermodus* einschalten
+3. *Entpackte Erweiterung laden* → diesen Ordner (`extension/`) auswählen
+
+**Firefox**
+
+1. `about:debugging#/runtime/this-firefox` öffnen
+2. *Temporäres Add-on laden* → `manifest.json` in diesem Ordner auswählen
+
+Temporär geladen heißt in Firefox: bis zum nächsten Neustart. Für den
+Dauerbetrieb muss die Erweiterung signiert sein – über
+[addons.mozilla.org](https://addons.mozilla.org/developers/) oder eine
+Firefox-Fassung, die unsignierte Add-ons erlaubt (ESR, Developer Edition).
+
+## Was sie darf – und was nicht
+
+| | |
+| --- | --- |
+| `activeTab` | Die Adresse des Tabs, in dem du auf das Symbol klickst. Nur dann, nur diese. |
+| `storage` | Adresse und Zugangsschlüssel, im **lokalen** Speicher des Browsers – nicht in der Synchronisierung, damit der Schlüssel nicht durch fremde Rechenzentren wandert. |
+| Host-Zugriff | Wird erst beim Einrichten für **deine** Adresse angefragt (`optional_host_permissions`). Die Erweiterung verlangt keinen Zugriff auf „alle Seiten" im Voraus. |
+
+Was sie **nicht** tut: keine Seiteninhalte lesen, kein Skript in Seiten
+einspritzen, keine Hintergrundprozesse, keine Verbindung zu irgendeiner
+anderen Adresse als deiner Instanz. Auch der QR-Code kommt aus deiner Instanz
+– bei einem fremden Dienst wäre jeder gekürzte Link nebenbei woanders
+bekannt.
+
+Der Quelltext sind vier kleine Dateien: [`popup.js`](popup.js),
+[`options.js`](options.js) und die beiden HTML-Seiten. Zusammen unter 200
+Zeilen – nachlesbar an einem Nachmittag.
+
+## Fehler und ihre Ursachen
+
+| Meldung | Meist |
+| --- | --- |
+| „Die Instanz ist nicht erreichbar" | Adresse falsch, Instanz aus, oder die Berechtigung wurde nicht erteilt |
+| „Der Zugangsschlüssel gilt nicht" | Schlüssel zurückgezogen, vertippt, oder er gehört zu einer anderen Instanz |
+| „Diesem Konto fehlt die Berechtigung" | Recht `api_access` fehlt (oder `custom_code` beim Wunsch-Namen) |
+| „Zu viele Anfragen" | Stundengrenze der Schnittstelle erreicht (`api_rate_limit`) |
+
+## Version
+
+1.0.0 – gebaut gegen die Schnittstelle von flatlink 2.6.0.

@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>flatlink</title>
+<link rel="stylesheet" href="popup.css">
+</head>
+<body>
+<main id="app">
+  <!-- Noch nicht eingerichtet: Adresse und Schlüssel fehlen -->
+  <section id="setup" hidden>
+    <h1>Erst einrichten</h1>
+    <p>Die Erweiterung braucht die Adresse deiner flatlink-Instanz und einen
+       Zugangsschlüssel. Den legst du dort unter <em>Profil → Zugangsschlüssel</em> an.</p>
+    <p><button id="zu-optionen" class="primary" type="button">Einstellungen öffnen</button></p>
+  </section>
+
+  <!-- Der Normalfall -->
+  <section id="kuerzen" hidden>
+    <h1>Diese Seite kürzen</h1>
+    <p class="ziel" id="ziel" title=""></p>
+
+    <label for="titel">Name <span class="leise">(optional, nur für deine Übersicht)</span></label>
+    <input id="titel" type="text" maxlength="120" autocomplete="off">
+
+    <label for="code">Wunsch-Name <span class="leise">(optional)</span></label>
+    <input id="code" type="text" maxlength="64" autocomplete="off" placeholder="wird sonst zufällig vergeben">
+
+    <p><button id="los" class="primary" type="button">Kürzen</button></p>
+    <p class="fehler" id="fehler" hidden></p>
+  </section>
+
+  <!-- Nach dem Anlegen -->
+  <section id="fertig" hidden>
+    <h1>Fertig</h1>
+    <p class="ergebnis"><a id="kurzlink" href="#" target="_blank" rel="noopener"></a></p>
+    <p class="knopfreihe">
+      <button id="kopieren" class="primary" type="button">Kopieren</button>
+      <button id="qr" type="button">QR-Code</button>
+      <button id="neu" type="button">Noch einen</button>
+    </p>
+    <p class="hinweis" id="kopiert" hidden>In die Zwischenablage gelegt.</p>
+    <img id="qrbild" alt="QR-Code des Kurzlinks" hidden>
+  </section>
+</main>
+<script src="popup.js"></script>
+</body>
+</html>

@@ -1,0 +1,35 @@
+{
+  "manifest_version": 3,
+  "name": "flatlink",
+  "version": "1.0.0",
+  "description": "Die geöffnete Seite auf der eigenen flatlink-Instanz kürzen – ohne Umweg über einen fremden Dienst.",
+  "homepage_url": "https://github.com/HerrBarmann/flatlink",
+  "action": {
+    "default_title": "Diese Seite kürzen",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/16.png",
+      "32": "icons/32.png",
+      "48": "icons/48.png",
+      "128": "icons/128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/16.png",
+    "32": "icons/32.png",
+    "48": "icons/48.png",
+    "128": "icons/128.png"
+  },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": false
+  },
+  "permissions": ["activeTab", "storage"],
+  "optional_host_permissions": ["https://*/*", "http://*/*"],
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "flatlink@1337.hamburg",
+      "strict_min_version": "115.0"
+    }
+  }
+}

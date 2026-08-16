@@ -61,6 +61,10 @@ Formularfelder — beides wird gelesen.
 
 ---
 
+> Für den Alltag gibt es die [Browser-Erweiterung](extension/README.md): Sie
+> nutzt genau diese Schnittstelle, um die geöffnete Seite mit einem Klick zu
+> kürzen.
+
 ## Endpunkte
 
 ### `GET /me`

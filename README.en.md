@@ -301,6 +301,7 @@ The README is the overview; the depth lives in dedicated documents:
 | [Short links day to day](docs/kurzlinks.en.md) | Tags, campaign parameters, link in bio, migrating from Bitly or YOURLS |
 | [Accounts and sign-in](docs/konten.en.md) | Passkeys and one-time passwords, LDAP, Shibboleth/SAML/OIDC, data access and deletion |
 | [Groups, permissions and domains](docs/gruppen.en.md) | Permission and working groups, limits, namespaces, multiple domains per instance |
+| [Browser extension](extension/README.md) | "shorten this page" for Chrome and Firefox, against your own instance |
 | [API.md](API.md) | the API (German) |
 | [DEPLOYMENT.md](DEPLOYMENT.md) | installation for production, from file permissions to Shibboleth (German) |
 | [CUSTOMIZATION.md](CUSTOMIZATION.md) | your own look without changing the core (German) |
