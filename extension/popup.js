@@ -45,6 +45,9 @@ async function start() {
         return;
     }
 
+    // Der Weg in die Verwaltung steht unabhängig vom Ergebnis
+    $('zur-verwaltung-2').href = einst.instanz + '/admin/';
+
     zeige('kuerzen');
     $('ziel').textContent = tabUrl;
     $('ziel').title = tabUrl;
@@ -173,7 +176,12 @@ async function kuerzen() {
 
         $('kurzlink').textContent = kurz;
         $('kurzlink').href = kurz;
-        $('qrbild').hidden = true;
+        // Weiter geht es in der Instanz: Der QR-Designer dort kann Farben,
+        // Formen, Logo, Rahmen und Druckdateien – hier wäre davon nur ein
+        // Schatten unterzubringen.
+        const kuerzel = daten.code || kurz.split('/').pop();
+        $('zum-designer').href = einst.instanz + '/admin/qrdesign.php?c=' + encodeURIComponent(kuerzel);
+        $('zur-verwaltung').href = einst.instanz + '/admin/index.php?hl=' + encodeURIComponent(kuerzel);
         $('kopiert').hidden = true;
         zeige('fertig');
         $('kopieren').focus();
@@ -194,16 +202,6 @@ async function kopieren() {
     $('kopiert').hidden = false;
 }
 
-function qrZeigen() {
-    const bild = $('qrbild');
-    if (!bild.hidden) { bild.hidden = true; return; }
-    // Der QR-Code kommt aus der eigenen Instanz, nicht von einem fremden
-    // Dienst – sonst würde jeder gekürzte Link nebenbei woanders bekannt.
-    const code = $('kurzlink').textContent.split('/').pop();
-    bild.src = einst.instanz + '/qr.php?c=' + encodeURIComponent(code) + '&format=png&size=512';
-    bild.hidden = false;
-}
-
 function zuruecksetzen() {
     $('code').value = '';
     $('tags').value = '';
@@ -216,7 +214,6 @@ function zuruecksetzen() {
 
 $('los').addEventListener('click', kuerzen);
 $('kopieren').addEventListener('click', kopieren);
-$('qr').addEventListener('click', qrZeigen);
 $('neu').addEventListener('click', zuruecksetzen);
 $('schon-kopieren').addEventListener('click', async () => {
     await navigator.clipboard.writeText($('schon-link').textContent);

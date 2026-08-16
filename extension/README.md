@@ -1,8 +1,7 @@
 # Browser-Erweiterung
 
 Kürzt die geöffnete Seite auf **deiner eigenen** flatlink-Instanz – ein Klick
-in der Werkzeugleiste, Kurzlink in der Zwischenablage, auf Wunsch der QR-Code
-dazu.
+in der Werkzeugleiste, Kurzlink in der Zwischenablage.
 
 Der Unterschied zu den Erweiterungen der bekannten Dienste: Sie redet mit
 genau einer Adresse, nämlich der, die du einträgst. Es gibt keinen Anbieter
@@ -90,7 +89,7 @@ Firefox-Fassung, die unsignierte Add-ons erlaubt (ESR, Developer Edition).
 | Gruppe | Auswahl, wenn das Konto Arbeitsgruppen hat – sonst verborgen |
 | Mehr | Schlagworte und Ablaufdatum, in einer Klappe |
 | Schon gekürzt | Gibt es für diese Adresse bereits einen Kurzlink, steht er da – mit Kopieren-Knopf, statt einen zweiten anzulegen |
-| Ergebnis | Kurzlink kopieren, QR-Code aus der eigenen Instanz anzeigen |
+| Ergebnis | Kurzlink kopieren, oder weiter in die Instanz: QR-Designer und Linkverwaltung, beide direkt beim frisch angelegten Link |
 | Rahmen | Hinweis, sobald das Link-Limit zu 80 % belegt ist |
 
 Nicht dabei, und zwar mit Absicht: **UTM-Parameter** (fünf Felder – wer
@@ -109,9 +108,12 @@ die Schnittstelle – die Oberfläche der Instanz auch.
 
 Was sie **nicht** tut: keine Seiteninhalte lesen, kein Skript in Seiten
 einspritzen, keine Hintergrundprozesse, keine Verbindung zu irgendeiner
-anderen Adresse als deiner Instanz. Auch der QR-Code kommt aus deiner Instanz
-– bei einem fremden Dienst wäre jeder gekürzte Link nebenbei woanders
-bekannt.
+anderen Adresse als deiner Instanz.
+
+**Kein QR-Code im Popup.** Der QR-Designer der Instanz kann Farben, Formen,
+Logo, Rahmen mit Text und Druckdateien (PDF, EPS, CMYK). Ein Knopf, der ein
+512-Pixel-PNG einblendet, wäre daneben kein Angebot, sondern eine Ablenkung –
+also führt ein Link direkt dorthin, mit dem eben angelegten Code.
 
 Der Quelltext sind vier kleine Dateien: [`popup.js`](popup.js),
 [`options.js`](options.js) und die beiden HTML-Seiten. Zusammen unter 200

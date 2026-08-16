@@ -59,7 +59,8 @@ gebrandet:
 > WAS SIE KANN
 > • Die Adresse des aktuellen Tabs kürzen, Name und Wunsch-Adresse optional
 > • Kurzlink mit einem Klick in die Zwischenablage
-> • QR-Code anzeigen – erzeugt von deiner Instanz, nicht von einem Dritten
+> • Ein Klick weiter zum QR-Designer deiner Instanz – mit Farben, Formen,
+>   Logo und Druckdateien
 >
 > WAS SIE NICHT TUT
 > • Keine Seiteninhalte lesen, keine Skripte in Seiten einspritzen
@@ -134,8 +135,9 @@ Kostenlos. Zwei Wege:
 **Zusammenfassung** (bis 250 Zeichen)
 
 > Kürzt die geöffnete Seite auf deiner eigenen flatlink-Instanz. Ein Klick in
-> der Werkzeugleiste, Kurzlink in der Zwischenablage, auf Wunsch mit QR-Code.
-> Spricht mit keiner anderen Adresse – kein Anbieter dazwischen, der mitliest.
+> der Werkzeugleiste, Kurzlink in der Zwischenablage, von dort weiter zum
+> QR-Designer. Spricht mit keiner anderen Adresse – kein Anbieter dazwischen,
+> der mitliest.
 
 **Beschreibung:** dieselbe wie bei Chrome (Firefox erlaubt einfaches HTML;
 die Aufzählungen dürfen dort `<ul><li>` sein).
@@ -174,8 +176,9 @@ Popup in einem Fensterrahmen neben einer kurzen Erklärung. Vorgehen:
 3. Fenster auf 1280×800 stellen (Entwicklerwerkzeuge → Responsive) und einen
    Vollbild-Screenshot machen.
 
-Drei Bilder reichen: die Eingabemaske, das Ergebnis mit Kurzlink, das
-Ergebnis mit QR-Code.
+Drei Bilder reichen: die Eingabemaske, das Ergebnis mit Kurzlink, und – wenn
+die Instanz mehrere Domains führt – die Eingabemaske mit aufgeklappter
+Domain-Auswahl.
 
 ---
 

@@ -57,6 +57,7 @@
     <p><button id="los" class="primary" type="button">Kürzen</button>
        <span class="leise" id="rahmen"></span></p>
     <p class="fehler" id="fehler" hidden></p>
+    <p class="wege"><a id="zur-verwaltung-2" href="#" target="_blank" rel="noopener">Meine Links verwalten</a></p>
   </section>
 
   <!-- Nach dem Anlegen -->
@@ -65,11 +66,17 @@
     <p class="ergebnis"><a id="kurzlink" href="#" target="_blank" rel="noopener"></a></p>
     <p class="knopfreihe">
       <button id="kopieren" class="primary" type="button">Kopieren</button>
-      <button id="qr" type="button">QR-Code</button>
       <button id="neu" type="button">Noch einen</button>
     </p>
     <p class="hinweis" id="kopiert" hidden>In die Zwischenablage gelegt.</p>
-    <img id="qrbild" alt="QR-Code des Kurzlinks" hidden>
+    <!-- Der QR-Designer der Instanz kann Farben, Formen, Logo, Rahmen und
+         Druckdateien. Ein Knopf, der ein 512-Pixel-PNG zeigt, wäre daneben
+         kein Angebot, sondern eine Ablenkung. -->
+    <p class="wege">
+      <a id="zum-designer" href="#" target="_blank" rel="noopener">QR-Code gestalten</a>
+      <span aria-hidden="true">·</span>
+      <a id="zur-verwaltung" href="#" target="_blank" rel="noopener">Meine Links</a>
+    </p>
   </section>
 </main>
 <script src="popup.js"></script>

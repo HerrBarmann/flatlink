@@ -104,17 +104,14 @@ button[disabled] { opacity: 0.6; cursor: default; }
 
 .hinweis { margin: 0.5rem 0 0; color: var(--leise); font-size: 0.8rem; }
 
-/* :not([hidden]) ist hier nicht Zierde: Eine Regel mit display überstimmt
-   das hidden-Attribut (das nur über das Standard-Stylesheet wirkt) – ohne
-   diesen Zusatz stünde das leere Bild von Anfang an als kaputtes Symbol da. */
-#qrbild:not([hidden]) {
-    display: block;
-    width: 100%;
-    max-width: 12rem;
-    margin: 0.7rem auto 0;
-    border-radius: 6px;
-    background: #fff;
+/* Die Wege in die Instanz: unaufdringlich, aber immer da. */
+.wege {
+    margin: 0.7rem 0 0;
+    font-size: 0.82rem;
+    color: var(--leise);
 }
+.wege a { color: var(--akzent); }
+.wege span { margin: 0 0.35rem; }
 
 /* Auswahlfelder wie Eingabefelder – die Vorgaben der Browser sind sehr
    verschieden, und das Popup soll überall gleich aussehen. */
