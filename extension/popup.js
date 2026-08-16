@@ -51,6 +51,74 @@ async function start() {
     // Der Seitentitel als Vorschlag – er landet nur in der eigenen Übersicht
     $('titel').value = (tab?.title || '').slice(0, 120);
     $('los').focus();
+
+    // Beides nebenher: Das Formular steht schon, die Antworten füllen es auf.
+    // Wer sofort auf „Kürzen" drückt, wartet auf nichts.
+    konto();
+    schonGekuerzt();
+}
+
+/**
+ * Was dieses Konto darf: Domains, Gruppen, verbleibender Rahmen.
+ *
+ * Ohne das fiele jeder Kurzlink auf die Hauptdomain, auch wenn die Instanz
+ * mehrere führt – und in Teams landete alles ohne Gruppe. Beide Felder
+ * erscheinen nur, wenn es etwas zu wählen gibt; ein Auswahlfeld mit einem
+ * Eintrag ist eine Zumutung, keine Funktion.
+ */
+async function konto() {
+    try {
+        const antwort = await fetch(einst.instanz + einst.pfad + '/me', {
+            headers: { 'Authorization': 'Bearer ' + einst.token },
+        });
+        if (!antwort.ok) return;
+        const d = await antwort.json();
+
+        const domains = (d.domains || []).filter(Boolean);
+        if (domains.length > 1) {
+            $('domain').innerHTML = domains
+                .map((x, i) => `<option value="${x}">${x}${i === 0 ? ' (Standard)' : ''}</option>`).join('');
+            $('domain-block').hidden = false;
+        }
+
+        const gruppen = (d.assignable_groups || []).filter(Boolean);
+        if (gruppen.length > 0) {
+            $('gruppe').innerHTML = '<option value="">– keine –</option>'
+                + gruppen.map(g => `<option value="${g}">${g}</option>`).join('');
+            $('gruppe-block').hidden = false;
+        }
+
+        // Der Rahmen interessiert erst, wenn er knapp wird – vorher ist er
+        // Zahlensalat neben einem Knopf.
+        const grenze = parseInt(d.limits?.links, 10);
+        const belegt = parseInt(d.limits?.links_used, 10);
+        if (Number.isFinite(grenze) && Number.isFinite(belegt) && grenze > 0 && belegt / grenze >= 0.8) {
+            $('rahmen').textContent = `${belegt} von ${grenze} Links belegt`;
+        }
+    } catch (e) { /* Ohne diese Angaben geht es auch – nur eben ohne Auswahl */ }
+}
+
+/**
+ * Gibt es für diese Adresse schon einen Kurzlink?
+ *
+ * Wer eine Seite zweimal kürzt, bekommt zwei Kurzlinks auf dasselbe Ziel –
+ * beide gültig, beide gedruckt vielleicht. Die Suche kostet eine Anfrage und
+ * erspart das.
+ */
+async function schonGekuerzt() {
+    try {
+        const antwort = await fetch(
+            einst.instanz + einst.pfad + '/links?limit=5&q=' + encodeURIComponent(tabUrl),
+            { headers: { 'Authorization': 'Bearer ' + einst.token } });
+        if (!antwort.ok) return;
+        const d = await antwort.json();
+        // Die Suche findet auch Teiltreffer; gemeint ist nur die Adresse selbst
+        const treffer = (d.links || []).find(l => l.url === tabUrl);
+        if (!treffer?.short_url) return;
+        $('schon-link').textContent = treffer.short_url;
+        $('schon-link').href = treffer.short_url;
+        $('schon').hidden = false;
+    } catch (e) { /* Ein fehlgeschlagener Blick ist kein Grund zu meckern */ }
 }
 
 async function kuerzen() {
@@ -61,8 +129,16 @@ async function kuerzen() {
     const rumpf = { url: tabUrl };
     const titel = $('titel').value.trim();
     const code = $('code').value.trim();
+    const tags = $('tags').value.trim();
+    const expires = $('expires').value;
     if (titel) rumpf.title = titel;
     if (code) rumpf.code = code;
+    if (tags) rumpf.tags = tags;
+    if (expires) rumpf.expires = expires;
+    // Die erste Domain ist die Hauptdomain – sie mitzuschicken wäre
+    // überflüssig, aber schadet nicht; die Schnittstelle behandelt sie so.
+    if (!$('domain-block').hidden) rumpf.domain = $('domain').value;
+    if (!$('gruppe-block').hidden && $('gruppe').value) rumpf.group = $('gruppe').value;
 
     try {
         const antwort = await fetch(einst.instanz + einst.pfad + '/links', {
@@ -130,6 +206,9 @@ function qrZeigen() {
 
 function zuruecksetzen() {
     $('code').value = '';
+    $('tags').value = '';
+    $('expires').value = '';
+    $('schon').hidden = true;
     $('fehler').hidden = true;
     zeige('kuerzen');
     $('los').focus();
@@ -139,9 +218,13 @@ $('los').addEventListener('click', kuerzen);
 $('kopieren').addEventListener('click', kopieren);
 $('qr').addEventListener('click', qrZeigen);
 $('neu').addEventListener('click', zuruecksetzen);
+$('schon-kopieren').addEventListener('click', async () => {
+    await navigator.clipboard.writeText($('schon-link').textContent);
+    $('schon-kopieren').textContent = 'Kopiert';
+});
 $('zu-optionen').addEventListener('click', () => chrome.runtime.openOptionsPage());
 // Eingabetaste in einem der Felder kürzt ebenfalls
-for (const feld of ['titel', 'code']) {
+for (const feld of ['titel', 'code', 'tags']) {
     $(feld).addEventListener('keydown', (e) => { if (e.key === 'Enter') kuerzen(); });
 }
 

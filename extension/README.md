@@ -81,6 +81,24 @@ Dauerbetrieb muss die Erweiterung signiert sein – über
 [addons.mozilla.org](https://addons.mozilla.org/developers/) oder eine
 Firefox-Fassung, die unsignierte Add-ons erlaubt (ESR, Developer Edition).
 
+## Was sie kann
+
+| | |
+| --- | --- |
+| Kürzen | Adresse des Tabs, Name (aus dem Seitentitel vorgeschlagen), Wunsch-Name |
+| Domain | Auswahl, wenn die Instanz mehrere führt – sonst verborgen |
+| Gruppe | Auswahl, wenn das Konto Arbeitsgruppen hat – sonst verborgen |
+| Mehr | Schlagworte und Ablaufdatum, in einer Klappe |
+| Schon gekürzt | Gibt es für diese Adresse bereits einen Kurzlink, steht er da – mit Kopieren-Knopf, statt einen zweiten anzulegen |
+| Ergebnis | Kurzlink kopieren, QR-Code aus der eigenen Instanz anzeigen |
+| Rahmen | Hinweis, sobald das Link-Limit zu 80 % belegt ist |
+
+Nicht dabei, und zwar mit Absicht: **UTM-Parameter** (fünf Felder – wer
+Kampagnen baut, sitzt in der Verwaltung), **Passwortschutz** (selten, und ein
+Passwortfeld im Popup lädt zum Missverständnis ein) und **Statistik**
+(Auswerten ist nicht Aufgabe eines Werkzeugs zum Anlegen). Alles drei kann
+die Schnittstelle – die Oberfläche der Instanz auch.
+
 ## Was sie darf – und was nicht
 
 | | |
