@@ -1114,4 +1114,5 @@ your password immediately and contact us.
     'GS1 Digital Link erstellen' => 'Create a GS1 Digital Link',
     'GTIN mit Charge, Seriennummer oder Haltbarkeitsdatum als GS1 Digital Link – der Nachfolger des EAN-Strichcodes.' => 'GTIN with batch, serial number or best-before date as a GS1 Digital Link – the successor to the EAN barcode.',
     'Ein Code für Kasse und Kundschaft: maschinenlesbar und zugleich eine Adresse, die im Browser aufgeht.' => 'One code for the till and for customers: machine-readable and at the same time an address that opens in a browser.',
+    'Farben, Formen, Logo und Druckdateien – für einen Kurzlink oder für eine feste Adresse.' => 'Colours, shapes, logo and print files – for a short link or for a fixed address.',
 ];

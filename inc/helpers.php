@@ -748,13 +748,19 @@ function page_header(string $title, bool $admin = false, ?string $desc = null, ?
     $logo = (string)cfg('logo');
     $mark = ($logo !== '' ? '<img class="brand-logo" src="' . $root . '/assets/' . e($logo) . '" alt="">' : '')
         . '<span class="brand-name">' . $inner . '</span>';
-    echo '<header class="site-head"><a class="brand" href="' . $root . '/">' . $mark . '</a>';
     // Einheitliche, session-sensitive Navigation auf allen Seiten.
     // (Seiten ohne Session-Start – z. B. die 404-Seite des Redirect-Handlers –
     // zeigen die Gast-Variante; der heiße Redirect-Pfad bleibt Session-frei.)
     $u = function_exists('auth_user') ? auth_user() : null;
     $adm = $admin ? '' : 'admin/'; // Pfad zum Login-Bereich
     $pub = $admin ? '../' : '';    // Pfad zu öffentlichen Seiten
+
+    // Das Logo führt nach Hause – und zuhause ist für Angemeldete die eigene
+    // Linkliste, nicht die Startseite. Auf einer Instanz, die das öffentliche
+    // Kürzen abgeschaltet hat, landete man dort sonst bei „Die öffentliche
+    // Link-Erstellung ist deaktiviert" und musste sich zurückklicken.
+    $heim = $u !== null ? $adm . 'index.php' : $root . '/';
+    echo '<header class="site-head"><a class="brand" href="' . e($heim) . '">' . $mark . '</a>';
     echo '<nav>';  // umbruchfähig; die Verwaltungsklappe darf auf schmalen Schirmen eine eigene Zeile bekommen
     // Zusätzliche Einträge dieser Instanz. 'nav_links' erscheint immer,
     // 'nav_links_guest' nur für Nichtangemeldete – nützlich für Seiten, die

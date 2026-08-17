@@ -178,7 +178,15 @@ show_flash();
 // dunkle Fläche wie bei den übrigen QR-Generatoren.
 // Der Vorspann steht VOR der Hülle: Bei den übrigen Generatoren sitzt die
 // Überschrift ebenfalls über der Fläche, nicht darin.
-if (function_exists('designer_intro')) echo designer_intro();
+// Eine Instanz mit eigenem Vorspann behält ihn; sonst steht hier dieselbe
+// Überschrift-und-Zeile wie über den anderen Generatoren. Ohne sie sprang die
+// Seite beim Wechsel der Reiter, weil dem Designer die Kopfhöhe fehlte.
+if (function_exists('designer_intro')) {
+    echo designer_intro();
+} else {
+    echo '<div class="hero"><h1>' . t('QR-Code-Generator') . '</h1>'
+        . '<p class="sub">' . t('Farben, Formen, Logo und Druckdateien – für einen Kurzlink oder für eine feste Adresse.') . '</p></div>';
+}
 echo '<div class="designer-stage">';
 if (function_exists('qr_type_nav')) echo qr_type_nav('link');
 
@@ -251,8 +259,6 @@ $statischText = trim((string)($_GET['u'] ?? ''));
     <?php endif; ?>
 </div>
 <?php endif; ?>
-
-<?= qr_type_nav('link') ?>
 
 <div class="designer">
     <div class="card controls">
