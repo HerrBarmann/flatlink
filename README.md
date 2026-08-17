@@ -80,6 +80,11 @@ Session, solange kein Passwortschutz auf dem Link liegt.
 <p><strong>QR-Designer.</strong> Modul- und Augenformen, freie Farben, Logo in
 der Mitte, Rahmen mit Text. Export als SVG, PNG, Vektor-PDF und EPS, wahlweise in
 CMYK – aus einem eigenen Encoder, ohne Fremdbibliothek.</p>
+<p><strong>Fünf Typen, ein Generator.</strong> Neben Adressen und Kurzlinks
+auch WLAN-Zugänge, Kontakte (vCard), Termine (iCalendar) und GS1 Digital
+Links – über Reiter erreichbar, mit denselben Gestaltungsoptionen. Diese vier
+sind statisch: Die Daten stehen im Code, nichts wird gespeichert, sie
+funktionieren auch ohne die Instanz weiter.</p>
 </td>
 <td width="50%" valign="top">
 <a href="docs/screenshots/qr-serie.png"><img src="docs/screenshots/qr-serie.png" alt="QR-Serie: mehrere Links auswählen und als ZIP herunterladen"></a>

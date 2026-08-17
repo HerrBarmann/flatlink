@@ -252,6 +252,8 @@ $statischText = trim((string)($_GET['u'] ?? ''));
 </div>
 <?php endif; ?>
 
+<?= qr_type_nav('link') ?>
+
 <div class="designer">
     <div class="card controls">
         <?= qr_design_panel([

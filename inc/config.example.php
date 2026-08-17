@@ -76,7 +76,8 @@ return [
     // Codes, die nie als Kurzlink vergeben werden dürfen.
     // Hier ergänzen, was an eigenen Seiten dazukommt.
     'reserved' => ['admin', 'assets', 'data', 'inc', 'qr', 'go', 'index',
-        'login', 'logout', 'api', 'register', 'reset', 'report'],
+        'login', 'logout', 'api', 'register', 'reset', 'report',
+        'qr-designer', 'wlan-qr', 'vcard-qr', 'termin-qr', 'gs1-qr'],
 
     // Max. QR-Codes pro Adresse und Stunde ohne Anmeldung. Großzügig, weil der
     // Designer bei jedem Regler-Zug eine neue Vorschau zieht – wer gestaltet,

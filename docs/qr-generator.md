@@ -22,6 +22,32 @@ Der statische Weg nimmt auch `mailto:`, `tel:` oder schlicht einen Text. Fehlt
 bei etwas Domain-Förmigem das Schema, wird `https://` ergänzt – sonst bleibt
 die Eingabe unangetastet.
 
+## Fünf Typen, ein Generator
+
+Ein QR-Code enthält Text – was dieser Text bedeutet, entscheidet die
+Anwendung, die ihn liest. Deshalb kann derselbe Encoder mehr als Adressen:
+
+| Reiter | Datei | was im Code steht |
+| --- | --- | --- |
+| Link | `qr-designer.php` | eine Adresse, ein Kurzlink oder freier Text |
+| WLAN | `wlan-qr.php` | `WIFI:` – Netzwerkname, Verschlüsselung, Passwort |
+| Kontakt | `vcard-qr.php` | eine vCard 3.0 |
+| Termin | `termin-qr.php` | ein iCalendar-Eintrag (`VEVENT`) |
+| GS1 | `gs1-qr.php` | ein GS1 Digital Link (siehe unten) |
+
+Die Reiter stehen auf jeder dieser Seiten (`qr_type_nav()`); angemeldet führt
+der erste in den Designer im Login-Bereich, wo Logos und die Zuordnung zu
+einem Kurzlink dazukommen.
+
+Alle vier Zusatztypen erzeugen **statische** Codes: Die Daten stehen im Code
+selbst, es wird nichts gespeichert, und sie funktionieren auch dann noch,
+wenn es diese Instanz nicht mehr gibt. Der Preis ist, dass sie sich nicht
+mehr ändern lassen – wer das braucht, nimmt einen Kurzlink.
+
+Die Eingaben gehen per POST an `qr.php`, nicht als Parameter in der Adresse:
+Ein WLAN-Passwort hat in Server-Protokollen und im Verlauf des Browsers
+nichts verloren.
+
 ## Der Encoder
 
 Reines PHP nach ISO/IEC 18004, Byte-Mode, Versionen 1–40, alle vier

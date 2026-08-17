@@ -201,3 +201,36 @@ function qr_design_panel(array $o = []): string
     <?php
     return (string)ob_get_clean();
 }
+
+/**
+ * Umschalter zwischen den QR-Typen – ein Generator, fünf Reiter.
+ *
+ * Der Encoder in qr.php kann WLAN, Kontakt, Termin und GS1 seit jeher; was
+ * lange fehlte, war die Bedienung dafür. Die Reiter führen auf die jeweilige
+ * Seite; angemeldet zeigt der erste auf den vollen Designer im Login-Bereich,
+ * weil dort Logos und die Zuordnung zu einem Kurzlink dazukommen.
+ *
+ * @param string $active einer von link, wifi, vcard, event, gs1
+ */
+function qr_type_nav(string $active): string
+{
+    $root = $GLOBALS['_page_root'] ?? '.';
+    $u = function_exists('auth_user') ? auth_user() : null;
+    $linkZiel = $u !== null
+        ? ($root === '..' ? 'qrdesign.php' : 'admin/qrdesign.php')
+        : $root . '/qr-designer.php';
+    $reiter = [
+        'link'  => [$linkZiel, t('Link')],
+        'wifi'  => [$root . '/wlan-qr.php', t('WLAN')],
+        'vcard' => [$root . '/vcard-qr.php', t('Kontakt')],
+        'event' => [$root . '/termin-qr.php', t('Termin')],
+        'gs1'   => [$root . '/gs1-qr.php', t('GS1')],
+    ];
+    $out = '<nav class="type-nav" aria-label="' . t('QR-Code-Typ') . '">';
+    foreach ($reiter as $key => [$href, $label]) {
+        $out .= '<a class="btn btn-small' . ($key === $active ? ' active' : '') . '"'
+            . ($key === $active ? ' aria-current="page"' : '')
+            . ' href="' . e($href) . '">' . e($label) . '</a>';
+    }
+    return $out . '</nav>';
+}

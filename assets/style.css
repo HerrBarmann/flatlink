@@ -393,6 +393,11 @@ td a { font-family: var(--mono); }
 .check input { width: auto; margin: 0; accent-color: var(--accent); }
 .check-row { display: flex; flex-wrap: wrap; gap: 0.15rem 1.1rem; }
 
+/* Umschalter zwischen den QR-Typen */
+.type-nav { display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: center; margin: 0 0 1.4rem; }
+.type-nav .active { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.type-nav .active:hover { background: var(--accent); }
+
 /* Rechte kommen in zwei Sorten: was ein Konto selbst darf (auf einer Instanz
    mit Tarifen ist das der Tarif) und was jemand für andere darf. Die
    Überschrift dazwischen soll auffallen, bevor jemand hakt. */
