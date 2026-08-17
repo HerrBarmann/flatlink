@@ -382,6 +382,17 @@ return [
             // 'urn:mace:example.org:group:marketing' => 'marketing',
             // 'cn=it,ou=groups,dc=example,dc=org'    => ['it', 'technik'],
         ],
+        // Wie sich Gruppen aus dem Verzeichnis zu den hier vergebenen
+        // verhalten:
+        //   'merge'   – Verzeichnisgruppen kommen hinzu, hier von Hand
+        //               vergebene bleiben erhalten. Voreinstellung, weil dabei
+        //               nichts verlorengehen kann.
+        //   'replace' – das Verzeichnis bestimmt allein. Nur richtig, wenn dort
+        //               wirklich alle Zuordnungen gepflegt werden: Was hier von
+        //               Hand zugewiesen wird, ist beim nächsten Login weg.
+        //   'off'     – Gruppen kommen nie von außen; sie werden nur hier
+        //               vergeben, egal was das Verzeichnis liefert.
+        'group_sync' => 'merge',
         // Gruppen, die jedes über SSO angemeldete Konto zusätzlich bekommt
         'default_groups' => [],
 
@@ -464,6 +475,13 @@ return [
         // Wie bei SSO: leer = nur namensgleiche lokale Gruppen zählen
         'group_map' => [],
         'default_groups' => [],
+
+        // Wie sich Gruppen aus dem Verzeichnis zu den hier vergebenen
+        // verhalten – siehe die ausführliche Erklärung im SSO-Block oben.
+        // 'merge' (Vorgabe) lässt von Hand vergebene Gruppen bestehen,
+        // 'replace' überschreibt sie bei jeder Anmeldung, 'off' nimmt gar
+        // keine Gruppen aus dem Verzeichnis.
+        'group_sync' => 'merge',
 
         // Zugangskontrolle wie beim SSO-Weg (siehe dort). Bei LDAP begrenzt
         // schon 'base_dn' den Kreis – 'require_group' verengt ihn weiter auf

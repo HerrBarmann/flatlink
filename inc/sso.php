@@ -33,7 +33,7 @@ function sso_cfg(): array
 {
     return (array)(cfg('sso') ?? []) + [
         'enabled' => false, 'user_var' => 'REMOTE_USER', 'mail_var' => '', 'name_var' => '', 'group_var' => '',
-        'group_separator' => ';', 'group_map' => [], 'auto_create' => true,
+        'group_separator' => ';', 'group_map' => [], 'auto_create' => true, 'group_sync' => 'merge',
         'allowed_scopes' => [], 'require_group' => false, 'approval_queue' => true,
         'default_groups' => [], 'login_url' => '', 'logout_url' => '',
         'trusted_proxies' => [], 'button_label' => 'Mit institutionellem Konto anmelden',
@@ -48,7 +48,7 @@ function ldap_cfg(): array
         'mail_attr' => 'mail', 'name_attr' => 'displayName',
         'group_mode' => 'memberof', 'group_attr' => 'cn',
         'group_base_dn' => '', 'group_filter' => '(&(objectClass=groupOfNames)(member=%s))',
-        'group_map' => [], 'auto_create' => true, 'require_group' => false,
+        'group_map' => [], 'auto_create' => true, 'require_group' => false, 'group_sync' => 'merge',
         'approval_queue' => true, 'default_groups' => [], 'timeout' => 5,
     ];
 }
@@ -280,7 +280,11 @@ function user_provision(string $username, string $source, ?string $email, array 
     // dann nur noch dieses eine Konto an und bleibt auch mit Datenbank ein
     // einzelner Datensatz statt aller.
     $ersteAnlage = !users_exist();
-    users_update(function (array $users) use ($username, $source, $email, $groups, $autoCreate, $display, $ersteAnlage, &$err) {
+    // Der Modus richtet sich nach der Anmeldeart, aus der das Konto stammt.
+    $modus = (string)(($source === 'ldap' ? ldap_cfg() : sso_cfg())['group_sync'] ?? 'merge');
+    if (!in_array($modus, ['off', 'merge', 'replace'], true)) $modus = 'merge';
+
+    users_update(function (array $users) use ($username, $source, $email, $groups, $autoCreate, $display, $ersteAnlage, $modus, &$err) {
         $exists = isset($users[$username]);
         if (!$exists && !$autoCreate) {
             $err = t('Für diese Kennung gibt es hier kein Konto, und die automatische Anlage ist deaktiviert.');
@@ -308,7 +312,27 @@ function user_provision(string $username, string $source, ?string $email, array 
         if ($display !== null && $display !== '') {
             $users[$username]['display_name'] = mb_substr($display, 0, 80);
         }
-        $users[$username]['groups'] = $groups;
+        // Wie sich Gruppen aus dem Verzeichnis zu den hier vergebenen
+        // verhalten, entscheidet 'group_sync':
+        //
+        //   merge   – Verzeichnisgruppen kommen hinzu, hier vergebene bleiben.
+        //             Voreinstellung, weil dabei nichts verlorengehen kann.
+        //   replace – das Verzeichnis bestimmt allein. Richtig, wenn dort
+        //             wirklich alle Zuordnungen gepflegt werden; wer daneben
+        //             von Hand etwas zuweist, verliert es beim nächsten Login.
+        //   off     – Gruppen kommen nie von außen, sie werden nur hier vergeben.
+        //
+        // Vorher wurde immer ersetzt. Das kostete stillschweigend jede von Hand
+        // gesetzte Zuordnung, sobald das Verzeichnis keine passende Gruppe
+        // lieferte – und mit leerer group_map liefert es meistens keine.
+        $bisher = (array)($users[$username]['groups'] ?? []);
+        if ($modus === 'off') {
+            $users[$username]['groups'] = $bisher;
+        } elseif ($modus === 'replace') {
+            $users[$username]['groups'] = $groups;
+        } else {
+            $users[$username]['groups'] = array_values(array_unique(array_merge($bisher, $groups)));
+        }
         $users[$username]['last_login'] = date('c');
         return $users;
     }, $username);

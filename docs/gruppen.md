@@ -46,6 +46,25 @@ anlegt, soll nicht versehentlich etwas anhaken, das Geld kostet.
 | `links_all` | sieht und verwaltet **alle** Links der Instanz |
 | `reports_manage` | bearbeitet Missbrauchs-Meldungen und sperrt Links |
 
+### Gruppen aus dem Verzeichnis
+
+Kommen die Konten aus LDAP oder von einem Identity Provider, können auch die
+Gruppen von dort kommen. Wie sie sich zu den hier von Hand vergebenen
+verhalten, entscheidet `group_sync` (in beiden Blöcken der Konfiguration):
+
+| Wert | Wirkung |
+| --- | --- |
+| `merge` | Verzeichnisgruppen kommen hinzu, hier vergebene bleiben. **Vorgabe** |
+| `replace` | Das Verzeichnis bestimmt allein – hier Vergebenes ist beim nächsten Login weg |
+| `off` | Gruppen kommen nie von außen |
+
+`replace` ist nur richtig, wenn wirklich alle Zuordnungen im Verzeichnis
+gepflegt werden. Sonst passiert das hier: Ein Administrator weist jemandem die
+Gruppe „bibliothek" zu, die nächste Anmeldung überschreibt die Liste mit dem,
+was das Verzeichnis liefert – und weil ohne `group_map` nur namensgleiche
+Gruppen zählen, liefert es meistens gar nichts. Die Zuordnung ist weg, ohne
+dass irgendwo etwas steht. Genau deshalb ist die Vorgabe `merge`.
+
 Ein Recht, das an einer Gruppe hängt, endet mit der Mitgliedschaft – auch mit
 einer befristeten. Was damit **angelegt** wurde, bleibt aber: Bestehende Weichen
 leiten weiter, eine gestaltete Bio-Seite behält ihr Aussehen, Wunsch-Adressen

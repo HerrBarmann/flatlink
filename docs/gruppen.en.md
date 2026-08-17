@@ -46,6 +46,25 @@ something that costs money by accident.
 | `links_all` | sees and manages **all** links of the instance |
 | `reports_manage` | handles abuse reports and blocks links |
 
+### Groups from the directory
+
+Where accounts come from LDAP or an identity provider, the groups can come
+from there too. How they relate to the ones assigned here is decided by
+`group_sync` (present in both configuration blocks):
+
+| Value | Effect |
+| --- | --- |
+| `merge` | Directory groups are added, locally assigned ones stay. **Default** |
+| `replace` | The directory decides alone – anything assigned here is gone at the next login |
+| `off` | Groups never come from outside |
+
+`replace` is only right if every assignment really is maintained in the
+directory. Otherwise this happens: an administrator assigns someone to
+"library", the next login overwrites the list with whatever the directory
+supplies – and without a `group_map` only groups of the same name count, so it
+usually supplies nothing. The assignment is gone without a trace. That is why
+the default is `merge`.
+
 A permission attached to a group ends with the membership – including a
 time-limited one. What was **created** with it stays, though: existing switches
 keep redirecting, a styled bio page keeps its looks, custom names remain
