@@ -126,6 +126,11 @@ Mit dem Recht `bio_style` kommen Logo und Farben hinzu. Zur Auswahl steht
 dieselbe Bibliothek wie im QR-Designer: eigene Logos und die, die eine Gruppe
 freigegeben hat (siehe [QR-Generator](qr-generator.md)). Hochladen zu dürfen ist
 dafür nicht nötig – wer ein freigegebenes Logo verwenden darf, findet es hier.
+Das Logo wird proportional eingepasst, nicht beschnitten: 96 Pixel hoch, höchstens
+240 breit – ein Quadrat schöpft die Höhe aus, eine Wortmarke die Breite. Ein runder
+Rahmen sähe bei einem Porträt gut aus, bei einem Logo fielen die Ecken weg und der
+Schriftzug am Rand gleich mit.
+
 Gesetzt werden kann nur, was in der eigenen Auswahl steht; ein bereits
 gespeichertes Logo bleibt beim Bearbeiten unangetastet, damit es einem Vertreter
 nicht unter der Hand verschwindet.

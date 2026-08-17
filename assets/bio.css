@@ -28,12 +28,18 @@ body.bio-page {
     text-align: center;
 }
 
+/* Das Logo wird NICHT beschnitten. Ein runder Rahmen kleidet Porträts gut,
+   aber ein Logo ist selten rund: Beim Zuschnitt fallen die Ecken weg, und bei
+   einer Wortmarke mit Schriftzug am Rand verschwindet gerade der Name.
+
+   Die Maße stehen als width/height im Markup und sind dort schon proportional
+   eingepasst (siehe bio_logo_size). Hier bleibt nur, sie auf schmalen Geräten
+   mitgehen zu lassen: max-width begrenzt die Breite, height: auto hält das
+   Seitenverhältnis – und rückt die Höhe zurecht, wenn sich das Bild nicht
+   vermessen ließ und die Annahme „quadratisch" daneben lag. */
 .bio-logo {
-    width: 96px; height: 96px;
-    object-fit: contain;
-    border-radius: 50%;
-    background: rgb(255 255 255 / 0.08);
-    padding: 0.4rem;
+    max-width: 100%;
+    height: auto;
     margin: 0 auto 1rem;
     display: block;
 }

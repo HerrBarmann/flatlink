@@ -155,6 +155,31 @@ function bio_logo_url(array $l): string
     return '';
 }
 
+/**
+ * Anzeigemaße des Logos, passend zu .bio-logo in bio.css.
+ *
+ * Die Angaben stehen im Markup, damit der Platz schon vor dem Laden des Bildes
+ * feststeht und die Seite nicht springt. Das Bild wird proportional in 96 px
+ * Höhe und 240 px Breite eingepasst – welche der beiden Schranken greift,
+ * entscheidet das Format: Ein Quadrat wird 96 hoch, eine Wortmarke 240 breit
+ * und entsprechend flacher. Beschnitten wird nie.
+ *
+ * @return array{0:int,1:int} Breite und Höhe in Pixeln
+ */
+function bio_logo_size(string $id): array
+{
+    $maxHoehe = 96;
+    $maxBreite = 240;
+    $info = @getimagesize(data_path('logos') . '/' . $id);
+    $w = (int)($info[0] ?? 0);
+    $h = (int)($info[1] ?? 0);
+    // SVG und alles, was sich nicht vermessen lässt: quadratisch annehmen. Das
+    // Stylesheet rückt die Höhe zurecht, falls die Annahme daneben liegt.
+    if ($w <= 0 || $h <= 0) return [$maxHoehe, $maxHoehe];
+    $faktor = min($maxHoehe / $h, $maxBreite / $w);
+    return [max(1, (int)round($w * $faktor)), max(1, (int)round($h * $faktor))];
+}
+
 /** Die Wortmarke des Dienstes, wie im Seitenkopf ausgezeichnet */
 function bio_wordmark(): string
 {
@@ -258,7 +283,9 @@ function bio_render(string $code, array $l): never
     echo '</head><body class="bio-page"><main class="bio-wrap">';
 
     if ($logoUrl !== '') {
-        echo '<img class="bio-logo" src="' . e($logoUrl) . '" alt="" width="96" height="96">';
+        [$lw, $lh] = bio_logo_size((string)($l['bio_logo'] ?? ''));
+        echo '<img class="bio-logo" src="' . e($logoUrl) . '" alt=""'
+            . ' width="' . $lw . '" height="' . $lh . '">';
     } else {
         echo bio_brand_block();
     }
