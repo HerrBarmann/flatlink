@@ -53,6 +53,23 @@ return [
     // Alphabet für zufällige Codes (ohne 0/O und 1/l/I – schwer zu unterscheiden)
     'alphabet' => '23456789abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ',
 
+    // ---- Wer darf was, bevor jemand angemeldet ist ----
+    // Vorgaben für eine frische Installation; ändern lassen sie sich später
+    // in der Verwaltung unter „Einstellungen", ohne hier anzufassen. Sie
+    // stehen hier, damit sich eine Instanz vollständig aus dieser Datei
+    // ausliefern lässt – fertig eingerichtet ab dem ersten Aufruf.
+    //
+    // 'on'     – jeder darf kürzen, auch ohne Konto
+    // 'prefix' – auch ohne Konto, aber die Codes landen unter 'public_prefix'
+    // 'off'    – nur angemeldete Konten. Das Richtige für die Instanz einer
+    //            Einrichtung, die keine fremden Links weiterleiten will.
+    'public_mode' => 'on',
+    'public_prefix' => 'p',
+
+    // Dürfen sich Konten selbst anlegen (mit Bestätigung per E-Mail)?
+    // 'off' heißt: Konten legt die Verwaltung an.
+    'registration' => 'on',
+
     // Max. Links pro IP und Stunde über das öffentliche Formular
     'public_rate_limit' => 15,
 

@@ -8,7 +8,10 @@ require_once __DIR__ . '/helpers.php';
 /**
  * Plaintext-Mail versenden gemäß cfg('mail').
  * mode 'log':  schreibt nach data/mail.log (Entwicklung – nichts verlässt den Server).
- * mode 'smtp': STARTTLS + AUTH LOGIN, funktioniert mit Brevo, Postmark, SES & Co.
+ * mode 'smtp': eigener Client. STARTTLS, sobald der Server es anbietet; AUTH
+ *              nur mit hinterlegten Zugangsdaten. Damit laufen sowohl
+ *              Anbieter-Relays (Brevo, Postmark, SES) als auch hausinterne
+ *              Relays auf Port 25, die nach IP freigeschaltet sind.
  *
  * Gibt false zurück, wenn der Versand scheitert – Aufrufer entscheiden, was sie
  * dem Nutzer sagen (nie den Fehlertext des Servers durchreichen).
@@ -52,7 +55,24 @@ function mail_send(string $to, string $subject, string $body, ?string $replyTo =
     }
 }
 
-/** Minimaler SMTP-Client (STARTTLS, AUTH LOGIN) – bewusst ohne Composer-Abhängigkeit. */
+/**
+ * Minimaler SMTP-Client – bewusst ohne Composer-Abhängigkeit.
+ *
+ * Verschlüsselung und Anmeldung richten sich nach dem, was der Server
+ * ankündigt und was konfiguriert ist:
+ *
+ * * **STARTTLS**, sobald der Server es anbietet. Ein Anbieter-Relay auf Port
+ *   587 kann es immer; ein hausinternes Relay auf Port 25, das nach IP
+ *   freigeschaltet ist, oft nicht. Beides muss funktionieren – deshalb wird
+ *   die EHLO-Antwort gelesen, statt STARTTLS blind zu verlangen.
+ * * **AUTH** nur, wenn Zugangsdaten hinterlegt sind. Ohne Passwort gibt es
+ *   nichts anzumelden, und ein AUTH ins Leere beendet die Sitzung.
+ *
+ * Eine Ausnahme davon gibt es nicht: Sind Zugangsdaten gesetzt, der Server
+ * kann aber kein STARTTLS, wird abgebrochen. Ein Passwort im Klartext über
+ * das Netz zu schicken, ist kein Kompromiss, den ein Programm still eingehen
+ * darf.
+ */
 function smtp_send(array $cfg, string $to, string $subject, string $body, ?string $replyTo = null): void
 {
     $sock = @stream_socket_client('tcp://' . $cfg['host'] . ':' . (int)$cfg['port'], $errno, $errstr, 10);
@@ -76,18 +96,48 @@ function smtp_send(array $cfg, string $to, string $subject, string $body, ?strin
         fwrite($sock, $c . "\r\n");
         $expect($read(), $codes, $ctx);
     };
+    // EHLO vollständig lesen: Die Fähigkeiten des Servers stehen in den
+    // Zwischenzeilen, die $read() sonst verwirft.
+    $ehlo = function (string $helo) use ($sock, $expect): string {
+        fwrite($sock, 'EHLO ' . $helo . "\r\n");
+        $alles = '';
+        do {
+            $line = fgets($sock, 1024);
+            if ($line === false) throw new RuntimeException('SMTP: Verbindung abgerissen');
+            $alles .= $line;
+        } while (isset($line[3]) && $line[3] === '-');
+        $expect($line, [250], 'EHLO');
+        return strtoupper($alles);
+    };
 
     $helo = parse_url(base_url(), PHP_URL_HOST) ?: 'localhost';
+    $mitAnmeldung = (string)($cfg['user'] ?? '') !== '';
     $expect($read(), [220], 'Begrüßung');
-    $cmd('EHLO ' . $helo, [250], 'EHLO');
-    $cmd('STARTTLS', [220], 'STARTTLS');
-    if (!stream_socket_enable_crypto($sock, true, STREAM_CRYPTO_METHOD_TLS_CLIENT)) {
-        throw new RuntimeException('SMTP: TLS-Handshake fehlgeschlagen');
+    $faehig = $ehlo($helo);
+
+    if (strpos($faehig, 'STARTTLS') !== false) {
+        $cmd('STARTTLS', [220], 'STARTTLS');
+        if (!stream_socket_enable_crypto($sock, true, STREAM_CRYPTO_METHOD_TLS_CLIENT)) {
+            throw new RuntimeException('SMTP: TLS-Handshake fehlgeschlagen');
+        }
+        // Nach dem Wechsel gilt die alte Fähigkeitenliste nicht mehr
+        $faehig = $ehlo($helo);
+    } elseif ($mitAnmeldung) {
+        throw new RuntimeException(
+            'SMTP: Der Server bietet kein STARTTLS an, es sind aber Zugangsdaten '
+            . 'hinterlegt. Das Passwort ginge im Klartext über das Netz. Entweder '
+            . 'einen Port mit Verschlüsselung nehmen (meist 587) oder – bei einem '
+            . 'hausinternen Relay, das nach IP freigegeben ist – user und pass leer lassen.');
     }
-    $cmd('EHLO ' . $helo, [250], 'EHLO (TLS)');
-    $cmd('AUTH LOGIN', [334], 'AUTH');
-    $cmd(base64_encode($cfg['user']), [334], 'AUTH Nutzer');
-    $cmd(base64_encode($cfg['pass']), [235], 'AUTH Passwort');
+
+    if ($mitAnmeldung) {
+        if (strpos($faehig, 'AUTH') === false) {
+            throw new RuntimeException('SMTP: Der Server kennt kein AUTH, es sind aber Zugangsdaten hinterlegt.');
+        }
+        $cmd('AUTH LOGIN', [334], 'AUTH');
+        $cmd(base64_encode((string)$cfg['user']), [334], 'AUTH Nutzer');
+        $cmd(base64_encode((string)($cfg['pass'] ?? '')), [235], 'AUTH Passwort');
+    }
     $cmd('MAIL FROM:<' . $cfg['from'] . '>', [250], 'MAIL FROM');
     $cmd('RCPT TO:<' . $to . '>', [250, 251], 'RCPT TO');
     $cmd('DATA', [354], 'DATA');

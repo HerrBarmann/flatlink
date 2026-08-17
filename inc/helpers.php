@@ -226,10 +226,10 @@ function settings(): array
         // müssen – und die Datei bleibt trotzdem die Quelle für eine frische
         // Installation.
         $defaults = [
-            'public_mode' => 'on',          // on | prefix | off
-            'public_prefix' => 'p',         // Namensraum für öffentliche Links im Prefix-Modus
+            'public_mode' => (string)cfg('public_mode'),      // on | prefix | off
+            'public_prefix' => (string)cfg('public_prefix'),  // Namensraum im Prefix-Modus
             'public_rate_limit' => cfg('public_rate_limit'),
-            'registration' => 'on',         // Selbst-Registrierung: on | off
+            'registration' => (string)cfg('registration'),    // Selbst-Registrierung: on | off
             'limits' => (array)cfg('limits'),
             'default_perms' => (array)cfg('default_perms'),
             'custom_code_min_len' => (int)cfg('custom_code_min_len'),

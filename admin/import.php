@@ -84,6 +84,26 @@ function import_spalten(array $kopf): array
 }
 
 /**
+ * Das Trennzeichen einer Zeile raten.
+ *
+ * Komma und Semikolon sind der Normalfall; der Tabulator kommt dazu, weil ihn
+ * jeder Datenbank-Export auf der Kommandozeile liefert. `mysql --batch -e
+ * "SELECT keyword, url, title FROM yourls_url"` ist der naheliegendste Weg,
+ * einen YOURLS-Bestand herauszuholen – und der schrieb ohne diese Zeile alles
+ * in eine einzige Spalte, woraufhin der Import jede Zeile verwarf.
+ */
+function csv_trenner(string $zeile): string
+{
+    $beste = ',';
+    $meiste = substr_count($zeile, ',');
+    foreach ([';', "\t"] as $kandidat) {
+        $n = substr_count($zeile, $kandidat);
+        if ($n > $meiste) { $meiste = $n; $beste = $kandidat; }
+    }
+    return $beste;
+}
+
+/**
  * Eine CSV-Zeile zerlegen.
  *
  * str_getcsv() bekommt das Escape-Zeichen ausdrücklich mit: Ab PHP 8.4 mahnt
@@ -138,7 +158,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $map = ['url' => 0, 'code' => 1, 'expires' => 2, 'title' => 3, 'tags' => 4];
     if ($lines !== [] && stripos($lines[0], 'http') !== 0) {
         $kopf = $lines[0];
-        $sep = substr_count($kopf, ';') >= substr_count($kopf, ',') ? ';' : ',';
+        $sep = csv_trenner($kopf);
         $erkannt = import_spalten(array_map('strval', csv_zerlegen($kopf, $sep)));
         // Ohne erkannte Ziel-Spalte bleibt es bei der festen Reihenfolge –
         // sonst würde eine unverstandene Kopfzeile alle Zeilen verwerfen.
@@ -156,10 +176,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         redirect_to('import.php');
     }
 
-    // Zeilen parsen (Trennzeichen ; oder ,)
+    // Zeilen parsen (Trennzeichen , ; oder Tab – je Zeile geraten)
     $rows = [];
     foreach ($lines as $i => $line) {
-        $sep = substr_count($line, ';') >= substr_count($line, ',') ? ';' : ',';
+        $sep = csv_trenner($line);
         $cols = array_map('trim', csv_zerlegen($line, $sep));
         $holen = fn(string $feld) => ($map[$feld] ?? -1) >= 0 ? (string)($cols[$map[$feld]] ?? '') : '';
         $url = $holen('url');
