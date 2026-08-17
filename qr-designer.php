@@ -25,13 +25,7 @@ require_once __DIR__ . '/inc/svg.php';
 
 auth_boot();
 $user = auth_user();
-$isAdmin = $user !== null && $user['role'] === 'admin';
 $mode = settings()['public_mode'];
-$logosDir = data_path('logos');
-
-// Wer Logos hochladen darf, sieht die Bibliothek. Gäste nie – sie hätten kein
-// Konto, an dem die Dateien hängen könnten.
-$darfLogo = $user !== null && user_can($user['name'], 'logo_upload');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_check();
@@ -86,77 +80,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         redirect_to('qr-designer.php?c=' . rawurlencode($ergebnis));
     }
 
-    if (!$darfLogo && in_array($action, ['upload-logo', 'delete-logo'], true)) {
-        flash(t('Für eigene Logos fehlt deinem Konto die Berechtigung.'), 'err');
-        redirect_to('qr-designer.php');
-    }
-
-    if ($action === 'upload-logo' && isset($_FILES['logo']) && $_FILES['logo']['error'] === UPLOAD_ERR_OK) {
-        $tmp = $_FILES['logo']['tmp_name'];
-        $ownLogos = count(array_filter(logos_meta(), fn($m) => ($m['by'] ?? null) === $user['name']));
-        if (!user_can($user['name'], 'logo_upload')) {
-            flash(t('Für eigene Logos fehlt deinem Konto die Berechtigung.'), 'err');
-        } elseif (!$isAdmin && $ownLogos >= user_limit($user['name'], 'logos')) {
-            flash(t('Logo-Bibliothek voll (max. %d) – lösche zuerst ein Logo.',
-                user_limit($user['name'], 'logos')), 'err');
-        } elseif ($_FILES['logo']['size'] > 512 * 1024) {
-            flash(t('Logo zu groß (max. 512 KB).'), 'err');
-        } else {
-            $mime = (new finfo(FILEINFO_MIME_TYPE))->file($tmp);
-            $ext = match ($mime) {
-                'image/png' => 'png',
-                'image/jpeg' => 'jpg',
-                'image/webp' => 'webp',
-                'image/svg+xml' => 'svg',
-                default => null,
-            };
-            if ($ext === null) {
-                flash(t('Nur PNG, JPG, WebP oder SVG.'), 'err');
-            } elseif ($ext === 'svg' && ($svgSauber = svg_clean((string)file_get_contents($tmp))) === null) {
-                // Ein SVG ist ein Dokument, kein Bild – gespeichert wird nur
-                // eine bereinigte Neufassung (inc/svg.php). Was sich nicht
-                // bereinigen lässt, wird gar nicht erst angenommen.
-                flash(t('Dieses SVG lässt sich nicht sicher übernehmen – bitte als einfache Grafik (Pfade und Flächen) exportieren oder PNG verwenden.'), 'err');
-            } else {
-                $id = bin2hex(random_bytes(8)) . '.' . $ext;
-                if ($ext === 'svg') {
-                    file_put_contents($logosDir . '/' . $id, $svgSauber);
-                } else {
-                    move_uploaded_file($tmp, $logosDir . '/' . $id);
-                }
-                // Anzeigename: Wunschname aus dem Formular, sonst der Original-Dateiname
-                $name = trim((string)($_POST['name'] ?? ''));
-                if ($name === '') {
-                    $name = (string)pathinfo((string)($_FILES['logo']['name'] ?? ''), PATHINFO_FILENAME);
-                }
-                $name = mb_strimwidth(trim($name), 0, 40, '…');
-                logo_meta_set($id, $name === '' ? 'Logo' : $name, $user['name']);
-                flash(t('Logo hochgeladen.'));
-            }
-        }
-    } elseif ($action === 'share-logo') {
-        $id = (string)($_POST['logo'] ?? '');
-        $meta = logos_meta();
-        // Freigeben darf, wem das Logo gehört – und ein Administrator.
-        $meins = $isAdmin || (($meta[$id]['by'] ?? null) === $user['name']);
-        if ($meins && isset($meta[$id])) {
-            logo_share_set($id, (array)($_POST['shared'] ?? []));
-            flash(t('Freigabe gespeichert.'));
-            audit(t('Freigabe des Logos „%s" geändert', (string)($meta[$id]['name'] ?? $id)));
-        } else {
-            flash(t('Kein Zugriff auf dieses Logo.'), 'err');
-        }
-    } elseif ($action === 'delete-logo') {
-        $id = (string)($_POST['logo'] ?? '');
-        $mine = ($isAdmin || ((logos_meta()[$id]['by'] ?? null) === $user['name']));
-        if ($mine && preg_match('/^[a-f0-9]{16}\.(png|jpe?g|webp|svg)$/', $id) && is_file($logosDir . '/' . $id)) {
-            unlink($logosDir . '/' . $id);
-            logo_meta_delete($id);
-            flash(t('Logo gelöscht.'));
-        } else {
-            flash(t('Kein Zugriff auf dieses Logo.'), 'err');
-        }
-    }
     redirect_to('qr-designer.php' . (isset($_POST['c']) ? '?c=' . urlencode((string)$_POST['c']) : ''));
 }
 
@@ -280,75 +203,15 @@ $statischText = trim((string)($_GET['u'] ?? ''));
             'logos' => $logos,
         ]) ?>
 
-        <?php if ($darfLogo): ?>
-        <?php if ($logos === []): ?><h3><?= t('Logo') ?></h3><?php endif; ?>
-        <form method="post" action="" enctype="multipart/form-data">
-            <?= csrf_field() ?>
-            <input type="hidden" name="action" value="upload-logo">
-            <input type="hidden" name="c" value="<?= e($code) ?>">
-            <label for="logo-name"><?= t('Anzeigename') ?> <span class="muted">(<?= t('leer = Dateiname') ?>)</span></label>
-            <input id="logo-name" type="text" name="name" maxlength="40" placeholder="<?= t('z. B. Firmenlogo weiß') ?>">
-            <div class="short-row" style="margin-top:0.5rem">
-                <input type="file" name="logo" accept=".png,.jpg,.jpeg,.webp,.svg" required>
-                <button class="btn btn-small" type="submit"><?= t('Hochladen') ?></button>
-            </div>
-        </form>
-        <?php
-        // Verwalten (freigeben, löschen) lässt sich nur, was einem gehört –
-        // ein geteiltes Logo aus einer Gruppe darf man benutzen, mehr nicht.
-        $meineLogos = [];
-        $logoMeta = logos_meta();
-        foreach ($logos as $lid => $lname) {
-            if ($isAdmin || (($logoMeta[$lid]['by'] ?? null) === $user['name'])) $meineLogos[$lid] = $lname;
-        }
-        $teilbar = user_shared_groups($user['name']);
-        if ($isAdmin) $teilbar = array_values(array_filter(array_keys(groups_all()), 'group_shared'));
-        ?>
-        <?php if ($meineLogos !== []): ?>
-        <?php if ($teilbar !== []): ?>
-        <details class="logo-freigabe">
-            <summary><?= t('Logo für andere freigeben') ?></summary>
-            <p class="muted small"><?= t('Ein freigegebenes Logo können die Mitglieder der gewählten Gruppen im Designer verwenden. Es bleibt deins: Nur du kannst es umbenennen oder löschen, und es zählt weiter auf dein Kontingent.') ?></p>
-            <form method="post" action="">
-                <?= csrf_field() ?>
-                <input type="hidden" name="action" value="share-logo">
-                <input type="hidden" name="c" value="<?= e($code) ?>">
-                <label for="l-share"><?= t('Logo') ?></label>
-                <select id="l-share" name="logo">
-                    <?php foreach ($meineLogos as $lid => $lname): ?>
-                    <option value="<?= e($lid) ?>"><?= e($lname) ?><?php
-                        $sh = (array)($logoMeta[$lid]['shared'] ?? []);
-                        if ($sh !== []) echo ' — ' . e(t('freigegeben für %s',
-                            in_array('*', $sh, true) ? t('alle Konten') : implode(', ', array_map('group_label', $sh))));
-                    ?></option>
-                    <?php endforeach; ?>
-                </select>
-                <label style="margin-top:.6rem"><?= t('Freigeben für') ?></label>
-                <div class="check-row">
-                    <?php foreach ($teilbar as $gid): ?>
-                    <label class="check">
-                        <input type="checkbox" name="shared[]" value="<?= e((string)$gid) ?>">
-                        <?= e(group_label((string)$gid)) ?>
-                    </label>
-                    <?php endforeach; ?>
-                    <label class="check">
-                        <input type="checkbox" name="shared[]" value="*">
-                        <?= t('alle angemeldeten Konten') ?>
-                    </label>
-                </div>
-                <p class="muted small"><?= t('Nichts angehakt = nur für dich. Die Auswahl ersetzt die bisherige Freigabe.') ?></p>
-                <p><button class="btn btn-small" type="submit"><?= t('Freigabe speichern') ?></button></p>
-            </form>
-        </details>
-        <?php endif; ?>
-        <form method="post" action="" class="short-row" data-confirm="<?= t('Ausgewähltes Logo löschen?') ?>">
-            <?= csrf_field() ?>
-            <input type="hidden" name="action" value="delete-logo">
-            <input type="hidden" name="c" value="<?= e($code) ?>">
-            <select name="logo"><?php foreach ($meineLogos as $id => $name): ?><option value="<?= e($id) ?>"><?= e($name) ?></option><?php endforeach; ?></select>
-            <button class="btn btn-small btn-danger" type="submit"><?= t('Logo löschen') ?></button>
-        </form>
-        <?php endif; ?>
+        <?php if ($user !== null): ?>
+        <?php // Die Bibliothek steht für sich – hier führt nur der Weg dorthin. ?>
+        <p class="muted small">
+            <?= $logos === []
+                ? t('Noch kein Logo vorhanden. In der %sLogo-Bibliothek%s lädst du eines hoch.',
+                    '<a href="admin/logos.php">', '</a>')
+                : t('Hochladen, umbenennen, freigeben: %sLogo-Bibliothek%s',
+                    '<a href="admin/logos.php">', '</a>') ?>
+        </p>
         <?php endif; ?>
     </div>
 

@@ -678,6 +678,61 @@ function logos_meta(): array
     return json_read(logos_meta_file());
 }
 
+/**
+ * Eine hochgeladene Datei in die Bibliothek aufnehmen.
+ *
+ * Der Typ wird aus dem Inhalt bestimmt, nicht aus dem Dateinamen: Eine
+ * „logo.png“, die in Wahrheit etwas anderes ist, hat hier nichts zu suchen.
+ * SVG ist ein Dokument und kein Bild – gespeichert wird nur die bereinigte
+ * Neufassung aus svg_clean(); was sich nicht bereinigen lässt, wird abgelehnt.
+ *
+ * Kontingent und Berechtigung prüft der Aufrufer – die hängen am Konto, nicht
+ * an der Datei.
+ *
+ * @param array $datei Ein Eintrag aus $_FILES
+ * @return array{0:?string,1:string} [Fehlertext oder null, Anzeigename]
+ */
+function logo_store(array $datei, string $wunschname, string $besitzer): array
+{
+    require_once __DIR__ . '/svg.php';
+    $tmp = (string)($datei['tmp_name'] ?? '');
+    if ($tmp === '' || !is_uploaded_file($tmp)) return [t('Es kam keine Datei an.'), ''];
+    if ((int)($datei['size'] ?? 0) > 512 * 1024) return [t('Logo zu groß (max. 512 KB).'), ''];
+
+    $ext = match ((new finfo(FILEINFO_MIME_TYPE))->file($tmp)) {
+        'image/png' => 'png',
+        'image/jpeg' => 'jpg',
+        'image/webp' => 'webp',
+        'image/svg+xml' => 'svg',
+        default => null,
+    };
+    if ($ext === null) return [t('Nur PNG, JPG, WebP oder SVG.'), ''];
+
+    $svgSauber = null;
+    if ($ext === 'svg') {
+        $svgSauber = svg_clean((string)file_get_contents($tmp));
+        if ($svgSauber === null) {
+            return [t('Dieses SVG lässt sich nicht sicher übernehmen – bitte als einfache Grafik (Pfade und Flächen) exportieren oder PNG verwenden.'), ''];
+        }
+    }
+
+    $id = bin2hex(random_bytes(8)) . '.' . $ext;
+    $ziel = data_path('logos') . '/' . $id;
+    $ok = $ext === 'svg'
+        ? file_put_contents($ziel, $svgSauber) !== false
+        : move_uploaded_file($tmp, $ziel);
+    if (!$ok) return [t('Die Datei ließ sich nicht ablegen.'), ''];
+    @chmod($ziel, 0600);
+
+    // Anzeigename: Wunsch aus dem Formular, sonst der Name der Originaldatei
+    $name = trim($wunschname);
+    if ($name === '') $name = (string)pathinfo((string)($datei['name'] ?? ''), PATHINFO_FILENAME);
+    $name = mb_strimwidth(trim($name), 0, 40, '…');
+    if ($name === '') $name = 'Logo';
+    logo_meta_set($id, $name, $besitzer);
+    return [null, $name];
+}
+
 function logo_meta_set(string $id, string $name, ?string $by): void
 {
     json_update(logos_meta_file(), function (array $m) use ($id, $name, $by) {

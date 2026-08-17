@@ -50,6 +50,18 @@ nichts verloren.
 
 ## Die Logo-Bibliothek
 
+Sie hat eine **eigene Seite** unter *Logos* im Verwaltungsbereich
+(`admin/logos.php`). Das ist keine Kosmetik: Die Auswahl im Designer gehört zum
+Gestalten eines einzelnen Codes, die Bibliothek ist ein Bestand, den man
+unabhängig davon pflegt – wer ein Logo hochlädt, will in diesem Moment selten
+einen QR-Code bauen. Im Designer steht deshalb nur noch das Auswahlfeld und ein
+Verweis hierher.
+
+Auf der Seite liegt jedes Logo als Karte: Vorschau auf kariertem Grund (damit
+sich bei freigestellten Bildern sehen lässt, wo die Transparenz sitzt), Name,
+Eigentümer, Freigabe und Löschknopf. Fremde, über eine Gruppe freigegebene
+Logos erscheinen mit, aber ohne Verwaltung – benutzen ja, ändern nein.
+
 Wer das Recht `logo_upload` hat, kann eigene Logos hochladen; wie viele,
 begrenzt das Limit `logos`. Ein Logo gehört dem, der es hochgeladen hat.
 

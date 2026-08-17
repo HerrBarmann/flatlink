@@ -782,6 +782,10 @@ function page_header(string $title, bool $admin = false, ?string $desc = null, ?
         if (function_exists('user_can') && user_can($u['name'], 'bio_page')) {
             echo '<a href="' . $adm . 'bio.php">' . t('Link-in-Bio') . '</a> ';
         }
+        // Die Bibliothek ist ein eigener Ort, kein Anhang des Designers.
+        if (function_exists('user_can') && user_can($u['name'], 'logo_upload')) {
+            echo '<a href="' . $adm . 'logos.php">' . t('Logos') . '</a> ';
+        }
         // Die Klappe zeigt, was das Konto auch benutzen darf: Administratoren
         // alles, eine Redaktion nur die Meldungen. Wer nichts davon hat,
         // sieht die Klappe gar nicht.
