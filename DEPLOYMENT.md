@@ -861,6 +861,26 @@ sudo tar czf flatlink-$(date +%F).tar.gz -C /var/www/flatlink data inc/config.ph
 im Repository. Und weil sie das tut: Das Backup gehört an einen Ort, an dem
 nicht jeder mitliest.
 
+**Für versionierte Sicherungen** – rsync, borg, ein Git-Repository – gibt es
+einen Export, der den Bestand in ein Verzeichnis schreibt statt in ein Archiv:
+
+```bash
+php tools/backup-export.php /var/backups/flatlink
+```
+
+Die Datenbank kommt dabei als **SQL-Text** heraus, nicht als Datei. Das ist der
+Unterschied, der ein Git-Repository benutzbar hält: Drei neue Kurzlinks sind
+drei neue Zeilen statt einer neuen Kopie der ganzen Datenbank. Gleicher
+Datenstand ergibt gleiche Bytes – keine Zeitstempel im Inhalt, feste
+Reihenfolge –, sonst meldete jeder Lauf eine Änderung. Zurückgespielt wird mit
+`sqlite3 data/<datenbank> < datenbank.sql`; der genaue Ablauf liegt als
+`WIEDERHERSTELLEN.md` im Export.
+
+`inc/config.php` bleibt ohne `--mit-config` draußen. Was drin ist –
+Passwort-Hashes, E-Mail-Adressen, das Instanz-Geheimnis –, entscheidet über den
+Ort: Ein Repository dafür muss privat sein, und seine Historie vergisst nichts,
+auch ein gelöschtes Konto nicht.
+
 ### Aktualisieren
 
 ```bash
