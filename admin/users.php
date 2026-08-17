@@ -74,7 +74,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             audit(t('Zweite Stufe für %s zurückgesetzt', $name), $name);
         }
     } elseif ($action === 'approve') {
-        $err = pending_user_approve($name, (string)($_POST['source'] ?? 'sso'));
+        // Ohne zweiten Parameter nimmt die Freischaltung die Anmeldeart aus dem
+        // Warteschlangen-Eintrag. Früher stand hier ein Vorgabewert 'sso', und
+        // weil das Formular nichts mitschickt, wurde aus jeder LDAP-Anfrage ein
+        // SSO-Konto – das sich danach nicht mehr anmelden konnte.
+        $err = pending_user_approve($name);
         flash($err ?? t('Zugang für %s freigeschaltet – die nächste Anmeldung geht durch.', $name),
             $err === null ? 'ok' : 'err');
         if ($err === null) audit(t('Zugang für %s freigeschaltet – die nächste Anmeldung geht durch.', $name), $name);

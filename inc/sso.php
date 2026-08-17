@@ -161,12 +161,18 @@ function pending_users(): array
  * kennt. So sieht die Verwaltung stattdessen Klarname und E-Mail und kann
  * mit einem Klick freischalten.
  */
-function pending_user_note(string $username, ?string $display, ?string $email, array $groups, string $reason = 'unbekannt'): void
+function pending_user_note(string $username, ?string $display, ?string $email, array $groups, string $reason = 'unbekannt', string $source = 'sso'): void
 {
-    json_update(pending_users_file(), function (array $q) use ($username, $display, $email, $groups, $reason) {
+    json_update(pending_users_file(), function (array $q) use ($username, $display, $email, $groups, $reason, $source) {
         $now = date('c');
         $q[$username] = [
             'reason' => $reason,
+            // Aus welcher Anmeldeart die Anfrage kam. Ohne diese Angabe legte
+            // die Freischaltung immer ein SSO-Konto an – auch bei einer
+            // Anmeldung über das Verzeichnis. Wer sich danach per LDAP
+            // anmeldete, galt als „andere Anmeldeart" und wurde abgewiesen:
+            // freigeschaltet und trotzdem ausgesperrt.
+            'source' => in_array($source, ['ldap', 'sso'], true) ? $source : 'sso',
             'display' => $display !== null && $display !== '' ? mb_substr($display, 0, 80) : ($q[$username]['display'] ?? null),
             'email' => $email !== null && $email !== '' ? strtolower($email) : ($q[$username]['email'] ?? null),
             'groups' => $groups,
@@ -206,11 +212,17 @@ function pending_user_drop(string $username): void
  * durchgeht. Der Rest (Gruppen, Mail, Name) kommt beim Login aus dem Verzeichnis.
  * @return ?string Fehlermeldung oder null bei Erfolg
  */
-function pending_user_approve(string $username, string $source): ?string
+function pending_user_approve(string $username, ?string $source = null): ?string
 {
     $q = pending_users();
     if (!isset($q[$username])) return t('Diese Kennung steht nicht in der Warteschlange.');
     $e = $q[$username];
+    // Die Anmeldeart steht im Eintrag – sie stammt aus dem Anmeldeversuch, der
+    // ihn erzeugt hat. Ein Wert von außen gilt nur, wenn er ausdrücklich
+    // übergeben wird; vorgegeben wird hier nichts mehr. Einträge aus der Zeit
+    // vor dieser Änderung tragen kein Feld, für sie bleibt es bei 'sso'.
+    $source = $source ?? (string)($e['source'] ?? 'sso');
+    if (!in_array($source, ['ldap', 'sso'], true)) $source = 'sso';
     // $force: Die Freischaltung ist genau der Moment, in dem ein Administrator
     // eine Verknüpfung bewusst bestätigt – auch die mit einem bestehenden
     // lokalen Konto. Die Rolle wird dabei zurückgesetzt (siehe user_provision).
@@ -387,7 +399,7 @@ function sso_attempt(): ?string
     if ($existing === null && !$c['auto_create'] || $fremd) {
         if ($c['approval_queue']) {
             pending_user_note($id['user'], $id['display'] ?? null, $id['email'], $id['groups'],
-                $fremd ? 'kollision' : 'unbekannt');
+                $fremd ? 'kollision' : 'unbekannt', 'sso');
             return $fremd
                 ? t('Unter dieser Kennung gibt es bereits ein Konto mit anderer Anmeldeart. Die Verknüpfung muss ein Administrator bestätigen.')
                 : t('Dein Zugang ist noch nicht freigeschaltet. Die Anfrage liegt jetzt zur Prüfung vor.');
@@ -583,7 +595,7 @@ function ldap_login(string $username, string $password): ?string
     if ($existing === null && !$c['auto_create'] || $fremd) {
         if ($c['approval_queue']) {
             pending_user_note($id['user'], $id['display'] ?? null, $id['email'], $id['groups'],
-                $fremd ? 'kollision' : 'unbekannt');
+                $fremd ? 'kollision' : 'unbekannt', 'ldap');
             return $fremd
                 ? t('Unter dieser Kennung gibt es bereits ein Konto mit anderer Anmeldeart. Die Verknüpfung muss ein Administrator bestätigen.')
                 : t('Dein Zugang ist noch nicht freigeschaltet. Die Anfrage liegt jetzt zur Prüfung vor.');
