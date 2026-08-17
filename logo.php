@@ -20,8 +20,9 @@ require_once __DIR__ . '/inc/store.php';
 $id = (string)($_GET['id'] ?? '');
 
 // Streng gegen die Form prüfen, bevor irgendetwas mit dem Wert passiert: Die
-// Kennungen sind maschinell vergeben und immer hexadezimal.
-if (preg_match('/^[a-f0-9]{16,64}$/', $id) !== 1 || !isset(logos_meta()[$id])) {
+// Kennungen sind maschinell vergeben, immer hexadezimal und tragen die Endung
+// der hochgeladenen Datei. Ältere Kennungen ohne Endung müssen weiter gehen.
+if (preg_match('/^[a-f0-9]{16,64}(\.(png|jpe?g|webp|svg))?$/', $id) !== 1 || !isset(logos_meta()[$id])) {
     http_response_code(404);
     nosniff_header();
     exit('Unbekanntes Logo.');
@@ -34,8 +35,8 @@ if (!is_file($datei)) {
     exit('Unbekanntes Logo.');
 }
 
-// Den Typ aus dem Bild selbst bestimmen, nicht aus dem Dateinamen – der trägt
-// hier ohnehin keine Endung.
+// Den Typ aus dem Bild selbst bestimmen, nicht aus der Endung im Dateinamen:
+// Die stammt von der hochgeladenen Datei und beweist nichts über den Inhalt.
 $info = @getimagesize($datei);
 $typ = is_array($info) ? (string)($info['mime'] ?? '') : '';
 if (!in_array($typ, ['image/png', 'image/jpeg', 'image/gif', 'image/webp'], true)) {

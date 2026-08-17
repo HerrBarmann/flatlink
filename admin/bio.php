@@ -15,6 +15,7 @@ require_once __DIR__ . '/../inc/auth.php';
 require_once __DIR__ . '/../inc/groups.php';
 require_once __DIR__ . '/../inc/linkrules.php';
 require_once __DIR__ . '/../inc/bio.php';
+require_once __DIR__ . '/../inc/qrpanel.php';   // qr_logo_choices() für die Logo-Auswahl
 
 $user = auth_require();
 $isAdmin = $user['role'] === 'admin';
@@ -48,8 +49,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $index = ($_POST['bio_index'] ?? '') === '1';
     // Ohne die Berechtigung wird die Gestaltung gar nicht erst gelesen – dann
     // bleibt eine vorhandene unangetastet, statt beim Speichern zu verschwinden.
+    // Ein Logo darf nur setzen, wer es auch sehen darf – sonst ließe sich per
+    // POST jede fremde Kennung eintragen. Der bereits gespeicherte Wert bleibt
+    // davon unberührt: Bearbeitet ein Vertreter die Seite, soll das Logo des
+    // Besitzers nicht verschwinden, bloß weil er selbst es nicht sieht.
+    $logoWunsch = (string)($_POST['bio_logo'] ?? '');
+    $logoAlt = $action === 'update' ? (string)(link_get($code)['bio_logo'] ?? '') : '';
+    if ($logoWunsch !== '' && $logoWunsch !== $logoAlt && !isset(qr_logo_choices($user)[$logoWunsch])) {
+        $logoWunsch = $logoAlt;
+    }
     $stil = $darfGestalten ? [
-        'logo' => (string)($_POST['bio_logo'] ?? ''),
+        'logo' => $logoWunsch,
         'colors' => [
             'bg' => (string)($_POST['c_bg'] ?? ''),
             'ink' => (string)($_POST['c_ink'] ?? ''),
@@ -261,16 +271,18 @@ show_flash();
 
         <?php if ($darfGestalten):
             $farben = bio_colors($edit ?? []);
-            $meineLogos = array_filter(logos_meta(), fn($m) => $isAdmin || ($m['by'] ?? null) === $user['name']);
+            // Dieselbe Auswahl wie im QR-Designer: eigene Logos und die, die
+            // eine Gruppe freigegeben hat.
+            $meineLogos = qr_logo_choices($user);
         ?>
         <label><?= t('Gestaltung') ?></label>
         <div>
             <label for="b-logo">Logo <span class="muted"><?= t('(aus deiner %sLogo-Bibliothek%s)', '<a href="qrdesign.php">', '</a>') ?></span></label>
             <select id="b-logo" name="bio_logo">
                 <option value=""><?= t('– kein Logo –') ?></option>
-                <?php foreach ($meineLogos as $lid => $meta): ?>
+                <?php foreach ($meineLogos as $lid => $name): ?>
                 <option value="<?= e((string)$lid) ?>"<?= ($edit['bio_logo'] ?? '') === (string)$lid ? ' selected' : '' ?>>
-                    <?= e((string)($meta['name'] ?? 'Logo')) ?></option>
+                    <?= e($name) ?></option>
                 <?php endforeach; ?>
             </select>
             <?php if ($meineLogos === []): ?>

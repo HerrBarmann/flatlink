@@ -20,14 +20,21 @@ declare(strict_types=1);
 /**
  * Logo-Auswahl eines Kontos: id => Anzeigename, sortiert.
  *
- * Jeder sieht nur die eigenen Logos; Admins sehen alle (samt Altbestand ohne
- * Besitzer). Gäste haben kein Konto, an dem Logos hängen könnten – leer.
+ * Jeder sieht die eigenen Logos und die, die ihm über eine Gruppe freigegeben
+ * wurden; Admins sehen alle (samt Altbestand ohne Besitzer). Gäste haben kein
+ * Konto, an dem Logos hängen könnten – leer.
+ *
+ * Das Recht `logo_upload` wird hier bewusst NICHT verlangt: Es regelt das
+ * Hochladen, nicht das Verwenden. Wer nichts hochladen darf, ist gerade der
+ * typische Empfänger einer Freigabe – die Bedingung hätte die Freigabe für ihn
+ * wirkungslos gemacht. Eigene Logos hat ohne das Recht ohnehin nur, wer es
+ * einmal hatte.
  *
  * @return array<string,string>
  */
 function qr_logo_choices(?array $user): array
 {
-    if ($user === null || !user_can($user['name'], 'logo_upload')) return [];
+    if ($user === null) return [];
     $isAdmin = $user['role'] === 'admin';
     $logosDir = data_path('logos');
     $files = array_values(array_filter(scandir($logosDir) ?: [],

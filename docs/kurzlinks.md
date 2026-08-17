@@ -122,6 +122,14 @@ Die Ziele werden als Feldpaare gepflegt – Anzeigename und Adresse, weitere üb
 *Link hinzufügen*. Ohne JavaScript stehen immer drei leere Zeilen bereit, sodass
 sich die Seite auch dann bedienen lässt.
 
+Mit dem Recht `bio_style` kommen Logo und Farben hinzu. Zur Auswahl steht
+dieselbe Bibliothek wie im QR-Designer: eigene Logos und die, die eine Gruppe
+freigegeben hat (siehe [QR-Generator](qr-generator.md)). Hochladen zu dürfen ist
+dafür nicht nötig – wer ein freigegebenes Logo verwenden darf, findet es hier.
+Gesetzt werden kann nur, was in der eigenen Auswahl steht; ein bereits
+gespeichertes Logo bleibt beim Bearbeiten unangetastet, damit es einem Vertreter
+nicht unter der Hand verschwindet.
+
 Gezählt wird wie überall: ein Zähler je Tag für die Seite und einer je Ziel.
 Damit Letzteres möglich ist, zeigen die Schaltflächen auf den eigenen Code mit
 einer laufenden Nummer (`/abc123?i=2`) statt unmittelbar auf die Zieladresse.

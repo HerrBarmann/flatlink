@@ -146,7 +146,9 @@ function bio_default_colors(): array
 function bio_logo_url(array $l): string
 {
     $eigen = (string)($l['bio_logo'] ?? '');
-    if ($eigen !== '' && preg_match('/^[a-f0-9]{16,64}$/', $eigen) === 1
+    // Die Kennungen tragen eine Endung (a1b2….png); ältere aus der Zeit davor
+    // nicht. Beides muss durchgehen, Punkte und Schrägstriche sonst nirgends.
+    if ($eigen !== '' && preg_match('/^[a-f0-9]{16,64}(\.(png|jpe?g|webp|svg))?$/', $eigen) === 1
         && is_file(data_path('logos') . '/' . $eigen)) {
         return base_url() . '/logo.php?id=' . rawurlencode($eigen);
     }
