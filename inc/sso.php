@@ -415,26 +415,67 @@ function sso_attempt(): ?string
  *
  * @return ?array{user:string,email:?string,groups:string[]} null = nicht authentifiziert
  */
+/**
+ * Warum die Anmeldung scheiterte – für das Fehlerprotokoll, nicht für den Browser.
+ *
+ * Wer sich anmeldet, bekommt weiterhin nur „Anmeldung fehlgeschlagen": Ob eine
+ * Kennung existiert, geht niemanden etwas an, der sie nicht schon kennt. Wer
+ * die Instanz betreibt, steht aber vor demselben Satz und weiß nicht, ob das
+ * Dienstkonto falsch ist, die Basis-DN, der Filter – oder ob schlicht die
+ * PHP-Erweiterung fehlt. Acht Ursachen, ein Satz: Das war nicht zu
+ * diagnostizieren.
+ *
+ * Das Passwort steht hier nie, die Kennung schon: Ohne sie ließe sich eine
+ * einzelne fehlgeschlagene Anmeldung nicht wiederfinden.
+ */
+function ldap_log(string $was, string $kennung = '', $conn = null): void
+{
+    $detail = '';
+    if ($conn !== null && function_exists('ldap_error')) {
+        $e = @ldap_error($conn);
+        if (is_string($e) && $e !== '' && $e !== 'Success') $detail = ' – LDAP meldet: ' . $e;
+    }
+    error_log('flatlink LDAP: ' . $was . ($kennung !== '' ? ' (Kennung: ' . $kennung . ')' : '') . $detail);
+}
+
 function ldap_authenticate(string $username, string $password): ?array
 {
     // Leere Passwörter würden als "unauthenticated bind" durchgehen und
     // fälschlich als Erfolg gelten – der Klassiker unter den LDAP-Lücken.
     if ($password === '' || $username === '') return null;
-    if (!ldap_enabled()) return null;
+    if (!ldap_enabled()) {
+        // Der häufigste Fall beim Einrichten: Erweiterung fehlt oder der
+        // Schalter steht noch auf false.
+        if (!extension_loaded('ldap')) {
+            ldap_log('Die PHP-Erweiterung ldap fehlt (apt install php-ldap, dann Apache neu laden)');
+        }
+        return null;
+    }
 
     $c = ldap_cfg();
     $conn = @ldap_connect((string)$c['uri']);
-    if ($conn === false) return null;
+    if ($conn === false) {
+        ldap_log('Verbindung nicht möglich – stimmt die Adresse? ' . (string)$c['uri']);
+        return null;
+    }
     ldap_set_option($conn, LDAP_OPT_PROTOCOL_VERSION, 3);
     ldap_set_option($conn, LDAP_OPT_REFERRALS, 0);
     ldap_set_option($conn, LDAP_OPT_NETWORK_TIMEOUT, (int)$c['timeout']);
 
     try {
-        if ($c['start_tls'] && !@ldap_start_tls($conn)) return null;
+        if ($c['start_tls'] && !@ldap_start_tls($conn)) {
+            ldap_log('START_TLS abgelehnt – Zertifikat des Servers prüfbar?', '', $conn);
+            return null;
+        }
 
         // Suche mit Dienstkonto (leer = anonym)
         if (!@ldap_bind($conn, $c['bind_dn'] !== '' ? (string)$c['bind_dn'] : null,
                         $c['bind_dn'] !== '' ? (string)$c['bind_pass'] : null)) {
+            // Die Meldung des Servers steht ohnehin dahinter und ist genauer,
+            // als eine Vermutung es wäre: „Can't contact LDAP server" heißt
+            // Adresse oder Port, „Invalid credentials" heißt Dienstkonto.
+            ldap_log('Bind für die Suche fehlgeschlagen ('
+                . ($c['bind_dn'] === '' ? 'anonym' : 'als ' . (string)$c['bind_dn']) . ')', '', $conn);
             return null;
         }
 
@@ -443,15 +484,30 @@ function ldap_authenticate(string $username, string $password): ?array
         $filter = str_replace('%s', $safe, (string)$c['user_filter']);
         $attrs = array_values(array_filter([(string)$c['mail_attr'], (string)$c['name_attr'], 'memberOf', 'dn']));
         $res = @ldap_search($conn, (string)$c['base_dn'], $filter, $attrs, 0, 2, (int)$c['timeout']);
-        if ($res === false) return null;
+        if ($res === false) {
+            ldap_log('Suche fehlgeschlagen – stimmt die Basis-DN? ' . (string)$c['base_dn'], $username, $conn);
+            return null;
+        }
         $entries = @ldap_get_entries($conn, $res);
         // Genau ein Treffer – mehrdeutige Kennungen werden abgelehnt
-        if (!is_array($entries) || ($entries['count'] ?? 0) !== 1) return null;
+        if (!is_array($entries) || ($entries['count'] ?? 0) !== 1) {
+            $n = is_array($entries) ? (int)($entries['count'] ?? 0) : 0;
+            ldap_log($n === 0
+                ? 'Kein Treffer für den Filter ' . $filter . ' unterhalb von ' . (string)$c['base_dn']
+                : $n . ' Treffer für den Filter ' . $filter . ' – die Kennung ist dort nicht eindeutig',
+                $username);
+            return null;
+        }
         $dn = (string)($entries[0]['dn'] ?? '');
         if ($dn === '') return null;
 
         // Die eigentliche Prüfung: Bind als der gefundene Nutzer
-        if (!@ldap_bind($conn, $dn, $password)) return null;
+        if (!@ldap_bind($conn, $dn, $password)) {
+            // Der einzige Fall, in dem „Anmeldung fehlgeschlagen" auch stimmt:
+            // gefunden, aber das Passwort passt nicht.
+            ldap_log('Passwort abgelehnt für ' . $dn, $username, $conn);
+            return null;
+        }
 
         $mailAttr = strtolower((string)$c['mail_attr']);
         $email = $entries[0][$mailAttr][0] ?? null;
