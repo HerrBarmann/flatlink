@@ -640,3 +640,10 @@ button, .btn, a, summary, label, input, select, textarea {
     .weiche { flex-wrap: wrap; }
     .weiche input[type="text"]:last-of-type { flex-basis: 100%; }
 }
+
+/* Freigabe der Logo-Bibliothek – ein Aufklapper, damit er im Designer nicht
+   ständig Platz nimmt. */
+.logo-freigabe { margin: 0.8rem 0; }
+.logo-freigabe summary { cursor: pointer; font-size: 0.9rem; }
+.logo-freigabe[open] summary { margin-bottom: 0.5rem; }
+

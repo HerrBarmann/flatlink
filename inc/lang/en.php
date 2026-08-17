@@ -1115,4 +1115,16 @@ your password immediately and contact us.
     'GTIN mit Charge, Seriennummer oder Haltbarkeitsdatum als GS1 Digital Link – der Nachfolger des EAN-Strichcodes.' => 'GTIN with batch, serial number or best-before date as a GS1 Digital Link – the successor to the EAN barcode.',
     'Ein Code für Kasse und Kundschaft: maschinenlesbar und zugleich eine Adresse, die im Browser aufgeht.' => 'One code for the till and for customers: machine-readable and at the same time an address that opens in a browser.',
     'Farben, Formen, Logo und Druckdateien – für einen Kurzlink oder für eine feste Adresse.' => 'Colours, shapes, logo and print files – for a short link or for a fixed address.',
+    // Logo-Bibliothek: Freigabe an Gruppen
+    'Logo für andere freigeben' => 'Share this logo with others',
+    'Ein freigegebenes Logo können die Mitglieder der gewählten Gruppen im Designer verwenden. Es bleibt deins: Nur du kannst es umbenennen oder löschen, und es zählt weiter auf dein Kontingent.' => 'A shared logo can be used in the designer by members of the selected groups. It stays yours: only you can rename or delete it, and it still counts towards your quota.',
+    'Freigeben für' => 'Share with',
+    'alle angemeldeten Konten' => 'all signed-in accounts',
+    'alle Konten' => 'all accounts',
+    'Nichts angehakt = nur für dich. Die Auswahl ersetzt die bisherige Freigabe.' => 'Nothing ticked = just for you. The selection replaces the previous sharing.',
+    'Freigabe speichern' => 'Save sharing',
+    'Freigabe gespeichert.' => 'Sharing saved.',
+    'freigegeben für %s' => 'shared with %s',
+    'Freigabe des Logos „%s" geändert' => 'Sharing of logo "%s" changed',
+    'von %s' => 'by %s',
 ];

@@ -33,11 +33,18 @@ function qr_logo_choices(?array $user): array
     $files = array_values(array_filter(scandir($logosDir) ?: [],
         fn($f) => preg_match('/^[a-f0-9]{16}\.(png|jpe?g|webp|svg)$/', $f)));
     $meta = logos_meta();
+    $gruppen = function_exists('user_groups') ? user_groups($user['name']) : [];
     $logos = [];
     foreach ($files as $f) {
-        if (!$isAdmin && ($meta[$f]['by'] ?? null) !== $user['name']) continue;
+        $m = (array)($meta[$f] ?? []);
+        if (!logo_visible_for($m, $user['name'], (string)$user['role'], $gruppen)) continue;
         $ext = strtoupper(pathinfo($f, PATHINFO_EXTENSION));
-        $logos[$f] = ($meta[$f]['name'] ?? $f) . ' (' . $ext . ')';
+        // Fremde Logos als solche kennzeichnen – mit dem Konto, dem sie
+        // gehören. „geteilt" allein wäre für Administratoren falsch: Die sehen
+        // auch Logos, die gar nicht freigegeben sind.
+        $by = $m['by'] ?? null;
+        $fremd = $by !== null && $by !== $user['name'];
+        $logos[$f] = ($m['name'] ?? $f) . ' (' . $ext . ')' . ($fremd ? ' · ' . t('von %s', $by) : '');
     }
     asort($logos, SORT_NATURAL | SORT_FLAG_CASE);
     return $logos;

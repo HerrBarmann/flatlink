@@ -672,7 +672,7 @@ function logos_meta_file(): string
     return data_path() . '/logos.json';
 }
 
-/** @return array<string,array{name:string,by:?string,created:string}> */
+/** @return array<string,array{name:string,by:?string,created:string,shared?:string[]}> */
 function logos_meta(): array
 {
     return json_read(logos_meta_file());
@@ -681,9 +681,51 @@ function logos_meta(): array
 function logo_meta_set(string $id, string $name, ?string $by): void
 {
     json_update(logos_meta_file(), function (array $m) use ($id, $name, $by) {
-        $m[$id] = ['name' => $name, 'by' => $by, 'created' => date('c')];
+        // Eine vorhandene Freigabe überlebt das Umbenennen
+        $m[$id] = ['name' => $name, 'by' => $by, 'created' => date('c'),
+                   'shared' => (array)($m[$id]['shared'] ?? [])];
         return $m;
     });
+}
+
+/**
+ * Ein Logo für Gruppen freigeben.
+ *
+ * Ein Logo gehört dem, der es hochgeladen hat – es zählt weiterhin auf dessen
+ * Kontingent, und nur er (oder ein Administrator) darf es löschen. Die
+ * Freigabe erlaubt anderen ausschließlich, es zu VERWENDEN.
+ *
+ * @param string[] $gruppen Gruppen-Kennungen; der Sonderwert '*' steht für
+ *                          alle angemeldeten Konten. Leere Liste = nur selbst.
+ */
+function logo_share_set(string $id, array $gruppen): void
+{
+    $bekannt = function_exists('groups_all') ? groups_all() : [];
+    $sauber = [];
+    foreach ($gruppen as $g) {
+        $g = (string)$g;
+        if ($g === '*') { $sauber[] = '*'; continue; }
+        if (isset($bekannt[$g])) $sauber[] = $g;
+    }
+    $sauber = array_values(array_unique($sauber));
+    json_update(logos_meta_file(), function (array $m) use ($id, $sauber) {
+        if (isset($m[$id])) $m[$id]['shared'] = $sauber;
+        return $m;
+    });
+}
+
+/**
+ * Darf dieses Konto das Logo verwenden?
+ *
+ * @param array{name:string,by:?string,shared?:string[]} $meta
+ */
+function logo_visible_for(array $meta, string $username, string $role, array $gruppen): bool
+{
+    if ($role === 'admin') return true;
+    if (($meta['by'] ?? null) === $username) return true;
+    $shared = (array)($meta['shared'] ?? []);
+    if (in_array('*', $shared, true)) return true;
+    return array_intersect($shared, $gruppen) !== [];
 }
 
 function logo_meta_delete(string $id): void

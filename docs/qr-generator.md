@@ -48,6 +48,25 @@ Die Eingaben gehen per POST an `qr.php`, nicht als Parameter in der Adresse:
 Ein WLAN-Passwort hat in Server-Protokollen und im Verlauf des Browsers
 nichts verloren.
 
+## Die Logo-Bibliothek
+
+Wer das Recht `logo_upload` hat, kann eigene Logos hochladen; wie viele,
+begrenzt das Limit `logos`. Ein Logo gehört dem, der es hochgeladen hat.
+
+**Teilen.** Im Designer lässt sich jedes eigene Logo für Gruppen freigeben
+(*Logo für andere freigeben*). Die Mitglieder dieser Gruppen finden es danach
+in ihrer Auswahl, gekennzeichnet mit dem Konto, dem es gehört. Der Sonderwert
+„alle angemeldeten Konten" gibt es allen frei.
+
+Freigeben heißt **verwenden dürfen**, nicht verwalten: Umbenennen und Löschen
+bleibt beim Eigentümer (und bei Administratoren), und das Logo zählt weiter
+auf dessen Kontingent. Wer ein geteiltes Logo in seiner Liste sieht, kann es
+also benutzen, aber niemandem wegnehmen.
+
+Technisch steht die Freigabe in `data/logos.json` als Liste von
+Gruppen-Kennungen (`shared`), der Stern `*` steht für alle Konten. Gruppen,
+die es nicht mehr gibt, werden beim Speichern verworfen.
+
 ## Der Encoder
 
 Reines PHP nach ISO/IEC 18004, Byte-Mode, Versionen 1–40, alle vier

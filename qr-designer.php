@@ -134,6 +134,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 flash(t('Logo hochgeladen.'));
             }
         }
+    } elseif ($action === 'share-logo') {
+        $id = (string)($_POST['logo'] ?? '');
+        $meta = logos_meta();
+        // Freigeben darf, wem das Logo gehört – und ein Administrator.
+        $meins = $isAdmin || (($meta[$id]['by'] ?? null) === $user['name']);
+        if ($meins && isset($meta[$id])) {
+            logo_share_set($id, (array)($_POST['shared'] ?? []));
+            flash(t('Freigabe gespeichert.'));
+            audit(t('Freigabe des Logos „%s" geändert', (string)($meta[$id]['name'] ?? $id)));
+        } else {
+            flash(t('Kein Zugriff auf dieses Logo.'), 'err');
+        }
     } elseif ($action === 'delete-logo') {
         $id = (string)($_POST['logo'] ?? '');
         $mine = ($isAdmin || ((logos_meta()[$id]['by'] ?? null) === $user['name']));
@@ -281,12 +293,59 @@ $statischText = trim((string)($_GET['u'] ?? ''));
                 <button class="btn btn-small" type="submit"><?= t('Hochladen') ?></button>
             </div>
         </form>
-        <?php if ($logos !== []): ?>
+        <?php
+        // Verwalten (freigeben, löschen) lässt sich nur, was einem gehört –
+        // ein geteiltes Logo aus einer Gruppe darf man benutzen, mehr nicht.
+        $meineLogos = [];
+        $logoMeta = logos_meta();
+        foreach ($logos as $lid => $lname) {
+            if ($isAdmin || (($logoMeta[$lid]['by'] ?? null) === $user['name'])) $meineLogos[$lid] = $lname;
+        }
+        $teilbar = user_shared_groups($user['name']);
+        if ($isAdmin) $teilbar = array_values(array_filter(array_keys(groups_all()), 'group_shared'));
+        ?>
+        <?php if ($meineLogos !== []): ?>
+        <?php if ($teilbar !== []): ?>
+        <details class="logo-freigabe">
+            <summary><?= t('Logo für andere freigeben') ?></summary>
+            <p class="muted small"><?= t('Ein freigegebenes Logo können die Mitglieder der gewählten Gruppen im Designer verwenden. Es bleibt deins: Nur du kannst es umbenennen oder löschen, und es zählt weiter auf dein Kontingent.') ?></p>
+            <form method="post" action="">
+                <?= csrf_field() ?>
+                <input type="hidden" name="action" value="share-logo">
+                <input type="hidden" name="c" value="<?= e($code) ?>">
+                <label for="l-share"><?= t('Logo') ?></label>
+                <select id="l-share" name="logo">
+                    <?php foreach ($meineLogos as $lid => $lname): ?>
+                    <option value="<?= e($lid) ?>"><?= e($lname) ?><?php
+                        $sh = (array)($logoMeta[$lid]['shared'] ?? []);
+                        if ($sh !== []) echo ' — ' . e(t('freigegeben für %s',
+                            in_array('*', $sh, true) ? t('alle Konten') : implode(', ', array_map('group_label', $sh))));
+                    ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <label style="margin-top:.6rem"><?= t('Freigeben für') ?></label>
+                <div class="check-row">
+                    <?php foreach ($teilbar as $gid): ?>
+                    <label class="check">
+                        <input type="checkbox" name="shared[]" value="<?= e((string)$gid) ?>">
+                        <?= e(group_label((string)$gid)) ?>
+                    </label>
+                    <?php endforeach; ?>
+                    <label class="check">
+                        <input type="checkbox" name="shared[]" value="*">
+                        <?= t('alle angemeldeten Konten') ?>
+                    </label>
+                </div>
+                <p class="muted small"><?= t('Nichts angehakt = nur für dich. Die Auswahl ersetzt die bisherige Freigabe.') ?></p>
+                <p><button class="btn btn-small" type="submit"><?= t('Freigabe speichern') ?></button></p>
+            </form>
+        </details>
+        <?php endif; ?>
         <form method="post" action="" class="short-row" data-confirm="<?= t('Ausgewähltes Logo löschen?') ?>">
             <?= csrf_field() ?>
             <input type="hidden" name="action" value="delete-logo">
             <input type="hidden" name="c" value="<?= e($code) ?>">
-            <select name="logo"><?php foreach ($logos as $id => $name): ?><option value="<?= e($id) ?>"><?= e($name) ?></option><?php endforeach; ?></select>
+            <select name="logo"><?php foreach ($meineLogos as $id => $name): ?><option value="<?= e($id) ?>"><?= e($name) ?></option><?php endforeach; ?></select>
             <button class="btn btn-small btn-danger" type="submit"><?= t('Logo löschen') ?></button>
         </form>
         <?php endif; ?>
