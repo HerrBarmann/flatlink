@@ -146,6 +146,21 @@ wenn der LDAP-Server einmal nicht erreichbar ist.
 Bei `ldap://` unbedingt `start_tls` einschalten, sonst geht das Passwort im
 Klartext über das Netz. Besser gleich `ldaps://`.
 
+**Wenn die Anmeldung scheitert**, sagt die Oberfläche absichtlich nicht,
+woran – sonst ließe sich daran ablesen, welche Kennungen es gibt. Wer die
+Instanz einrichtet, braucht die Auskunft aber:
+
+```bash
+php tools/ldap-check.php kennung -p
+```
+
+Das Werkzeug geht Erweiterung, Konfiguration, Verbindung, Bind, Suche und
+Passwortprüfung der Reihe nach durch und hält an der ersten Stelle an, die
+nicht stimmt – mit einem konkreten Rat statt einer Fehlernummer. Das Passwort
+wird abgefragt, nicht als Argument übergeben, sonst stünde es in der
+Prozessliste. Zusätzlich schreibt die Anmeldung den Grund ins Fehlerprotokoll
+des Webservers.
+
 ### Gruppen aus dem Verzeichnis
 
 Beide Wege können Gruppenzugehörigkeiten übernehmen: bei SSO aus einem
