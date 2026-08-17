@@ -25,6 +25,10 @@ $myPrefixes = $isAdmin ? [] : user_prefixes($user['name']);
 $assignable = $isAdmin ? array_values(array_filter(array_keys(groups_all()), 'group_shared')) : user_shared_groups($user['name']);
 $mayCustom = user_can($user['name'], 'custom_code');
 $darfWeichen = user_can($user['name'], 'link_rules');
+// Den Besitzer umzuhängen heißt, einen Link aus einer fremden Liste zu nehmen
+// oder in eine hineinzulegen. Das ist Verwaltung, kein Bearbeiten – deshalb an
+// dieselben Rechte gebunden wie der Zugriff auf fremde Links.
+$darfBesitzer = $isAdmin || user_can($user['name'], 'links_all');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_check();
@@ -104,12 +108,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($assignable !== [] || ($link['group'] ?? null) !== null) {
                 link_set_group($code, $opts['group']);
             }
+            // Ein abgelehnter Besitzerwechsel muss sichtbar werden. flash()
+            // behält nur die letzte Meldung, und die käme unten – der Wechsel
+            // wäre also stumm gescheitert, während „aktualisiert“ dasteht.
+            $besitzerFehler = null;
+            if ($darfBesitzer && isset($_POST['owner'])) {
+                $neuerBesitzer = (string)$_POST['owner'];
+                // Nur an existierende Konten übergeben – und niemanden im
+                // Nirgendwo zurücklassen: ohne Gruppe kein leeres Feld.
+                if ($neuerBesitzer !== '' && !isset(users_all()[$neuerBesitzer])) {
+                    $besitzerFehler = t('dieses Konto gibt es nicht');
+                } elseif ($neuerBesitzer === '' && (string)($opts['group'] ?? '') === '') {
+                    $besitzerFehler = t('ohne Gruppe braucht der Link einen Besitzer, sonst findet ihn niemand mehr');
+                } elseif ($neuerBesitzer !== (string)($link['owner'] ?? '')) {
+                    link_set_owner($code, $neuerBesitzer === '' ? null : $neuerBesitzer);
+                    audit(t('Besitzer von %s geändert: %s → %s', $code,
+                        (string)($link['owner'] ?? '—'), $neuerBesitzer === '' ? '—' : $neuerBesitzer), $code);
+                }
+            }
             if (($_POST['linkpass_remove'] ?? '') === '1') {
                 link_set_password($code, null);
             } elseif (($linkpass = (string)($_POST['linkpass'] ?? '')) !== '') {
                 link_set_password($code, password_hash($linkpass, PASSWORD_DEFAULT));
             }
-            flash(t('Kurzlink %s aktualisiert.', $code));
+            if ($besitzerFehler === null) {
+                flash(t('Kurzlink %s aktualisiert.', $code));
+            } else {
+                // Der Rest ist gespeichert – das zu verschweigen wäre so
+                // irreführend wie den abgelehnten Wechsel zu verschweigen.
+                flash(t('Kurzlink %s aktualisiert, aber der Besitzer blieb unverändert: %s.', $code, $besitzerFehler), 'err');
+            }
         }
     } elseif ($action === 'delete') {
         $code = (string)($_POST['code'] ?? '');
@@ -415,6 +443,26 @@ if ($neu !== null && link_access($user, $neu)):
                 <option value="<?= e($gid) ?>"<?= $cur === $gid ? ' selected' : '' ?>><?= e(group_label($gid)) ?></option>
                 <?php endforeach; ?>
             </select>
+        </div>
+        <?php endif; ?>
+        <?php if ($darfBesitzer): ?>
+        <div>
+            <label for="e-owner"><?= t('Besitzer') ?>
+                <span class="muted"><?= t('(wer den Link in seiner Liste hat)') ?></span></label>
+            <select id="e-owner" name="owner">
+                <?php
+                // „Niemand“ ist eine gültige Wahl – aber nur mit Gruppe, sonst
+                // fände den Link außer Administratoren niemand mehr.
+                $besitzerJetzt = (string)($editLink['owner'] ?? '');
+                ?>
+                <option value=""<?= $besitzerJetzt === '' ? ' selected' : '' ?>>
+                    – <?= t('niemand, gehört nur der Gruppe') ?> –</option>
+                <?php foreach (array_keys(users_all()) as $kandidat): ?>
+                <option value="<?= e((string)$kandidat) ?>"<?= $besitzerJetzt === (string)$kandidat ? ' selected' : '' ?>>
+                    <?= e(user_display((string)$kandidat)) ?></option>
+                <?php endforeach; ?>
+            </select>
+            <p class="muted small"><?= t('Ohne Besitzer braucht der Link eine Gruppe – sonst sieht ihn niemand mehr außer der Verwaltung.') ?></p>
         </div>
         <?php endif; ?>
         <div>

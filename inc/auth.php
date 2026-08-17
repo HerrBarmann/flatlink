@@ -661,12 +661,66 @@ function user_set_role(string $username, string $role): ?string
 }
 
 /** @return ?string Fehlermeldung oder null bei Erfolg */
-function user_delete(string $username): ?string
+/**
+ * Ein Konto löschen – samt allem, was daran hängt.
+ *
+ * Bis 2.8.0 löschte diese Funktion nur den Konteneintrag; das Aufräumen stand
+ * ausschließlich in account_delete(), also im Weg der Selbstlöschung. Damit
+ * räumten zwei Wege zum selben Ziel unterschiedlich auf: Wer von der
+ * Verwaltung gelöscht wurde, hinterließ seinen Namen im Besitzerfeld jedes
+ * Links, dazu herrenlose Links, gültige Zugangsschlüssel und offene
+ * Bestätigungen. Jetzt geht beides hier durch.
+ *
+ * Was mit den Links geschieht:
+ *
+ *   - **Links einer Arbeitsgruppe** verlieren den Besitzer und bleiben der
+ *     Gruppe. Genau dafür gibt es Gruppen; ein ausgeschiedener Kollege soll
+ *     das gemeinsame Plakat nicht mitnehmen. Hier gibt es nichts zu wählen.
+ *   - **Links ohne Gruppe** wären danach herrenlos. Deshalb entscheidet der
+ *     Aufrufer: `delete` löscht sie (so bei der Selbstlöschung), `transfer`
+ *     überträgt sie an das Konto in $an – für den Fall, dass gedruckte Codes
+ *     im Umlauf sind, die weiter funktionieren müssen.
+ *
+ * @param string  $linkModus 'delete' oder 'transfer'
+ * @param ?string $an        Zielkonto bei 'transfer'
+ */
+function user_delete(string $username, string $linkModus = 'delete', ?string $an = null): ?string
 {
+    // Beide gehören zur Grundausstattung, stehen aber nicht in auth.php selbst.
+    // require_once statt Verlass darauf, dass der Aufrufer sie schon geladen
+    // hat: Ein Konto halb zu löschen wäre schlimmer als ein Ladefehler.
+    require_once __DIR__ . '/store.php';
+    require_once __DIR__ . '/token.php';
+
     $users = users_all();
     if (($users[$username]['role'] ?? '') === 'admin' && admin_count() <= 1) {
         return t('Das ist der letzte Administrator und kann nicht gelöscht werden.');
     }
+    if ($linkModus === 'transfer' && ($an === null || !isset($users[$an]))) {
+        return t('Das Zielkonto für die Links gibt es nicht.');
+    }
+
+    foreach (links_of_owner($username) as $code => $l) {
+        if ((string)($l['group'] ?? '') !== '') {
+            link_set_owner((string)$code, null);
+        } elseif ($linkModus === 'transfer') {
+            link_set_owner((string)$code, $an);
+        } else {
+            link_delete((string)$code);
+        }
+    }
+
+    // Offene Bestätigungen (E-Mail-Wechsel, Passwort-Reset) mitnehmen – sie
+    // tragen die Kennung und wären sonst noch stundenlang einlösbar.
+    foreach (glob(data_path('pending') . '/*.json') ?: [] as $f) {
+        $d = json_read($f);
+        if (($d['user'] ?? null) === $username) @unlink($f);
+    }
+    // Zugangsschlüssel gehören zum Konto und dürfen es nicht überleben. Die
+    // Schnittstelle weist sie zwar ohnehin ab, sobald das Konto fehlt – aber
+    // liegen bleiben müssen sie deshalb nicht.
+    tokens_drop_user($username);
+
     users_update(function (array $users) use ($username) {
         unset($users[$username]);
         return $users;

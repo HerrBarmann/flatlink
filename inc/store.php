@@ -455,6 +455,27 @@ function link_set_group(string $code, ?string $group): bool
     });
 }
 
+/**
+ * Den Besitzer eines Links setzen – oder ihn herausnehmen.
+ *
+ * `null` heißt: Der Link gehört niemandem mehr persönlich. Das ist kein
+ * Sonderfall, sondern der Normalzustand eines Links, der einer Arbeitsgruppe
+ * gehört und dessen Anleger das Haus verlassen hat. Zugriff und Verwaltung
+ * laufen dann über die Gruppe, die Weiterleitung ohnehin.
+ *
+ * Ohne Gruppe und ohne Besitzer wäre ein Link allerdings herrenlos – nur noch
+ * für Administratoren auffindbar. Das prüft der Aufrufer.
+ */
+function link_set_owner(string $code, ?string $owner): bool
+{
+    return link_write($code, function (?array $l) use ($owner) {
+        if ($l === null) return false;
+        if ($owner === null || $owner === '') unset($l['owner']); else $l['owner'] = $owner;
+        $l['updated'] = date('c');
+        return $l;
+    });
+}
+
 /** Anzahl aktiver Wunsch-Codes eines Kontos (für das Pro-Kontingent) */
 function custom_code_count(string $owner): int
 {

@@ -209,28 +209,9 @@ function account_delete(string $username): ?string
         return t('Du bist der letzte Administrator. Ernenne erst jemand anderen, dann geht das.');
     }
 
-    foreach (links_of_owner($username) as $code => $l) {
-        if (($l['group'] ?? '') !== '') {
-            link_write((string)$code, function (?array $l) {
-                if ($l === null) return false;
-                unset($l['owner']);
-                $l['updated'] = date('c');
-                return $l;
-            });
-        } else {
-            link_delete((string)$code);
-        }
-    }
-
-    // Offene Bestätigungen (E-Mail-Wechsel, Passwort-Reset) mitnehmen – sie
-    // tragen die Kennung und wären sonst noch stundenlang einlösbar.
-    foreach (glob(data_path('pending') . '/*.json') ?: [] as $f) {
-        $d = json_read($f);
-        if (($d['user'] ?? null) === $username) @unlink($f);
-    }
-
-    // Zugangsschlüssel gehören zum Konto und dürfen es nicht überleben
-    tokens_drop_user($username);
-
-    return user_delete($username);
+    // Aufgeräumt wird in user_delete(): Gruppenlinks verlieren den Besitzer und
+    // bleiben der Gruppe, die übrigen fallen weg, dazu Zugangsschlüssel und
+    // offene Bestätigungen. Wer sich selbst löscht, hat niemanden, dem er seine
+    // privaten Links übergeben könnte – deshalb 'delete'.
+    return user_delete($username, 'delete');
 }

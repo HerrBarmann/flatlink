@@ -90,9 +90,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($name === $user['name']) {
             flash(t('Du kannst dich nicht selbst löschen.'), 'err');
         } else {
-            $err = user_delete($name);
-            flash($err ?? t('Nutzer %s gelöscht. Seine Links bleiben bestehen.', $name), $err === null ? 'ok' : 'err');
-            if ($err === null) audit(t('Nutzer %s gelöscht. Seine Links bleiben bestehen.', $name), $name);
+            // Vorher zählen: Nach dem Löschen lässt sich nicht mehr sagen, was
+            // aus wie vielen Links wurde.
+            $inGruppen = 0;
+            $privat = 0;
+            foreach (links_of_owner($name) as $l) {
+                if ((string)($l['group'] ?? '') !== '') $inGruppen++; else $privat++;
+            }
+            $modus = ($_POST['links'] ?? '') === 'transfer' ? 'transfer' : 'delete';
+            $err = user_delete($name, $modus, $user['name']);
+            if ($err !== null) {
+                flash($err, 'err');
+            } else {
+                $was = [];
+                if ($inGruppen > 0) $was[] = t('%d Link(s) bleiben bei ihrer Gruppe', $inGruppen);
+                if ($privat > 0) {
+                    $was[] = $modus === 'transfer'
+                        ? t('%d Link(s) gehören jetzt dir', $privat)
+                        : t('%d Link(s) ohne Gruppe gelöscht', $privat);
+                }
+                $text = t('Nutzer %s gelöscht.', $name) . ($was === [] ? '' : ' ' . implode(', ', $was) . '.');
+                flash($text);
+                audit($text, $name);
+            }
         }
     }
     redirect_to('users.php');
@@ -317,10 +337,38 @@ show_flash();
                         <button class="btn btn-small" type="submit"><?= t('Zweite Stufe zurücksetzen') ?></button>
                     </form>
                     <?php endif; ?>
-                    <form method="post" action="" class="inline" data-confirm="<?= e(t('Nutzer „%s“ wirklich löschen?', (string)$name)) ?>">
+                    <?php
+                    // Was an Links dranhängt, gehört vor die Entscheidung – nicht
+                    // in die Meldung danach.
+                    $inGruppen = 0;
+                    $privat = 0;
+                    foreach (links_of_owner((string)$name) as $l) {
+                        if ((string)($l['group'] ?? '') !== '') $inGruppen++; else $privat++;
+                    }
+                    ?>
+                    <form method="post" action="" data-confirm="<?= e(t('Nutzer „%s“ wirklich löschen?', (string)$name)) ?>">
                         <?= csrf_field() ?>
                         <input type="hidden" name="action" value="delete">
                         <input type="hidden" name="username" value="<?= e((string)$name) ?>">
+                        <?php if ($inGruppen > 0): ?>
+                        <p class="muted small">
+                            <?= t('%d Link(s) dieses Kontos gehören einer Arbeitsgruppe – sie bleiben dort und verlieren nur den Besitzer.', $inGruppen) ?>
+                        </p>
+                        <?php endif; ?>
+                        <?php if ($privat > 0): ?>
+                        <p class="muted small"><?= t('%d Link(s) hängen an keiner Gruppe. Was soll damit geschehen?', $privat) ?></p>
+                        <div class="check-row">
+                            <label class="check">
+                                <input type="radio" name="links" value="transfer" checked>
+                                <?= t('mir übertragen') ?>
+                            </label>
+                            <label class="check">
+                                <input type="radio" name="links" value="delete">
+                                <?= t('mitlöschen') ?>
+                            </label>
+                        </div>
+                        <p class="muted small"><?= t('Im Zweifel übertragen: Ein gedruckter Code, dessen Ziel verschwindet, führt ins Leere.') ?></p>
+                        <?php endif; ?>
                         <button class="btn btn-small btn-danger" type="submit"><?= t('Konto löschen') ?></button>
                     </form>
                 </div>

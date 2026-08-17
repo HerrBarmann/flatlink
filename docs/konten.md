@@ -161,6 +161,26 @@ wird abgefragt, nicht als Argument übergeben, sonst stünde es in der
 Prozessliste. Zusätzlich schreibt die Anmeldung den Grund ins Fehlerprotokoll
 des Webservers.
 
+### Ein Konto löschen
+
+Beide Wege – die Selbstlöschung im Profil und das Löschen durch die Verwaltung –
+räumen gleich auf: Zugangsschlüssel werden widerrufen, offene Bestätigungen
+verworfen, und die Links werden verteilt.
+
+| | |
+| --- | --- |
+| Links einer **Arbeitsgruppe** | bleiben der Gruppe und verlieren nur den Besitzer. Dafür gibt es Gruppen – ein ausgeschiedener Kollege nimmt das gemeinsame Plakat nicht mit. |
+| Links **ohne Gruppe** | wären danach herrenlos. Beim Löschen durch die Verwaltung entscheidet der Administrator: an sich übertragen oder mitlöschen. Wer sich selbst löscht, hat niemanden zum Übergeben – dort werden sie gelöscht. |
+
+Im Zweifel übertragen: Ein gedruckter Code, dessen Ziel verschwindet, führt ins
+Leere, und das merkt man erst, wenn sich jemand beschwert.
+
+**Den Besitzer eines Links ändern** geht auch ohne Löschen – im Bearbeiten-Formular
+der Linkliste, sichtbar für Administratoren und Konten mit `links_all`. Dort lässt
+sich auch „niemand" wählen: Dann gehört der Link nur noch seiner Gruppe. Ohne
+Gruppe lehnt die Instanz das ab, sonst fände den Link außer der Verwaltung niemand
+mehr.
+
 ### Gruppen aus dem Verzeichnis
 
 Beide Wege können Gruppenzugehörigkeiten übernehmen: bei SSO aus einem
