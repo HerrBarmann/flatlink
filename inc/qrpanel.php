@@ -226,6 +226,14 @@ function qr_design_panel(array $o = []): string
  *
  * @param string $active einer von link, wifi, vcard, event, gs1
  */
+// Der Guard ist kein Zierrat: inc/local.php ist der Erweiterungspunkt für eine
+// Instanz und wird VOR dieser Datei geladen. Wandert eine Funktion von dort in
+// den Kern – wie diese –, träfen beide Fassungen aufeinander, und PHP bricht
+// mit „Cannot redeclare“ ab. Nicht die Seite, auf der die Funktion benutzt
+// wird, sondern jede, die beide Dateien lädt: aus einem Update wird ein
+// Totalausfall. So gewinnt einfach die eigene Fassung, was der Sinn eines
+// Erweiterungspunkts ist.
+if (!function_exists('qr_type_nav')):
 function qr_type_nav(string $active): string
 {
     $root = $GLOBALS['_page_root'] ?? '.';
@@ -248,3 +256,4 @@ function qr_type_nav(string $active): string
     }
     return $out . '</nav>';
 }
+endif;
