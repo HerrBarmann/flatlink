@@ -589,7 +589,7 @@ if ($neu !== null && link_access($user, $neu)):
                 <tr>
                     <th><?= t('Sprache') ?></th>
                     <td><code>de</code> · <code>en</code> · <code>fr</code> …</td>
-                    <td class="muted"><?= t('immer zwei Buchstaben – <code>en</code> trifft auch bei <code>en-GB</code>, und ein Zweitwunsch des Browsers zählt mit') ?></td>
+                    <td class="muted"><?= t('immer zwei Buchstaben; es zählt die <b>bevorzugte</b> Sprache des Browsers – <code>en</code> trifft auch bei <code>en-GB</code>, aber nicht bei jemandem, der Deutsch bevorzugt und Englisch nur als Zweitsprache führt') ?></td>
                 </tr>
                 <tr>
                     <th><?= t('Land') ?></th>

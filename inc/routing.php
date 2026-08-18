@@ -184,9 +184,10 @@ function route_trifft(string $wenn, string $ist): bool
     if ($ist === '') return false;
     return match ($wenn) {
         'device' => route_geraet() === $ist,
-        // Die Sprachliste wird der Reihe nach geprüft: „en" trifft auch bei
-        // „en-GB", und ein Zweitwunsch zählt, wenn der Erstwunsch nicht passt.
-        'lang' => in_array($ist, route_sprachen(), true),
+        // Nur die bevorzugte Sprache zählt – siehe route_sprache(). „en"
+        // trifft weiterhin auch bei „en-GB", weil auf zwei Buchstaben gekürzt
+        // wird; ein Zweitwunsch löst aber nichts mehr aus.
+        'lang' => route_sprache() === $ist,
         'country' => route_land() === strtolower($ist),
         // A/B: Der Würfel fällt je Aufruf neu. Wiedererkennung wäre die
         // sauberere Statistik – derselbe Mensch sähe immer dieselbe Variante –,
@@ -215,13 +216,39 @@ function route_sprachen(): array
 {
     static $l = null;
     if ($l !== null) return $l;
-    $l = [];
-    foreach (explode(',', (string)($_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? '')) as $teil) {
-        $code = strtolower(trim(explode(';', $teil)[0]));
-        $code = substr($code, 0, 2);
-        if (preg_match('/^[a-z]{2}$/', $code) === 1 && !in_array($code, $l, true)) $l[] = $code;
+    // Nach Gewicht sortieren, nicht nach Reihenfolge: Die Reihenfolge im
+    // Header ist üblicherweise schon absteigend, verlangt ist es aber nicht.
+    // Ohne q gilt 1.0 – das ist der Normalfall für die erste Angabe.
+    $mit = [];
+    foreach (explode(',', (string)($_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? '')) as $i => $teil) {
+        $stuecke = explode(';', $teil);
+        $code = substr(strtolower(trim($stuecke[0])), 0, 2);
+        if (preg_match('/^[a-z]{2}$/', $code) !== 1) continue;
+        $q = 1.0;
+        foreach (array_slice($stuecke, 1) as $p) {
+            if (preg_match('/^\s*q\s*=\s*([0-9.]+)/i', $p, $m) === 1) $q = (float)$m[1];
+        }
+        // Bei gleichem Gewicht entscheidet die Reihenfolge im Header
+        if (!isset($mit[$code]) || $q > $mit[$code][0]) $mit[$code] = [$q, $i];
     }
+    uasort($mit, fn($a, $b) => $b[0] <=> $a[0] ?: $a[1] <=> $b[1]);
+    $l = array_keys($mit);
     return $l;
+}
+
+/**
+ * Die bevorzugte Sprache des Browsers – oder null, wenn er keine nennt.
+ *
+ * Genau diese eine zählt für eine Sprach-Weiche. Bis 2.9.3 traf eine Weiche
+ * auf „en", sobald Englisch irgendwo in der Liste stand – und dort steht es
+ * bei fast jedem Browser als Zweitwunsch. Wer Deutsch bevorzugte, landete
+ * trotzdem auf der englischen Seite: Die Weiche fing praktisch alle ab, statt
+ * die englischsprachigen auszusortieren.
+ */
+function route_sprache(): ?string
+{
+    $l = route_sprachen();
+    return $l === [] ? null : $l[0];
 }
 
 /**

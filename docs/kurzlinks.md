@@ -48,9 +48,17 @@ anderen auf dem Hauptziel.
 | Merkmal | Werte | Woher |
 | --- | --- | --- |
 | Gerät | `mobile`, `tablet`, `desktop` | grob aus der Browser-Kennung |
-| Sprache | zwei Buchstaben (`en`, `fr`) | aus der Sprachliste des Browsers, in ihrer Reihenfolge |
+| Sprache | zwei Buchstaben (`en`, `fr`) | die **bevorzugte** Sprache des Browsers |
 | Land | zwei Buchstaben (`at`, `ch`) | von einem vorgeschalteten Dienst (siehe unten) |
 | Anteil (A/B) | eine Zahl von 1 bis 99 | ein Würfelwurf je Aufruf |
+
+**Zur Sprache im Besonderen:** Es zählt ausschließlich die *bevorzugte*
+Sprache. Wer Deutsch an erster Stelle stehen hat und Englisch als Zweitsprache
+– die Voreinstellung bei fast jedem Browser –, löst eine `en`-Weiche **nicht**
+aus. Anders herum wäre die Weiche wertlos: Sie finge praktisch jeden ab, statt
+die englischsprachigen auszusortieren. Gekürzt wird auf zwei Buchstaben, `en`
+trifft also auch bei `en-GB`; und wenn ein Browser Gewichte mitschickt
+(`q=0.8`), entscheiden die, nicht die Reihenfolge im Kopf.
 
 Die drei Felder einer Weiche sind immer dieselben: **Merkmal**, **Wert**,
 **Ziel**. Welche Werte gelten, steht als Tabelle unter den Zeilen, und das

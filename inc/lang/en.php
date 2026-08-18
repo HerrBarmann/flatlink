@@ -1139,7 +1139,7 @@ your password immediately and contact us.
 
     // Weichen: Hilfetexte
     'grob aus der Browser-Kennung; etwas anderes wird abgelehnt' => 'roughly from the browser identification; anything else is rejected',
-    'immer zwei Buchstaben – <code>en</code> trifft auch bei <code>en-GB</code>, und ein Zweitwunsch des Browsers zählt mit' => 'always two letters – <code>en</code> also matches <code>en-GB</code>, and a browser\'s second choice counts too',
+    'immer zwei Buchstaben; es zählt die <b>bevorzugte</b> Sprache des Browsers – <code>en</code> trifft auch bei <code>en-GB</code>, aber nicht bei jemandem, der Deutsch bevorzugt und Englisch nur als Zweitsprache führt' => 'always two letters; the browser\'s <b>preferred</b> language counts – <code>en</code> also matches <code>en-GB</code>, but not someone who prefers German and merely lists English as a second language',
     'zwei Buchstaben; kommt von einem vorgeschalteten Dienst' => 'two letters; supplied by an upstream service',
     'Prozent, ohne Zeichen: <code>30</code> schickt knapp jeden dritten Aufruf hierher, der Rest geht weiter zur nächsten Weiche oder zum Hauptziel' => 'per cent, without a sign: <code>30</code> sends roughly every third visit here, the rest moves on to the next switch or the main target',
     'Weichen' => 'Switches',
