@@ -491,11 +491,21 @@ if ($neu !== null && link_access($user, $neu)):
             $weichen = array_values((array)($editLink['rules'] ?? []));
             // Eine leere Zeile mehr, damit sich ohne Klick eine Weiche
             // anlegen lässt; beim Speichern fällt sie weg, wenn sie leer bleibt.
-            $weichen[] = ['wenn' => 'device', 'ist' => '', 'url' => ''];
+            // Drei leere Zeilen statt einer: Mit nur einer ließe sich pro
+            // Speichervorgang genau eine Weiche anlegen, und niemand kommt von
+            // selbst darauf, dass Speichern die nächste Zeile bringt. Leere
+            // Zeilen fallen beim Speichern ohnehin weg.
+            // Zielzahl vorher festhalten: Stünde count($weichen) in der
+            // Bedingung, wüchse die Schranke mit jeder angehängten Zeile mit –
+            // und das Formular liefe bis ROUTE_MAX voll.
+            $bisher = count($weichen);
+            for ($f = $bisher; $f < min($bisher + 3, ROUTE_MAX); $f++) {
+                $weichen[] = ['wenn' => 'device', 'ist' => '', 'url' => ''];
+            }
             $klicks = (array)(clicks_get($editCode)['routes'] ?? []);
         ?>
         <details class="mehr"<?= count($weichen) > 1 ? ' open' : '' ?>>
-            <summary><?= t('Weichen: je nach Gerät, Sprache oder Land woandershin') ?></summary>
+            <summary><?= t('Weichen: je nach Gerät, Sprache, Land oder Anteil woandershin') ?></summary>
             <p class="muted small"><?= t('Die erste zutreffende Weiche gewinnt; trifft keine zu, gilt die Ziel-URL oben. Ausgewertet wird bei jedem Aufruf – gespeichert wird davon nichts. Höchstens %d Weichen.', ROUTE_MAX) ?>
             <?php if (!route_land_moeglich()): ?>
             <br><?= t('„Land“ steht auf dieser Instanz nicht zur Verfügung: Es kommt von einem vorgeschalteten Dienst, und dafür muss %s in der Konfiguration eingetragen sein.', '<code>trusted_proxies</code>') ?>
@@ -510,7 +520,7 @@ if ($neu !== null && link_access($user, $neu)):
                 </select>
                 <input type="text" name="ri[<?= $i ?>]" value="<?= e((string)($r['ist'] ?? '')) ?>"
                        list="weichen-werte" maxlength="20" size="8"
-                       placeholder="<?= t('mobile / en / at') ?>" aria-label="<?= t('Wert') ?>">
+                       placeholder="<?= t('mobile / en / at / 50') ?>" aria-label="<?= t('Wert') ?>">
                 <input type="text" name="ru[<?= $i ?>]" value="<?= e((string)($r['url'] ?? '')) ?>"
                        placeholder="https://…" aria-label="<?= t('Ziel dieser Weiche') ?>">
                 <span class="muted small weiche-n"><?= isset($klicks[(string)$i]) ? t('%dx', (int)$klicks[(string)$i]) : '' ?></span>
@@ -522,6 +532,9 @@ if ($neu !== null && link_access($user, $neu)):
                 <?php endforeach; ?>
                 <option value="de">Deutsch</option><option value="en">English</option>
             </datalist>
+            <p class="muted small">
+                <?= t('Was in das mittlere Feld gehört: bei <b>Gerät</b> mobile, tablet oder desktop · bei <b>Sprache</b> das Kürzel (de, en) · bei <b>Land</b> das Länderkürzel (at, ch) · bei <b>Anteil (A/B)</b> eine Zahl von 1 bis 99 – „30" heißt: knapp jeder dritte Aufruf landet hier, der Rest geht weiter zur nächsten Weiche oder zum Hauptziel.') ?>
+            </p>
             <p class="muted small"><?= t('Leere Zeilen werden nicht gespeichert. Eine Weiche löschen: Wert und Ziel leeren.') ?></p>
         </details>
         <?php endif; ?>

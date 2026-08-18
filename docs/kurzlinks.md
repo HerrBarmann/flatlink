@@ -50,6 +50,19 @@ anderen auf dem Hauptziel.
 | Gerät | `mobile`, `tablet`, `desktop` | grob aus der Browser-Kennung |
 | Sprache | zwei Buchstaben (`en`, `fr`) | aus der Sprachliste des Browsers, in ihrer Reihenfolge |
 | Land | zwei Buchstaben (`at`, `ch`) | von einem vorgeschalteten Dienst (siehe unten) |
+| Anteil (A/B) | eine Zahl von 1 bis 99 | ein Würfelwurf je Aufruf |
+
+Die drei Felder einer Weiche sind immer dieselben: **Merkmal**, **Wert**,
+**Ziel**. Der Wert ist das, was zutreffen muss – `mobile`, `en`, `at`, oder
+beim Anteil die Prozentzahl. `30` heißt: knapp jeder dritte Aufruf landet auf
+diesem Ziel, der Rest geht weiter zur nächsten Weiche oder zum Hauptziel. Damit
+lässt sich ein A/B-Test bauen, ohne dass jemand wiedererkannt wird: Der Würfel
+fällt bei jedem Aufruf neu. Über viele Aufrufe stimmt das Verhältnis, und mehr
+soll ein Split nicht leisten – eine Wiedererkennung wäre die sauberere
+Statistik, kostet aber genau das, was dieses Projekt nicht ausgibt.
+
+Neben jeder gespeicherten Weiche steht, wie oft sie gegriffen hat. Daran sieht
+man, ob eine gestellte Weiche überhaupt je benutzt wird.
 
 Die **erste zutreffende Weiche gewinnt**; trifft keine zu, gilt das Hauptziel.
 Die Reihenfolge ist damit die ganze Logik – kein Und/Oder, keine

@@ -1137,6 +1137,11 @@ your password immediately and contact us.
     'Anmeldung am Verzeichnis fehlgeschlagen – Dienstkonto prüfen.' => 'Binding to the directory failed – check the service account.',
     'Die Suche schlug fehl – stimmt die Basis-DN?' => 'The search failed – is the base DN correct?',
 
+    // Weichen: Hilfetexte
+    'Weichen: je nach Gerät, Sprache, Land oder Anteil woandershin' => 'Switches: elsewhere depending on device, language, country or share',
+    'mobile / en / at / 50' => 'mobile / en / at / 50',
+    'Was in das mittlere Feld gehört: bei <b>Gerät</b> mobile, tablet oder desktop · bei <b>Sprache</b> das Kürzel (de, en) · bei <b>Land</b> das Länderkürzel (at, ch) · bei <b>Anteil (A/B)</b> eine Zahl von 1 bis 99 – „30" heißt: knapp jeder dritte Aufruf landet hier, der Rest geht weiter zur nächsten Weiche oder zum Hauptziel.' => 'What belongs in the middle field: for <b>device</b> mobile, tablet or desktop · for <b>language</b> the code (de, en) · for <b>country</b> the country code (at, ch) · for <b>share (A/B)</b> a number from 1 to 99 – "30" means roughly every third visit lands here, the rest moves on to the next switch or the main target.',
+
     // Besitzer eines Links, Konto löschen
     'Besitzer' => 'Owner',
     '(wer den Link in seiner Liste hat)' => '(who has the link in their list)',
