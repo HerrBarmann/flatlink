@@ -1137,6 +1137,15 @@ your password immediately and contact us.
     'Anmeldung am Verzeichnis fehlgeschlagen – Dienstkonto prüfen.' => 'Binding to the directory failed – check the service account.',
     'Die Suche schlug fehl – stimmt die Basis-DN?' => 'The search failed – is the base DN correct?',
 
+    // Aufruf-Limit und Zählweise
+    'Aufruf-Limit' => 'Visit limit',
+    '(optional – danach antwortet der Link wie ein abgelaufener)' => '(optional – after that the link answers like an expired one)',
+    'leer = unbegrenzt' => 'empty = unlimited',
+    '(leer = unbegrenzt)' => '(empty = unlimited)',
+    'Das Aufruf-Limit ist eine ganze Zahl ab 1 (leer = unbegrenzt).' => 'The visit limit is a whole number from 1 up (empty = unlimited).',
+    'Limit erreicht' => 'Limit reached',
+    'Dieser Kurzlink war auf %d Aufrufe begrenzt und hat sie erreicht.' => 'This short link was limited to %d visits and has reached them.',
+
     // Weichen: Zielsprache
     'Sprache der Ziel-URL oben' => 'Language of the target URL above',
     '(zwei Buchstaben, leer = unbekannt)' => '(two letters, empty = unknown)',

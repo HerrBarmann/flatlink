@@ -118,6 +118,19 @@ function link_expired(array $link): bool
 }
 
 /**
+ * Aufruf-Limit erreicht? 0 oder fehlend heißt unbegrenzt.
+ *
+ * Geprüft wird gegen den Tageszähler-Gesamtwert, der ohnehin geführt wird –
+ * es entsteht kein zusätzlicher Speicher. Bots zählen nicht (click_zaehlbar),
+ * das Limit meint also echte Besuche.
+ */
+function link_ausgeschoepft(string $code, array $link): bool
+{
+    $m = (int)($link['max_visits'] ?? 0);
+    return $m > 0 && (int)(clicks_get($code)['n'] ?? 0) >= $m;
+}
+
+/**
  * Noch nicht aktiv = Startdatum gesetzt und der Tag noch nicht erreicht.
  *
  * Das Gegenstück zum Ablauf, für Kampagnen, Semesterstarts, Pressetermine:
@@ -382,6 +395,11 @@ function link_apply_meta(array $l, array $opts): array
         // Das Bild muss eine Adresse sein; Titel und Text sind freier Text
         if ($feld === 'og_image' && $v !== '' && !valid_url($v)) $v = '';
         if ($v === '') unset($l[$feld]); else $l[$feld] = mb_substr($v, 0, $max);
+    }
+    // Aufruf-Limit: 0/leer = unbegrenzt, Feld verschwindet dann
+    if (array_key_exists('max_visits', $opts)) {
+        $mv = (int)$opts['max_visits'];
+        if ($mv <= 0) unset($l['max_visits']); else $l['max_visits'] = $mv;
     }
     // Sprache des Hauptziels – Grundlage der Sprachverhandlung (inc/routing.php)
     if (array_key_exists('lang', $opts)) {
@@ -648,6 +666,42 @@ function click_dim_bump(array $liste, string $wert): array
  * der Seitenaufruf. Mit $item ist ein einzelnes Ziel dieser Seite gemeint; die
  * Zählweise bleibt dieselbe, nur eine Ebene tiefer.
  */
+/**
+ * Zählt dieser Aufruf? Drei Ausnahmen, alle ohne einen Krümel Speicherung:
+ *
+ *  - **Bekannte Bots.** Vorschau-Dienste, Suchmaschinen, Monitoring: Jede in
+ *    einen Chat geworfene Nachricht löste sonst einen „Klick" aus, und ein
+ *    Uptime-Check zählte 1440 Besucher am Tag. Die Kennung wird geprüft und
+ *    vergessen – gespeichert wird sie nicht. Weitergeleitet wird trotzdem.
+ *  - **HEAD-Anfragen.** So fragt Werkzeug, nicht Publikum.
+ *  - **Der Link-Besitzer selbst** (und seine Arbeitsgruppe): Wer seinen Link
+ *    fünfmal testet, soll seine Kampagne nicht um fünf Klicks anheben. Geprüft
+ *    wird NUR, wenn ohnehin ein Sitzungs-Keks mitkommt – für anonyme Besucher
+ *    startet der Weiterleitungspfad weiterhin keine Session.
+ */
+function click_zaehlbar(?array $link = null): bool
+{
+    if (strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET')) === 'HEAD') return false;
+    $ua = (string)($_SERVER['HTTP_USER_AGENT'] ?? '');
+    if ($ua !== '' && preg_match(
+        '#facebookexternalhit|Twitterbot|Slackbot|Discordbot|WhatsApp|TelegramBot|LinkedInBot'
+        . '|Mastodon|Pleroma|SkypeUriPreview|redditbot|Applebot|Googlebot|bingbot|DuckDuckBot'
+        . '|Embedly|Iframely|vkShare|W3C_Validator|SignalBot|Threema'
+        . '|\bbot\b|crawler|spider|slurp|HeadlessChrome|Lighthouse|GTmetrix|Pingdom|UptimeRobot'
+        . '|curl/|Wget/|python-requests|libwww|Go-http-client#i', $ua) === 1) {
+        return false;
+    }
+    if ($link !== null && isset($_COOKIE['kurzsid'])) {
+        // Der Keks allein beweist nichts – erst die Sitzung sagt, wer da ist.
+        require_once __DIR__ . '/auth.php';
+        require_once __DIR__ . '/groups.php';
+        auth_boot();
+        $u = auth_user();
+        if ($u !== null && link_access($u, $link)) return false;
+    }
+    return true;
+}
+
 function clicks_bump(string $code, ?int $item = null, ?int $weiche = null): void
 {
     $herkunft = $item === null ? click_dims() : [];

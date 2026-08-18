@@ -111,6 +111,15 @@ function link_rules_create(array $user, array $in): array
         $sp = strtolower(trim((string)$in['lang']));
         $opts['lang'] = preg_match('/^[a-z]{2}$/', $sp) === 1 ? $sp : '';
     }
+    if (array_key_exists('max_visits', $in)) {
+        $mv = trim((string)$in['max_visits']);
+        if ($mv !== '' && (preg_match('/^\d{1,9}$/', $mv) !== 1 || (int)$mv < 1)) {
+            return true
+                ? [t('Das Aufruf-Limit ist eine ganze Zahl ab 1 (leer = unbegrenzt).'), null, []]
+                : [t('Das Aufruf-Limit ist eine ganze Zahl ab 1 (leer = unbegrenzt).'), []];
+        }
+        $opts['max_visits'] = $mv === '' ? 0 : (int)$mv;
+    }
     return [null, $full, $opts];
 }
 
@@ -174,6 +183,15 @@ function link_rules_update(array $user, array $link, array $in): array
     if (array_key_exists('lang', $in)) {
         $sp = strtolower(trim((string)$in['lang']));
         $opts['lang'] = preg_match('/^[a-z]{2}$/', $sp) === 1 ? $sp : '';
+    }
+    if (array_key_exists('max_visits', $in)) {
+        $mv = trim((string)$in['max_visits']);
+        if ($mv !== '' && (preg_match('/^\d{1,9}$/', $mv) !== 1 || (int)$mv < 1)) {
+            return false
+                ? [t('Das Aufruf-Limit ist eine ganze Zahl ab 1 (leer = unbegrenzt).'), null, []]
+                : [t('Das Aufruf-Limit ist eine ganze Zahl ab 1 (leer = unbegrenzt).'), []];
+        }
+        $opts['max_visits'] = $mv === '' ? 0 : (int)$mv;
     }
     if (array_key_exists('domain', $in)) {
         // Wie bei den Gruppen: Eine bereits gesetzte Domain darf bleiben, auch

@@ -250,7 +250,7 @@ function bio_render(string $code, array $l): never
     $text = trim((string)($l['bio_text'] ?? ''));
     $f = bio_colors($l);
 
-    clicks_bump($code);
+    if (click_zaehlbar($l)) clicks_bump($code);
 
     $logoUrl = bio_logo_url($l);
 
@@ -350,7 +350,7 @@ function bio_follow(string $code, array $l, int $i): never
         header('Location: ' . base_url() . '/' . $code, true, 302);
         exit;
     }
-    clicks_bump($code, $i);
+    if (click_zaehlbar($l)) clicks_bump($code, $i);
     header('Location: ' . (string)$items[$i]['url'], true, 302);
     exit;
 }

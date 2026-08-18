@@ -59,6 +59,23 @@ if (link_expired($link)) {
     exit;
 }
 
+// Aufruf-Limit: „nur die ersten 50“ – danach dieselbe Antwort wie beim
+// Ablauf. Geprüft wird gegen den Zähler, der ohnehin geführt wird; ein
+// Besucher-Datensatz entsteht dafür nicht.
+if (link_ausgeschoepft($code, $link)) {
+    http_response_code(410);
+    page_header(t('Limit erreicht'));
+    echo '<div class="card center"><h1>' . t('Limit erreicht') . '</h1><p>'
+        . t('Dieser Kurzlink war auf %d Aufrufe begrenzt und hat sie erreicht.', (int)$link['max_visits']) . '</p>'
+        . '<p><a class="btn" href="./">' . t('Zur Startseite') . '</a></p></div>';
+    page_footer();
+    exit;
+}
+
+// Einmal je Anfrage entschieden, an allen Zählstellen benutzt – auch von den
+// Bio-Seiten (inc/bio.php liest dieselbe Funktion).
+$zaehlbar = click_zaehlbar($link);
+
 // Link-in-Bio-Seiten leiten nicht weiter, sondern zeigen ihre Ziele. Die
 // Abzweigung steht bewusst hinter Sperre und Ablauf – auch eine Seite kann
 // gesperrt sein oder auslaufen – und vor dem Passwortschutz, damit sich auch
@@ -93,7 +110,7 @@ if (!empty($link['pass'])) {
                 bio_render($code, $link);
             }
             [$ziel, $weiche] = route_target($link);
-            clicks_bump($code, null, $weiche);
+            if ($zaehlbar) clicks_bump($code, null, $weiche);
             header('Location: ' . $ziel, true, 302);
             exit;
         } else {
@@ -133,6 +150,6 @@ if (!empty($link['pass'])) {
 if (($link['og_title'] ?? '') !== '' && route_ist_vorschau()) {
     preview_render($code, $link, $ziel);
 }
-clicks_bump($code, null, $weiche);
+if ($zaehlbar) clicks_bump($code, null, $weiche);
 header('Location: ' . $ziel, true, 302);
 exit;

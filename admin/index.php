@@ -47,6 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'title' => (string)($_POST['title'] ?? ''),
             'tags' => (string)($_POST['tags'] ?? ''),
             'lang' => (string)($_POST['lang'] ?? ''),
+            'max_visits' => (string)($_POST['max_visits'] ?? ''),
             'domain' => (string)($_POST['domain'] ?? ''),
             'utm' => (array)($_POST['utm'] ?? []),
         ]);
@@ -97,6 +98,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'title' => (string)($_POST['title'] ?? ''),
                 'tags' => (string)($_POST['tags'] ?? ''),
             'lang' => (string)($_POST['lang'] ?? ''),
+            'max_visits' => (string)($_POST['max_visits'] ?? ''),
                 'domain' => (string)($_POST['domain'] ?? ''),
                 'utm' => (array)($_POST['utm'] ?? []),
             ]);
@@ -389,6 +391,10 @@ if ($neu !== null && link_access($user, $neu)):
             </div>
         </div>
         <div>
+            <label for="c-maxv"><?= t('Aufruf-Limit') ?> <span class="muted">(<?= t('optional – danach antwortet der Link wie ein abgelaufener') ?>)</span></label>
+            <input id="c-maxv" type="number" name="max_visits" min="1" placeholder="<?= t('leer = unbegrenzt') ?>" style="max-width:12rem">
+        </div>
+        <div>
             <label for="c-linkpass"><?= t('Passwortschutz') ?> <span class="muted">(<?= t('optional – Besucher müssen es vor der Weiterleitung eingeben') ?>)</span></label>
             <input id="c-linkpass" type="text" name="linkpass" autocomplete="off" placeholder="<?= t('leer = kein Schutz') ?>">
         </div>
@@ -470,6 +476,9 @@ if ($neu !== null && link_access($user, $neu)):
             <div>
                 <label for="e-expires"><?= t('Ablaufdatum') ?> <span class="muted">(<?= t('leer = kein Ablauf') ?>)</span></label>
                 <input id="e-expires" type="date" name="expires" value="<?= e($editLink['expires'] ?? '') ?>">
+                <label for="e-maxv"><?= t('Aufruf-Limit') ?> <span class="muted">(<?= t('leer = unbegrenzt') ?>)</span></label>
+                <input id="e-maxv" type="number" name="max_visits" min="1" style="max-width:12rem"
+                       value="<?= (int)($editLink['max_visits'] ?? 0) > 0 ? (int)$editLink['max_visits'] : '' ?>">
             </div>
         </div>
         <?php if ($assignable !== [] || ($editLink['group'] ?? null) !== null): ?>

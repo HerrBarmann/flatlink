@@ -174,6 +174,7 @@ function api_link(string $code, array $l): array
         'expires' => $l['expires'] ?? null,
         'expired' => link_expired($l),
         'starts' => $l['starts'] ?? null,
+        'max_visits' => (int)($l['max_visits'] ?? 0) > 0 ? (int)$l['max_visits'] : null,
         'history' => array_values((array)($l['history'] ?? [])),
         'rules' => array_values((array)($l['rules'] ?? [])),
         'pending' => link_pending($l),
@@ -264,6 +265,7 @@ if ($ressource === 'links') {
                 'group' => (string)($in['group'] ?? ''),
                 'expires' => (string)($in['expires'] ?? ''),
                 'starts' => (string)($in['starts'] ?? ''),
+                'max_visits' => (string)($in['max_visits'] ?? ''),
                 'title' => (string)($in['title'] ?? ''),
                 'tags' => $in['tags'] ?? '',
                 'domain' => (string)($in['domain'] ?? ''),
@@ -330,7 +332,7 @@ if ($ressource === 'links') {
         // darf nicht nebenbei den Namen löschen – anders als ein Formular,
         // das seine Felder immer vollständig mitschickt.
         $rein = [];
-        foreach (['url', 'expires', 'starts', 'group', 'title'] as $f) {
+        foreach (['url', 'expires', 'starts', 'group', 'title', 'lang', 'max_visits'] as $f) {
             if (array_key_exists($f, $in)) $rein[$f] = (string)$in[$f];
         }
         // Schlagworte dürfen als Liste oder als Zeichenkette mit Kommas kommen
