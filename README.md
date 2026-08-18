@@ -14,7 +14,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/linkliste.png" alt="The link list with tags, groups and click counts" width="820">
+  <img src="docs/screenshots/en/link-list.webp" alt="The link list with tags, groups and click counts" width="820">
 </p>
 
 > 🇩🇪 Deutsche Fassung: **[README.de.md](README.de.md)** – German is the project's
@@ -66,7 +66,7 @@ check – that is exactly why the code is open. The redirect path (`go.php`)
 does not even start a session unless the link is password-protected.
 
 <p align="center">
-  <img src="docs/screenshots/statistik.png" alt="Statistics of a link: daily values, monthly overview, CSV export" width="760">
+  <img src="docs/screenshots/en/statistics.webp" alt="Statistics of a link: daily values, monthly overview, CSV export" width="760">
 </p>
 
 ## What it looks like
@@ -77,7 +77,7 @@ instance – see [What's included](#whats-included).
 <table>
 <tr>
 <td width="50%" valign="top">
-<a href="docs/screenshots/qr-designer.png"><img src="docs/screenshots/qr-designer.png" alt="QR designer with module and eye shapes, colors and live preview"></a>
+<a href="docs/screenshots/en/qr-designer.webp"><img src="docs/screenshots/en/qr-designer.webp" alt="QR designer with module and eye shapes, colors and live preview"></a>
 <p><strong>QR designer.</strong> Module and eye shapes, free colors, a logo in
 the middle, a frame with text. Export as SVG, PNG, vector PDF and EPS,
 optionally in CMYK – from an in-house encoder, without any third-party
@@ -89,21 +89,25 @@ static: the data lives in the code itself, nothing is stored, and they keep
 working even without the instance.</p>
 </td>
 <td width="50%" valign="top">
-<a href="docs/screenshots/qr-serie.png"><img src="docs/screenshots/qr-serie.png" alt="QR batch: select several links and download them as a ZIP"></a>
+<a href="docs/screenshots/en/qr-batch.webp"><img src="docs/screenshots/en/qr-batch.webp" alt="QR batch: select several links and download them as a ZIP"></a>
 <p><strong>QR batches.</strong> Twenty table displays in one archive, with a
 CSV overview for the print shop. flatlink writes the ZIP itself – even
 without the PHP <code>zip</code> extension.</p>
+<a href="docs/screenshots/en/logo-library.webp"><img src="docs/screenshots/en/logo-library.webp" alt="Logo library with preview, renaming and group sharing"></a>
+<p><strong>Logo library.</strong> Upload your own logos, rename them and share
+them with groups – whoever may use one sees it in the designer and on
+link-in-bio pages. Sharing means permission to use, not to manage.</p>
 </td>
 </tr>
 <tr>
 <td width="50%" valign="top">
-<a href="docs/screenshots/neuer-link.png"><img src="docs/screenshots/neuer-link.png" alt="Form for a new short link with name, tags and UTM builder"></a>
+<a href="docs/screenshots/en/new-link.webp"><img src="docs/screenshots/en/new-link.webp" alt="Form for a new short link with name, tags and UTM builder"></a>
 <p><strong>Creating.</strong> Custom name, a label for your own overview,
 tags for filtering, expiry date, password protection and a builder for
 campaign parameters.</p>
 </td>
 <td width="50%" valign="top" align="center">
-<a href="docs/screenshots/link-in-bio.png"><img src="docs/screenshots/link-in-bio.png" alt="Link-in-bio page with five targets" width="260"></a>
+<a href="docs/screenshots/en/link-in-bio.webp"><img src="docs/screenshots/en/link-in-bio.webp" alt="Link-in-bio page with five targets" width="260"></a>
 <p align="left"><strong>Link in bio.</strong> One page with several targets
 under one short code. Counted like everything else: per day, for the page and
 per target, without visitor records.</p>

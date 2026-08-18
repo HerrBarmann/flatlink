@@ -14,7 +14,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/linkliste.png" alt="Die Linkliste mit Schlagworten, Gruppen und Klickzahlen" width="820">
+  <img src="docs/screenshots/linkliste.webp" alt="Die Linkliste mit Schlagworten, Gruppen und Klickzahlen" width="820">
 </p>
 
 > 🇬🇧 English version: **[README.md](README.md)** – the manual chapters
@@ -68,7 +68,7 @@ der Code offen. Der Weiterleitungspfad (`go.php`) startet nicht einmal eine
 Session, solange kein Passwortschutz auf dem Link liegt.
 
 <p align="center">
-  <img src="docs/screenshots/statistik.png" alt="Statistik eines Links: Tageswerte, Monatsübersicht, CSV-Export" width="760">
+  <img src="docs/screenshots/statistik.webp" alt="Statistik eines Links: Tageswerte, Monatsübersicht, CSV-Export" width="760">
 </p>
 
 ## Wie es aussieht
@@ -76,7 +76,7 @@ Session, solange kein Passwortschutz auf dem Link liegt.
 <table>
 <tr>
 <td width="50%" valign="top">
-<a href="docs/screenshots/qr-designer.png"><img src="docs/screenshots/qr-designer.png" alt="QR-Designer mit Modul- und Augenformen, Farben und Live-Vorschau"></a>
+<a href="docs/screenshots/qr-designer.webp"><img src="docs/screenshots/qr-designer.webp" alt="QR-Designer mit Modul- und Augenformen, Farben und Live-Vorschau"></a>
 <p><strong>QR-Designer.</strong> Modul- und Augenformen, freie Farben, Logo in
 der Mitte, Rahmen mit Text. Export als SVG, PNG, Vektor-PDF und EPS, wahlweise in
 CMYK – aus einem eigenen Encoder, ohne Fremdbibliothek.</p>
@@ -87,21 +87,25 @@ sind statisch: Die Daten stehen im Code, nichts wird gespeichert, sie
 funktionieren auch ohne die Instanz weiter.</p>
 </td>
 <td width="50%" valign="top">
-<a href="docs/screenshots/qr-serie.png"><img src="docs/screenshots/qr-serie.png" alt="QR-Serie: mehrere Links auswählen und als ZIP herunterladen"></a>
+<a href="docs/screenshots/qr-serie.webp"><img src="docs/screenshots/qr-serie.webp" alt="QR-Serie: mehrere Links auswählen und als ZIP herunterladen"></a>
 <p><strong>QR-Serien.</strong> Zwanzig Tischaufsteller in einem Archiv, mit
 Übersicht als CSV für die Druckerei. Das ZIP schreibt flatlink selbst – auch
 ohne die PHP-Erweiterung <code>zip</code>.</p>
+<a href="docs/screenshots/logos.webp"><img src="docs/screenshots/logos.webp" alt="Logo-Bibliothek mit Vorschau, Umbenennen und Freigabe an Gruppen"></a>
+<p><strong>Logo-Bibliothek.</strong> Eigene Logos hochladen, umbenennen und für
+Gruppen freigeben – wer eines nutzen darf, sieht es im Designer und bei
+Link-in-Bio. Freigeben heißt verwenden dürfen, nicht verwalten.</p>
 </td>
 </tr>
 <tr>
 <td width="50%" valign="top">
-<a href="docs/screenshots/neuer-link.png"><img src="docs/screenshots/neuer-link.png" alt="Formular für einen neuen Kurzlink mit Name, Schlagworten und UTM-Baukasten"></a>
+<a href="docs/screenshots/neuer-link.webp"><img src="docs/screenshots/neuer-link.webp" alt="Formular für einen neuen Kurzlink mit Name, Schlagworten und UTM-Baukasten"></a>
 <p><strong>Anlegen.</strong> Wunsch-Name, Name für die eigene Übersicht,
 Schlagworte zum Filtern, Ablaufdatum, Passwortschutz und ein Baukasten für
 Kampagnen-Parameter.</p>
 </td>
 <td width="50%" valign="top" align="center">
-<a href="docs/screenshots/link-in-bio.png"><img src="docs/screenshots/link-in-bio.png" alt="Link-in-Bio-Seite mit fünf Zielen" width="260"></a>
+<a href="docs/screenshots/link-in-bio.webp"><img src="docs/screenshots/link-in-bio.webp" alt="Link-in-Bio-Seite mit fünf Zielen" width="260"></a>
 <p align="left"><strong>Link-in-Bio.</strong> Eine Seite mit mehreren Zielen
 unter einem Kurzcode. Gezählt wie alles andere: je Tag, für die Seite und je
 Ziel, ohne Besucher-Datensatz.</p>
