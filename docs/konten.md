@@ -199,8 +199,18 @@ bei der Anmeldung. Zwei Schlüssel steuern das:
 
 | | |
 | --- | --- |
-| `search_filter` | Vorgabe `(\|(uid=*%s*)(cn=*%s*)(mail=*%s*))`. Bei Active Directory eher `(\|(sAMAccountName=*%s*)(displayName=*%s*)(mail=*%s*))`. `%s` ist die Eingabe, escaped. |
+| `search_filter` | **Leer lassen.** Der Filter entsteht dann aus den Attributen, die ohnehin konfiguriert sind (`uid_attr`, `name_attr`, `mail_attr`) plus `cn`, `sn`, `givenName`, `mail`. Nur für Sonderfälle eintragen, etwa um auf eine Abteilung einzugrenzen. |
 | `uid_attr` | Attribut mit der Kennung. Leer = aus dem `user_filter` ablesen, was in aller Regel stimmt. |
+
+Dass der Filter aus der Konfiguration entsteht, ist der Punkt: Ein Verzeichnis,
+das seinen Anzeigenamen in einem eigenen Feld führt – an der HfMT etwa
+`hfmtDisplayNameStr` –, findet mit einem fest verdrahteten `(cn=*%s*)` nur über
+die Kennung. Wer `name_attr` gesetzt hat, hat damit auch gesagt, wo der Name
+steht; ein zweiter Eintrag dafür wäre eine Fehlerquelle mehr.
+
+Mehrere Wörter werden UND-verknüpft, jedes für sich über alle Attribute.
+„Dennis Bormann" trifft damit auch einen Eintrag „Bormann, Dennis" – und zwei
+Namensteile machen die Suche enger statt breiter.
 
 Die Warteschlange bleibt daneben bestehen: Wer sich ohne Konto anmeldet, landet
 weiterhin dort. Beides führt zum selben Ergebnis, nur von verschiedenen Seiten.

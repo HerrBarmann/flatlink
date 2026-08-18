@@ -53,7 +53,7 @@ function ldap_cfg(): array
         // Für die Personensuche in der Nutzerverwaltung. Getrennt vom
         // user_filter, weil der eine Kennung exakt trifft, dieser aber
         // Bruchstücke über mehrere Attribute finden soll.
-        'search_filter' => '(|(uid=*%s*)(cn=*%s*)(mail=*%s*))', 'uid_attr' => '',
+        'search_filter' => '', 'uid_attr' => '',
     ];
 }
 
@@ -595,6 +595,46 @@ function ldap_uid_attr(array $c): string
 }
 
 /**
+ * Den Suchfilter für die Personensuche bauen.
+ *
+ * Ohne eigenen `search_filter` entsteht er aus den Attributen, die für diese
+ * Instanz ohnehin konfiguriert sind – Kennung, Klarname, E-Mail –, ergänzt um
+ * die üblichen Namensfelder. Das ist der Punkt: Ein fest verdrahtetes
+ * `(cn=*%s*)` findet an einem Verzeichnis nichts, das seinen Anzeigenamen in
+ * einem eigenen Feld führt, und niemand sollte dafür einen LDAP-Filter
+ * schreiben müssen. Attribute, die es nicht gibt, liefern einfach nichts.
+ *
+ * Mehrere Wörter werden UND-verknüpft, jedes für sich über alle Attribute:
+ * „Dennis Bormann" findet damit auch einen Eintrag „Bormann, Dennis" – und
+ * eine Suche nach zwei Namensteilen wird enger statt breiter.
+ */
+function ldap_search_filter(array $c, string $suche): string
+{
+    $eigen = trim((string)($c['search_filter'] ?? ''));
+    if ($eigen !== '') {
+        return str_replace('%s', ldap_escape($suche, '', LDAP_ESCAPE_FILTER), $eigen);
+    }
+
+    $attrs = array_values(array_unique(array_filter([
+        ldap_uid_attr($c),
+        (string)($c['name_attr'] ?? ''),
+        (string)($c['mail_attr'] ?? ''),
+        'cn', 'sn', 'givenName', 'mail',
+    ])));
+
+    $woerter = preg_split('/\s+/u', trim($suche), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+    $teile = [];
+    foreach ($woerter as $wort) {
+        $safe = ldap_escape($wort, '', LDAP_ESCAPE_FILTER);
+        $oder = '';
+        foreach ($attrs as $a) $oder .= '(' . $a . '=*' . $safe . '*)';
+        $teile[] = '(|' . $oder . ')';
+    }
+    if ($teile === []) return '';
+    return count($teile) === 1 ? $teile[0] : '(&' . implode('', $teile) . ')';
+}
+
+/**
  * Im Verzeichnis nach Personen suchen – für die Nutzerverwaltung.
  *
  * Bisher entstand ein Konto erst, nachdem sich jemand einmal vergeblich
@@ -637,9 +677,9 @@ function ldap_directory_search(string $suche, int $limit = 25): array
         }
 
         // Dieselbe Vorsicht wie bei der Anmeldung: Die Eingabe gehört escaped
-        // in den Filter, sonst schreibt sie ihn um.
-        $safe = ldap_escape($suche, '', LDAP_ESCAPE_FILTER);
-        $filter = str_replace('%s', $safe, (string)$c['search_filter']);
+        // in den Filter, sonst schreibt sie ihn um. Das erledigt der Filterbau.
+        $filter = ldap_search_filter($c, $suche);
+        if ($filter === '') return [t('Bitte mindestens zwei Zeichen eingeben.'), []];
         $uidAttr = ldap_uid_attr($c);
         $attrs = array_values(array_unique(array_filter([
             $uidAttr, (string)$c['mail_attr'], (string)$c['name_attr'],

@@ -459,10 +459,20 @@ return [
         'base_dn' => 'ou=people,dc=example,dc=org',
         'user_filter' => '(uid=%s)',
         // Personensuche in der Nutzerverwaltung: Damit lassen sich Konten
-        // anlegen, bevor sich jemand zum ersten Mal anmeldet. %s ist die
-        // Eingabe (escaped). Active Directory:
-        // '(|(sAMAccountName=*%s*)(displayName=*%s*)(mail=*%s*))'
-        'search_filter' => '(|(uid=*%s*)(cn=*%s*)(mail=*%s*))',
+        // anlegen, bevor sich jemand zum ersten Mal anmeldet.
+        //
+        // LEER LASSEN ist der Normalfall. Der Filter entsteht dann aus den
+        // Attributen, die hier ohnehin stehen (uid_attr, name_attr, mail_attr)
+        // plus cn, sn, givenName und mail – und mehrere Wörter werden
+        // UND-verknüpft, sodass „Vorname Nachname" in beiden Reihenfolgen
+        // trifft. Ein fester Filter kennt dagegen nur die Attribute, die
+        // jemand hineingeschrieben hat.
+        //
+        // Nur bei einer besonderen Anforderung eintragen, etwa um auf eine
+        // Abteilung einzugrenzen; %s ist die Eingabe (escaped), Wörter werden
+        // dann nicht mehr getrennt:
+        // '(&(ou=Bibliothek)(|(uid=*%s*)(cn=*%s*)))'
+        'search_filter' => '',
         // Attribut mit der Kennung. Leer = aus dem user_filter ablesen.
         'uid_attr' => '',
         'mail_attr' => 'mail',
