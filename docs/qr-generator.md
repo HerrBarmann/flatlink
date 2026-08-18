@@ -84,9 +84,9 @@ die es nicht mehr gibt, werden beim Speichern verworfen.
 Module, die die Freifläche des Logos berühren, werden gar nicht erst
 gezeichnet – vorher wurde die Fläche über die fertigen Module gelegt, und am
 Rand blieben Halbmonde und Balkenstummel stehen. Die paar Module mehr
-verkraftet die Fehlerkorrektur; mit Logo steht sie ohnehin auf H. Wer die
-Freifläche abschaltet (`logoShape: none`), bekommt das Logo weiter direkt auf
-den Modulen – das ist für durchsichtige Logos gedacht.
+verkraftet die Fehlerkorrektur; mit Logo steht sie ohnehin auf H. Eine Form
+hat die Fläche deshalb nicht mehr: Ein Feld aus weggelassenen Modulen ist
+immer rechteckig, das frühere Menü dafür ist entfallen.
 
 ## Der Encoder
 

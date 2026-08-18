@@ -202,14 +202,6 @@ function qr_design_panel(array $o = []): string
     </select>
     <label for="opt-ls"><?= t('Logo-Größe:') ?> <span id="ls-val">22</span> %</label>
     <input id="opt-ls" type="range" min="10" max="35" value="22"<?= $n('ls') ?>>
-    <label for="opt-lshape"><?= t('Freie Fläche hinter dem Logo') ?></label>
-    <select id="opt-lshape"<?= $n('lshape') ?>>
-        <option value="rounded"><?= t('abgerundet') ?></option>
-        <option value="square"><?= t('eckig') ?></option>
-        <option value="circle"><?= t('rund') ?></option>
-        <option value="none"><?= t('keine') ?></option>
-    </select>
-    <p class="muted small"><?= t('Ein Logo, das Module nur halb verdeckt, verwirrt die Erkennung mehr als eine sauber ausgesparte Fläche – die steckt die Fehlerkorrektur weg.') ?></p>
     <p class="muted small"><?= t('SVG-Logos erscheinen nur im SVG-Export (PNG kann sie nicht rastern).') ?></p>
     <?php endif; ?>
     <?php

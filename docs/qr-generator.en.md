@@ -83,9 +83,9 @@ exist are discarded on save.
 Modules touching the logo's clear area are not drawn at all – previously the
 area was laid over the finished modules, leaving half moons and bar stumps at
 its edge. The handful of extra missing modules is well within the error
-correction's budget; with a logo it is set to H anyway. Whoever disables the
-clear area (`logoShape: none`) still gets the logo directly on the modules –
-that is meant for transparent logos.
+correction's budget; with a logo it is set to H anyway. The area therefore no
+longer has a shape: a field of omitted modules is always rectangular, and the
+former menu for it is gone.
 
 ## The encoder
 

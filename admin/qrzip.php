@@ -94,7 +94,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'zip')
     }
     if ($logoDatei !== null) $ecc = 'H'; // mit Logo braucht es hohe Fehlerkorrektur
     $ls = max(10, min(35, (int)($_POST['ls'] ?? 22))) / 100;
-    $logoShape = $qpost('lshape', 'rounded', '/^(rounded|square|circle|none)$/');
     $size = max(256, min(2048, (int)($_POST['size'] ?? 1024)));
 
     if ($gewaehlt === []) {
@@ -129,7 +128,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'zip')
                 'eyeCore' => $eyeCore, 'eyeFg' => $eyeFg, 'eyeCoreFg' => $eyeCoreFg,
                 'grad' => $grad === '' ? null : $grad, 'gradTo' => $gradTo, 'gradAngle' => $gradAngle,
                 'size' => $size, 'margin' => $margin,
-                'logo' => $logoDatei, 'logoScale' => $ls, 'logoShape' => $logoShape,
+                'logo' => $logoDatei, 'logoScale' => $ls,
                 'frameText' => $ftext,
                 'brandText' => $marke === '' ? null : $marke,
                 'brandGlyphSvg' => $glyphSvg !== '' ? dirname(__DIR__) . '/assets/' . basename($glyphSvg) : null,

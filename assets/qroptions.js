@@ -31,10 +31,7 @@
         var ohne = $('opt-bgnone');
         if (ohne && ohne.checked) set('bg', 'none');
         var logo = wert('opt-logo');
-        if (logo) {
-            set('logo', logo);
-            if (wert('opt-lshape')) set('lshape', wert('opt-lshape'));
-        }
+        if (logo) set('logo', logo);
         var ftext = wert('opt-ftext');
         if (ftext && ftext.trim()) set('ftext', ftext.trim());
         // CMYK nur mitgeben, wenn alle vier Felder gefüllt sind – drei Werte
@@ -78,7 +75,7 @@
     var FELDER = ['opt-style', 'opt-eye', 'opt-eyecore', 'opt-eyeown', 'opt-eyefg',
         'opt-eyecorefg', 'opt-fg', 'opt-bg', 'opt-bgnone', 'opt-grad', 'opt-fg2',
         'opt-ga', 'opt-ecc', 'opt-margin', 'opt-ftext', 'opt-logo', 'opt-ls',
-        'opt-lshape', 'opt-mm',
+        'opt-mm',
         'opt-fgc-c', 'opt-fgc-m', 'opt-fgc-y', 'opt-fgc-k',
         'opt-bgc-c', 'opt-bgc-m', 'opt-bgc-y', 'opt-bgc-k'];
 

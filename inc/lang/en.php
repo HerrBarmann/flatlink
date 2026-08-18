@@ -272,13 +272,7 @@ return [
     'Logo' => 'Logo',
     'Kein Logo' => 'No logo',
     'Logo-Größe:' => 'Logo size:',
-    'Freie Fläche hinter dem Logo' => 'Clear area behind the logo',
-    'abgerundet' => 'rounded',
-    'eckig' => 'square',
-    'rund' => 'round',
     'keine' => 'none',
-    'Ein Logo, das Module nur halb verdeckt, verwirrt die Erkennung mehr als eine sauber ausgesparte Fläche – die steckt die Fehlerkorrektur weg.'
-        => 'A logo that half-covers modules confuses the scanner more than a cleanly cleared area – error correction absorbs the latter.',
     'SVG-Logos erscheinen nur im SVG-Export (PNG kann sie nicht rastern).'
         => 'SVG logos only appear in the SVG export (PNG cannot rasterise them).',
     'Anzeigename' => 'Display name',

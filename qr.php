@@ -217,7 +217,6 @@ $glyphPng = $glyphPng !== '' ? __DIR__ . '/assets/' . basename($glyphPng) : null
 $logo = null;
 $logoId = qp('logo', '', '/^[a-f0-9]{16}\.(png|jpe?g|webp|svg)$/');
 $logoPad = max(0.0, min(0.5, (float)(qin('lpad') ?? 0.12)));
-$logoShape = qp('lshape', 'rounded', '/^(rounded|square|circle|none)$/');
 if ($logoId !== '') {
     $file = data_path('logos') . '/' . $logoId;
     if (is_file($file)) $logo = $file;
@@ -272,7 +271,7 @@ $renderer = new QrRenderer($qr, [
     'fgColor' => $fgCmyk !== null ? VecColor::fromCmyk($fgCmyk) : null,
     'bgColor' => $bgCmyk !== null ? VecColor::fromCmyk($bgCmyk) : null,
     'grad' => $grad === '' ? null : $grad, 'gradTo' => $gradTo, 'gradAngle' => $gradAngle,
-    'logoPad' => $logoPad, 'logoShape' => $logoShape,
+    'logoPad' => $logoPad,
     'eyeCore' => $eyeCore, 'eyeFg' => $eyeFg, 'eyeCoreFg' => $eyeCoreFg,
     'size' => $size, 'margin' => $margin, 'logo' => $logo, 'logoScale' => $ls,
     'frameText' => $ftext, 'brandText' => $brand,
