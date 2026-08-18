@@ -1,5 +1,7 @@
 # Barrierefreiheit
 
+🇬🇧 [English version](barrierefreiheit.en.md)
+
 Diese Seite sagt, was geprüft wurde, was dabei herauskam und was noch fehlt.
 Sie ist eine **Selbsteinschätzung**, kein Prüfsiegel: Es gab kein Audit durch
 eine Prüfstelle und keinen Test mit Screenreader-Nutzenden. Wer sie für eine
@@ -22,6 +24,7 @@ Farbpaare, die das mitgelieferte Theme tatsächlich verwendet:
 | Hauptknopf (Schrift auf Akzent) | 5,3:1 | 4,5:1 |
 | Eingabefeld | 17,2:1 | 4,5:1 |
 | Sprunglink | 5,1:1 | 4,5:1 |
+| Hinweisband der Demo | 7,8:1 | 4,5:1 |
 
 Ein Wort zur Methode, weil sie hier eine Falle hat: Eine rein automatische
 Prüfung über den DOM misst bei diesem Projekt **falsch**, sobald eine Fläche
@@ -61,6 +64,11 @@ Handys passt sich damit an.
 leeres. Der QR-Code in der Vorschau trägt eine Beschreibung, der
 Datensatz-Beleg auf der Startseite ist als `role="img"` mit `aria-label`
 ausgezeichnet, damit ein Screenreader nicht Zeichen für Zeichen vorliest.
+
+**Fußzeile der Link-in-Bio-Seiten.** Impressum und Datenschutz stehen in
+einer eigenen `<nav aria-label>`-Landmarke. Ihre Farben erben von der
+Seitengestaltung – wer als Betreiber oder je Seite eigene Farben setzt, ist
+für deren Kontrast selbst verantwortlich (siehe Themes weiter unten).
 
 **Bewegung.** Es gibt keine automatischen Animationen, kein Karussell, nichts
 Blinkendes. Übergänge sind kurz und rein dekorativ.
@@ -109,3 +117,35 @@ AA), der Stand der Umsetzung, die bekannten Ausnahmen (siehe oben) und ein
 Kontaktweg für Meldungen. Was jede Stelle selbst ergänzen muss: Datum der
 Erstellung, Verfahren der Prüfung, die eigene Meldestelle und der Verweis auf
 das Schlichtungsverfahren nach § 16 BGG.
+
+### Muster zum Ausfüllen
+
+Der folgende Text lässt sich als eigene Seite der Instanz übernehmen; die
+spitzen Klammern sind zu ersetzen. Er behauptet nichts, was diese
+Selbsteinschätzung nicht deckt.
+
+> **Erklärung zur Barrierefreiheit**
+>
+> Diese Erklärung gilt für den Kurzlink-Dienst unter `<Adresse der Instanz>`,
+> betrieben von `<Name der Stelle>`. Grundlage sind § 12a BGG bzw. das
+> jeweilige Landesrecht und die BITV 2.0; Maßstab ist WCAG 2.1, Konformitätsstufe AA.
+>
+> **Stand der Vereinbarkeit.** Dieser Dienst ist mit den genannten
+> Anforderungen **teilweise vereinbar**. Die Software (flatlink) dokumentiert
+> ihre Umsetzung und die bekannten Ausnahmen öffentlich unter
+> `<Link auf diese Seite im Repository oder der Instanz>`.
+>
+> **Nicht barrierefreie Inhalte.** `<Übernehmen aus „Was nicht geprüft ist“,
+> ergänzt um eigene Inhalte der Instanz – etwa hochgeladene Logos ohne
+> Alternativtext oder eigene Farbgebungen.>`
+>
+> **Erstellung dieser Erklärung.** Erstellt am `<Datum>` auf Grundlage einer
+> Selbstbewertung `<ggf.: sowie einer Prüfung durch …>`.
+>
+> **Barrieren melden.** `<E-Mail-Adresse oder Formular der Stelle>`. Wir
+> antworten innerhalb von `<Frist>`.
+>
+> **Schlichtungsverfahren.** Bleibt eine Meldung unbeantwortet, kann die
+> Schlichtungsstelle nach § 16 BGG angerufen werden:
+> <https://www.schlichtungsstelle-bgg.de>. `<Bei Landesrecht: die zuständige
+> Durchsetzungs- bzw. Ombudsstelle des Landes.>`
