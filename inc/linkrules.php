@@ -107,6 +107,10 @@ function link_rules_create(array $user, array $in): array
         'domain' => $domain,
     ];
     if (array_key_exists('tags', $in)) $opts['tags'] = $in['tags'];
+    if (array_key_exists('lang', $in)) {
+        $sp = strtolower(trim((string)$in['lang']));
+        $opts['lang'] = preg_match('/^[a-z]{2}$/', $sp) === 1 ? $sp : '';
+    }
     return [null, $full, $opts];
 }
 
@@ -165,6 +169,12 @@ function link_rules_update(array $user, array $link, array $in): array
     $opts = ['expires' => $expires, 'starts' => $starts, 'group' => $group, 'url' => $url];
     if (array_key_exists('title', $in)) $opts['title'] = (string)$in['title'];
     if (array_key_exists('tags', $in)) $opts['tags'] = $in['tags'];
+    // Sprache des Hauptziels – Grundlage der Sprachverhandlung. Alles, was
+    // nicht wie ein Sprachkürzel aussieht, wird zu leer und heißt „unbekannt".
+    if (array_key_exists('lang', $in)) {
+        $sp = strtolower(trim((string)$in['lang']));
+        $opts['lang'] = preg_match('/^[a-z]{2}$/', $sp) === 1 ? $sp : '';
+    }
     if (array_key_exists('domain', $in)) {
         // Wie bei den Gruppen: Eine bereits gesetzte Domain darf bleiben, auch
         // wenn das Konto sie heute nicht mehr wählen könnte. Sonst wäre ein

@@ -383,6 +383,11 @@ function link_apply_meta(array $l, array $opts): array
         if ($feld === 'og_image' && $v !== '' && !valid_url($v)) $v = '';
         if ($v === '') unset($l[$feld]); else $l[$feld] = mb_substr($v, 0, $max);
     }
+    // Sprache des Hauptziels – Grundlage der Sprachverhandlung (inc/routing.php)
+    if (array_key_exists('lang', $opts)) {
+        $sp = strtolower(trim((string)$opts['lang']));
+        if (preg_match('/^[a-z]{2}$/', $sp) !== 1) unset($l['lang']); else $l['lang'] = $sp;
+    }
     if (array_key_exists('rules', $opts)) {
         $r = (array)$opts['rules'];
         if ($r === []) unset($l['rules']); else $l['rules'] = array_values($r);

@@ -1137,6 +1137,11 @@ your password immediately and contact us.
     'Anmeldung am Verzeichnis fehlgeschlagen – Dienstkonto prüfen.' => 'Binding to the directory failed – check the service account.',
     'Die Suche schlug fehl – stimmt die Basis-DN?' => 'The search failed – is the base DN correct?',
 
+    // Weichen: Zielsprache
+    'Sprache der Ziel-URL oben' => 'Language of the target URL above',
+    '(zwei Buchstaben, leer = unbekannt)' => '(two letters, empty = unknown)',
+    'Nur mit dieser Angabe lässt sich richtig entscheiden: Wer die Sprache des Hauptziels bevorzugt, bleibt dort – wer eine andere bevorzugt, bekommt die passende Weiche, notfalls über seine Zweitsprache. Ohne die Angabe wird nur umgeleitet, wer die Sprache der Weiche <b>bevorzugt</b>.' => 'Only with this can the decision be made properly: whoever prefers the main target\'s language stays there – whoever prefers another gets the matching switch, if need be via their second language. Without it, only those who <b>prefer</b> the switch\'s language are redirected.',
+
     // Weichen: Hilfetexte
     'grob aus der Browser-Kennung; etwas anderes wird abgelehnt' => 'roughly from the browser identification; anything else is rejected',
     'immer zwei Buchstaben; es zählt die <b>bevorzugte</b> Sprache des Browsers – <code>en</code> trifft auch bei <code>en-GB</code>, aber nicht bei jemandem, der Deutsch bevorzugt und Englisch nur als Zweitsprache führt' => 'always two letters; the browser\'s <b>preferred</b> language counts – <code>en</code> also matches <code>en-GB</code>, but not someone who prefers German and merely lists English as a second language',

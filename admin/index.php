@@ -46,6 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'starts' => (string)($_POST['starts'] ?? ''),
             'title' => (string)($_POST['title'] ?? ''),
             'tags' => (string)($_POST['tags'] ?? ''),
+            'lang' => (string)($_POST['lang'] ?? ''),
             'domain' => (string)($_POST['domain'] ?? ''),
             'utm' => (array)($_POST['utm'] ?? []),
         ]);
@@ -95,6 +96,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'group' => (string)($_POST['group'] ?? ''),
                 'title' => (string)($_POST['title'] ?? ''),
                 'tags' => (string)($_POST['tags'] ?? ''),
+            'lang' => (string)($_POST['lang'] ?? ''),
                 'domain' => (string)($_POST['domain'] ?? ''),
                 'utm' => (array)($_POST['utm'] ?? []),
             ]);
@@ -396,6 +398,11 @@ if ($neu !== null && link_access($user, $neu)):
               // den Link danach wieder aufmachen. ?>
         <label style="margin-top:0.8rem"><?= t('Weichen') ?>
             <span class="muted"><?= t('(optional – je nach Gerät, Sprache, Land oder Anteil woandershin)') ?></span></label>
+        <div class="ziel-sprache">
+            <label for="c-lang"><?= t('Sprache der Ziel-URL oben') ?>
+                <span class="muted"><?= t('(zwei Buchstaben, leer = unbekannt)') ?></span></label>
+            <input id="c-lang" type="text" name="lang" maxlength="2" size="4" placeholder="de">
+        </div>
         <?php foreach (range(0, 2) as $wi): ?>
         <div class="weiche">
             <select name="rw[<?= $wi ?>]" aria-label="<?= t('Merkmal') ?>">
@@ -580,6 +587,15 @@ if ($neu !== null && link_access($user, $neu)):
                 <?php endforeach; ?>
                 <option value="de">Deutsch</option><option value="en">English</option>
             </datalist>
+            <div class="ziel-sprache">
+                <label for="e-lang"><?= t('Sprache der Ziel-URL oben') ?>
+                    <span class="muted"><?= t('(zwei Buchstaben, leer = unbekannt)') ?></span></label>
+                <input id="e-lang" type="text" name="lang" maxlength="2" size="4"
+                       value="<?= e((string)($editLink['lang'] ?? '')) ?>" placeholder="de">
+                <p class="muted small">
+                    <?= t('Nur mit dieser Angabe lässt sich richtig entscheiden: Wer die Sprache des Hauptziels bevorzugt, bleibt dort – wer eine andere bevorzugt, bekommt die passende Weiche, notfalls über seine Zweitsprache. Ohne die Angabe wird nur umgeleitet, wer die Sprache der Weiche <b>bevorzugt</b>.') ?>
+                </p>
+            </div>
             <table class="weichen-hilfe">
                 <tr>
                     <th><?= t('Gerät') ?></th>

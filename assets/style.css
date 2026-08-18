@@ -641,6 +641,10 @@ button, .btn, a, summary, label, input, select, textarea {
     .weiche input[type="text"]:last-of-type { flex-basis: 100%; }
 }
 
+.ziel-sprache { margin: 0.5rem 0 0.3rem; }
+.ziel-sprache input { width: 4.5rem; }
+.ziel-sprache p { margin: 0.25rem 0 0; }
+
 /* Hilfe zu den Weichen: drei Spalten – Merkmal, erlaubte Werte, Erläuterung.
    Als Tabelle statt Fließtext, weil man hier nachschlägt und nicht liest. */
 .weichen-hilfe { border-collapse: collapse; margin: 0.6rem 0 0.4rem; font-size: 0.85rem; }

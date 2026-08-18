@@ -52,13 +52,33 @@ anderen auf dem Hauptziel.
 | Land | zwei Buchstaben (`at`, `ch`) | von einem vorgeschalteten Dienst (siehe unten) |
 | Anteil (A/B) | eine Zahl von 1 bis 99 | ein Würfelwurf je Aufruf |
 
-**Zur Sprache im Besonderen:** Es zählt ausschließlich die *bevorzugte*
-Sprache. Wer Deutsch an erster Stelle stehen hat und Englisch als Zweitsprache
-– die Voreinstellung bei fast jedem Browser –, löst eine `en`-Weiche **nicht**
-aus. Anders herum wäre die Weiche wertlos: Sie finge praktisch jeden ab, statt
-die englischsprachigen auszusortieren. Gekürzt wird auf zwei Buchstaben, `en`
-trifft also auch bei `en-GB`; und wenn ein Browser Gewichte mitschickt
-(`q=0.8`), entscheiden die, nicht die Reihenfolge im Kopf.
+### Sprach-Weichen: die Zielsprache gehört dazu
+
+Sprachen lassen sich nicht einzeln beantworten, sondern nur gegeneinander –
+und dafür muss bekannt sein, **welche Sprache das Hauptziel spricht**. Dafür
+gibt es das Feld *Sprache der Ziel-URL* direkt über den Weichen.
+
+Ein Beispiel: Hauptziel deutsch, eine Weiche `en` auf die englische Fassung.
+
+| Besucher | landet auf | warum |
+| --- | --- | --- |
+| Browser `de, en` | deutsche Seite | Deutsch steht vor Englisch und ist die Zielsprache |
+| Browser `zh, en` | englische Seite | Chinesisch trifft nichts, dann greift Englisch |
+| Browser `en` | englische Seite | Englisch trifft die Weiche |
+| Browser `fr` | deutsche Seite | nichts passt |
+
+Der zweite Fall ist der, an dem einfache Lösungen scheitern: Ein Student mit
+chinesischem Browser und Englisch als Zweitsprache soll die englische Fassung
+bekommen, ein Deutscher mit derselben Zweitsprache aber nicht.
+
+**Ohne Angabe der Zielsprache** bleibt es bei der strengen Regel: Umgeleitet
+wird nur, wer die Sprache der Weiche *bevorzugt*. Das ist der sichere Rückfall
+– lieber bleibt jemand auf dem Hauptziel, als dass eine `en`-Weiche alle
+einsammelt, weil Englisch bei fast jedem Browser als Zweitsprache steht.
+
+Gekürzt wird auf zwei Buchstaben, `en` trifft also auch bei `en-GB`. Schickt
+der Browser Gewichte mit (`q=0.8`), entscheiden die – nicht die Reihenfolge im
+Kopf.
 
 Die drei Felder einer Weiche sind immer dieselben: **Merkmal**, **Wert**,
 **Ziel**. Welche Werte gelten, steht als Tabelle unter den Zeilen, und das

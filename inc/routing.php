@@ -166,11 +166,71 @@ function route_land_moeglich(): bool
  *
  * @return array{0:string,1:?int} [Ziel-URL, Nummer der greifenden Regel oder null]
  */
+/**
+ * Welche Sprach-Weiche greift – wenn überhaupt?
+ *
+ * Sprach-Weichen lassen sich nicht einzeln beantworten, sondern nur
+ * gegeneinander. Zwei Fehlversuche liegen hinter dieser Funktion:
+ *
+ * Bis 2.9.3 traf eine Weiche auf „en", sobald Englisch irgendwo in der Liste
+ * des Browsers stand – und dort steht es bei fast jedem als Zweitwunsch. Wer
+ * Deutsch bevorzugte, landete trotzdem auf der englischen Seite.
+ *
+ * Danach zählte nur noch die bevorzugte Sprache. Damit landete ein Student mit
+ * chinesischem Browser und Englisch als Zweitsprache auf der **deutschen**
+ * Seite – obwohl die englische für ihn die bessere gewesen wäre.
+ *
+ * Beides lässt sich nur auflösen, wenn bekannt ist, welche Sprache das
+ * Hauptziel spricht. Steht sie am Link, wird richtig verhandelt: Die
+ * Sprachwünsche des Browsers werden der Reihe nach durchgegangen, und der
+ * erste, der entweder das Hauptziel oder eine Weiche trifft, gewinnt.
+ *
+ *   Hauptziel de, Weiche en …
+ *   · Browser de, en   → de trifft zuerst  → Hauptziel (deutsch)
+ *   · Browser zh, en   → zh trifft nichts, dann en → Weiche (englisch)
+ *   · Browser en       → en trifft         → Weiche (englisch)
+ *   · Browser fr       → nichts trifft     → Hauptziel
+ *
+ * Ohne Angabe der Zielsprache bleibt es bei der strengen Regel: Nur wer die
+ * Sprache bevorzugt, wird umgeleitet. Das ist der sichere Rückfall – lieber
+ * jemand bleibt auf dem Hauptziel, als dass eine Weiche alle einsammelt.
+ *
+ * @param array<int,array> $regeln alle Weichen des Links
+ * @param string $zielsprache Sprache des Hauptziels, leer = unbekannt
+ */
+function route_lang_gewinner(array $regeln, string $zielsprache): ?string
+{
+    $weichen = [];
+    foreach ($regeln as $r) {
+        if ((string)($r['wenn'] ?? '') === 'lang') $weichen[] = strtolower((string)($r['ist'] ?? ''));
+    }
+    if ($weichen === []) return null;
+
+    $ziel = strtolower(trim($zielsprache));
+    if ($ziel === '') {
+        $bevorzugt = route_sprache();
+        return $bevorzugt !== null && in_array($bevorzugt, $weichen, true) ? $bevorzugt : null;
+    }
+    foreach (route_sprachen() as $s) {
+        if ($s === $ziel) return null;                        // Hauptziel gewinnt
+        if (in_array($s, $weichen, true)) return $s;          // diese Weiche gewinnt
+    }
+    return null;
+}
+
 function route_target(array $link): array
 {
-    $regeln = (array)($link['rules'] ?? []);
-    foreach (array_values($regeln) as $i => $r) {
-        if (route_trifft((string)($r['wenn'] ?? ''), (string)($r['ist'] ?? ''))) {
+    $regeln = array_values((array)($link['rules'] ?? []));
+    // Sprach-Weichen werden nicht einzeln geprüft, sondern gegeneinander –
+    // siehe route_lang_gewinner(). Null heißt: keine von ihnen greift.
+    $sprachSieger = route_lang_gewinner($regeln, (string)($link['lang'] ?? ''));
+    foreach ($regeln as $i => $r) {
+        $wenn = (string)($r['wenn'] ?? '');
+        $ist = (string)($r['ist'] ?? '');
+        $trifft = $wenn === 'lang'
+            ? ($sprachSieger !== null && $sprachSieger === strtolower($ist))
+            : route_trifft($wenn, $ist);
+        if ($trifft) {
             $url = (string)($r['url'] ?? '');
             if ($url !== '') return [$url, $i];
         }
