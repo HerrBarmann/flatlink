@@ -1,5 +1,7 @@
 # Sicherheitslücken melden
 
+🇬🇧 [English version](SECURITY.en.md)
+
 Danke, dass du dir die Mühe machst. Meldungen sind ausdrücklich willkommen –
 auch unfertige, auch solche, bei denen du dir nicht sicher bist.
 

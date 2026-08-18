@@ -192,7 +192,7 @@ a code: password prompt, expired, blocked, not found. They stay under the
 address the code was printed with.
 
 The domain can be chosen at creation, at editing, in the CSV import (for the
-whole run, not per row) and through the [API](../API.md) (field `domain`).
+whole run, not per row) and through the [API](API.md) (field `domain`).
 If a domain is removed again, the links remain – they then point at an
 address that is no longer configured and must be switched over one by one.
 The delete button says so.

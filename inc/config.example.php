@@ -93,7 +93,7 @@ return [
     // verweisenden Seite, Gerätegattung (Handy/Tablet/Rechner) und Sprache –
     // ausschließlich als Summen, ohne Datensatz je Aufruf. Aus: Es bleibt bei
     // den reinen Zählern, und der Beleg in der Statistik ist so knapp wie
-    // möglich. Siehe SECURITY.md.
+    // möglich. Siehe docs/SECURITY.md.
     'click_dims' => true,
 
     // ---- Webhooks ----
@@ -183,7 +183,7 @@ return [
     'show_origin' => true,
 
     // ---- Aussehen ----
-    // Ausführlich beschrieben in CUSTOMIZATION.md.
+    // Ausführlich beschrieben in docs/CUSTOMIZATION.md.
     //
     // Farben, Schriften und Abstände ändert man nicht hier, sondern in
     // assets/custom.css: Diese Datei wird nach dem Standard-Stylesheet geladen,
@@ -191,9 +191,9 @@ return [
     // Kopieren: assets/custom.example.css
 
     // Wohin der Hinweis im Profil zur Anleitung der Schnittstelle zeigt.
-    // Vorgabe ist die mitgelieferte API.md im Webverzeichnis; wer eine eigene
-    // Seite dafür hat, trägt sie hier ein.
-    'api_doc_url' => 'API.md',
+    // Vorgabe ist die mitgelieferte docs/API.md im Webverzeichnis; wer eine
+    // eigene Seite dafür hat, trägt sie hier ein.
+    'api_doc_url' => 'docs/API.md',
 
     // Sprache der Oberfläche für die ganze Instanz: 'de' oder 'en'.
     // Deutsch ist die Quellsprache; Englisch kommt aus inc/lang/en.php, und was

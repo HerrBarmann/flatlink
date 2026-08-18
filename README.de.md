@@ -208,7 +208,7 @@ auch alles, was sie verlangt.
 - **CSV-Import** für viele Links auf einmal – die Exporte von Bitly und
   YOURLS lassen sich unverändert einlesen
 - **Programmierschnittstelle** mit Zugangsschlüsseln je Konto, siehe
-  [API.md](API.md)
+  [docs/API.md](docs/API.md)
 - **Missbrauchsschutz**: Rate-Limits pro IP (gespeichert wird nur ein
   Schlüssel-Hash, kein Klartext), Meldeformular, Sperrfunktion, optional
   Google Safe Browsing – auf Wunsch mit **Wiederholungslauf über den
@@ -260,14 +260,14 @@ dort den Link herauskopieren und aufrufen. Das erste angelegte Konto bekommt
 automatisch die Admin-Rolle.
 
 > **Für den echten Betrieb** gibt es eine ausführliche
-> **[Deployment-Anleitung](DEPLOYMENT.md)**: Rechte und Webserver-Konfiguration
+> **[Deployment-Anleitung](docs/DEPLOYMENT.md)**: Rechte und Webserver-Konfiguration
 > für Apache und nginx, Mailversand samt SPF/DKIM/DMARC, LDAP und Active
 > Directory, die komplette Shibboleth-Einrichtung inklusive Apache und
 > Attributfreigabe – dazu Betrieb, Sicherung und eine Tabelle mit den
 > häufigsten Stolpersteinen.
 >
 > **Eigene Farben, eigenes Logo?** Das beschreibt die
-> **[Anpassungs-Anleitung](CUSTOMIZATION.md)** – updatesicher über
+> **[Anpassungs-Anleitung](docs/CUSTOMIZATION.md)** – updatesicher über
 > `assets/custom.css`, ohne den Quelltext anzufassen.
 
 ## Konfiguration
@@ -309,14 +309,14 @@ Die vier Handbücher gibt es auch auf Englisch (`.en.md` daneben):
 | [Kurzlinks im Alltag](docs/kurzlinks.md) | Schlagworte, Kampagnen-Parameter, Link-in-Bio, Umzug von Bitly oder YOURLS |
 | [Konten und Anmeldung](docs/konten.md) | Passkeys und Einmalkennwörter, LDAP, Shibboleth/SAML/OIDC, Auskunft und Löschung |
 | [Gruppen, Rechte und Domains](docs/gruppen.md) | Rechte- und Arbeitsgruppen, Limits, Namensräume, mehrere Domains je Instanz |
-| [API.md](API.md) | die Programmierschnittstelle |
+| [Schnittstelle](docs/API.md) | die Programmierschnittstelle |
 | [Browser-Erweiterung](extension/README.md) | „diese Seite kürzen" für Chrome und Firefox, gegen die eigene Instanz |
 | [In die Läden bringen](docs/store-einreichung.md) | Pakete bauen, Store-Texte, Berechtigungs-Begründungen, Datenschutzangaben |
-| [DEPLOYMENT.md](DEPLOYMENT.md) | Installation für den Dauerbetrieb, von Dateirechten bis Shibboleth |
-| [CUSTOMIZATION.md](CUSTOMIZATION.md) | eigenes Aussehen ohne Änderungen am Kern |
+| [Deployment](docs/DEPLOYMENT.md) | Installation für den Dauerbetrieb, von Dateirechten bis Shibboleth |
+| [Anpassung](docs/CUSTOMIZATION.md) | eigenes Aussehen ohne Änderungen am Kern |
 | [Was flatlink nie tun wird](docs/niemals.md) | die Funktionen, die es hier nie geben wird – und warum |
 | [Barrierefreiheit](docs/barrierefreiheit.md) | Selbsteinschätzung nach WCAG 2.1 AA samt Muster-Erklärung für öffentliche Stellen |
-| [SECURITY.md](SECURITY.md) | was gespeichert wird, was nicht, und wie sich Lücken melden lassen |
+| [Sicherheit](docs/SECURITY.md) | was gespeichert wird, was nicht, und wie sich Lücken melden lassen |
 
 ## Wie die Daten liegen
 

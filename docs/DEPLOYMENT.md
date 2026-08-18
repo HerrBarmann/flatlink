@@ -5,7 +5,7 @@ is the step-by-step reference.
 
 Eine Anleitung von der leeren Maschine bis zur angebundenen Hochschul-Anmeldung.
 Sie ist bewusst ausführlich – wer nur schnell etwas ausprobieren will, ist mit
-den drei Zeilen im [README](README.de.md#installation) schneller.
+den drei Zeilen im [README](../README.de.md#installation) schneller.
 
 **Inhalt**
 
@@ -782,7 +782,7 @@ Verfügbare Rechte:
 
 `links_all` und `reports_manage` zusammen ergeben eine Redaktion: volle Sicht
 auf die Links und den Meldungs-Eingang, aber kein Zugriff auf Konten, Gruppen,
-Einstellungen und Protokoll. Siehe [docs/gruppen.md](docs/gruppen.md).
+Einstellungen und Protokoll. Siehe [docs/gruppen.md](gruppen.md).
 
 ### Wer darf sich überhaupt anmelden?
 
@@ -947,7 +947,7 @@ in Deutschland typischerweise Impressum und Datenschutzerklärung. flatlink
 liefert dafür bewusst keine Vorlagen: Sie hängen von Betreiber, Zweck und
 Nutzung ab, und eine mitgelieferte Vorlage würde mehr Schaden anrichten als
 helfen. Eigene Seiten anlegen und in `page_footer()` in
-[`inc/helpers.php`](inc/helpers.php) verlinken.
+[`inc/helpers.php`](../inc/helpers.php) verlinken.
 
 ---
 

@@ -311,7 +311,7 @@ $host = preg_replace('#^https?://#', '', base_url());
     <?= t('Nachgeprüft am %s: Eine Testdatei in %s ließ sich von außen herunterladen. Damit sind auch Passwort-Hashes, gültige Reset-Token und das Instanz-Geheimnis abrufbar. Das ist kein Hinweis, sondern ein offener Zugang – bitte sofort handeln: entweder %s in %s auf einen Pfad außerhalb des Webroots stellen (Inhalt vorher kopieren) oder im Webserver einen Block für das Verzeichnis einrichten (siehe %s).',
         e(date('d.m.Y H:i', strtotime((string)$probe['zeit']))),
         '<code style="word-break:break-all">' . e(data_path()) . '</code>',
-        '<code>data_dir</code>', '<code>inc/config.php</code>', '<code>DEPLOYMENT.md</code>') ?>
+        '<code>data_dir</code>', '<code>inc/config.php</code>', '<code>docs/DEPLOYMENT.md</code>') ?>
     <?php elseif (($probe['stand'] ?? '') === 'dicht'): ?>
     <strong><?= t('Das Datenverzeichnis liegt im Webroot, ist aber dicht.') ?></strong>
     <?= t('Nachgeprüft am %s: %s Der Schutz hängt damit an der Webserver-Konfiguration – wird sie beim nächsten Umzug oder Upload nicht mitgenommen, liegt alles offen. Ein Pfad außerhalb des Webroots (%s) hängt an nichts.',

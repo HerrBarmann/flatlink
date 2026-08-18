@@ -17,7 +17,7 @@ sollen dieselbe Schublade sein, sonst hat man nach einer Woche beide. Sie sind
 Ordnung, keine Berechtigung – wer Zugriff regeln will, nimmt
 [Gruppen](gruppen.md#zwei-arten-von-gruppen).
 
-Verfügbar auch über die [Schnittstelle](../API.md) (Feld `tags`, Filter `?tag=`)
+Verfügbar auch über die [Schnittstelle](API.md) (Feld `tags`, Filter `?tag=`)
 und im CSV-Import (Spalte `schlagworte` oder `tags`).
 
 ## Startdatum und Ablauf
@@ -35,7 +35,7 @@ Ablauf wird abgelehnt.
 
 Gültig ist der Link **ab** dem genannten Tag (wie der Ablauf **bis
 einschließlich** seines Tages gilt). Ein leeres Feld heißt „sofort".
-Verfügbar auch über die [Schnittstelle](../API.md) (Feld `starts`, dazu
+Verfügbar auch über die [Schnittstelle](API.md) (Feld `starts`, dazu
 `pending` in der Antwort) und im CSV-Export.
 
 ## Was zählt – und was nicht
@@ -61,7 +61,7 @@ Ein Link kann auf eine Zahl von Aufrufen begrenzt werden – „nur die ersten
 Begründung statt Rätselraten. Das Feld steht beim Anlegen unter *Mehr
 Optionen* und beim Bearbeiten neben dem Ablaufdatum; leer heißt unbegrenzt.
 Geprüft wird gegen den Zähler, der ohnehin geführt wird – und weil Bots nicht
-zählen, meint das Limit echte Besuche. Über die [Schnittstelle](../API.md)
+zählen, meint das Limit echte Besuche. Über die [Schnittstelle](API.md)
 heißt das Feld `max_visits`.
 
 ## Weichen: ein Link, mehrere Ziele
@@ -148,7 +148,7 @@ Land behaupten, indem er die Kopfzeile selbst mitschickt, und eine Weiche, die
 sich von der Gegenseite stellen lässt, ist keine. Ohne diesen Eintrag steht
 „Land" in der Oberfläche nicht zur Auswahl.
 
-Über die [Schnittstelle](../API.md) heißt das Feld `rules` und nimmt eine
+Über die [Schnittstelle](API.md) heißt das Feld `rules` und nimmt eine
 Liste aus `{wenn, ist, url}`.
 
 ## Kampagnen-Parameter (UTM)
@@ -176,7 +176,7 @@ Schon benutzte Werte erscheinen als Vorschlagsliste. Das ist der billigste
 Schutz gegen den Tippfehler, der eine Auswertung in zwei Hälften zerlegt.
 
 Verfügbar auch im CSV-Import (für den ganzen Vorgang, nicht je Zeile) und über
-die [Schnittstelle](../API.md) (Feld `utm`).
+die [Schnittstelle](API.md) (Feld `utm`).
 
 ## Link-in-Bio
 

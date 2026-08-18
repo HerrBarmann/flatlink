@@ -8,7 +8,7 @@ Die Schnittstelle kann **nichts, was das Konto nicht auch über die Oberfläche
 könnte**. Rechte, Limits, Namensräume und Gruppenzugehörigkeit gelten
 unverändert: Ein Schlüssel ist ein zweiter Weg zur Anmeldung, keine zweite
 Berechtigung. Sämtliche Regeln kommen aus derselben Fassung wie die der
-Verwaltungsoberfläche ([`inc/linkrules.php`](inc/linkrules.php)).
+Verwaltungsoberfläche ([`inc/linkrules.php`](../inc/linkrules.php)).
 
 ---
 
@@ -62,7 +62,7 @@ Formularfelder — beides wird gelesen.
 
 ---
 
-> Für den Alltag gibt es die [Browser-Erweiterung](extension/README.md): Sie
+> Für den Alltag gibt es die [Browser-Erweiterung](../extension/README.md): Sie
 > nutzt genau diese Schnittstelle, um die geöffnete Seite mit einem Klick zu
 > kürzen.
 

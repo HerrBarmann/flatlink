@@ -97,4 +97,4 @@ Zusammen sind das ein paar Dutzend Zeilen. Genau dafür liegt der Code offen.
 
 Wer eine Stelle findet, an der die Software mehr über Besucher speichert, als
 hier steht, meldet das bitte als Sicherheitslücke – siehe
-[SECURITY.md](../SECURITY.md).
+[SECURITY.md](SECURITY.md).

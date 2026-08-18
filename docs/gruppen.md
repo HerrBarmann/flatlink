@@ -192,7 +192,7 @@ einem Code gehören: Passwortabfrage, abgelaufen, gesperrt, nicht gefunden. Sie
 bleiben unter der Adresse, unter der der Code gedruckt wurde.
 
 Wählbar ist die Domain beim Anlegen, beim Ändern, im CSV-Import (für den
-ganzen Vorgang, nicht je Zeile) und über die [Schnittstelle](../API.md)
+ganzen Vorgang, nicht je Zeile) und über die [Schnittstelle](API.md)
 (Feld `domain`). Wird eine Domain wieder entfernt, bleiben die Links bestehen –
 sie zeigen dann auf eine Adresse, die nicht mehr eingerichtet ist, und müssen
 einzeln umgestellt werden. Der Löschen-Knopf sagt das.

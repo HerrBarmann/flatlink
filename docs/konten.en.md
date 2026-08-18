@@ -93,7 +93,7 @@ particularly well therefore also reviews its key list.
 Both paths are optional, default to `false` and can run in parallel with
 local accounts. This section describes the principle – the step-by-step setup
 including Apache configuration, SP metadata and attribute release is in the
-[deployment guide](../DEPLOYMENT.md#8-shibboleth-saml-und-openid-connect)
+[deployment guide](DEPLOYMENT.md#8-shibboleth-saml-und-openid-connect)
 (German).
 
 ### Via the web server (Shibboleth, SAML, OpenID Connect)

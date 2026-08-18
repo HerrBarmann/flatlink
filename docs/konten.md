@@ -96,7 +96,7 @@ besonders schützen will, prüft daher auch dessen Schlüsselliste.
 Beide Wege sind optional, stehen standardmäßig auf `false` und lassen sich
 parallel zu lokalen Konten betreiben. Hier steht das Prinzip – die
 Schritt-für-Schritt-Einrichtung samt Apache-Konfiguration, SP-Metadaten und
-Attributfreigabe steht in der [Deployment-Anleitung](../DEPLOYMENT.md#8-shibboleth-saml-und-openid-connect).
+Attributfreigabe steht in der [Deployment-Anleitung](DEPLOYMENT.md#8-shibboleth-saml-und-openid-connect).
 
 ### Über den Webserver (Shibboleth, SAML, OpenID Connect)
 

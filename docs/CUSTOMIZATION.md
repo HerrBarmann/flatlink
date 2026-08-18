@@ -1,5 +1,7 @@
 # flatlink anpassen
 
+🇬🇧 [English version](CUSTOMIZATION.en.md)
+
 flatlink kommt bewusst schmucklos: ein zurückhaltendes Blaugrau, das nichts
 behauptet. Es ist als Untergrund gedacht, nicht als fertiger Auftritt. Diese
 Anleitung zeigt, wie daraus deiner wird.
@@ -177,7 +179,7 @@ Die Zeile mit dem kleinen Kiwi im Seitenfuß **verlangt die Lizenz** – als
 Zusatzbedingung nach § 7(b) der AGPL. Sie darf übersetzt, umformuliert und
 dezent gesetzt werden; das gehört ausdrücklich dazu. Wer sie an die eigene
 Gestaltung anpassen will, überschreibt `.origin` in `assets/custom.css` oder
-ersetzt `origin_note()` über [`inc/local.php`](#8-eigene-erweiterungen) – solange
+ersetzt `origin_note()` über [`inc/local.php`](#10-eigene-seiten-und-funktionen) – solange
 „flatlink" genannt und auf <https://1337.kiwi/flatlink> verlinkt bleibt.
 
 ```php
@@ -248,15 +250,15 @@ eingreifen lässt:
 | `.table-scroll table` | Tabellen |
 | `.short-row` / `.grid-form` / `.check` | Formular-Layouts |
 | `.designer` | zweispaltiges Layout des QR-Designers |
+| `.origin` | Herkunftszeile im Fuß |
+| `main` | Inhaltsbereich; wächst, damit der Fuß unten bleibt |
+| `body.<name>` | ganze Gestaltungsvariante, siehe unten (`body_class`) |
 
 Der QR-Designer kennt drei Erweiterungspunkte in `inc/local.php`:
 `designer_description()` liefert die Meta-Beschreibung, `designer_intro()`
 Inhalt oberhalb und `designer_outro()` unterhalb des Werkzeugs. So bleibt die
 Seite selbst Kern-Code, während eine Instanz sie zur auffindbaren Landingpage
 ausbauen kann.
-| `.origin` | Herkunftszeile im Fuß |
-| `main` | Inhaltsbereich; wächst, damit der Fuß unten bleibt |
-| `body.<name>` | ganze Gestaltungsvariante, siehe unten (`body_class`) |
 
 Ein paar erprobte Eingriffe:
 
@@ -464,8 +466,9 @@ nicht überschreiben.
 
 Ohne Eingriff in den Quelltext lässt sich **nicht** ändern:
 
-- **Die Texte der Oberfläche.** Sie stecken direkt in den PHP-Dateien. Es gibt
-  keine Übersetzungsebene, und sie sind durchgehend deutsch.
+- **Einzelne Formulierungen der Oberfläche.** Die Sprache lässt sich
+  instanzweit umstellen (`'language' => 'en'`), aber einzelne Texte
+  umzuformulieren heißt, die Sprachdateien im Kern anzufassen.
 - **Aufbau und Reihenfolge der bestehenden Seiten.** Welche Karte wo steht,
   entscheidet das jeweilige PHP-Skript.
 - **Die Reihenfolge der Navigationspunkte.** Eigene Einträge stehen immer vorn.

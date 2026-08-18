@@ -7,7 +7,7 @@ The API can do **nothing the account could not do through the interface**.
 Permissions, limits, namespaces and group membership apply unchanged: a key
 is a second way to sign in, not a second authorisation. All rules come from
 the same code the admin interface uses
-([`inc/linkrules.php`](inc/linkrules.php)).
+([`inc/linkrules.php`](../inc/linkrules.php)).
 
 ---
 
@@ -60,7 +60,7 @@ are read.
 
 ---
 
-> For everyday use there is the [browser extension](extension/README.md): it
+> For everyday use there is the [browser extension](../extension/README.md): it
 > uses exactly this API to shorten the open page with one click.
 
 ## Endpoints

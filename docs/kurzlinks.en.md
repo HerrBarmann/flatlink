@@ -15,7 +15,7 @@ Tags are **stored lowercase**: "Campaign" and "campaign" should be the same
 drawer, otherwise you own both after a week. They are order, not permission –
 whoever wants to control access uses [groups](gruppen.en.md).
 
-Also available via the [API](../API.md) (field `tags`, filter `?tag=`) and in
+Also available via the [API](API.md) (field `tags`, filter `?tag=`) and in
 the CSV import (column `tags`).
 
 ## Start date and expiry
@@ -32,7 +32,7 @@ out a time window; a start date after the expiry is rejected.
 
 The link is valid **from** the named day (as the expiry is valid **up to and
 including** its day). An empty field means "immediately". Also available via
-the [API](../API.md) (field `starts`, plus `pending` in the response) and in
+the [API](API.md) (field `starts`, plus `pending` in the response) and in
 the CSV export.
 
 ## What counts – and what doesn't
@@ -58,7 +58,7 @@ discount". After that it answers like an expired link: 410, with a reason
 instead of guesswork. The field sits under *More options* when creating and
 next to the expiry date when editing; empty means unlimited. The check runs
 against the counter that is kept anyway – and since bots do not count, the
-limit means real visits. Via the [API](../API.md) the field is `max_visits`.
+limit means real visits. Via the [API](API.md) the field is `max_visits`.
 
 ## Switches: one link, several targets
 
@@ -139,7 +139,7 @@ country ready-made (Cloudflare as `CF-IPCountry`, others as
 sending the header themselves, and a switch the other side can set is none.
 Without that entry, "Country" does not appear in the interface.
 
-Via the [API](../API.md) the field is `rules` and takes a list of
+Via the [API](API.md) the field is `rules` and takes a list of
 `{wenn, ist, url}`.
 
 ## Campaign parameters (UTM)
@@ -166,7 +166,7 @@ Values already in use appear as suggestions. That is the cheapest protection
 against the typo that splits an evaluation in half.
 
 Also available in the CSV import (for the whole batch, not per row) and via
-the [API](../API.md) (field `utm`).
+the [API](API.md) (field `utm`).
 
 ## Link-in-bio
 
