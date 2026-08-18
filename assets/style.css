@@ -645,6 +645,12 @@ button, .btn, a, summary, label, input, select, textarea {
 .ziel-sprache input { width: 4.5rem; }
 .ziel-sprache p { margin: 0.25rem 0 0; }
 
+/* Das Demo-Band: unübersehbar, aber nicht schrill – es soll erklären, nicht warnen */
+.demo-band {
+    background: #FFF3D6; color: #5C4A12; border-bottom: 1px solid #E8D49A;
+    padding: 0.55rem 1rem; text-align: center; font-size: 0.9rem;
+}
+
 /* Hilfe zu den Weichen: drei Spalten – Merkmal, erlaubte Werte, Erläuterung.
    Als Tabelle statt Fließtext, weil man hier nachschlägt und nicht liest. */
 .weichen-hilfe { border-collapse: collapse; margin: 0.6rem 0 0.4rem; font-size: 0.85rem; }

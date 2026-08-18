@@ -314,6 +314,15 @@ return [
     // verlinkt SEIN Impressum, nicht das des Dienstes. Relative Ziele meinen
     // Seiten dieser Instanz, absolute (https://…) führen nach außen.
     // Leer = keine Fußzeile, solange die Seite nichts Eigenes setzt.
+    // ---- Demo-Modus ----
+    // Eine öffentliche Spielwiese: Hinweisband über jeder Seite, und der ganze
+    // Bestand wird träge beim Seitenaufbau zurückgesetzt (kein Cron nötig,
+    // läuft auch auf Shared Hosting). Konto der Demo: demo / demo-1234.
+    // Für eine Demo-Instanz gehören außerdem in DIESE Datei: mail 'mode'=>'log',
+    // 'registration' aus, keine Webhooks – der Modus erzwingt das nicht.
+    'demo_mode' => false,
+    'demo_reset_minutes' => 60,
+
     'bio_legal_defaults' => [
         // 'imprint' => 'impressum.html',
         // 'privacy' => 'datenschutz.html',

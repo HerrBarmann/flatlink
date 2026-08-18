@@ -679,6 +679,10 @@ function page_header(string $title, bool $admin = false, ?string $desc = null, ?
     $site = e(cfg('site_name'));
     $root = $admin ? '..' : '.';
     $GLOBALS['_page_root'] = $root;
+    // Demo-Instanzen räumen sich beim Seitenaufbau selbst auf (inc/demo.php);
+    // für alle anderen ist das ein einzelner cfg()-Blick.
+    require_once __DIR__ . '/demo.php';
+    demo_boot();
     security_headers();
     echo '<!doctype html><html lang="de"><head><meta charset="utf-8">'
         . '<meta name="viewport" content="width=device-width, initial-scale=1">'
@@ -760,6 +764,7 @@ function page_header(string $title, bool $admin = false, ?string $desc = null, ?
     // Kürzen abgeschaltet hat, landete man dort sonst bei „Die öffentliche
     // Link-Erstellung ist deaktiviert" und musste sich zurückklicken.
     $heim = $u !== null ? $adm . 'index.php' : $root . '/';
+    echo demo_banner();
     echo '<header class="site-head"><a class="brand" href="' . e($heim) . '">' . $mark . '</a>';
     echo '<nav>';  // umbruchfähig; die Verwaltungsklappe darf auf schmalen Schirmen eine eigene Zeile bekommen
     // Zusätzliche Einträge dieser Instanz. 'nav_links' erscheint immer,

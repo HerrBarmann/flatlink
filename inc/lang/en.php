@@ -1137,6 +1137,17 @@ your password immediately and contact us.
     'Anmeldung am Verzeichnis fehlgeschlagen – Dienstkonto prüfen.' => 'Binding to the directory failed – check the service account.',
     'Die Suche schlug fehl – stimmt die Basis-DN?' => 'The search failed – is the base DN correct?',
 
+    // Demo-Modus
+    'Demo-Instanz: Anmeldung mit %s – alle Daten werden etwa alle %d Minuten zurückgesetzt. Bitte nichts Echtes eintragen.' => 'Demo instance: sign in with %s – all data is reset roughly every %d minutes. Please don\'t enter anything real.',
+    'Redaktion' => 'Editorial team',
+    'Semesterprogramm' => 'Semester programme',
+    'Kartenverkauf' => 'Ticket sales',
+    'Podcast-Folge 12' => 'Podcast episode 12',
+    'Stellenausschreibung' => 'Job posting',
+    'Aktuelles Programm' => 'Current programme',
+    'Karten kaufen' => 'Buy tickets',
+    'Alle Termine an einem Ort – Demo-Seite.' => 'Every date in one place – demo page.',
+
     // Bio-Fußzeile: Impressum und Datenschutz
     'Impressum und Datenschutz' => 'Imprint and privacy',
     '(optional – erscheint als Fußzeile der Seite)' => '(optional – shown as the page footer)',
