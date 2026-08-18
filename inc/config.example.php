@@ -308,6 +308,17 @@ return [
         // 'Datenschutz' => 'https://example.org/datenschutz',
     ],
 
+    // Vorgabe für die Fußzeile von Link-in-Bio-Seiten: Impressum und
+    // Datenschutzerklärung der Instanz. Jede Seite kann sie durch eigene
+    // Adressen ersetzen – ein Kunde, der seine Seite geschäftlich betreibt,
+    // verlinkt SEIN Impressum, nicht das des Dienstes. Relative Ziele meinen
+    // Seiten dieser Instanz, absolute (https://…) führen nach außen.
+    // Leer = keine Fußzeile, solange die Seite nichts Eigenes setzt.
+    'bio_legal_defaults' => [
+        // 'imprint' => 'impressum.html',
+        // 'privacy' => 'datenschutz.html',
+    ],
+
     // ---- Automatisches Aufräumen ungenutzter Links ----
     // Löscht Links, die über den gesamten Zeitraum kein einziges Mal aufgerufen
     // wurden. Jeder Aufruf setzt die Frist zurück. Die kurze Frist gilt für

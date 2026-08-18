@@ -104,6 +104,14 @@ function bio_write(string $code, array $items, string $text, bool $index, ?array
                 if (preg_match('/^#[0-9a-f]{6}$/', $v) === 1 && $v !== $vor) $farben[$k] = $v;
             }
             if ($farben === []) unset($l['bio_colors']); else $l['bio_colors'] = $farben;
+            if (array_key_exists('legal', $stil)) {
+                $recht = [];
+                foreach (['imprint', 'privacy'] as $k) {
+                    $v = trim((string)($stil['legal'][$k] ?? ''));
+                    if ($v !== '' && mb_strlen($v) <= 300) $recht[$k] = $v;
+                }
+                if ($recht === []) unset($l['bio_legal']); else $l['bio_legal'] = $recht;
+            }
         }
         $l['updated'] = date('c');
         return $l;
@@ -178,6 +186,49 @@ function bio_logo_size(string $id): array
     if ($w <= 0 || $h <= 0) return [$maxHoehe, $maxHoehe];
     $faktor = min($maxHoehe / $h, $maxBreite / $w);
     return [max(1, (int)round($w * $faktor)), max(1, (int)round($h * $faktor))];
+}
+
+/**
+ * Impressum und Datenschutzerklärung für den Fuß einer Bio-Seite.
+ *
+ * Zwei Quellen, in dieser Reihenfolge:
+ *
+ *   1. **Eigene Angaben der Seite** (`bio_legal` am Link): Ein Kunde, der
+ *      seine Seite über diese Instanz betreibt, ist presserechtlich selbst
+ *      verantwortlich – er verlinkt sein EIGENES Impressum, nicht das des
+ *      Dienstes. Genau dafür sind die Felder da.
+ *   2. **Die Vorgabe der Instanz** (`bio_legal_defaults` in der Konfiguration):
+ *      etwa die footer_links-Ziele des Betreibers, damit jede Seite ohne
+ *      eigenes Zutun eine gültige Fußzeile trägt.
+ *
+ * Je Eintrag gilt die Quelle vollständig – halb eigenes, halb geerbtes
+ * Impressum ergäbe rechtlich Murks. Leere Vorgabe + keine eigene Angabe =
+ * keine Fußzeile, wie bisher.
+ *
+ * @return array<string,string> Beschriftung => Adresse
+ */
+function bio_legal_links(array $l): array
+{
+    $eigen = (array)($l['bio_legal'] ?? []);
+    $quelle = ($eigen['imprint'] ?? '') !== '' || ($eigen['privacy'] ?? '') !== ''
+        ? $eigen
+        : (array)cfg('bio_legal_defaults');
+    $out = [];
+    foreach (['imprint' => t('Impressum'), 'privacy' => t('Datenschutz')] as $k => $label) {
+        $ziel = trim((string)($quelle[$k] ?? ''));
+        if ($ziel === '') continue;
+        // Relativ heißt: eine Seite dieser Instanz (impressum.html). Absolut
+        // muss http(s) sein – javascript:-Adressen haben hier nichts verloren.
+        if (preg_match('#^https?://#i', $ziel) === 1) {
+            if (!valid_url($ziel)) continue;
+        } elseif (preg_match('#^[a-z0-9_./-]+$#i', $ziel) !== 1 || str_contains($ziel, '..')) {
+            continue;
+        } else {
+            $ziel = base_url() . '/' . ltrim($ziel, '/');
+        }
+        $out[$label] = $ziel;
+    }
+    return $out;
 }
 
 /** Die Wortmarke des Dienstes, wie im Seitenkopf ausgezeichnet */
@@ -300,7 +351,16 @@ function bio_render(string $code, array $l): never
     }
     echo '</ul></main>';
 
-    echo '<footer class="bio-foot">' . bio_origin_note() . '</footer>';
+    $recht = bio_legal_links($l);
+    echo '<footer class="bio-foot">';
+    if ($recht !== []) {
+        echo '<nav class="bio-legal" aria-label="' . e(t('Rechtliches')) . '">';
+        foreach ($recht as $label => $ziel) {
+            echo '<a href="' . e($ziel) . '" rel="noopener">' . e($label) . '</a>';
+        }
+        echo '</nav>';
+    }
+    echo bio_origin_note() . '</footer>';
     echo '</body></html>';
     exit;
 }

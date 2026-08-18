@@ -1137,6 +1137,17 @@ your password immediately and contact us.
     'Anmeldung am Verzeichnis fehlgeschlagen – Dienstkonto prüfen.' => 'Binding to the directory failed – check the service account.',
     'Die Suche schlug fehl – stimmt die Basis-DN?' => 'The search failed – is the base DN correct?',
 
+    // Bio-Fußzeile: Impressum und Datenschutz
+    'Impressum und Datenschutz' => 'Imprint and privacy',
+    '(optional – erscheint als Fußzeile der Seite)' => '(optional – shown as the page footer)',
+    'Impressum' => 'Imprint',
+    'Datenschutz' => 'Privacy',
+    'Datenschutzerklärung' => 'Privacy policy',
+    'impressum.html oder https://…' => 'imprint.html or https://…',
+    'datenschutz.html oder https://…' => 'privacy.html or https://…',
+    'Leer = die Vorgabe der Instanz (falls eingerichtet). Wer die Seite geschäftlich betreibt, trägt hier sein eigenes Impressum ein – er ist für die Seite selbst verantwortlich.' => 'Empty = the instance default (if configured). Whoever runs the page commercially enters their own imprint here – they are responsible for the page themselves.',
+    'Rechtliches' => 'Legal',
+
     // Aufruf-Limit und Zählweise
     'Aufruf-Limit' => 'Visit limit',
     '(optional – danach antwortet der Link wie ein abgelaufener)' => '(optional – after that the link answers like an expired one)',

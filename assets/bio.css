@@ -44,6 +44,11 @@ body.bio-page {
     display: block;
 }
 
+/* Impressum und Datenschutz: klein, aber klickbar – Pflichtangaben, keine Deko */
+.bio-legal { display: flex; gap: 1.2rem; justify-content: center; margin-bottom: 0.5rem; }
+.bio-legal a { color: var(--bio-ink); opacity: 0.75; font-size: 0.8rem; text-decoration: underline; }
+.bio-legal a:hover, .bio-legal a:focus { opacity: 1; }
+
 /* Markenblock für Seiten ohne eigenes Logo: Zeichen und Wortmarke
    nebeneinander, wie in der Kopfzeile des Dienstes. */
 .bio-brandtop {

@@ -59,6 +59,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $logoWunsch = $logoAlt;
     }
     $stil = $darfGestalten ? [
+        'legal' => [
+            'imprint' => (string)($_POST['legal_imprint'] ?? ''),
+            'privacy' => (string)($_POST['legal_privacy'] ?? ''),
+        ],
         'logo' => $logoWunsch,
         'colors' => [
             'bg' => (string)($_POST['c_bg'] ?? ''),
@@ -260,6 +264,28 @@ show_flash();
                 <option value="<?= e($gid) ?>"<?= ($edit['group'] ?? null) === $gid ? ' selected' : '' ?>><?= e(group_label($gid)) ?></option>
                 <?php endforeach; ?>
             </select>
+        </div>
+        <?php endif; ?>
+        <?php if ($darfGestalten):
+            $recht = (array)($edit['bio_legal'] ?? []); ?>
+        <div>
+            <label><?= t('Impressum und Datenschutz') ?>
+                <span class="muted"><?= t('(optional – erscheint als Fußzeile der Seite)') ?></span></label>
+            <div class="two-col">
+                <div>
+                    <label for="b-imprint" class="muted small"><?= t('Impressum') ?></label>
+                    <input id="b-imprint" type="text" name="legal_imprint" maxlength="300"
+                           value="<?= e((string)($recht['imprint'] ?? '')) ?>"
+                           placeholder="<?= t('impressum.html oder https://…') ?>">
+                </div>
+                <div>
+                    <label for="b-privacy" class="muted small"><?= t('Datenschutzerklärung') ?></label>
+                    <input id="b-privacy" type="text" name="legal_privacy" maxlength="300"
+                           value="<?= e((string)($recht['privacy'] ?? '')) ?>"
+                           placeholder="<?= t('datenschutz.html oder https://…') ?>">
+                </div>
+            </div>
+            <p class="muted small"><?= t('Leer = die Vorgabe der Instanz (falls eingerichtet). Wer die Seite geschäftlich betreibt, trägt hier sein eigenes Impressum ein – er ist für die Seite selbst verantwortlich.') ?></p>
         </div>
         <?php endif; ?>
 
