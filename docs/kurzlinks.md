@@ -53,7 +53,11 @@ anderen auf dem Hauptziel.
 | Anteil (A/B) | eine Zahl von 1 bis 99 | ein Würfelwurf je Aufruf |
 
 Die drei Felder einer Weiche sind immer dieselben: **Merkmal**, **Wert**,
-**Ziel**. Der Wert ist das, was zutreffen muss – `mobile`, `en`, `at`, oder
+**Ziel**. Welche Werte gelten, steht als Tabelle unter den Zeilen, und das
+Eingabefeld richtet sich nach dem gewählten Merkmal – beim Anteil wird es ein
+Zahlenfeld mit Grenzen, sonst bekommt es passende Vorschläge. Was trotzdem
+nicht passt, lehnt der Server beim Speichern ab: „Handy" statt `mobile` oder
+`30%` statt `30` wird nicht stillschweigend übernommen. Der Wert ist das, was zutreffen muss – `mobile`, `en`, `at`, oder
 beim Anteil die Prozentzahl. `30` heißt: knapp jeder dritte Aufruf landet auf
 diesem Ziel, der Rest geht weiter zur nächsten Weiche oder zum Hauptziel. Damit
 lässt sich ein A/B-Test bauen, ohne dass jemand wiedererkannt wird: Der Würfel

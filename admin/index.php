@@ -564,15 +564,44 @@ if ($neu !== null && link_access($user, $neu)):
                 <span class="muted small weiche-n"><?= isset($klicks[(string)$i]) ? t('%dx', (int)$klicks[(string)$i]) : '' ?></span>
             </div>
             <?php endforeach; ?>
-            <datalist id="weichen-werte">
+            <datalist id="weichen-geraete">
+                <?php foreach (route_werte('device') as $w => $label): ?>
+                <option value="<?= e($w) ?>"><?= e($label) ?></option>
+                <?php endforeach; ?>
+            </datalist>
+            <datalist id="weichen-sprachen">
+                <option value="de">Deutsch</option><option value="en">English</option>
+                <option value="fr">Français</option><option value="es">Español</option>
+                <option value="at">Österreich</option><option value="ch">Schweiz</option>
+            </datalist>
+            <datalist id="weichen-werte"><?php // Rückfall ohne Skript ?>
                 <?php foreach (route_werte('device') as $w => $label): ?>
                 <option value="<?= e($w) ?>"><?= e($label) ?></option>
                 <?php endforeach; ?>
                 <option value="de">Deutsch</option><option value="en">English</option>
             </datalist>
-            <p class="muted small">
-                <?= t('Was in das mittlere Feld gehört: bei <b>Gerät</b> mobile, tablet oder desktop · bei <b>Sprache</b> das Kürzel (de, en) · bei <b>Land</b> das Länderkürzel (at, ch) · bei <b>Anteil (A/B)</b> eine Zahl von 1 bis 99 – „30" heißt: knapp jeder dritte Aufruf landet hier, der Rest geht weiter zur nächsten Weiche oder zum Hauptziel.') ?>
-            </p>
+            <table class="weichen-hilfe">
+                <tr>
+                    <th><?= t('Gerät') ?></th>
+                    <td><code>mobile</code> · <code>tablet</code> · <code>desktop</code></td>
+                    <td class="muted"><?= t('grob aus der Browser-Kennung; etwas anderes wird abgelehnt') ?></td>
+                </tr>
+                <tr>
+                    <th><?= t('Sprache') ?></th>
+                    <td><code>de</code> · <code>en</code> · <code>fr</code> …</td>
+                    <td class="muted"><?= t('immer zwei Buchstaben – <code>en</code> trifft auch bei <code>en-GB</code>, und ein Zweitwunsch des Browsers zählt mit') ?></td>
+                </tr>
+                <tr>
+                    <th><?= t('Land') ?></th>
+                    <td><code>at</code> · <code>ch</code> …</td>
+                    <td class="muted"><?= t('zwei Buchstaben; kommt von einem vorgeschalteten Dienst') ?></td>
+                </tr>
+                <tr>
+                    <th><?= t('Anteil (A/B)') ?></th>
+                    <td><code>1</code> – <code>99</code></td>
+                    <td class="muted"><?= t('Prozent, ohne Zeichen: <code>30</code> schickt knapp jeden dritten Aufruf hierher, der Rest geht weiter zur nächsten Weiche oder zum Hauptziel') ?></td>
+                </tr>
+            </table>
             <p class="muted small"><?= t('Leere Zeilen werden nicht gespeichert. Eine Weiche löschen: Wert und Ziel leeren.') ?></p>
         </details>
         <?php endif; ?>

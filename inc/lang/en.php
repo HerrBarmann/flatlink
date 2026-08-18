@@ -1042,7 +1042,7 @@ your password immediately and contact us.
     '%dx' => '%d×',
     'Höchstens %d Weichen je Link.' => 'At most %d switches per link.',
     'Zu jeder Weiche gehört ein Wert – sonst ist nicht klar, wann sie greift.' => 'Every switch needs a value – otherwise it is unclear when it applies.',
-    'Sprache und Land werden mit zwei Buchstaben angegeben (z. B. „en" oder „at").' => 'Language and country are given as two letters (e.g. "en" or "at").',
+    'Sprache und Land werden mit zwei Buchstaben angegeben (z. B. „en“ oder „at“).' => 'Language and country are given as two letters (e.g. "en" or "at").',
     'Unbekannte Geräteart in einer Weiche.' => 'Unknown device kind in a switch.',
     'Unbekanntes Merkmal in einer Weiche.' => 'Unknown attribute in a switch.',
     'Für Weichen fehlt diesem Konto die Berechtigung.' => 'This account lacks the permission to set switches.',
@@ -1138,6 +1138,10 @@ your password immediately and contact us.
     'Die Suche schlug fehl – stimmt die Basis-DN?' => 'The search failed – is the base DN correct?',
 
     // Weichen: Hilfetexte
+    'grob aus der Browser-Kennung; etwas anderes wird abgelehnt' => 'roughly from the browser identification; anything else is rejected',
+    'immer zwei Buchstaben – <code>en</code> trifft auch bei <code>en-GB</code>, und ein Zweitwunsch des Browsers zählt mit' => 'always two letters – <code>en</code> also matches <code>en-GB</code>, and a browser\'s second choice counts too',
+    'zwei Buchstaben; kommt von einem vorgeschalteten Dienst' => 'two letters; supplied by an upstream service',
+    'Prozent, ohne Zeichen: <code>30</code> schickt knapp jeden dritten Aufruf hierher, der Rest geht weiter zur nächsten Weiche oder zum Hauptziel' => 'per cent, without a sign: <code>30</code> sends roughly every third visit here, the rest moves on to the next switch or the main target',
     'Weichen' => 'Switches',
     '(optional – je nach Gerät, Sprache, Land oder Anteil woandershin)' => '(optional – elsewhere depending on device, language, country or share)',
     'Die erste zutreffende Weiche gewinnt; trifft keine zu, gilt die Ziel-URL oben. Leere Zeilen werden nicht gespeichert. Was in das mittlere Feld gehört, steht beim Bearbeiten ausführlicher.' => 'The first matching switch wins; if none matches, the target URL above applies. Empty rows are not saved. What belongs in the middle field is explained in more detail when editing.',

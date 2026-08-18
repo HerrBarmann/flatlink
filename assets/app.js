@@ -125,6 +125,41 @@
         });
     });
 
+    // Weichen: Das Wertfeld richtet sich nach dem gewählten Merkmal.
+    //
+    // „mobile / en / at / 50" als Platzhalter für alle vier Merkmale zugleich
+    // sagt niemandem, was jetzt gerade gefragt ist. Bei „Anteil" wird daraus
+    // ein Zahlenfeld mit Grenzen, sonst ein Textfeld mit passenden Vorschlägen.
+    // Ohne dieses Skript bleibt es beim Freitext – der Server prüft ohnehin.
+    function weichenFeld(auswahl) {
+        var zeile = auswahl.closest('.weiche');
+        if (!zeile) return;
+        var wert = zeile.querySelector('input[name^="ri["]');
+        if (!wert) return;
+        var art = auswahl.value;
+        if (art === 'split') {
+            wert.type = 'number';
+            wert.min = '1';
+            wert.max = '99';
+            wert.placeholder = '30';
+            wert.removeAttribute('list');
+            wert.title = 'Anteil in Prozent, 1 bis 99';
+        } else {
+            wert.type = 'text';
+            wert.removeAttribute('min');
+            wert.removeAttribute('max');
+            wert.setAttribute('list', art === 'device' ? 'weichen-geraete' : 'weichen-sprachen');
+            wert.placeholder = art === 'device' ? 'mobile' : (art === 'lang' ? 'en' : 'at');
+            wert.title = art === 'device'
+                ? 'mobile, tablet oder desktop'
+                : 'zwei Buchstaben, z. B. ' + (art === 'lang' ? 'de oder en' : 'at oder ch');
+        }
+    }
+    document.addEventListener('change', function (e) {
+        if (e.target.matches('.weiche select')) weichenFeld(e.target);
+    });
+    document.querySelectorAll('.weiche select').forEach(weichenFeld);
+
     // Absicherung: Enter in einem Eingabefeld schickt das Formular ab, auch
     // wenn Autofill oder Erweiterungen die implizite Übermittlung schlucken.
     document.addEventListener('keydown', function (e) {

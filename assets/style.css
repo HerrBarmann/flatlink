@@ -641,6 +641,21 @@ button, .btn, a, summary, label, input, select, textarea {
     .weiche input[type="text"]:last-of-type { flex-basis: 100%; }
 }
 
+/* Hilfe zu den Weichen: drei Spalten – Merkmal, erlaubte Werte, Erläuterung.
+   Als Tabelle statt Fließtext, weil man hier nachschlägt und nicht liest. */
+.weichen-hilfe { border-collapse: collapse; margin: 0.6rem 0 0.4rem; font-size: 0.85rem; }
+.weichen-hilfe th,
+.weichen-hilfe td { text-align: left; vertical-align: top; padding: 0.15rem 0.8rem 0.15rem 0; font-weight: normal; }
+.weichen-hilfe th { white-space: nowrap; font-weight: 600; }
+.weichen-hilfe code { font-size: 0.95em; }
+
+@media (max-width: 560px) {
+    /* Auf schmalen Schirmen ergibt die dritte Spalte zwei Buchstaben je Zeile */
+    .weichen-hilfe, .weichen-hilfe tr, .weichen-hilfe th, .weichen-hilfe td { display: block; }
+    .weichen-hilfe tr { margin-bottom: 0.5rem; }
+    .weichen-hilfe th { margin-bottom: 0.1rem; }
+}
+
 /* Die Logo-Bibliothek: eine Karte je Logo, Bild links, Verwaltung rechts.
    Auf schmalen Schirmen untereinander – ein Logo neben einer Checkbox-Liste
    ergibt bei 380 Pixeln zwei unlesbare Spalten. */

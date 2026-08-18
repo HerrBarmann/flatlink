@@ -250,7 +250,7 @@ function route_from_form(array $wenn, array $ist, array $urls): array
                 return [t('Der Anteil ist eine Zahl zwischen 1 und 99 (Prozent).'), []];
             }
         } elseif ($w !== 'device' && preg_match('/^[a-z]{2}$/i', $wert) !== 1) {
-            return [t('Sprache und Land werden mit zwei Buchstaben angegeben (z. B. „en" oder „at").'), []];
+            return [t('Sprache und Land werden mit zwei Buchstaben angegeben (z. B. „en“ oder „at“).'), []];
         } elseif ($w === 'device' && !isset(route_werte('device')[$wert])) {
             return [t('Unbekannte Geräteart in einer Weiche.'), []];
         }
