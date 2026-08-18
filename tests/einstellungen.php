@@ -133,8 +133,20 @@ if ($vorher !== null) file_put_contents($datei, $vorher);
 @unlink($keks);
 // Das Testkonto verschwindet wieder – ein Admin-Konto, dessen Passwort im
 // Quelltext dieses Skripts steht, hat einen Testlauf nicht zu überleben.
+//
+// Auf einer frischen Wegwerf-Instanz ist es der EINZIGE Administrator, und
+// user_delete() weigert sich dann zu Recht. Hier ist der Wächter fehl am
+// Platz: Das Skript hat das Konto selbst angelegt, und es zu entfernen stellt
+// nur den Zustand von vorher wieder her – notfalls „noch gar kein Konto",
+// womit die Ersteinrichtung wieder greift. Deshalb erst der ordentliche Weg
+// (räumt auch Schlüssel und Bestätigungen ab), dann der direkte.
 require_once __DIR__ . '/../inc/auth.php';
-user_delete($name);
+if (user_delete($name) !== null) {
+    users_update(function (array $users) use ($name) {
+        unset($users[$name]);
+        return $users;
+    }, $name);
+}
 pruefe('Testkonto wieder entfernt', user_get($name) === null);
 
 echo "\n", $fehler === 0
