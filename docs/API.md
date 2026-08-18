@@ -201,6 +201,65 @@ seine Uhrzeit oder seine Adresse liefert, weil so etwas nirgends steht.
 Beide gelten für `POST /links` und `PATCH /links/{code}` und stehen in jeder
 Link-Antwort.
 
+### Schlagworte (`/tags`)
+
+Schlagworte hängen an den Links; hier lassen sie sich über den ganzen
+erreichbaren Bestand auf einmal verwalten – „erreichbar" heißt dieselbe
+Menge, die auch je Link gilt: eigene Links plus die der Arbeitsgruppen, für
+Administratoren alle.
+
+| Aufruf | Wirkung |
+| --- | --- |
+| `GET /tags` | alle vergebenen Schlagworte mit Anzahl der Links |
+| `PATCH /tags/{tag}` | umbenennen, Feld `name`; trägt ein Link beide, verschmelzen sie |
+| `DELETE /tags/{tag}` | von allen Links entfernen |
+
+```bash
+curl -X PATCH https://example.org/api/tags/kampanien \
+  -H "Authorization: Bearer $KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"kampagne"}'
+```
+
+```json
+{ "tag": "kampagne", "renamed_from": "kampanien", "links": 12 }
+```
+
+Der neue Name durchläuft dieselbe Aufbereitung wie beim Link: kleingeschrieben,
+höchstens 24 Zeichen. Ein Schlagwort, das keiner der eigenen Links trägt,
+antwortet mit 404. So wird aus dem Tippfehler in dreißig Links ein Aufruf
+statt dreißig `PATCH`es.
+
+### `GET /health`
+
+Der eine Endpunkt **ohne Schlüssel** – für Monitoring gedacht: Ein Wächter
+soll keinen Zugangsschlüssel hinterlegen müssen. Antwortet die Instanz und
+ist ihre Ablage lesbar, kommt 200:
+
+```json
+{ "status": "pass" }
+```
+
+Sonst 503 mit `"fail"`. Mehr steht da absichtlich nicht – ein anonym
+abrufbarer Endpunkt verrät weder Version noch Zahlen.
+
+## QR-Code abrufen
+
+Der QR-Code eines Kurzlinks ist keine eigene Ressource der Schnittstelle,
+sondern derselbe öffentliche Weg, den auch die Oberfläche nutzt – ein Code
+gehört zum Link, nicht zum Konto, und braucht deshalb keinen Schlüssel:
+
+```bash
+curl -o code.svg "https://example.org/qr.php?c=abc123&format=svg"
+```
+
+`format` kann `svg`, `png`, `pdf` oder `eps` sein; dazu kommen die
+Gestaltungsparameter des Designers (`style`, `eye`, `fg`, `bg`, `size`,
+`margin` …) – die vollständige Liste samt Werten steht im
+[QR-Handbuch](qr-generator.md). Unbekannte Codes antworten mit 404, das
+Rate-Limit ist `qr_rate_limit` (Vorgabe 600 je Stunde und Adresse, die
+schweren Druckformate enger).
+
 ## Fehler
 
 ```json

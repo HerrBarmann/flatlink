@@ -196,6 +196,63 @@ address, because no such thing is kept anywhere.
 Both apply to `POST /links` and `PATCH /links/{code}` and appear in every
 link response.
 
+### Tags (`/tags`)
+
+Tags hang on the links; here they can be managed across the whole reachable
+inventory at once – "reachable" being the same set that applies per link:
+your own links plus those of your working groups, everything for
+administrators.
+
+| Call | Effect |
+| --- | --- |
+| `GET /tags` | every tag in use, with its link count |
+| `PATCH /tags/{tag}` | rename, field `name`; if a link carries both, they merge |
+| `DELETE /tags/{tag}` | remove from all links |
+
+```bash
+curl -X PATCH https://example.org/api/tags/campain \
+  -H "Authorization: Bearer $KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"campaign"}'
+```
+
+```json
+{ "tag": "campaign", "renamed_from": "campain", "links": 12 }
+```
+
+The new name goes through the same treatment as on a link: lowercased, at
+most 24 characters. A tag none of your links carries answers with 404. That
+turns the typo in thirty links into one call instead of thirty `PATCH`es.
+
+### `GET /health`
+
+The one endpoint **without a key** – meant for monitoring: a watchdog should
+not have to store an access key. If the instance answers and its storage is
+readable, you get 200:
+
+```json
+{ "status": "pass" }
+```
+
+Otherwise 503 with `"fail"`. Deliberately nothing more – an anonymously
+reachable endpoint reveals neither version nor numbers.
+
+## Fetching a QR code
+
+A short link's QR code is not a separate API resource but the same public
+route the interface uses – the code belongs to the link, not to an account,
+and therefore needs no key:
+
+```bash
+curl -o code.svg "https://example.org/qr.php?c=abc123&format=svg"
+```
+
+`format` can be `svg`, `png`, `pdf` or `eps`; on top come the designer's
+styling parameters (`style`, `eye`, `fg`, `bg`, `size`, `margin` …) – the
+complete list with values is in the [QR manual](qr-generator.en.md). Unknown
+codes answer with 404, the rate limit is `qr_rate_limit` (default 600 per
+hour and address, tighter for the heavy print formats).
+
 ## Errors
 
 ```json

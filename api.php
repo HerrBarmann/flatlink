@@ -78,6 +78,24 @@ if ($pfad === '') $pfad = (string)($_GET['p'] ?? '');
 $pfad = (string)preg_replace('#^/?api(?:\.php)?(?=/|$)#i', '', $pfad);
 $teile = array_values(array_filter(explode('/', trim($pfad, '/')), fn($t) => $t !== ''));
 
+// ---- Gesundheit (ohne Schlüssel) -----------------------------------------
+// Für Monitoring: Antwortet die Instanz, und ist ihre Ablage lesbar? Bewusst
+// vor der Anmeldung – ein Wächter soll keinen Schlüssel hinterlegen müssen –
+// und bewusst ohne Version und Zahlen: Ein anonym abrufbarer Endpunkt verrät
+// nicht mehr, als er muss. Die Prüfung kostet einen SELECT und damit weniger
+// als jede Weiterleitung; ein eigenes Rate-Limit würde nur die Wächter treffen.
+if (($teile[0] ?? '') === 'health' && count($teile) === 1) {
+    if ($method !== 'GET' && $method !== 'HEAD') {
+        api_fail(405, 'method_not_allowed', t('Hier ist nur GET vorgesehen.'));
+    }
+    try {
+        db()->query('SELECT 1');
+        api_out(200, ['status' => 'pass']);
+    } catch (Throwable) {
+        api_out(503, ['status' => 'fail']);
+    }
+}
+
 /** Körper der Anfrage: JSON oder Formularfelder, beides ist erlaubt */
 function api_body(): array
 {
@@ -377,4 +395,64 @@ if ($ressource === 'links') {
     api_fail(405, 'method_not_allowed', t('Hier sind GET, PATCH und DELETE vorgesehen.'));
 }
 
-api_fail(404, 'not_found', t('Unbekannter Endpunkt. Verfügbar sind /me und /links.'));
+if ($ressource === 'tags') {
+    // ---- Schlagwort-Verwaltung ----
+    // „Instanzweit" heißt hier: über alle Links, die das Konto verwalten darf
+    // (links_visible) – dieselbe Menge, die auch PATCH und DELETE je Link
+    // regieren. Ein Administrator erfasst damit wirklich den ganzen Bestand.
+    if (count($teile) === 1) {
+        if ($method !== 'GET') api_fail(405, 'method_not_allowed', t('Hier ist nur GET vorgesehen.'));
+        $z = tags_counts(links_visible($user));
+        ksort($z, SORT_NATURAL | SORT_FLAG_CASE);
+        $out = [];
+        foreach ($z as $t => $n) $out[] = ['tag' => (string)$t, 'links' => $n];
+        api_out(200, ['total' => count($out), 'tags' => $out]);
+    }
+
+    if (count($teile) === 2) {
+        // PATH_INFO kommt dekodiert an, die Adresse selbst nicht – für ein
+        // Schlagwort mit Leerzeichen muss beides denselben Wert ergeben.
+        $tag = tags_normalize(rawurldecode($teile[1]))[0] ?? '';
+        if ($tag === '') api_fail(404, 'not_found', t('Dieses Schlagwort trägt keiner deiner Links.'));
+        $betroffen = array_keys(array_filter(links_visible($user),
+            fn($l) => in_array($tag, (array)($l['tags'] ?? []), true)));
+        if ($betroffen === []) {
+            api_fail(404, 'not_found', t('Dieses Schlagwort trägt keiner deiner Links.'));
+        }
+
+        if ($method === 'PATCH' || $method === 'PUT') {
+            $in = api_body();
+            $neu = tags_normalize((string)($in['name'] ?? ''))[0] ?? '';
+            if ($neu === '') api_fail(422, 'rejected', t('Ein neuer Name fehlt (Feld „name").'));
+            if ($neu !== $tag) {
+                foreach ($betroffen as $c) {
+                    link_write((string)$c, function (?array $l) use ($tag, $neu) {
+                        if ($l === null) return false;
+                        // Ersetzen statt anhängen: Trägt der Link den neuen
+                        // Namen schon, verschmelzen die beiden zu einem.
+                        $tags = array_map(fn($t) => $t === $tag ? $neu : $t, (array)($l['tags'] ?? []));
+                        $l['tags'] = tags_normalize($tags);
+                        return $l;
+                    });
+                }
+            }
+            api_out(200, ['tag' => $neu, 'renamed_from' => $tag, 'links' => count($betroffen)]);
+        }
+
+        if ($method === 'DELETE') {
+            foreach ($betroffen as $c) {
+                link_write((string)$c, function (?array $l) use ($tag) {
+                    if ($l === null) return false;
+                    $tags = array_values(array_diff((array)($l['tags'] ?? []), [$tag]));
+                    if ($tags === []) unset($l['tags']); else $l['tags'] = $tags;
+                    return $l;
+                });
+            }
+            api_out(200, ['deleted' => $tag, 'links' => count($betroffen)]);
+        }
+
+        api_fail(405, 'method_not_allowed', t('Hier sind PATCH und DELETE vorgesehen.'));
+    }
+}
+
+api_fail(404, 'not_found', t('Unbekannter Endpunkt. Verfügbar sind /me, /links, /tags und /health.'));
