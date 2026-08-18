@@ -2,7 +2,7 @@
 
 Wie aus Rechten Tarife werden, wie Teams gemeinsam Links verwalten, wie sich
 Namensräume und eigene Domains je Kunde abgrenzen lassen. Zurück zur
-[README](../README.md). – 🇬🇧 [English version](gruppen.en.md).
+[README](../README.de.md). – 🇬🇧 [English version](gruppen.en.md).
 
 ## Gruppen und Rechte
 

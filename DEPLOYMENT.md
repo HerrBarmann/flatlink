@@ -2,7 +2,7 @@
 
 Eine Anleitung von der leeren Maschine bis zur angebundenen Hochschul-Anmeldung.
 Sie ist bewusst ausführlich – wer nur schnell etwas ausprobieren will, ist mit
-den drei Zeilen im [README](README.md#installation) schneller.
+den drei Zeilen im [README](README.de.md#installation) schneller.
 
 **Inhalt**
 

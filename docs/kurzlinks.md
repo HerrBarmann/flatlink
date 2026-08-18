@@ -2,7 +2,7 @@
 
 Ordnung und Werkzeuge rund um die Links: Schlagworte, Kampagnen-Parameter,
 Link-in-Bio-Seiten und der Umzug von einem anderen Dienst. Zurück zur
-[README](../README.md). – 🇬🇧 [English version](kurzlinks.en.md).
+[README](../README.de.md). – 🇬🇧 [English version](kurzlinks.en.md).
 
 ## Schlagworte
 

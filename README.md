@@ -1,41 +1,40 @@
 <h1 align="center">flatlink</h1>
 
 <p align="center">
-  <strong>Der Kurzlink-Dienst zum Selbstbetreiben – mit QR-Designer und Link-in-Bio.</strong><br>
-  Reines PHP. Kein Datenbank-Server, kein Composer, kein Build-Schritt –<br>
-  Dateien auf einen Webspace kopieren, fertig.
+  <strong>The self-hosted URL shortener – with a QR designer and link-in-bio pages.</strong><br>
+  Plain PHP. No database server, no Composer, no build step –<br>
+  copy the files to a web space and you're done.
 </p>
 
 <p align="center">
-  <a href="LICENSE"><img alt="AGPL-3.0-Lizenz" src="https://img.shields.io/badge/Lizenz-AGPL--3.0-1a7f37"></a>
+  <a href="LICENSE"><img alt="AGPL-3.0 license" src="https://img.shields.io/badge/License-AGPL--3.0-1a7f37"></a>
   <img alt="PHP 8.1+" src="https://img.shields.io/badge/PHP-8.1%2B-777bb4">
-  <img alt="Keine Abhängigkeiten" src="https://img.shields.io/badge/Abh%C3%A4ngigkeiten-0-0a7ea4">
-  <img alt="Kein Datenbank-Server" src="https://img.shields.io/badge/Datenbank--Server-keiner-555">
+  <img alt="Zero dependencies" src="https://img.shields.io/badge/Dependencies-0-0a7ea4">
+  <img alt="No database server" src="https://img.shields.io/badge/Database%20server-none-555">
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/linkliste.png" alt="Die Linkliste mit Schlagworten, Gruppen und Klickzahlen" width="820">
+  <img src="docs/screenshots/linkliste.png" alt="The link list with tags, groups and click counts" width="820">
 </p>
 
-> 🇬🇧 English version: **[README.en.md](README.en.md)** – the manual chapters
-> are translated as well.
+> 🇩🇪 Deutsche Fassung: **[README.de.md](README.de.md)** – German is the project's
+> source language; this translation follows it.
 
 ---
 
-## Der Punkt
+## The point
 
-flatlink will der beste quelloffene Kurzlink-Dienst zum Selbstbetreiben sein –
-mit einem QR-Generator, der bis zur Druckerei reicht, und Link-in-Bio-Seiten.
-Gebaut ist er für die Orte, an denen so etwas am dringendsten fehlt:
-Hochschulen, Bibliotheken und Verwaltungen, die ihre Links nicht an einen
-Dienst außerhalb des Hauses geben wollen oder dürfen. Anmeldung über LDAP und
-Shibboleth, Gruppen mit Rechten und Limits, Namensräume je Abteilung und
-mehrere Domains sind deshalb keine Anbauten, sondern der Kern.
+flatlink wants to be the best open-source URL shortener you can run yourself –
+with a QR generator that goes all the way to the print shop, and link-in-bio
+pages. It is built for the places that need such a thing most urgently:
+universities, libraries and public bodies that cannot – or must not – hand
+their links to a service outside the house. Sign-in via LDAP and Shibboleth,
+groups with permissions and limits, namespaces per department and multiple
+domains are therefore not add-ons but the core.
 
-Datenschutz ist bei diesem Einsatzzweck keine eigene Funktion – er geht mit
-einher, als Bauweise. Wo praktisch jeder Kurzlink-Dienst protokolliert,
-**wer** klickt, speichert flatlink je Link genau das hier – vollständig,
-nicht gekürzt:
+For this purpose, privacy is not a separate feature – it comes along as a way
+of building. Where practically every URL shortener logs **who** clicks,
+flatlink stores exactly this per link – in full, not abridged:
 
 ```json
 { "n": 1840, "last": "2026-08-14", "days": { "2026-08-14": 72 },
@@ -44,72 +43,75 @@ nicht gekürzt:
   "langs": { "de": 1701, "en": 139 } }
 ```
 
-Zähler, sonst nichts. Kein Datensatz für einzelne Aufrufe, also keine
-IP-Adressen und keine gespeicherten Geräte- oder Browser-Kennungen. Die drei
-unteren Zeilen beantworten die häufigste Frage an eine Statistik – *woher
-kommen meine Klicks?* –, ohne dafür Besucher zu verfolgen: Aus jeder Anfrage
-werden drei grobe Merkmale gebildet und **aufaddiert**. Vom Referrer bleibt nur
-der Hostname (nie der Pfad, der eine Suchanfrage enthalten kann), von der
-Browser-Kennung eines von drei Wörtern, von der Sprachliste zwei Buchstaben.
-Aus einer Summe lässt sich kein einzelner Besuch herauslesen, weil nie ein
-einzelner Besuch gespeichert wird.
+Counters, nothing else. No record for individual visits, hence no IP addresses
+and no stored device or browser fingerprints. The lower three lines answer the
+most common question asked of any statistic – *where do my clicks come from?* –
+without following visitors to do it: three coarse attributes are derived from
+each request and **added up**. From the referrer only the hostname survives
+(never the path, which can carry a search query), from the browser identifier
+one of three words, from the language list two letters. No single visit can be
+read out of a total, because no single visit is ever stored.
 
-Wem selbst das zu viel ist, schaltet es ab (`'click_dims' => false`) und hat
-wieder genau die erste Zeile.
+For anyone to whom even that is too much: switch it off
+(`'click_dims' => false`) and the first line is all that remains.
 
-Auch der letzte Aufruf steht nur tagesgenau da. Bei einem Link mit einer
-Handvoll Aufrufe wäre eine Uhrzeit sonst der einzige Wert im ganzen Bestand,
-über den sich ein einzelner Besuch zeitlich verorten – und mit anderen Quellen
-zusammenführen – ließe.
+Even the last visit is only recorded to the day. For a link with a handful of
+clicks, a time of day would otherwise be the single value in the whole data
+set by which one visit could be placed in time – and joined with other
+sources.
 
-Das ist keine Absichtserklärung, sondern in [`inc/store.php`](inc/store.php) in
-etwa zehn Zeilen nachlesbar (`clicks_bump()`). Prüf es nach – genau dafür liegt
-der Code offen. Der Weiterleitungspfad (`go.php`) startet nicht einmal eine
-Session, solange kein Passwortschutz auf dem Link liegt.
+This is not a statement of intent; it can be read in
+[`inc/store.php`](inc/store.php) in about ten lines (`clicks_bump()`). Go
+check – that is exactly why the code is open. The redirect path (`go.php`)
+does not even start a session unless the link is password-protected.
 
 <p align="center">
-  <img src="docs/screenshots/statistik.png" alt="Statistik eines Links: Tageswerte, Monatsübersicht, CSV-Export" width="760">
+  <img src="docs/screenshots/statistik.png" alt="Statistics of a link: daily values, monthly overview, CSV export" width="760">
 </p>
 
-## Wie es aussieht
+## What it looks like
+
+The screenshots show the German interface; the language is switchable per
+instance – see [What's included](#whats-included).
 
 <table>
 <tr>
 <td width="50%" valign="top">
-<a href="docs/screenshots/qr-designer.png"><img src="docs/screenshots/qr-designer.png" alt="QR-Designer mit Modul- und Augenformen, Farben und Live-Vorschau"></a>
-<p><strong>QR-Designer.</strong> Modul- und Augenformen, freie Farben, Logo in
-der Mitte, Rahmen mit Text. Export als SVG, PNG, Vektor-PDF und EPS, wahlweise in
-CMYK – aus einem eigenen Encoder, ohne Fremdbibliothek.</p>
-<p><strong>Fünf Typen, ein Generator.</strong> Neben Adressen und Kurzlinks
-auch WLAN-Zugänge, Kontakte (vCard), Termine (iCalendar) und GS1 Digital
-Links – über Reiter erreichbar, mit denselben Gestaltungsoptionen. Diese vier
-sind statisch: Die Daten stehen im Code, nichts wird gespeichert, sie
-funktionieren auch ohne die Instanz weiter.</p>
+<a href="docs/screenshots/qr-designer.png"><img src="docs/screenshots/qr-designer.png" alt="QR designer with module and eye shapes, colors and live preview"></a>
+<p><strong>QR designer.</strong> Module and eye shapes, free colors, a logo in
+the middle, a frame with text. Export as SVG, PNG, vector PDF and EPS,
+optionally in CMYK – from an in-house encoder, without any third-party
+library.</p>
+<p><strong>Five types, one generator.</strong> Besides URLs and short links
+also Wi-Fi access, contacts (vCard), events (iCalendar) and GS1 Digital
+Links – reachable via tabs, with the same design options. These four are
+static: the data lives in the code itself, nothing is stored, and they keep
+working even without the instance.</p>
 </td>
 <td width="50%" valign="top">
-<a href="docs/screenshots/qr-serie.png"><img src="docs/screenshots/qr-serie.png" alt="QR-Serie: mehrere Links auswählen und als ZIP herunterladen"></a>
-<p><strong>QR-Serien.</strong> Zwanzig Tischaufsteller in einem Archiv, mit
-Übersicht als CSV für die Druckerei. Das ZIP schreibt flatlink selbst – auch
-ohne die PHP-Erweiterung <code>zip</code>.</p>
+<a href="docs/screenshots/qr-serie.png"><img src="docs/screenshots/qr-serie.png" alt="QR batch: select several links and download them as a ZIP"></a>
+<p><strong>QR batches.</strong> Twenty table displays in one archive, with a
+CSV overview for the print shop. flatlink writes the ZIP itself – even
+without the PHP <code>zip</code> extension.</p>
 </td>
 </tr>
 <tr>
 <td width="50%" valign="top">
-<a href="docs/screenshots/neuer-link.png"><img src="docs/screenshots/neuer-link.png" alt="Formular für einen neuen Kurzlink mit Name, Schlagworten und UTM-Baukasten"></a>
-<p><strong>Anlegen.</strong> Wunsch-Name, Name für die eigene Übersicht,
-Schlagworte zum Filtern, Ablaufdatum, Passwortschutz und ein Baukasten für
-Kampagnen-Parameter.</p>
+<a href="docs/screenshots/neuer-link.png"><img src="docs/screenshots/neuer-link.png" alt="Form for a new short link with name, tags and UTM builder"></a>
+<p><strong>Creating.</strong> Custom name, a label for your own overview,
+tags for filtering, expiry date, password protection and a builder for
+campaign parameters.</p>
 </td>
 <td width="50%" valign="top" align="center">
-<a href="docs/screenshots/link-in-bio.png"><img src="docs/screenshots/link-in-bio.png" alt="Link-in-Bio-Seite mit fünf Zielen" width="260"></a>
-<p align="left"><strong>Link-in-Bio.</strong> Eine Seite mit mehreren Zielen
-unter einem Kurzcode. Gezählt wie alles andere: je Tag, für die Seite und je
-Ziel, ohne Besucher-Datensatz.</p>
+<a href="docs/screenshots/link-in-bio.png"><img src="docs/screenshots/link-in-bio.png" alt="Link-in-bio page with five targets" width="260"></a>
+<p align="left"><strong>Link in bio.</strong> One page with several targets
+under one short code. Counted like everything else: per day, for the page and
+per target, without visitor records.</p>
 </td>
 </tr>
 </table>
 
-## In fünf Minuten läuft es
+## Running in five minutes
 
 ```bash
 git clone https://github.com/HerrBarmann/flatlink.git
@@ -118,117 +120,117 @@ cp inc/config.example.php inc/config.php
 php -S localhost:8080 router.php
 ```
 
-Im Browser `http://localhost:8080/admin/` öffnen – der erste Aufruf legt das
-Admin-Konto an. (`router.php` bildet für den eingebauten Server nach, was im
-Betrieb die `.htaccess` erledigt – ohne ihn führt ein Kurzlink zur Startseite
-statt zum Ziel.) Für den Dauerbetrieb: Dateien auf den Webspace kopieren,
-`data/` beschreibbar machen, `base_url` in der Konfiguration eintragen.
-Ausführlich unter [Installation](#installation).
+Open `http://localhost:8080/admin/` in the browser – the first visit creates
+the admin account. (`router.php` emulates for the built-in server what the
+`.htaccess` does in production – without it, a short link leads to the start
+page instead of its target.) For production: copy the files to your web space,
+make `data/` writable, set `base_url` in the configuration. Details under
+[Installation](#installation). For an English interface, set
+`'language' => 'en'` in `inc/config.php` or switch it later under *Settings*.
 
-## Für wen das gedacht ist
+## Who this is for
 
-- **Hochschulen, Bibliotheken, Schulen, Verwaltungen**, die Kurzlinks nicht an
-  einen Dienst außerhalb Europas geben dürfen. Anmeldung über LDAP oder
-  Shibboleth, Gruppen mit eigenen Rechten und Limits, Namensräume je Abteilung.
-- **Vereine, Praxen, Restaurants, kleine Betriebe**, die einen QR-Code drucken
-  und das Ziel später ändern wollen, ohne den Aufkleber zu tauschen.
-- **Agenturen**, die mehrere Marken bedienen: eigene Domains je Kunde,
-  gemeinsame Arbeitsgruppen, Schnittstelle für die Automatisierung.
-- **Alle, die einen Satz belegen wollen statt ihn zu behaupten.** „Wir tracken
-  nicht" ist auf einer Website eine Behauptung. Mit dem Quelltext daneben wird
-  sie überprüfbar.
+- **Universities, libraries, schools, public administrations** that must not
+  hand short links to a service outside Europe. Sign-in via LDAP or
+  Shibboleth, groups with their own permissions and limits, namespaces per
+  department.
+- **Clubs, practices, restaurants, small businesses** that want to print a QR
+  code and change its target later without replacing the sticker.
+- **Agencies** serving several brands: separate domains per client, shared
+  working groups, an API for automation.
+- **Anyone who wants to prove a sentence instead of asserting it.** "We don't
+  track" is a claim on a website. With the source code next to it, it becomes
+  verifiable.
 
-## Wo es im Einsatz ist
+## Where it runs in production
 
-Dass die Software den Alltag aushält, lässt sich nachsehen: Auf derselben
-technischen Basis läuft der öffentliche Dienst [1337.kiwi](https://1337.kiwi)
-– ein Nebeneffekt des Projekts, mit eigenem Design und den Inhalten, die ein
-öffentliches Angebot braucht. Was sich dort im Betrieb bewährt, steht hier im
-Quelltext; was hier für Organisationen dazukommt (zentrale Anmeldung, Gruppen,
-Rechte), braucht der öffentliche Dienst nicht.
+Whether the software survives everyday use can be checked: the public service
+[1337.kiwi](https://1337.kiwi) runs on the same technical base – a side effect
+of the project, with its own design and the content a public offering needs.
+What proves itself in operation there ends up in this source; what is added
+here for organizations (central sign-in, groups, permissions) the public
+service doesn't need.
 
-Wer flatlink installiert, bekommt **kein Imitat davon**: ein neutrales Theme,
-das eigene Kürzel, die eigene Domain. Was bleibt, ist eine dezente
-Herkunftszeile im Seitenfuß – die verlangt die [Lizenz](#lizenz), und sie ist
-auch alles, was sie verlangt.
+Installing flatlink does **not give you an imitation of it**: a neutral theme,
+your own short codes, your own domain. What remains is a discreet attribution
+line in the footer – the [license](#license) requires it, and that is also all
+it requires.
 
-## Was drin ist
+## What's included
 
-- **Kurzlinks** mit zufälligem oder selbst gewähltem Code, optionalem Namen,
-  Schlagworten zum Filtern, **Startdatum und Ablaufdatum** und optionalem
-  Passwortschutz – ein Code kann also gedruckt und verteilt sein, bevor sein
-  Ziel erreichbar ist
-- **QR-Codes** aus einem eigenen Encoder (ISO/IEC 18004, Byte-Mode,
-  **Versionen 1–40**, Fehlerkorrektur L/M/Q/H) – ohne jede Fremdbibliothek.
-  Bis zu 2953 Zeichen, also auch lange Adressen mit Kampagnen-Parametern
-- **QR-Designer** unter `qr-designer.php`: Modul- und Augenformen, freie
-  Farben, **Farbverläufe**, **Druckfarben in CMYK**, Export als SVG, PNG,
-  **Vektor-PDF und EPS**.
-  Angemeldete bekommen auf derselben Seite zusätzlich eigenes Logo, Rahmen mit
-  Text und die Auswahl ihrer Links – ein Kurzlink lässt sich dort auch gleich
-  anlegen
-- **Link-in-Bio-Seiten**: eine Seite mit mehreren Zielen unter einem Kurzcode,
-  gezählt wie alles andere – je Tag, für die Seite und je Ziel, ohne
-  Besucher-Datensatz
-- **Statische QR-Codes** für eine **ungekürzte Adresse oder freien Text**,
-  WLAN-Zugänge, Kontakte (vCard), Termine (iCalendar) und **GS1 Digital Link** – die Eingaben werden nirgends
-  gespeichert, sondern direkt in den Code kodiert, sodass diese Grafiken völlig
-  unabhängig vom Dienst funktionieren
-- **Englische Oberfläche**: Deutsch ist die Quellsprache, die Sprache gilt je
-  Instanz (`'language'` in der Konfiguration oder unter *Einstellungen*, zur
-  Laufzeit). Eine weitere Sprache ist eine Datei unter `inc/lang/`; was einer
-  Übersetzung fehlt, bleibt sichtbar deutsch statt leer
-- **Konten** mit Selbstregistrierung per Double-Opt-In, Passwort-Reset und
-  Rollen (Nutzer/Admin), inklusive Nutzungs-Limits pro Konto
-- **QR-Codes einzeln oder als Serie im ZIP**, mit Übersicht als CSV
-- **Zwei-Faktor-Anmeldung**: Passkeys (WebAuthn) oder Einmalkennwörter aus
-  einer App, mit Wiederherstellungscodes, optional für
-  die ganze Instanz erzwingbar
-- **Auskunft und Löschung im Profil**: Datenexport als JSON und ein Knopf, der
-  Konto und Links wirklich entfernt – Art. 15, 17 und 20 DSGVO ohne
-  Ticketsystem
-- **Sitzungsverwaltung im Profil**: Liste der aktiven Anmeldungen, einzeln
-  oder alle anderen abmelden; ein Passwortwechsel meldet die übrigen von
-  selbst ab
-- **Protokoll der Verwaltungshandlungen**: wer hat wann gesperrt,
-  freigeschaltet, geändert – nur Verwaltung, nie Besucher; als JSON-Zeilen
-  auch für ein zentrales Log geeignet
-- **CSV-Export der Linkliste** im Format des eigenen Imports – wer gehen
-  will, nimmt alles mit; die Angst vor dem Eingesperrtsein ist kein
-  Geschäftsmodell
-- **Zentrale Anmeldung** über LDAP/Active Directory oder über den Webserver
-  (Shibboleth, SAML, OpenID Connect) – siehe [Konten und Anmeldung](docs/konten.md)
-- **Gruppen** in zwei Betriebsarten: als Rechtegruppe (Berechtigungen und
-  Limits, Links bleiben privat) oder als Arbeitsgruppe, deren Links das ganze
-  Team gemeinsam verwaltet
-- **CSV-Import** für viele Links auf einmal – die Exporte von Bitly und
-  YOURLS lassen sich unverändert einlesen
-- **Programmierschnittstelle** mit Zugangsschlüsseln je Konto, siehe
-  [API.md](API.md)
-- **Missbrauchsschutz**: Rate-Limits pro IP (gespeichert wird nur ein
-  Schlüssel-Hash, kein Klartext), Meldeformular, Sperrfunktion, optional
-  Google Safe Browsing – auf Wunsch mit **Wiederholungslauf über den
-  Bestand**, gegen Ziele, die erst nach dem Anlegen bösartig werden
-- **Sicherung als Archiv**: ein Knopf, der Datenbank (konsistent kopiert),
-  Einstellungen, Zähler und Logos samt Anleitung als ZIP ausgibt – für alle,
-  die an das Datenverzeichnis nicht herankommen
-- **Automatisches Aufräumen** nie aufgerufener Links, mit Vorwarnung per Mail
-  (standardmäßig deaktiviert)
-- **Ablage ohne Betrieb**: Links und Konten in einer SQLite-Datei, alles
-  Übrige in kleinen JSON-Dateien – kein Datenbank-Server, Backup = Ordner
-  kopieren, siehe [Wie die Daten liegen](#wie-die-daten-liegen)
+- **Short links** with random or self-chosen codes, an optional label, tags
+  for filtering, **a start date and an expiry date**, and optional password
+  protection – a code can be printed and handed out before its target goes
+  live
+- **QR codes** from an in-house encoder (ISO/IEC 18004, byte mode,
+  **versions 1–40**, error correction L/M/Q/H) – without any third-party
+  library. Up to 2953 characters, so long addresses with campaign parameters
+  fit too
+- **QR designer** at `qr-designer.php`: module and eye shapes, free colors,
+  **gradients**, **print colors in CMYK**, export as SVG, PNG, **vector PDF
+  and EPS**. Signed-in users additionally get their own logo, a frame with
+  text and the selection of their links on the same page – a short link can
+  be created right there as well
+- **Link-in-bio pages**: one page with several targets under one short code,
+  counted like everything else – per day, for the page and per target,
+  without visitor records
+- **Static QR codes** for an **unshortened address or free text**, Wi-Fi
+  access, contacts (vCard), events (iCalendar) and **GS1 Digital Link** – the
+  input is stored nowhere; it is encoded straight into the graphic, so these
+  codes work entirely independently of the service
+- **An English interface**: German is the source language, the language is set
+  per instance (`'language'` in the configuration or under *Settings*, at
+  runtime). A further language is one file under `inc/lang/`; whatever a
+  translation lacks stays visibly German instead of blank
+- **Accounts** with self-registration via double opt-in, password reset and
+  roles (user/admin), including usage limits per account
+- **QR codes individually or as a batch in a ZIP**, with a CSV overview
+- **Two-factor sign-in**: passkeys (WebAuthn) or one-time passwords from an
+  app, with recovery codes, optionally enforceable for the whole instance
+- **Data access and deletion in the profile**: data export as JSON and a
+  button that really removes the account and its links – GDPR Art. 15, 17
+  and 20 without a ticket system
+- **Session management in the profile**: a list of active sign-ins, revoke
+  one or all others; a password change signs the rest out automatically
+- **An audit log of administrative actions**: who blocked, approved or
+  changed what and when – administration only, never visitors; JSON lines,
+  ready for a central log
+- **CSV export of the link list** in the format of the built-in import –
+  whoever wants to leave takes everything along; lock-in fear is not a
+  business model
+- **Central sign-in** via LDAP/Active Directory or via the web server
+  (Shibboleth, SAML, OpenID Connect) – see
+  [Accounts and sign-in](docs/konten.en.md)
+- **Groups** in two modes: as a permission group (permissions and limits,
+  links stay private) or as a working group whose links the whole team
+  manages together
+- **CSV import** for many links at once – the exports of Bitly and YOURLS can
+  be uploaded unchanged
+- **API** with access keys per account, see [API.md](API.md)
+- **Abuse protection**: rate limits per IP (only a keyed hash is stored, no
+  plain addresses), a report form, a blocking function, optional Google Safe
+  Browsing – optionally with a **re-check across the stock**, against targets
+  that turn malicious only after creation
+- **Backup as an archive**: one button that outputs the database (copied
+  consistently), settings, counters and logos as a ZIP with instructions –
+  for everyone who cannot reach the data directory
+- **Automatic cleanup** of never-visited links, with advance warning by mail
+  (disabled by default)
+- **Storage without operations**: links and accounts in one SQLite file,
+  everything else in small JSON files – no database server, backup = copy
+  the folder, see [How the data is stored](#how-the-data-is-stored)
 
-## Voraussetzungen
+## Requirements
 
-- PHP 8.1 oder neuer
-- Erweiterungen: `json`, `mbstring`, `pdo_sqlite` (Ablage), `gd` (für
-  PNG/PDF), `fileinfo` (Logo-Upload), `openssl` (nur für SMTP-Versand),
-  `ldap` (nur für die LDAP-Anmeldung)
-- Ein Webserver mit `mod_rewrite` oder gleichwertiger Umschreibung.
-  Die mitgelieferte `.htaccess` bringt zusätzlich einen Fallback über
-  `ErrorDocument 404`, falls Rewrites beim Hoster nicht greifen.
+- PHP 8.1 or newer
+- Extensions: `json`, `mbstring`, `pdo_sqlite` (storage), `gd` (for
+  PNG/PDF), `fileinfo` (logo upload), `openssl` (only for SMTP), `ldap`
+  (only for LDAP sign-in)
+- A web server with `mod_rewrite` or an equivalent rewrite facility. The
+  bundled `.htaccess` additionally provides a fallback via
+  `ErrorDocument 404` in case rewrites don't take effect at your host.
 
-Kein Datenbank-Server, kein Composer, kein Build-Schritt.
+No database server, no Composer, no build step.
 
 ## Installation
 
@@ -238,191 +240,185 @@ cd flatlink
 cp inc/config.example.php inc/config.php
 ```
 
-Danach `inc/config.php` anpassen (mindestens `site_name`), die Dateien in den
-Webroot legen und sicherstellen, dass der Webserver in das Verzeichnis
-schreiben darf – `data/` wird beim ersten Aufruf selbst angelegt.
+Then adjust `inc/config.php` (at least `site_name`), put the files into the
+webroot and make sure the web server may write into the directory – `data/`
+is created on first use.
 
-Zum Ausprobieren reicht der eingebaute Server. Er kennt keine Rewrites,
-deshalb das mitgelieferte Wegweiser-Skript dazu – es bildet die Regeln der
-`.htaccess` nach, damit auch Kurzlinks und `/api/…` funktionieren:
+For a quick try, the built-in server is enough. It knows no rewrites, hence
+the bundled router script – it emulates the `.htaccess` rules so short links
+and `/api/…` work too:
 
 ```bash
 php -S localhost:8080 router.php
 ```
 
-**Erstes Konto:** Über `register.php` registrieren. Im Standard steht der
-Mailversand auf `log`, die Bestätigungsmail landet also in `data/mail.log` –
-dort den Link herauskopieren und aufrufen. Das erste angelegte Konto bekommt
-automatisch die Admin-Rolle.
+**First account:** register via `register.php`. By default, mail delivery is
+set to `log`, so the confirmation mail ends up in `data/mail.log` – copy the
+link from there and open it. The first account created automatically gets the
+admin role.
 
-> **Für den echten Betrieb** gibt es eine ausführliche
-> **[Deployment-Anleitung](DEPLOYMENT.md)**: Rechte und Webserver-Konfiguration
-> für Apache und nginx, Mailversand samt SPF/DKIM/DMARC, LDAP und Active
-> Directory, die komplette Shibboleth-Einrichtung inklusive Apache und
-> Attributfreigabe – dazu Betrieb, Sicherung und eine Tabelle mit den
-> häufigsten Stolpersteinen.
+> **For real operation** there is a detailed
+> **[deployment guide](DEPLOYMENT.md)** (German): permissions and web server
+> configuration for Apache and nginx, mail delivery including SPF/DKIM/DMARC,
+> LDAP and Active Directory, the complete Shibboleth setup including Apache
+> and attribute release – plus operation, backup and a table of the most
+> common pitfalls.
 >
-> **Eigene Farben, eigenes Logo?** Das beschreibt die
-> **[Anpassungs-Anleitung](CUSTOMIZATION.md)** – updatesicher über
-> `assets/custom.css`, ohne den Quelltext anzufassen.
+> **Your own colors, your own logo?** See the
+> **[customization guide](CUSTOMIZATION.md)** (German) – update-safe via
+> `assets/custom.css`, without touching the source.
 
-## Konfiguration
+## Configuration
 
-Alles steckt in `inc/config.php`; die kommentierte Vorlage ist
-[`inc/config.example.php`](inc/config.example.php). Die wichtigsten Schalter:
+Everything lives in `inc/config.php`; the commented template is
+[`inc/config.example.php`](inc/config.example.php). The most important
+switches:
 
-| Option | Bedeutung |
+| Option | Meaning |
 | --- | --- |
-| `site_name` | Anzeigename in Titel, Kopfzeile und Mails |
-| `base_url` | Feste Basis-URL; leer = automatische Erkennung |
-| `sqlite_file` | Pfad der Ablage-Datei; leer = `data/flatlink.sqlite` |
-| `language` | Sprache der Oberfläche (`de` ist die Quellsprache, `en` liegt bei) |
-| `limits` | Links, Statistik-Tiefe und Logos pro Konto (`0` = unbegrenzt) |
-| `default_perms` | Rechte, die jedes angemeldete Konto ohne Gruppe hat |
-| `sso` | Zentrale Anmeldung über den Webserver (Shibboleth/SAML/OIDC) |
-| `ldap` | Anmeldung gegen LDAP oder Active Directory |
-| `qr_brand_text` | Optionale Absenderzeile unter erzeugten QR-Codes |
-| `custom_code_min_len` / `custom_code_quota` | Bremsen gegen Namensraum-Squatting auf öffentlichen Instanzen |
-| `mail` | `log` schreibt nach `data/mail.log`, `smtp` versendet echt |
-| `safe_browsing_key` | Leer = aus. Siehe Warnung unten |
-| `safety_recheck_days` | Bestand alle N Tage erneut prüfen (`0` = aus) |
-| `link_gc_years` | `0` = kein automatisches Aufräumen |
-| `data_dir` | Laufzeitdaten außerhalb des Webroots ablegen – empfohlen |
-| `trusted_proxies` | Adressen vorgelagerter Proxys; nötig für korrekte Rate-Limits |
+| `site_name` | Display name in title, header and mails |
+| `base_url` | Fixed base URL; empty = automatic detection |
+| `sqlite_file` | Path of the storage file; empty = `data/flatlink.sqlite` |
+| `language` | Interface language of the instance (`de` is the source language, `en` ships along) |
+| `limits` | Links, statistics depth and logos per account (`0` = unlimited) |
+| `default_perms` | Permissions every signed-in account has without a group |
+| `sso` | Central sign-in via the web server (Shibboleth/SAML/OIDC) |
+| `ldap` | Sign-in against LDAP or Active Directory |
+| `qr_brand_text` | Optional attribution line under generated QR codes |
+| `custom_code_min_len` / `custom_code_quota` | Brakes against namespace squatting on public instances |
+| `mail` | `log` writes to `data/mail.log`, `smtp` really sends |
+| `safe_browsing_key` | Empty = off. See the note below |
+| `safety_recheck_days` | Re-check the stock every N days (`0` = off) |
+| `link_gc_years` | `0` = no automatic cleanup |
+| `data_dir` | Keep runtime data outside the webroot – recommended |
+| `trusted_proxies` | Addresses of upstream proxies; needed for correct rate limits |
 
-Zur Laufzeit lassen sich im Admin-Bereich außerdem die öffentliche
-Link-Erstellung und die Selbstregistrierung abschalten – praktisch, wenn die
-Instanz nur intern genutzt werden soll.
+At runtime, the admin area additionally lets you switch off public link
+creation and self-registration – handy when the instance is internal only.
 
-## Handbuch
+## Manual
 
-Die README ist der Überblick; die Tiefe steht in eigenen Dokumenten.
-Die vier Handbücher gibt es auch auf Englisch (`.en.md` daneben):
+The README is the overview; the depth lives in dedicated documents:
 
-| Dokument | Inhalt |
+| Document | Content |
 | --- | --- |
-| [Der QR-Generator](docs/qr-generator.md) | Encoder, Gestaltung, Lesbarkeitsprüfung, Druck-Export (PDF, EPS, CMYK), Serien, GS1 Digital Link |
-| [Kurzlinks im Alltag](docs/kurzlinks.md) | Schlagworte, Kampagnen-Parameter, Link-in-Bio, Umzug von Bitly oder YOURLS |
-| [Konten und Anmeldung](docs/konten.md) | Passkeys und Einmalkennwörter, LDAP, Shibboleth/SAML/OIDC, Auskunft und Löschung |
-| [Gruppen, Rechte und Domains](docs/gruppen.md) | Rechte- und Arbeitsgruppen, Limits, Namensräume, mehrere Domains je Instanz |
-| [API.md](API.md) | die Programmierschnittstelle |
-| [Browser-Erweiterung](extension/README.md) | „diese Seite kürzen" für Chrome und Firefox, gegen die eigene Instanz |
-| [In die Läden bringen](docs/store-einreichung.md) | Pakete bauen, Store-Texte, Berechtigungs-Begründungen, Datenschutzangaben |
-| [DEPLOYMENT.md](DEPLOYMENT.md) | Installation für den Dauerbetrieb, von Dateirechten bis Shibboleth |
-| [CUSTOMIZATION.md](CUSTOMIZATION.md) | eigenes Aussehen ohne Änderungen am Kern |
-| [Was flatlink nie tun wird](docs/niemals.md) | die Funktionen, die es hier nie geben wird – und warum |
-| [Barrierefreiheit](docs/barrierefreiheit.md) | Selbsteinschätzung nach WCAG 2.1 AA: was geprüft ist, was fehlt |
-| [SECURITY.md](SECURITY.md) | was gespeichert wird, was nicht, und wie sich Lücken melden lassen |
+| [The QR generator](docs/qr-generator.en.md) | Encoder, design options, readability check, print export (PDF, EPS, CMYK), batches, GS1 Digital Link |
+| [Short links day to day](docs/kurzlinks.en.md) | Tags, campaign parameters, link in bio, migrating from Bitly or YOURLS |
+| [Accounts and sign-in](docs/konten.en.md) | Passkeys and one-time passwords, LDAP, Shibboleth/SAML/OIDC, data access and deletion |
+| [Groups, permissions and domains](docs/gruppen.en.md) | Permission and working groups, limits, namespaces, multiple domains per instance |
+| [Browser extension](extension/README.md) | "shorten this page" for Chrome and Firefox, against your own instance |
+| [API.md](API.md) | the API (German) |
+| [DEPLOYMENT.md](DEPLOYMENT.md) | installation for production, from file permissions to Shibboleth (German) |
+| [CUSTOMIZATION.md](CUSTOMIZATION.md) | your own look without changing the core (German) |
+| [What flatlink will never do](docs/niemals.md) | the features that will never exist here – and why (German) |
+| [Accessibility](docs/barrierefreiheit.md) | self-assessment against WCAG 2.1 AA (German) |
+| [SECURITY.md](SECURITY.md) | what is stored, what is not, and how to report vulnerabilities (German) |
 
-## Wie die Daten liegen
+## How the data is stored
 
-**Links und Konten liegen in einer SQLite-Datei** (`data/flatlink.sqlite`).
-Das ist keine Infrastruktur: kein Server, nichts einzurichten, nichts zu
-warten – die Erweiterung `pdo_sqlite` bringt praktisch jedes PHP mit. Der
-vollständige Datensatz steht als JSON in einer `data`-Spalte; die übrigen
-Spalten sind daraus abgeleitete Kopien für die Suche. Gemessen an einer
-Instanz mit einer Million Links und hunderttausend Konten: Anmeldeseite
-9 ms, ein einzelnes Konto 0,01 ms, der Nachschlag einer Weiterleitung
-0,01 ms – alles innerhalb der üblichen PHP-Speichergrenze.
+**Links and accounts live in one SQLite file** (`data/flatlink.sqlite`).
+That is not infrastructure: no server, nothing to set up, nothing to
+maintain – the `pdo_sqlite` extension ships with practically every PHP. The
+full record sits as JSON in a `data` column; the remaining columns are
+derived copies for searching. Measured on an instance with one million links
+and a hundred thousand accounts: login page 9 ms, a single account 0.01 ms,
+a redirect lookup 0.01 ms – all within PHP's usual memory limit.
 
-Alles Übrige sind kleine JSON-Dateien unter `data/`, mit `flock` gegen
-gleichzeitige Schreibzugriffe und atomarem Schreiben über Tempdatei plus
-`rename`:
+Everything else is small JSON files under `data/`, with `flock` against
+concurrent writes and atomic writing via temp file plus `rename`:
 
-| Datei | Inhalt |
+| File | Content |
 | --- | --- |
-| `flatlink.sqlite` | Kurzlinks, Konten und Zugangsschlüssel, siehe oben |
-| `clicks/<code>.json` | Klickzähler – bewusst eine Mini-Datei je Code: Der Weiterleitungspfad schreibt sie bei jedem Scan, ohne gemeinsames Schreib-Lock |
-| `groups.json` | Gruppen: Anzeigename und Rechte |
-| `settings.json` | Zur Laufzeit änderbare Einstellungen |
-| `logos/` | Hochgeladene Logos für QR-Codes |
-| `ratelimit/` | Zähler je IP-Hash (HMAC mit Instanz-Geheimnis), nach 24 h gelöscht |
-| `secret.key` | Geheimnis dieser Instanz für die IP-Hashes – wie ein Passwort behandeln |
-| `pending/` | Offene Bestätigungs-Token (Registrierung, Reset) |
+| `flatlink.sqlite` | Short links, accounts and access keys, see above |
+| `clicks/<code>.json` | Click counters – deliberately one mini file per code: the redirect path writes them on every scan, without a shared write lock |
+| `groups.json` | Groups: display name and permissions |
+| `settings.json` | Settings changeable at runtime |
+| `logos/` | Uploaded logos for QR codes |
+| `ratelimit/` | Counters per IP hash (HMAC with the instance secret), deleted after 24 h |
+| `secret.key` | This instance's secret for the IP hashes – treat like a password |
+| `pending/` | Open confirmation tokens (registration, reset) |
 
-Ein Backup ist damit weiterhin ein simples Kopieren des `data/`-Ordners –
-oder ein Klick auf *Sicherung herunterladen* in den Einstellungen.
+A backup therefore remains a simple copy of the `data/` folder – or one
+click on *Download backup* in the settings.
 
-**Warum nicht alles in der Datenbank liegt:** In sie gehört, was mit dem
-Bestand wächst und deshalb nicht am Stück gelesen werden darf – Links,
-Konten, Zugangsschlüssel. Die Klickzähler bleiben bewusst Einzeldateien:
-Sie werden im Weiterleitungspfad bei *jedem* Scan geschrieben, und genau
-dort wäre ein gemeinsames Schreib-Lock die schlechteste aller Ideen. Der
-Rest – Einstellungen, Gruppen, Logo-Namen – ist klein, konstant und in
-einer Textdatei leichter zu reparieren als in einer Tabelle.
+**Why not everything lives in the database:** into it goes what grows with
+the stock and therefore must not be read in one piece – links, accounts,
+access keys. The click counters deliberately stay individual files: they are
+written on *every* scan in the redirect path, and a shared write lock would
+be the worst possible idea exactly there. The rest – settings, groups, logo
+names – is small, constant, and easier to repair in a text file than in a
+table.
 
-Eine ehrliche Grenze bleibt: Die Admin-Gesamtliste über *Millionen* Links
-lädt auch mit Datenbank den ganzen Bestand in den Speicher – wer wirklich
-dort ankommt, hebt `memory_limit` an. Die gezielte Abfrage je Seite ist der
-nächste Schritt, wenn ihn jemand braucht.
+One honest limit remains: the admin's full list over *millions* of links still
+loads the whole stock into memory even with the database – whoever really
+gets there raises `memory_limit`. A per-page query is the next step, when
+someone needs it.
 
-## Was nicht drin ist
+## What's not included
 
-Damit niemand danach sucht: keine Statistik nach Ländern oder Geräten – das
-liegt in der Natur der Sache. Gruppen teilen Links und Rechte, trennen aber
-keine Mandanten voneinander: Administratoren sehen immer alles.
+So nobody goes looking for it: no statistics by country or device – that lies
+in the nature of the thing. Groups share links and permissions but do not
+separate tenants from each other: administrators always see everything.
 
-Ebenfalls nicht enthalten sind **Impressum, Datenschutzerklärung und AGB**.
-Wer eine öffentliche Instanz betreibt, ist in Deutschland und weiten Teilen
-der EU dazu verpflichtet, solche Angaben selbst bereitzustellen – sie hängen
-von Betreiber, Land und Nutzung ab und lassen sich nicht sinnvoll mitliefern.
-Eigene Seiten anlegen und in `page_footer()` in
-[`inc/helpers.php`](inc/helpers.php) verlinken.
+Also not included are **legal notice, privacy policy and terms of service**.
+Whoever runs a public instance is obliged, in Germany and large parts of the
+EU, to provide such pages themselves – they depend on operator, country and
+use, and cannot sensibly be shipped. Create your own pages and link them in
+`page_footer()` in [`inc/helpers.php`](inc/helpers.php).
 
 ## Tests
 
-Keine Test-Bibliothek, keine Konfiguration – zwei PHP-Dateien, die man mit dem
-eingebauten Server laufen lässt:
+No test library, no configuration – two PHP files run against the built-in
+server:
 
 ```bash
 php -S localhost:8080 router.php &
 php tests/optionen.php http://localhost:8080
 ```
 
-[`tests/optionen.php`](tests/optionen.php) prüft, ob jede Gestaltungsoption bei
-`qr.php` auch ankommt. Der Anlass war ein Fehler, den ein anderer Test nicht
-finden konnte: Vier Modulformen waren im Renderer gebaut und im Designer
-angeboten, aber die Prüfliste in `qr.php` kannte sie nicht – und ein unbekannter
-Wert wird dort stillschweigend auf die Vorgabe zurückgesetzt. Wer „Raute"
-wählte, bekam ein Quadrat, ohne ein Wort dazu.
+[`tests/optionen.php`](tests/optionen.php) checks that every design option
+actually arrives at `qr.php`. The occasion was a bug another test could not
+find: four module shapes were built in the renderer and offered in the
+designer, but the whitelist in `qr.php` didn't know them – and an unknown
+value is silently reset to the default there. Whoever chose "diamond" got a
+square, without a word about it.
 
-Der frühere Test fragte nur, ob sich das Ergebnis **scannen** lässt. Ein Code,
-dessen Form unterwegs verworfen wurde, lässt sich ebenfalls scannen – die Frage
-war falsch gestellt. Jetzt wird dasselbe Bild zweimal erzeugt, einmal über den
-Renderer und einmal über die Adresse, und Byte für Byte verglichen.
+The earlier test only asked whether the result **scans**. A code whose shape
+was discarded along the way scans just as well – the question was asked
+wrongly. Now the same image is produced twice, once through the renderer and
+once through the URL, and compared byte by byte.
 
-## Mitmachen
+## Contributing
 
-Fehlerberichte und Pull Requests sind willkommen. Eine Bitte vorab: Die
-Abhängigkeitsfreiheit ist kein Zufall, sondern der Kern des Projekts. Ein
-Patch, der Composer, einen Build-Schritt oder einen Datenbank-*Server*
-voraussetzt, wird nicht übernommen – auch wenn er die Sache eleganter
-macht. (SQLite besteht diese Prüfung: eine Datei unter `data/`, keine
-Infrastruktur.)
+Bug reports and pull requests are welcome. One request up front: the freedom
+from dependencies is not an accident but the core of the project. A patch
+that requires Composer, a build step or a database *server* will not be
+merged – even if it makes things more elegant. (SQLite passes this test:
+one file under `data/`, no infrastructure.)
 
-## Lizenz
+## License
 
-**[GNU AGPL v3](LICENSE)** mit einer Zusatzbedingung zur Namensnennung nach
-§ 7(b) der Lizenz. Was das praktisch heißt:
+**[GNU AGPL v3](LICENSE)** with an additional attribution term under
+section 7(b) of the license. What that means in practice:
 
-**Erlaubt, ohne zu fragen** – auch kommerziell, auch für zahlende Kundschaft:
-benutzen, selbst betreiben, ändern, weitergeben, umbenennen, einfärben, für
-eigene Zwecke erweitern.
+**Allowed without asking** – commercially too, for paying customers too:
+use it, run it yourself, change it, pass it on, rename it, restyle it, extend
+it for your own purposes.
 
-**Zwei Bedingungen:**
+**Two conditions:**
 
-1. **Die Herkunftszeile bleibt sichtbar.** Jede Oberfläche muss auf „flatlink"
-   hinweisen und auf <https://1337.kiwi/flatlink> verlinken. Übersetzen,
-   umformulieren, klein und dezent setzen – alles erlaubt. Verstecken oder
-   weglassen nicht. Der Bezugspunkt ist `origin_note()` in
+1. **The attribution line stays visible.** Every interface must point to
+   "flatlink" and link to <https://1337.kiwi/flatlink>. Translating,
+   rephrasing, setting it small and discreet – all allowed. Hiding or
+   removing it is not. The reference point is `origin_note()` in
    [`inc/helpers.php`](inc/helpers.php).
-2. **Änderungen bleiben offen.** Wer eine *geänderte* Fassung als Dienst im
-   Netz anbietet, muss seinen Nutzern den Quelltext dieser Fassung zugänglich
-   machen (AGPL § 13). Wer unverändert betreibt, muss nichts veröffentlichen.
+2. **Changes stay open.** Whoever offers a *modified* version as a network
+   service must make the source of that version available to its users
+   (AGPL § 13). Whoever runs it unmodified doesn't have to publish anything.
 
-Warum nicht MIT: Weil MIT erlaubt, den Quelltext zu schließen und daraus einen
-Dienst zu machen, bei dem niemand mehr nachsehen kann, was mit den Klickdaten
-passiert. Der ganze Punkt dieses Projekts ist, dass man das nachsehen kann.
+Why not MIT: because MIT allows closing the source and building a service
+from it where nobody can check anymore what happens to the click data. The
+whole point of this project is that you can check.
 
-Für eine Fassung ohne Herkunftszeile – etwa als White-Label – gibt es eine
-schriftliche Freistellung: <dennis@1337.hamburg>.
+For a version without the attribution line – say, white-label – there is a
+written exemption: <dennis@1337.hamburg>.

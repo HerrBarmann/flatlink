@@ -2,7 +2,7 @@
 
 Order and tools around the links: tags, campaign parameters, link-in-bio
 pages and migrating from another service. Back to the
-[README](../README.en.md). – 🇩🇪 [Deutsche Fassung](kurzlinks.md).
+[README](../README.md). – 🇩🇪 [Deutsche Fassung](kurzlinks.md).
 
 ## Tags
 

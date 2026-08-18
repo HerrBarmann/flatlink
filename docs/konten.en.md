@@ -2,7 +2,7 @@
 
 Two-factor sign-in with passkeys or one-time passwords, central sign-in via
 LDAP or the web server, and what accounts decide about their own data. Back
-to the [README](../README.en.md). – 🇩🇪 [Deutsche Fassung](konten.md).
+to the [README](../README.md). – 🇩🇪 [Deutsche Fassung](konten.md).
 
 ## Two-factor sign-in
 

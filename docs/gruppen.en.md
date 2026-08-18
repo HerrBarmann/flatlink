@@ -2,7 +2,7 @@
 
 How permissions become plans, how teams manage links together, how namespaces
 and separate domains per client are kept apart. Back to the
-[README](../README.en.md). – 🇩🇪 [Deutsche Fassung](gruppen.md).
+[README](../README.md). – 🇩🇪 [Deutsche Fassung](gruppen.md).
 
 ## Groups and permissions
 

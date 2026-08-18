@@ -2,7 +2,7 @@
 
 Alles zu QR-Codes in flatlink: die zwei Arten von Codes, der eigene Encoder,
 Gestaltung, Lesbarkeit, der Export für den Druck, Serien und der GS1 Digital
-Link. Zurück zur [README](../README.md). – 🇬🇧 [English version](qr-generator.en.md).
+Link. Zurück zur [README](../README.de.md). – 🇬🇧 [English version](qr-generator.en.md).
 
 ## Zwei Arten von QR-Code
 
