@@ -82,6 +82,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         flash($err ?? t('Zugang für %s freigeschaltet – die nächste Anmeldung geht durch.', $name),
             $err === null ? 'ok' : 'err');
         if ($err === null) audit(t('Zugang für %s freigeschaltet – die nächste Anmeldung geht durch.', $name), $name);
+    } elseif ($action === 'ldap-create') {
+        // Aus einem Treffer der Verzeichnissuche ein Konto machen. Angelegt
+        // wird mit autoCreate=true, unabhängig von der Konfiguration: Dass ein
+        // Administrator hier klickt, IST die Entscheidung, die auto_create
+        // sonst der Anmeldung überlässt.
+        $anzeige = trim((string)($_POST['display'] ?? ''));
+        $mail = trim((string)($_POST['email'] ?? ''));
+        $err = user_provision($name, 'ldap', $mail !== '' ? $mail : null,
+            (array)(ldap_cfg()['default_groups'] ?? []), true, $anzeige !== '' ? $anzeige : null);
+        if ($err === null) {
+            // Ein Eintrag in der Warteschlange wäre jetzt gegenstandslos.
+            pending_user_drop($name);
+            flash(t('Konto %s aus dem Verzeichnis angelegt – die Anmeldung geht ab sofort.', $name));
+            audit(t('Konto %s aus dem Verzeichnis angelegt', $name), $name);
+        } else {
+            flash($err, 'err');
+        }
     } elseif ($action === 'reject') {
         pending_user_drop($name);
         flash(t('Anfrage verworfen. Bei einem erneuten Anmeldeversuch taucht sie wieder auf.'));
@@ -136,6 +153,16 @@ uksort($users, fn($a, $b) => strcasecmp(user_display((string)$a), user_display((
 $groups = groups_all();
 ksort($groups);
 
+// Verzeichnissuche: per GET, damit ein Ergebnis eine Adresse hat und ein
+// versehentliches Neuladen nichts anlegt.
+$dirQ = trim((string)($_GET['dir'] ?? ''));
+$dirFehler = null;
+$dirTreffer = [];
+$dirLimit = 25;
+if ($dirQ !== '' && ldap_enabled()) {
+    [$dirFehler, $dirTreffer] = ldap_directory_search($dirQ, $dirLimit);
+}
+
 page_header(t('Nutzer'), true);
 show_flash();
 ?>
@@ -185,6 +212,63 @@ show_flash();
         </tr>
         <?php endforeach; ?>
     </table></div>
+</div>
+<?php endif; ?>
+
+<?php if (ldap_enabled()): ?>
+<div class="card">
+    <h2><?= t('Aus dem Verzeichnis anlegen') ?></h2>
+    <p class="muted">
+        <?= t('Nach Name, Kennung oder E-Mail suchen. Wer hier angelegt wird, meldet sich sofort mit seinem gewohnten Passwort an – ein vergeblicher erster Versuch entfällt.') ?>
+    </p>
+    <form method="get" action="" class="short-row">
+        <input type="search" name="dir" value="<?= e($dirQ) ?>" placeholder="<?= t('z. B. Bormann oder db12345') ?>"
+               minlength="2" required aria-label="<?= t('Im Verzeichnis suchen') ?>">
+        <button class="btn" type="submit"><?= t('Suchen') ?></button>
+        <?php if ($dirQ !== ''): ?>
+        <a class="btn btn-small" href="users.php"><?= t('Suche zurücksetzen') ?></a>
+        <?php endif; ?>
+    </form>
+
+    <?php if ($dirFehler !== null): ?>
+    <p class="hinweis-kasten"><?= e($dirFehler) ?></p>
+    <?php elseif ($dirQ !== '' && $dirTreffer === []): ?>
+    <p class="muted"><?= t('Kein Treffer für „%s“.', $dirQ) ?></p>
+    <?php elseif ($dirTreffer !== []): ?>
+    <?php if (count($dirTreffer) > $dirLimit): ?>
+    <p class="muted small"><?= t('Mehr als %d Treffer – hier stehen die ersten. Genauer suchen zeigt den Rest.', $dirLimit) ?></p>
+    <?php endif; ?>
+    <div class="table-scroll">
+        <table>
+            <thead><tr>
+                <th><?= t('Name') ?></th><th><?= t('Kennung') ?></th><th><?= t('E-Mail') ?></th><th></th>
+            </tr></thead>
+            <tbody>
+            <?php foreach (array_slice($dirTreffer, 0, $dirLimit) as $t): ?>
+            <tr>
+                <td><?= e($t['name'] !== '' ? $t['name'] : '—') ?></td>
+                <td><code><?= e($t['uid']) ?></code></td>
+                <td class="muted"><?= e($t['mail'] !== '' ? $t['mail'] : '—') ?></td>
+                <td>
+                    <?php if ($t['vorhanden']): ?>
+                    <span class="muted small"><?= t('hat schon ein Konto') ?></span>
+                    <?php else: ?>
+                    <form method="post" action="" class="inline">
+                        <?= csrf_field() ?>
+                        <input type="hidden" name="action" value="ldap-create">
+                        <input type="hidden" name="username" value="<?= e($t['uid']) ?>">
+                        <input type="hidden" name="display" value="<?= e($t['name']) ?>">
+                        <input type="hidden" name="email" value="<?= e($t['mail']) ?>">
+                        <button class="btn btn-small" type="submit"><?= t('Konto anlegen') ?></button>
+                    </form>
+                    <?php endif; ?>
+                </td>
+            </tr>
+            <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
+    <?php endif; ?>
 </div>
 <?php endif; ?>
 

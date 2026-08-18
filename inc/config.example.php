@@ -458,6 +458,13 @@ return [
         // Active Directory: '(sAMAccountName=%s)'
         'base_dn' => 'ou=people,dc=example,dc=org',
         'user_filter' => '(uid=%s)',
+        // Personensuche in der Nutzerverwaltung: Damit lassen sich Konten
+        // anlegen, bevor sich jemand zum ersten Mal anmeldet. %s ist die
+        // Eingabe (escaped). Active Directory:
+        // '(|(sAMAccountName=*%s*)(displayName=*%s*)(mail=*%s*))'
+        'search_filter' => '(|(uid=*%s*)(cn=*%s*)(mail=*%s*))',
+        // Attribut mit der Kennung. Leer = aus dem user_filter ablesen.
+        'uid_attr' => '',
         'mail_attr' => 'mail',
         // Attribut mit dem Klarnamen für die Anzeige; leer = keiner.
         // Ohne ihn steht in der Nutzerverwaltung nur die technische Kennung.

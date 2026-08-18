@@ -50,6 +50,10 @@ function ldap_cfg(): array
         'group_base_dn' => '', 'group_filter' => '(&(objectClass=groupOfNames)(member=%s))',
         'group_map' => [], 'auto_create' => true, 'require_group' => false, 'group_sync' => 'merge',
         'approval_queue' => true, 'default_groups' => [], 'timeout' => 5,
+        // Für die Personensuche in der Nutzerverwaltung. Getrennt vom
+        // user_filter, weil der eine Kennung exakt trifft, dieser aber
+        // Bruchstücke über mehrere Attribute finden soll.
+        'search_filter' => '(|(uid=*%s*)(cn=*%s*)(mail=*%s*))', 'uid_attr' => '',
     ];
 }
 
@@ -572,6 +576,111 @@ function ldap_authenticate(string $username, string $password): ?array
  * @param resource|\LDAP\Connection $conn
  * @return string[]
  */
+/**
+ * Welches Attribut trägt die Kennung?
+ *
+ * Konfigurierbar über `uid_attr`; ohne Angabe wird es aus dem `user_filter`
+ * gelesen – wer dort `(sAMAccountName=%s)` stehen hat, meint dieses Attribut
+ * auch beim Suchen. Das erspart einen zweiten Eintrag, der zwangsläufig
+ * irgendwann vom ersten abweicht.
+ */
+function ldap_uid_attr(array $c): string
+{
+    $gesetzt = trim((string)($c['uid_attr'] ?? ''));
+    if ($gesetzt !== '') return $gesetzt;
+    if (preg_match('/\(([a-zA-Z][a-zA-Z0-9-]*)=%s\)/', (string)($c['user_filter'] ?? ''), $m) === 1) {
+        return $m[1];
+    }
+    return 'uid';
+}
+
+/**
+ * Im Verzeichnis nach Personen suchen – für die Nutzerverwaltung.
+ *
+ * Bisher entstand ein Konto erst, nachdem sich jemand einmal vergeblich
+ * angemeldet hatte: Der Versuch legte einen Eintrag in der Warteschlange an,
+ * den ein Administrator freischaltete. Das funktioniert, mutet den Leuten aber
+ * einen Fehlschlag zu, den sie nicht einordnen können – und wer ein Konto
+ * vorbereiten will, bevor jemand anfängt, kann es gar nicht.
+ *
+ * Gesucht wird mit dem Dienstkonto, also mit denselben Rechten wie bei der
+ * Anmeldung. Angelegt wird hier nichts; das entscheidet der Aufrufer.
+ *
+ * @return array{0:?string,1:array<int,array{uid:string,name:string,mail:string,dn:string,vorhanden:bool}>}
+ */
+function ldap_directory_search(string $suche, int $limit = 25): array
+{
+    $suche = trim($suche);
+    if (mb_strlen($suche) < 2) return [t('Bitte mindestens zwei Zeichen eingeben.'), []];
+    if (!ldap_enabled()) {
+        return [extension_loaded('ldap')
+            ? t('Die Anmeldung über LDAP ist nicht eingeschaltet.')
+            : t('Die PHP-Erweiterung ldap fehlt.'), []];
+    }
+
+    $c = ldap_cfg();
+    $conn = @ldap_connect((string)$c['uri']);
+    if ($conn === false) return [t('Verbindung nicht möglich – stimmt die Adresse?'), []];
+    ldap_set_option($conn, LDAP_OPT_PROTOCOL_VERSION, 3);
+    ldap_set_option($conn, LDAP_OPT_REFERRALS, 0);
+    ldap_set_option($conn, LDAP_OPT_NETWORK_TIMEOUT, (int)$c['timeout']);
+
+    try {
+        if ($c['start_tls'] && !@ldap_start_tls($conn)) {
+            ldap_log('START_TLS abgelehnt', '', $conn);
+            return [t('Verschlüsselung (START_TLS) abgelehnt.'), []];
+        }
+        if (!@ldap_bind($conn, $c['bind_dn'] !== '' ? (string)$c['bind_dn'] : null,
+                        $c['bind_dn'] !== '' ? (string)$c['bind_pass'] : null)) {
+            ldap_log('Bind für die Suche fehlgeschlagen', '', $conn);
+            return [t('Anmeldung am Verzeichnis fehlgeschlagen – Dienstkonto prüfen.'), []];
+        }
+
+        // Dieselbe Vorsicht wie bei der Anmeldung: Die Eingabe gehört escaped
+        // in den Filter, sonst schreibt sie ihn um.
+        $safe = ldap_escape($suche, '', LDAP_ESCAPE_FILTER);
+        $filter = str_replace('%s', $safe, (string)$c['search_filter']);
+        $uidAttr = ldap_uid_attr($c);
+        $attrs = array_values(array_unique(array_filter([
+            $uidAttr, (string)$c['mail_attr'], (string)$c['name_attr'],
+        ])));
+        // Ein Treffer mehr als angefragt: Daran lässt sich erkennen, dass die
+        // Liste unvollständig ist, ohne alles zu holen.
+        $res = @ldap_search($conn, (string)$c['base_dn'], $filter, $attrs, 0, $limit + 1, (int)$c['timeout']);
+        if ($res === false) {
+            ldap_log('Suche fehlgeschlagen – Basis-DN? ' . (string)$c['base_dn'], $suche, $conn);
+            return [t('Die Suche schlug fehl – stimmt die Basis-DN?'), []];
+        }
+        $eintraege = @ldap_get_entries($conn, $res);
+        $n = is_array($eintraege) ? (int)($eintraege['count'] ?? 0) : 0;
+
+        $treffer = [];
+        $vorhanden = users_all();
+        for ($i = 0; $i < $n; $i++) {
+            $e = $eintraege[$i];
+            $hole = function (string $attr) use ($e): string {
+                $k = strtolower($attr);
+                return $attr !== '' && isset($e[$k][0]) ? (string)$e[$k][0] : '';
+            };
+            $uid = $hole($uidAttr);
+            // Ohne Kennung ließe sich kein Konto anlegen – solche Einträge
+            // (Verteiler, Funktionsobjekte) gehören nicht in die Liste.
+            if ($uid === '' || !valid_external_id($uid)) continue;
+            $treffer[] = [
+                'uid' => $uid,
+                'name' => $hole((string)$c['name_attr']),
+                'mail' => $hole((string)$c['mail_attr']),
+                'dn' => (string)($e['dn'] ?? ''),
+                'vorhanden' => isset($vorhanden[$uid]),
+            ];
+        }
+        usort($treffer, fn($a, $b) => strnatcasecmp($a['name'] ?: $a['uid'], $b['name'] ?: $b['uid']));
+        return [null, $treffer];
+    } finally {
+        @ldap_unbind($conn);
+    }
+}
+
 function ldap_group_names($conn, string $dn, array $entry, array $c): array
 {
     $names = [];

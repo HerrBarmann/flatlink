@@ -181,6 +181,30 @@ sich auch „niemand" wählen: Dann gehört der Link nur noch seiner Gruppe. Ohn
 Gruppe lehnt die Instanz das ab, sonst fände den Link außer der Verwaltung niemand
 mehr.
 
+### Konten aus dem Verzeichnis anlegen
+
+Steht `auto_create` auf `false`, entstand ein Konto bisher erst *nach* einem
+vergeblichen Anmeldeversuch: Der Versuch legte einen Eintrag in der
+Warteschlange an, den ein Administrator freischaltete. Das funktioniert, mutet
+den Leuten aber einen Fehlschlag zu, den sie nicht einordnen können – und wer
+ein Konto vorbereiten will, bevor jemand anfängt, kann es gar nicht.
+
+Unter *Nutzer → Aus dem Verzeichnis anlegen* lässt sich deshalb direkt suchen,
+nach Name, Kennung oder E-Mail. Ein Klick legt das Konto an, mit Klarname und
+Adresse aus dem Verzeichnis; die Anmeldung funktioniert sofort. Wer schon ein
+Konto hat, erscheint als solcher und nicht als Knopf.
+
+Gesucht wird mit dem Dienstkonto aus `bind_dn`, also mit denselben Rechten wie
+bei der Anmeldung. Zwei Schlüssel steuern das:
+
+| | |
+| --- | --- |
+| `search_filter` | Vorgabe `(\|(uid=*%s*)(cn=*%s*)(mail=*%s*))`. Bei Active Directory eher `(\|(sAMAccountName=*%s*)(displayName=*%s*)(mail=*%s*))`. `%s` ist die Eingabe, escaped. |
+| `uid_attr` | Attribut mit der Kennung. Leer = aus dem `user_filter` ablesen, was in aller Regel stimmt. |
+
+Die Warteschlange bleibt daneben bestehen: Wer sich ohne Konto anmeldet, landet
+weiterhin dort. Beides führt zum selben Ergebnis, nur von verschiedenen Seiten.
+
 ### Gruppen aus dem Verzeichnis
 
 Beide Wege können Gruppenzugehörigkeiten übernehmen: bei SSO aus einem
