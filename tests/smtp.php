@@ -24,6 +24,15 @@ declare(strict_types=1);
  * Aufruf:
  *   php tests/smtp.php
  */
+
+// Nur auf der Kommandozeile – wie bei tools/*.php. Ohne diesen Riegel ließe
+// sich das Skript über den Webserver anstoßen, wenn tests/ versehentlich mit
+// ins Webroot geladen wurde. Bei dieser Datei hieße das: Jemand legt von außen
+// ein Admin-Konto an, dessen Passwort im Quelltext steht.
+if (PHP_SAPI !== 'cli') {
+    http_response_code(403);
+    exit("Nur auf der Kommandozeile.\n");
+}
 require_once __DIR__ . '/../inc/helpers.php';
 require_once __DIR__ . '/../inc/mail.php';
 

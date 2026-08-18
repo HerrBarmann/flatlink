@@ -11,7 +11,10 @@ RewriteEngine On
 RewriteBase /
 
 # Interne Verzeichnisse sperren
-RewriteRule ^(inc|data)(/|$) - [F,L]
+# tests/ und tools/ sind Kommandozeilen-Werkzeuge; extension/ ist Quellmaterial
+# für den Store-Bau. Nichts davon gehört ausgeliefert – die Skripte tragen zwar
+# selbst einen CLI-Riegel, aber eine zweite Wand kostet nichts.
+RewriteRule ^(inc|data|tests|tools|extension)(/|$) - [F,L]
 
 # Programmierschnittstelle unter /api/… erreichbar machen. Muss vor der
 # Kurzcode-Regel stehen, sonst hielte diese „api" für einen Kurzcode.

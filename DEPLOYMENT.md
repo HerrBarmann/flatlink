@@ -893,6 +893,24 @@ Blick in `inc/config.example.php`: Neue Optionen tauchen dort zuerst auf.
 Fehlen sie in deiner `config.php`, greift automatisch der Vorgabewert aus der
 Beispieldatei – die Instanz läuft also weiter, auch wenn du nichts tust.
 
+### Was nicht ins Webroot gehört
+
+`tests/`, `tools/` und `extension/` sind Werkzeuge für Kommandozeile und
+Store-Bau – auf dem Server werden sie nicht gebraucht und gehören dort auch
+nicht hin. Die mitgelieferte `.htaccess` sperrt sie ab, und die Skripte tragen
+seit 2.9.5 zusätzlich einen eigenen CLI-Riegel; unter nginx (siehe oben) muss
+die Sperre in der Server-Konfiguration nachgezogen werden:
+
+```nginx
+location ~ ^/(inc|data|tests|tools|extension)(/|$) { deny all; }
+```
+
+Der Grund ist konkret: `tests/einstellungen.php` legt für seinen Lauf ein
+Admin-Konto an, dessen Passwort im Quelltext steht. Es räumt sich seit 2.9.5
+selbst wieder ab und läuft nur noch auf der Kommandozeile – aber die sauberste
+Fassung eines Werkzeugs, das auf dem Server nichts verloren hat, ist die, die
+gar nicht erst dort liegt.
+
 ### Härten
 
 - **Interne Instanz:** öffentliche Link-Erstellung und Selbst-Registrierung

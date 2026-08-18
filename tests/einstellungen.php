@@ -23,6 +23,15 @@ declare(strict_types=1);
  *   php -S localhost:8080 router.php
  *   php tests/einstellungen.php http://localhost:8080
  */
+
+// Nur auf der Kommandozeile – wie bei tools/*.php. Ohne diesen Riegel ließe
+// sich das Skript über den Webserver anstoßen, wenn tests/ versehentlich mit
+// ins Webroot geladen wurde. Bei dieser Datei hieße das: Jemand legt von außen
+// ein Admin-Konto an, dessen Passwort im Quelltext steht.
+if (PHP_SAPI !== 'cli') {
+    http_response_code(403);
+    exit("Nur auf der Kommandozeile.\n");
+}
 require_once __DIR__ . '/../inc/store.php';
 require_once __DIR__ . '/../inc/auth.php';
 
@@ -122,6 +131,11 @@ pruefe('Zweites Formular lässt das erste stehen',
 @unlink($datei);
 if ($vorher !== null) file_put_contents($datei, $vorher);
 @unlink($keks);
+// Das Testkonto verschwindet wieder – ein Admin-Konto, dessen Passwort im
+// Quelltext dieses Skripts steht, hat einen Testlauf nicht zu überleben.
+require_once __DIR__ . '/../inc/auth.php';
+user_delete($name);
+pruefe('Testkonto wieder entfernt', user_get($name) === null);
 
 echo "\n", $fehler === 0
     ? "Alle Prüfungen bestanden.\n"

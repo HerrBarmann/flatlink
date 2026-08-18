@@ -78,6 +78,14 @@ function hook_fire(string $ereignis, array $daten = []): void
     ]]);
     foreach ($ziele as $url) {
         if (!preg_match('#^https?://#i', $url)) continue;
+        // Anders als ein Link-Ziel wird ein Webhook-Ziel vom Server ABGERUFEN.
+        // Ein Eintrag auf 169.254.169.254 oder einen internen Dienst wäre
+        // damit echtes SSRF, nicht nur Kosmetik – auch wenn heute nur ein
+        // Administrator Webhooks setzt: Die Sperre soll stehen, BEVOR eine
+        // spätere Delegation sie scharf macht. Dieselbe Ausnahme wie überall:
+        // 'allow_private_targets' für rein interne Instanzen.
+        $host = (string)(parse_url($url, PHP_URL_HOST) ?? '');
+        if ($host === '' || url_intern_gesperrt($host)) continue;
         // Fehler werden verschluckt: Der Empfänger ist nicht unser Problem,
         // die ausgelöste Handlung schon.
         @file_get_contents($url, false, $ctx);
