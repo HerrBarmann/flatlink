@@ -901,6 +901,43 @@ final class QrRenderer
      *
      * @return array<int,array{0:int,1:int,2:int}> [x, y, Länge] in Modulen
      */
+    /**
+     * Das Feld, das das Logo samt seiner Freifläche belegt – in Modul-Zellen.
+     *
+     * Module, die dieses Feld auch nur berühren, werden gar nicht erst
+     * gezeichnet. Bisher wurde die Freifläche ÜBER die Module gelegt: Am Rand
+     * blieben angeschnittene Formen stehen – aus runden Punkten wurden
+     * Halbmonde, aus Balken Stummel. Ein Code mit Logo verkraftet die paar
+     * Module mehr problemlos, die Fehlerkorrektur steht mit Logo ohnehin auf H.
+     *
+     * Bei logoShape 'none' wird bewusst NICHT ausgespart: Wer die Freifläche
+     * abschaltet, will das Logo direkt auf den Modulen (durchsichtige Logos).
+     *
+     * @return array{0:int,1:int,2:int,3:int}|null [x0, y0, x1, y1] einschließlich
+     */
+    private function logoFeld(): ?array
+    {
+        $o = $this->opt;
+        if (($o['logo'] ?? null) === null || !is_file((string)$o['logo'])) return null;
+        if ((string)($o['logoShape'] ?? 'rounded') === 'none') return null;
+        $n = $this->qr->size;
+        $total = $n + 2 * $o['margin'];
+        $bw = $total * (float)$o['logoScale'] * (1 + 2 * (float)$o['logoPad']);
+        $von = ($total - $bw) / 2 - $o['margin'];      // in Modul-Koordinaten
+        $bis = $von + $bw;
+        // berührt = weg: floor/ceil statt round
+        return [max(0, (int)floor($von)), max(0, (int)floor($von)),
+                min($n - 1, (int)ceil($bis) - 1), min($n - 1, (int)ceil($bis) - 1)];
+    }
+
+    /** Wird dieses Modul gezeichnet? Eine Prüfung für alle vier Ausgabewege. */
+    private function moduleSichtbar(int $x, int $y): bool
+    {
+        if (!$this->qr->modules[$y][$x] || $this->inEye($x, $y)) return false;
+        $f = $this->logoFeld();
+        return $f === null || $x < $f[0] || $x > $f[2] || $y < $f[1] || $y > $f[3];
+    }
+
     private function moduleRuns(bool $senkrecht): array
     {
         $n = $this->qr->size;
@@ -911,7 +948,7 @@ final class QrRenderer
             for ($b = 0; $b <= $n; $b++) {
                 $x = $senkrecht ? $a : $b;
                 $y = $senkrecht ? $b : $a;
-                $an = $b < $n && $this->qr->modules[$y][$x] && !$this->inEye($x, $y);
+                $an = $b < $n && $this->moduleSichtbar($x, $y);
                 if ($an) { $lauf++; continue; }
                 if ($lauf > 0) {
                     $sx = $senkrecht ? $a : $b - $lauf;
@@ -959,7 +996,7 @@ final class QrRenderer
         $n = $this->qr->size;
         for ($y = 0; $y < $n; $y++) {
             for ($x = 0; $x < $n; $x++) {
-                if ($this->qr->modules[$y][$x] && !$this->inEye($x, $y)) $out[] = [$x, $y];
+                if ($this->moduleSichtbar($x, $y)) $out[] = [$x, $y];
             }
         }
         return $out;
@@ -1083,7 +1120,7 @@ final class QrRenderer
         } else {
         for ($y = 0; $y < $n; $y++) {
             for ($x = 0; $x < $n; $x++) {
-                if (!$this->qr->modules[$y][$x] || $this->inEye($x, $y)) continue;
+                if (!$this->moduleSichtbar($x, $y)) continue;
                 $px = $x + $m; $py = $y + $m;
                 $f = $verlauf ? ' fill="' . htmlspecialchars($this->colorAt($px + 0.5, $py + 0.5, $total)) . '"' : '';
                 switch ($stil) {
@@ -1301,7 +1338,7 @@ final class QrRenderer
         } else {
         for ($y = 0; $y < $n; $y++) {
             for ($x = 0; $x < $n; $x++) {
-                if (!$this->qr->modules[$y][$x] || $this->inEye($x, $y)) continue;
+                if (!$this->moduleSichtbar($x, $y)) continue;
                 $x0 = ($x + $m) * $scale;
                 $y0 = ($y + $m) * $scale;
                 $fg = $farbe($x + $m + 0.5, $y + $m + 0.5);
