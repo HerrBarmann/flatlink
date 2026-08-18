@@ -53,6 +53,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             flash($err, 'err');
         } else {
             $group = $opts['group'];
+            // Weichen gleich beim Anlegen mitnehmen – dieselbe Auswertung wie
+            // beim Bearbeiten. Bleiben die Zeilen leer, entsteht kein Feld.
+            if ($darfWeichen) {
+                [$wErr, $regeln] = route_from_form(
+                    (array)($_POST['rw'] ?? []), (array)($_POST['ri'] ?? []), (array)($_POST['ru'] ?? []));
+                if ($wErr !== null) {
+                    flash($wErr, 'err');
+                    redirect_to('index.php');
+                }
+                if ($regeln !== []) $opts['rules'] = $regeln;
+            }
             [$ok, $result] = link_create($opts['url'], $full, $user['name'],
                 $full === null ? 'random' : 'custom', $opts);
             if ($ok) {
@@ -379,6 +390,33 @@ if ($neu !== null && link_access($user, $neu)):
             <label for="c-linkpass"><?= t('Passwortschutz') ?> <span class="muted">(<?= t('optional – Besucher müssen es vor der Weiterleitung eingeben') ?>)</span></label>
             <input id="c-linkpass" type="text" name="linkpass" autocomplete="off" placeholder="<?= t('leer = kein Schutz') ?>">
         </div>
+        <?php if ($darfWeichen): ?>
+        <?php // Weichen gab es nur beim Bearbeiten. Wer beim Anlegen schon
+              // weiß, dass Handys woandershin sollen, musste erst speichern und
+              // den Link danach wieder aufmachen. ?>
+        <label style="margin-top:0.8rem"><?= t('Weichen') ?>
+            <span class="muted"><?= t('(optional – je nach Gerät, Sprache, Land oder Anteil woandershin)') ?></span></label>
+        <?php foreach (range(0, 2) as $wi): ?>
+        <div class="weiche">
+            <select name="rw[<?= $wi ?>]" aria-label="<?= t('Merkmal') ?>">
+                <?php foreach (route_kriterien() as $k => $label):
+                    if ($k === 'country' && !route_land_moeglich()) continue; ?>
+                <option value="<?= e($k) ?>"><?= e($label) ?></option>
+                <?php endforeach; ?>
+            </select>
+            <input type="text" name="ri[<?= $wi ?>]" list="weichen-werte" maxlength="20" size="8"
+                   placeholder="<?= t('mobile / en / at / 50') ?>" aria-label="<?= t('Wert') ?>">
+            <input type="text" name="ru[<?= $wi ?>]" placeholder="https://…" aria-label="<?= t('Ziel dieser Weiche') ?>">
+        </div>
+        <?php endforeach; ?>
+        <p class="muted small"><?= t('Die erste zutreffende Weiche gewinnt; trifft keine zu, gilt die Ziel-URL oben. Leere Zeilen werden nicht gespeichert. Was in das mittlere Feld gehört, steht beim Bearbeiten ausführlicher.') ?></p>
+        <datalist id="weichen-werte">
+            <?php foreach (route_werte('device') as $w => $label): ?>
+            <option value="<?= e($w) ?>"><?= e($label) ?></option>
+            <?php endforeach; ?>
+            <option value="de">Deutsch</option><option value="en">English</option>
+        </datalist>
+        <?php endif; ?>
     </details>
     <p class="muted small" style="margin:0.7rem 0 0"><?= t('Viele auf einmal?') ?> <a href="import.php"><?= t('CSV-Import') ?></a></p>
 </form>

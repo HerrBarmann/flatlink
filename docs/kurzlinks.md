@@ -61,7 +61,9 @@ fällt bei jedem Aufruf neu. Über viele Aufrufe stimmt das Verhältnis, und meh
 soll ein Split nicht leisten – eine Wiedererkennung wäre die sauberere
 Statistik, kostet aber genau das, was dieses Projekt nicht ausgibt.
 
-Neben jeder gespeicherten Weiche steht, wie oft sie gegriffen hat. Daran sieht
+Weichen lassen sich **schon beim Anlegen** setzen (unter *Mehr Optionen*) und
+später jederzeit ändern. Neben jeder gespeicherten Weiche steht, wie oft sie
+gegriffen hat. Daran sieht
 man, ob eine gestellte Weiche überhaupt je benutzt wird.
 
 Die **erste zutreffende Weiche gewinnt**; trifft keine zu, gilt das Hauptziel.
