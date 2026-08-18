@@ -80,15 +80,18 @@ docker run --rm -v flatlink-data:/data -v "$PWD":/here alpine \
 ```
 
 For a versionable backup there is the text export – a day of operation is a
-few changed lines instead of a new binary file:
+few changed lines instead of a new binary file. The `tools/` folder is
+deliberately **not** in the image for that (command-line tools have no
+business being on the web), so mount it:
+
+```yaml
+volumes:
+  - ./tools:/var/www/html/tools:ro
+```
 
 ```bash
 docker exec flatlink php /var/www/html/tools/backup-export.php /var/lib/flatlink/export
 ```
-
-The `tools/` folder is **not** in the image, though (it has no business
-being on the web). If you need the export, mount it:
-`-v ./tools:/var/www/html/tools:ro`.
 
 ## Behind a proxy
 

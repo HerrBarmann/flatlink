@@ -83,15 +83,18 @@ docker run --rm -v flatlink-data:/daten -v "$PWD":/hier alpine \
 ```
 
 Für eine versionierbare Sicherung gibt es den Textexport – ein Betriebstag
-sind ein paar geänderte Zeilen statt einer neuen Binärdatei:
+sind ein paar geänderte Zeilen statt einer neuen Binärdatei. Der Ordner
+`tools/` liegt dafür bewusst **nicht** im Bild (Kommandozeilen-Werkzeuge
+haben im Netz nichts zu suchen), also einhängen:
+
+```yaml
+volumes:
+  - ./tools:/var/www/html/tools:ro
+```
 
 ```bash
 docker exec flatlink php /var/www/html/tools/backup-export.php /var/lib/flatlink/export
 ```
-
-Der Ordner `tools/` liegt allerdings **nicht** im Bild (er hat im Netz
-nichts zu suchen). Wer den Export braucht, hängt ihn ein:
-`-v ./tools:/var/www/html/tools:ro`.
 
 ## Hinter einem Proxy
 
