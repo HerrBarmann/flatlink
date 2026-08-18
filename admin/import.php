@@ -64,8 +64,11 @@ function import_spalten(array $kopf): array
     $bekannt = [
         'url' => ['long url', 'long_url', 'longurl', 'url', 'original url', 'original_url',
                   'destination', 'target', 'ziel', 'ziel-url', 'ziel url', 'lange url'],
-        'code' => ['keyword', 'custom bitlink', 'bitlink', 'short url', 'short_url', 'shortlink',
-                   'short link', 'slug', 'alias', 'code', 'kurzcode', 'wunsch-code', 'kurzlink'],
+        // 'shortcode'/'shorturl' sind die Spalten des Shlink-Exports (der Code
+        // steht dort VOR der ganzen Adresse und gewinnt), 'address' die von Kutt.
+        'code' => ['keyword', 'custom bitlink', 'bitlink', 'shortcode', 'short code', 'short url',
+                   'short_url', 'shorturl', 'shortlink', 'short link', 'slug', 'alias', 'address',
+                   'code', 'kurzcode', 'wunsch-code', 'kurzlink'],
         'title' => ['title', 'titel', 'name', 'description', 'beschreibung'],
         'expires' => ['expires', 'expires_at', 'expiry', 'expiration', 'ablauf', 'ablaufdatum'],
         'starts' => ['starts', 'starts_at', 'start', 'startdatum', 'gueltig ab', 'gültig ab'],
@@ -191,7 +194,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'expires' => $holen('expires'),
             'starts' => $holen('starts'),
             'title' => $holen('title'),
-            'tags' => $holen('tags'),
+            // Shlink trennt Schlagworte mit |, wir mit Komma – beides annehmen
+            'tags' => str_replace('|', ',', $holen('tags')),
         ];
     }
 
@@ -273,7 +277,7 @@ show_flash();
     <p class="muted small"><?= t('Dein Konto kann so viele Links auf einmal einlesen, wie in dein Kontingent passen (%d frei). Für größere Durchgänge gibt es die Berechtigung zum Massen-Import.', (int)$maxRows) ?></p>
     <?php endif; ?>
     <p class="muted small"><?= t('Eine Zeile pro Link: %s — alles außer der URL ist optional, als Trennzeichen geht Semikolon oder Komma. Alle Ziel-URLs werden vor dem Anlegen gesammelt auf Phishing/Malware geprüft.', '<code>url;wunsch-code;ablaufdatum;name;schlagworte;startdatum</code>') ?></p>
-    <p class="muted small"><strong><?= t('Umzug von einem anderen Dienst?') ?></strong> <?= t('Die Exporte von %sBitly%s und %sYOURLS%s lassen sich unverändert einlesen: Steht eine Kopfzeile darüber, werden die Spalten daran erkannt statt an ihrer Reihenfolge (%s bzw. %s). Enthält die Code-Spalte eine ganze Adresse wie %s, wird der letzte Teil übernommen – die Kurzcodes bleiben also erhalten.',
+    <p class="muted small"><strong><?= t('Umzug von einem anderen Dienst?') ?></strong> <?= t('Die Exporte von %sBitly%s, %sYOURLS%s, Shlink (Web-Client) und Kutt lassen sich unverändert einlesen: Steht eine Kopfzeile darüber, werden die Spalten daran erkannt statt an ihrer Reihenfolge (%s bzw. %s). Enthält die Code-Spalte eine ganze Adresse wie %s, wird der letzte Teil übernommen – die Kurzcodes bleiben also erhalten.',
         '<strong>', '</strong>', '<strong>', '</strong>',
         '<code>Long URL</code>, <code>Bitlink</code>, <code>Title</code>',
         '<code>url</code>, <code>keyword</code>, <code>title</code>',
