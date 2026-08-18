@@ -1,24 +1,25 @@
 # Konten und Anmeldung
 
-Zwei-Faktor-Anmeldung mit Passkeys oder Einmalkennwörtern, zentrale Anmeldung
-über LDAP oder den Webserver, und was Konten selbst über ihre Daten bestimmen.
-Zurück zur [README](../README.de.md). – 🇬🇧 [English version](konten.en.md).
+Zwei-Faktor-Anmeldung mit Passkeys oder Einmalkennwörtern, zentrale
+Anmeldung über LDAP oder den Webserver, und was Konten selbst über ihre
+Daten bestimmen. Zurück zur [README](../README.de.md). – 🇬🇧 [English
+version](konten.en.md).
 
 ## Zwei-Faktor-Anmeldung
 
 Warum das hier drin ist: Wer ein Konto übernimmt, kann das Ziel eines
-Kurzlinks ändern – auch das eines Codes, der längst gedruckt auf einem Schild
-klebt. Der Schaden trifft dann nicht den Kontoinhaber, sondern jeden, der
-scannt. Für einen Dienst, der gedruckte Codes ausgibt, ist ein Passwort allein
-eine dünne Tür.
+Kurzlinks ändern – auch das eines Codes, der längst gedruckt auf einem
+Schild klebt. Der Schaden trifft dann nicht den Kontoinhaber, sondern jeden,
+der scannt. Für einen Dienst, der gedruckte Codes ausgibt, ist ein Passwort
+allein eine dünne Tür.
 
 Zwei Verfahren stehen zur Wahl, beide im Profil einzurichten. Sie schließen
 sich nicht aus – wer beide hinterlegt, hat beim Anmelden die Wahl.
 
 ### Passkeys (WebAuthn)
 
-Fingerabdruck, Gesicht oder Geräte-PIN, hinterlegt im Telefon, im Rechner oder
-auf einem Sicherheitsschlüssel. Bis zu zehn Geräte je Konto.
+Fingerabdruck, Gesicht oder Geräte-PIN, hinterlegt im Telefon, im Rechner
+oder auf einem Sicherheitsschlüssel. Bis zu zehn Geräte je Konto.
 
 Der Unterschied zum Einmalkennwort ist nicht die Bequemlichkeit, sondern die
 **Bindung an die Domain**. Ein sechsstelliger Code lässt sich auf einer
@@ -26,14 +27,14 @@ nachgebauten Anmeldeseite eintippen und binnen Sekunden weiterreichen; einen
 Passkey gibt der Browser dort gar nicht erst heraus, weil die Herkunft nicht
 stimmt. Das ist der eigentliche Gewinn.
 
-Umgesetzt in [`inc/webauthn.php`](../inc/webauthn.php) – reines PHP, wie alles
-hier: Der CBOR-Leser ist selbst geschrieben, die Unterschrift prüft das
-OpenSSL, das PHP ohnehin mitbringt. Unterstützt werden ES256 (was Telefone und
-Sicherheitsschlüssel praktisch immer liefern) und RS256 (ältere
-Windows-Hello-Installationen). `assets/passkey.js` packt nur zwischen JSON und
-der Binärschnittstelle des Browsers um; **geprüft wird ausschließlich auf dem
-Server** – das Skript lässt sich ohne Sicherheitsverlust lesen, ändern und
-umgehen.
+Umgesetzt in [`inc/webauthn.php`](../inc/webauthn.php) – reines PHP, wie
+alles hier: Der CBOR-Leser ist selbst geschrieben, die Unterschrift prüft
+das OpenSSL, das PHP ohnehin mitbringt. Unterstützt werden ES256 (was
+Telefone und Sicherheitsschlüssel praktisch immer liefern) und RS256 (ältere
+Windows-Hello-Installationen). `assets/passkey.js` packt nur zwischen JSON
+und der Binärschnittstelle des Browsers um; **geprüft wird ausschließlich
+auf dem Server** – das Skript lässt sich ohne Sicherheitsverlust lesen,
+ändern und umgehen.
 
 Vier Prüfungen machen den Schutz aus, und keine davon darf wegfallen:
 
@@ -45,25 +46,26 @@ Vier Prüfungen machen den Schutz aus, und keine davon darf wegfallen:
 4. Die Unterschrift muss zum hinterlegten Schlüssel passen.
 
 Dazu der Signaturzähler: Läuft er zurück, wurde der Schlüssel vermutlich
-kopiert, und die Anmeldung wird abgelehnt. Viele Geräte zählen gar nicht – nur
-ein echter Rückschritt gilt als verdächtig.
+kopiert, und die Anmeldung wird abgelehnt. Viele Geräte zählen gar nicht –
+nur ein echter Rückschritt gilt als verdächtig.
 
-Passkeys brauchen HTTPS (`localhost` ausgenommen). Auf einer Instanz ohne TLS
-blendet das Profil den Knopf nicht ein, statt ein Versprechen zu geben, das der
-Browser nicht einlöst.
+Passkeys brauchen HTTPS (`localhost` ausgenommen). Auf einer Instanz ohne
+TLS blendet das Profil den Knopf nicht ein, statt ein Versprechen zu geben,
+das der Browser nicht einlöst.
 
 **Es gibt keine Wiederherstellungscodes.** Ein Passkey lässt sich nicht
-abschreiben und in den Safe legen. Deshalb zwei Wege zurück: ein zweites Gerät
-hinterlegen – oder ein Administrator setzt die zweite Stufe unter *Nutzer*
-zurück. Diese Möglichkeit ist Absicht und zugleich der schwächste Punkt der
-Kette; wer sie benutzt, sollte sicher sein, mit wem er spricht.
+abschreiben und in den Safe legen. Deshalb zwei Wege zurück: ein zweites
+Gerät hinterlegen – oder ein Administrator setzt die zweite Stufe unter
+*Nutzer* zurück. Diese Möglichkeit ist Absicht und zugleich das schwächste
+Glied der Kette; wer sie benutzt, sollte sicher sein, mit wem er spricht.
 
 ### Einmalkennwörter aus einer App (TOTP)
 
-QR-Code scannen, sechs Ziffern eintippen, fertig. Acht Wiederherstellungscodes
-werden dabei einmal angezeigt; jeder gilt genau einmal, für den Fall, dass das
-Telefon weg ist. Funktioniert auf jedem Gerät und in jedem Browser – aber es
-lässt sich abtippen, und damit auch auf einer nachgebauten Seite eingeben.
+QR-Code scannen, sechs Ziffern eintippen, fertig. Acht
+Wiederherstellungscodes werden dabei einmal angezeigt; jeder gilt genau
+einmal, für den Fall, dass das Telefon weg ist. Funktioniert auf jedem Gerät
+und in jedem Browser – aber es lässt sich abtippen, und damit auch auf einer
+nachgebauten Seite eingeben.
 
 Umgesetzt nach RFC 6238 in reinem PHP – HMAC-SHA1 und base32 bringt die
 Sprache mit, den QR-Code erzeugt der eigene Encoder. Geprüft gegen die
@@ -72,38 +74,40 @@ Testvektoren des Standards.
 Zwei Dinge, die nicht selbstverständlich sind:
 
 - **Der QR-Code wird eingebettet, nicht verlinkt.** Die `otpauth`-Adresse
-  enthält das Geheimnis; als URL landete es in Server-Protokollen, im Verlauf
-  des Browsers und im Referrer. Das SVG entsteht im selben Aufruf.
+  enthält das Geheimnis; als URL landete es in Server-Protokollen, im
+  Verlauf des Browsers und im Referrer. Das SVG entsteht im selben Aufruf.
 - **Ein Kennwort gilt nur einmal.** Der zuletzt benutzte Zähler wird
-  festgehalten. Ohne diese Sperre könnte jemand, der einmal über die Schulter
-  geschaut hat, sich im selben halben Minutenfenster selbst anmelden.
+  festgehalten. Ohne diese Sperre könnte jemand, der einmal über die
+  Schulter geschaut hat, sich im selben 30-Sekunden-Fenster selbst anmelden.
 
 ### Erzwingen
 
-Über `'totp_required'` (`off` | `admins` | `all`, auch unter *Einstellungen*)
-lässt sich die zweite Stufe verlangen. **Erfüllt wird die Auflage durch eines
-der beiden Verfahren** – der Schlüsselname ist aus der Zeit vor den Passkeys
-und bleibt, damit bestehende Konfigurationen weiterlaufen. Wer noch keines
-eingerichtet hat, wird nach der Anmeldung ins Profil geführt statt ausgesperrt;
-das letzte verbliebene Verfahren lässt sich dann nicht mehr entfernen.
+Über `'totp_required'` (`off` | `admins` | `all`, auch unter
+*Einstellungen*) lässt sich die zweite Stufe verlangen. **Erfüllt wird die
+Auflage durch eines der beiden Verfahren** – der Schlüsselname ist aus der
+Zeit vor den Passkeys und bleibt, damit bestehende Konfigurationen
+weiterlaufen. Wer noch keines eingerichtet hat, wird nach der Anmeldung ins
+Profil geführt statt ausgesperrt; das letzte verbliebene Verfahren lässt
+sich dann nicht mehr entfernen.
 
 **API-Schlüssel sind davon nicht betroffen** – sie sind ein eigener Nachweis
-und tragen kein Passwort, das ein Zweitfaktor absichern könnte. Wer ein Konto
-besonders schützen will, prüft daher auch dessen Schlüsselliste.
+und tragen kein Passwort, das ein Zweitfaktor absichern könnte. Wer ein
+Konto besonders schützen will, prüft daher auch dessen Schlüsselliste.
 
 ## Zentrale Anmeldung
 
 Beide Wege sind optional, stehen standardmäßig auf `false` und lassen sich
 parallel zu lokalen Konten betreiben. Hier steht das Prinzip – die
 Schritt-für-Schritt-Einrichtung samt Apache-Konfiguration, SP-Metadaten und
-Attributfreigabe steht in der [Deployment-Anleitung](DEPLOYMENT.md#8-shibboleth-saml-und-openid-connect).
+Attributfreigabe steht in der
+[Deployment-Anleitung](DEPLOYMENT.md#8-shibboleth-saml-und-openid-connect).
 
 ### Über den Webserver (Shibboleth, SAML, OpenID Connect)
 
-Der empfohlene Weg für einen Shibboleth-IdP. Die eigentliche Anmeldung erledigt
-ein Servermodul – `mod_shib`, `mod_auth_mellon` oder `mod_auth_openidc` –, das
-den Admin-Bereich schützt. flatlink liest nur, wen der Server bereits
-authentifiziert hat. Für Apache:
+Der empfohlene Weg für einen Shibboleth-IdP. Die eigentliche Anmeldung
+erledigt ein Servermodul – `mod_shib`, `mod_auth_mellon` oder
+`mod_auth_openidc` –, das den Admin-Bereich schützt. flatlink liest nur, wen
+der Server bereits authentifiziert hat. Für Apache:
 
 ```apache
 <Location /admin>
@@ -130,18 +134,19 @@ Konten entstehen beim ersten Login automatisch.
 
 ### Über LDAP oder Active Directory
 
-Hier fragt flatlink selbst beim Verzeichnis nach; Kennung und Passwort werden
-im gewohnten Login-Formular eingegeben. Braucht die PHP-Erweiterung `ldap`.
+Hier fragt flatlink selbst beim Verzeichnis nach; Kennung und Passwort
+werden im gewohnten Login-Formular eingegeben. Braucht die PHP-Erweiterung
+`ldap`.
 
 Geprüft wird per Bind als der gefundene Nutzer – das Passwort wird nirgends
 gespeichert und nicht mit einem lokalen Hash verglichen. Eingaben werden vor
-dem Einsetzen in den Suchfilter escaped, LDAP-Injection ist damit nicht
+dem Einsetzen in den Suchfilter maskiert, LDAP-Injection ist damit nicht
 möglich; leere Passwörter werden abgelehnt, bevor sie als „unauthenticated
-bind" fälschlich als Erfolg durchgehen könnten.
+bind“ fälschlich als Erfolg durchgehen könnten.
 
-Reihenfolge beim Login: erst das lokale Passwort, dann das Verzeichnis. Lokale
-Konten funktionieren also weiter – wichtig, damit man sich nicht aussperrt,
-wenn der LDAP-Server einmal nicht erreichbar ist.
+Reihenfolge beim Login: erst das lokale Passwort, dann das Verzeichnis.
+Lokale Konten funktionieren also weiter – wichtig, damit man sich nicht
+aussperrt, wenn der LDAP-Server einmal nicht erreichbar ist.
 
 Bei `ldap://` unbedingt `start_tls` einschalten, sonst geht das Passwort im
 Klartext über das Netz. Besser gleich `ldaps://`.
@@ -156,71 +161,74 @@ php tools/ldap-check.php kennung -p
 
 Das Werkzeug geht Erweiterung, Konfiguration, Verbindung, Bind, Suche und
 Passwortprüfung der Reihe nach durch und hält an der ersten Stelle an, die
-nicht stimmt – mit einem konkreten Rat statt einer Fehlernummer. Das Passwort
-wird abgefragt, nicht als Argument übergeben, sonst stünde es in der
-Prozessliste. Zusätzlich schreibt die Anmeldung den Grund ins Fehlerprotokoll
-des Webservers.
+nicht stimmt – mit einem konkreten Rat statt einer Fehlernummer. Das
+Passwort wird abgefragt, nicht als Argument übergeben, sonst stünde es in
+der Prozessliste. Zusätzlich schreibt die Anmeldung den Grund ins
+Fehlerprotokoll des Webservers.
 
 ### Ein Konto löschen
 
-Beide Wege – die Selbstlöschung im Profil und das Löschen durch die Verwaltung –
-räumen gleich auf: Zugangsschlüssel werden widerrufen, offene Bestätigungen
-verworfen, und die Links werden verteilt.
+Beide Wege – die Selbstlöschung im Profil und das Löschen durch die
+Verwaltung – räumen beide gleichermaßen auf: Zugangsschlüssel werden
+widerrufen, offene Bestätigungen verworfen, und die Links werden verteilt.
 
 | | |
 | --- | --- |
 | Links einer **Arbeitsgruppe** | bleiben der Gruppe und verlieren nur den Besitzer. Dafür gibt es Gruppen – ein ausgeschiedener Kollege nimmt das gemeinsame Plakat nicht mit. |
-| Links **ohne Gruppe** | wären danach herrenlos. Beim Löschen durch die Verwaltung entscheidet der Administrator: an sich übertragen oder mitlöschen. Wer sich selbst löscht, hat niemanden zum Übergeben – dort werden sie gelöscht. |
+| Links **ohne Gruppe** | wären danach herrenlos. Beim Löschen durch die Verwaltung entscheidet der Administrator: an sich übertragen oder mitlöschen. Wer sich selbst löscht, hat niemanden, an den er übergeben könnte – dort werden sie gelöscht. |
 
-Im Zweifel übertragen: Ein gedruckter Code, dessen Ziel verschwindet, führt ins
-Leere, und das merkt man erst, wenn sich jemand beschwert.
+Im Zweifel übertragen: Ein gedruckter Code, dessen Ziel verschwindet, führt
+ins Leere, und das merkt man erst, wenn sich jemand beschwert.
 
-**Den Besitzer eines Links ändern** geht auch ohne Löschen – im Bearbeiten-Formular
-der Linkliste, sichtbar für Administratoren und Konten mit `links_all`. Dort lässt
-sich auch „niemand" wählen: Dann gehört der Link nur noch seiner Gruppe. Ohne
-Gruppe lehnt die Instanz das ab, sonst fände den Link außer der Verwaltung niemand
-mehr.
+**Den Besitzer eines Links ändern** geht auch ohne Löschen – im
+Bearbeiten-Formular der Linkliste, sichtbar für Administratoren und Konten
+mit `links_all`. Dort lässt sich auch „niemand“ wählen: Dann gehört der Link
+nur noch seiner Gruppe. Ohne Gruppe lehnt die Instanz das ab, sonst fände
+den Link außer der Verwaltung niemand mehr.
 
 ### Konten aus dem Verzeichnis anlegen
 
 Steht `auto_create` auf `false`, entstand ein Konto bisher erst *nach* einem
 vergeblichen Anmeldeversuch: Der Versuch legte einen Eintrag in der
-Warteschlange an, den ein Administrator freischaltete. Das funktioniert, mutet
-den Leuten aber einen Fehlschlag zu, den sie nicht einordnen können – und wer
-ein Konto vorbereiten will, bevor jemand anfängt, kann es gar nicht.
+Warteschlange an, den ein Administrator freischaltete. Das funktioniert,
+mutet den Leuten aber einen Fehlschlag zu, den sie nicht einordnen können –
+und wer ein Konto vorbereiten will, bevor jemand anfängt, kann es gar nicht.
 
-Unter *Nutzer → Aus dem Verzeichnis anlegen* lässt sich deshalb direkt suchen,
-nach Name, Kennung oder E-Mail. Ein Klick legt das Konto an, mit Klarname und
-Adresse aus dem Verzeichnis; die Anmeldung funktioniert sofort. Wer schon ein
-Konto hat, erscheint als solcher und nicht als Knopf.
+Unter *Nutzer → Aus dem Verzeichnis anlegen* lässt sich deshalb direkt
+suchen, nach Name, Kennung oder E-Mail. Ein Klick legt das Konto an, mit
+Klarname und Adresse aus dem Verzeichnis; die Anmeldung funktioniert sofort.
+Wer schon ein Konto hat, wird als solcher ausgewiesen, ohne Knopf zum
+Anlegen.
 
-Gesucht wird mit dem Dienstkonto aus `bind_dn`, also mit denselben Rechten wie
-bei der Anmeldung. Zwei Schlüssel steuern das:
+Gesucht wird mit dem Dienstkonto aus `bind_dn`, also mit denselben Rechten
+wie bei der Anmeldung. Zwei Schlüssel steuern das:
 
 | | |
 | --- | --- |
 | `search_filter` | **Leer lassen.** Der Filter entsteht dann aus den Attributen, die ohnehin konfiguriert sind (`uid_attr`, `name_attr`, `mail_attr`) plus `cn`, `sn`, `givenName`, `mail`. Nur für Sonderfälle eintragen, etwa um auf eine Abteilung einzugrenzen. |
 | `uid_attr` | Attribut mit der Kennung. Leer = aus dem `user_filter` ablesen, was in aller Regel stimmt. |
 
-Dass der Filter aus der Konfiguration entsteht, ist der Punkt: Ein Verzeichnis,
-das seinen Anzeigenamen in einem eigenen Feld führt – an der HfMT etwa
-`hfmtDisplayNameStr` –, findet mit einem fest verdrahteten `(cn=*%s*)` nur über
-die Kennung. Wer `name_attr` gesetzt hat, hat damit auch gesagt, wo der Name
-steht; ein zweiter Eintrag dafür wäre eine Fehlerquelle mehr.
+Dass der Filter aus der Konfiguration entsteht, ist der springende Punkt:
+Ein Verzeichnis, das seinen Anzeigenamen in einem eigenen Feld führt – an
+der HfMT etwa `hfmtDisplayNameStr` –, findet mit einem fest eingebauten
+`(cn=*%s*)` nur über die Kennung. Wer `name_attr` gesetzt hat, hat damit
+auch gesagt, wo der Name steht; ein zweiter Eintrag dafür wäre eine
+Fehlerquelle mehr.
 
 Mehrere Wörter werden UND-verknüpft, jedes für sich über alle Attribute.
-„Dennis Bormann" trifft damit auch einen Eintrag „Bormann, Dennis" – und zwei
-Namensteile machen die Suche enger statt breiter.
+„Dennis Bormann“ trifft damit auch einen Eintrag „Bormann, Dennis“ – und
+zwei Namensteile machen die Suche enger statt breiter.
 
-Die Warteschlange bleibt daneben bestehen: Wer sich ohne Konto anmeldet, landet
-weiterhin dort. Beides führt zum selben Ergebnis, nur von verschiedenen Seiten.
+Die Warteschlange bleibt daneben bestehen: Wer sich ohne Konto anmeldet,
+landet weiterhin dort. Beides führt zum selben Ergebnis, nur von
+verschiedenen Seiten.
 
 ### Gruppen aus dem Verzeichnis
 
 Beide Wege können Gruppenzugehörigkeiten übernehmen: bei SSO aus einem
-Attribut wie `isMemberOf` oder `entitlement`, bei LDAP aus `memberOf` oder per
-Suche im Gruppenbaum. Die Zuordnungstabelle `group_map` bildet externe Namen
-auf lokale Gruppen ab:
+Attribut wie `isMemberOf` oder `entitlement`, bei LDAP aus `memberOf` oder
+per Suche im Gruppenbaum. Die Zuordnungstabelle `group_map` bildet externe
+Namen auf lokale Gruppen ab:
 
 ```php
 'group_map' => [
@@ -245,20 +253,20 @@ Lokale Konten setzen ihren Anzeigenamen selbst im Profil, Administratoren
 können ihn überall nachpflegen. Gesucht wird über Name, Kennung und
 E-Mail-Adresse gleichzeitig.
 
-Die Rolle bleibt beim erneuten Login unangetastet: Wer hier zum Administrator
-gemacht wurde, bleibt es. Und ein Konto, das zentral verwaltet wird, kann sich
-nicht mehr über das lokale Passwortformular anmelden – sonst wäre die zentrale
-Anmeldung über ein altes Passwort umgehbar.
+Die Rolle bleibt beim erneuten Login unangetastet: Wer hier zum
+Administrator gemacht wurde, bleibt es. Und ein Konto, das zentral verwaltet
+wird, kann sich nicht mehr über das lokale Passwortformular anmelden – sonst
+wäre die zentrale Anmeldung über ein altes Passwort umgehbar.
 
 ### Was zentral verwaltete Konten im Profil können
 
-Wer sich über LDAP oder den Webserver anmeldet, hat hier keinen Passwort-Hash –
-die Anmeldung weist solche Konten lokal ab, und jede Anmeldung über das
-Verzeichnis entfernt einen etwaigen Alt-Hash. Das Profil zeigt darum kein
-Passwortformular, sondern den Hinweis, wo das Passwort hingehört. Ebenso beim
-Anzeigenamen: Liefert das Verzeichnis einen, gewinnt er. Eine E-Mail-Adresse
-lässt sich dagegen eintragen – sie wird nur überschrieben, wenn das Verzeichnis
-selbst eine mitliefert.
+Wer sich über LDAP oder den Webserver anmeldet, hat hier keinen
+Passwort-Hash – die Anmeldung weist solche Konten lokal ab, und jede
+Anmeldung über das Verzeichnis entfernt einen etwaigen Alt-Hash. Das Profil
+zeigt darum kein Passwortformular, sondern den Hinweis, wo das Passwort
+hingehört. Ebenso beim Anzeigenamen: Liefert das Verzeichnis einen, gewinnt
+er. Eine E-Mail-Adresse lässt sich dagegen eintragen – sie wird nur
+überschrieben, wenn das Verzeichnis selbst eine mitliefert.
 
 ### Auskunft, Mitnahme, Löschung
 
@@ -268,21 +276,21 @@ Im Profil steht beides ohne Umweg über den Betreiber:
 gespeichert ist – Kontodaten, angemeldete Geräte, der Stand der
 Zwei-Faktor-Anmeldung samt Passkey-Bezeichnungen, die Zugangsschlüssel der
 Schnittstelle, Gruppen, Rechte, Limits und jeder Kurzlink mit Ziel, Daten,
-Klickzahlen, den Änderungen am Ziel und – bei Link-in-Bio – der Seite selbst.
-Nicht dabei sind Zugangsmittel: Passwort-Hash, das Geheimnis der
+Klickzahlen, den Änderungen am Ziel und – bei Link-in-Bio – der Seite
+selbst. Nicht dabei sind Zugangsmittel: Passwort-Hash, das Geheimnis der
 Authenticator-App, das Schlüsselmaterial der Passkeys, die Hashes der
 Zugangsschlüssel und der Abdruck laufender Sitzungen. Sie sind kein Inhalt,
-und eine Datei damit landet danach im Download-Ordner. Die Datei selbst zählt
-auf, was sie aus welchem Grund auslässt. Das deckt Art. 15 (Auskunft) und
-Art. 20 (Mitnahme).
+und eine Datei damit landet danach im Download-Ordner. Die Datei selbst
+zählt auf, was sie aus welchem Grund auslässt. Das deckt Art. 15 (Auskunft)
+und Art. 20 (Mitnahme).
 
-**Browser-Erweiterung** zeigt, was die Instanz anbietet – das hängt davon ab,
-was unter *Einstellungen → Browser-Erweiterung* eingetragen ist.
+**Browser-Erweiterung** zeigt, was die Instanz anbietet – das hängt davon
+ab, was unter *Einstellungen → Browser-Erweiterung* eingetragen ist.
 
 *Verbindungscode* gibt es immer. Er enthält Adresse und einen frisch
 erzeugten Zugangsschlüssel und richtet eine bereits installierte Erweiterung
-mit einem Einfügen ein. Der Schlüssel ist ein eigener (Bezeichnung
-„Browser-Erweiterung" mit Datum) und lässt sich einzeln zurückziehen, ohne
+mit einem einzigen Einfügen ein. Der Schlüssel ist ein eigener (Bezeichnung
+„Browser-Erweiterung“ mit Datum) und lässt sich einzeln zurückziehen, ohne
 andere Programme lahmzulegen.
 
 *Knöpfe in die Läden* erscheinen, sobald dort Adressen hinterlegt sind – für
@@ -292,18 +300,19 @@ oder den Edge-Add-ons steht.
 *Archiv zum Selbstladen* baut ein Paket, das schon auf diese Instanz
 eingerichtet ist: Adresse, Name und Symbole stehen drin, auf Wunsch auch der
 Zugangsschlüssel – dann ist die Erweiterung nach dem Laden sofort benutzbar.
-Wer den Haken wegnimmt, bekommt ein Archiv ohne Zugangsmittel; die Erweiterung
-fragt dann beim ersten Öffnen danach. Für eine Instanz ohne Store-Eintrag ist
-das der einzige Weg – aber es muss von Hand entpackt und im Entwicklermodus
-geladen werden und aktualisiert sich nie. Wer im Laden steht, schaltet es in
-den Einstellungen ab.
+Wer den Haken wegnimmt, bekommt ein Archiv ohne Zugangsmittel; die
+Erweiterung fragt dann beim ersten Öffnen danach. Für eine Instanz ohne
+Store-Eintrag ist das der einzige Weg – aber es muss von Hand entpackt und
+im Entwicklermodus geladen werden und aktualisiert sich nie. Wer im Laden
+steht, schaltet es in den Einstellungen ab.
 
 **Konto löschen** entfernt das Konto und alle Links, die nur daran hängen,
 samt Klickzählern. Links **mit Gruppenzuordnung bleiben** und verlieren nur
 ihren Besitzer – sie gehören der Gruppe, andere arbeiten damit weiter, und
 gedruckte QR-Codes darauf sollen nicht ins Leere zeigen, weil eine Person
-geht. Vorher wird das Passwort abgefragt (bei zentraler Anmeldung: die eigene
-Kennung abgetippt), der letzte Administrator kann sich nicht selbst entfernen.
+geht. Vorher wird das Passwort abgefragt (bei zentraler Anmeldung: die
+eigene Kennung abgetippt), der letzte Administrator kann sich nicht selbst
+entfernen.
 
 Auf einer Instanz mit zentral verwalteten Konten ist der Löschknopf
 irreführend, weil das Verzeichnis das Konto bei der nächsten Anmeldung neu
@@ -312,13 +321,13 @@ unberührt.
 
 ### Zwei Hinweise zum Datenschutz
 
-**Google Safe Browsing** ist standardmäßig **aus**. Wer es aktiviert, schickt
-beim Anlegen eines Links dessen Ziel-URL an Google. Für eine öffentliche
-Instanz ist das ein wirksamer Schutz gegen Phishing-Missbrauch, für eine interne
-meist überflüssig. Wer es einschaltet, sollte es in seiner
+**Google Safe Browsing** ist standardmäßig **aus**. Wer es aktiviert,
+schickt beim Anlegen eines Links dessen Ziel-URL an Google. Für eine
+öffentliche Instanz ist das ein wirksamer Schutz gegen Phishing-Missbrauch,
+für eine interne meist überflüssig. Wer es einschaltet, sollte es in seiner
 Datenschutzerklärung angeben.
 
-**Der Webserver protokolliert weiter.** flatlink speichert keine IP-Adressen,
-die Zugriffs-Logs von Apache oder nginx tun es in aller Regel schon. Wer den
-Anspruch ernst nimmt, kürzt oder deaktiviert sie dort.
+**Der Webserver protokolliert weiter.** flatlink speichert keine
+IP-Adressen, die Zugriffs-Logs von Apache oder nginx tun es in aller Regel
+schon. Wer den Anspruch ernst nimmt, kürzt oder deaktiviert sie dort.
 

@@ -14,8 +14,9 @@ the same code the admin interface uses
 ## Prerequisites
 
 The account needs the **`api_access`** permission. Like all permissions it
-hangs on a group; an administrator enables it. If it should apply to everyone
-on an instance, it belongs in `'default_perms'` in the configuration.
+is attached to a group; an administrator enables it. If it is to apply to
+everyone on an instance, it belongs in `'default_perms'` in the
+configuration.
 
 ## Creating a key
 
@@ -32,8 +33,8 @@ for.
 Authorization: Bearer flk_…
 ```
 
-If the server strips the `Authorization` header before PHP sees it — the case
-on some shared hosting — this works too:
+If the server strips the `Authorization` header before PHP sees it — the
+case on some shared hosting — this works too:
 
 ```
 X-Api-Key: flk_…
@@ -42,8 +43,8 @@ X-Api-Key: flk_…
 The bundled `.htaccess` additionally passes `Authorization` through as an
 environment variable, so the usual way works almost everywhere.
 
-**Session cookies are deliberately not accepted.** Otherwise a foreign page
-in a signed-in user's browser could issue requests and change their links.
+**Session cookies are deliberately not accepted.** Otherwise another site in
+a signed-in user's browser could issue requests and change their links.
 Without cookies that attack surface does not exist — which is also why the
 API needs no CSRF token.
 
@@ -93,7 +94,7 @@ All links the account has access to.
 | Parameter | Meaning |
 | --- | --- |
 | `q` | searches code, target and name |
-| `group` | only links of this group |
+| `group` | only links in this group |
 | `tag` | only links with this tag |
 | `limit` | 1–200, default 50 |
 | `offset` | for paging |
@@ -116,7 +117,7 @@ curl -X POST https://example.org/api/links \
 | `url` | yes | http/https; a missing scheme becomes `https://` |
 | `code` | no | custom name; needs the `custom_code` permission |
 | `title` | no | name for your own overview |
-| `tags` | no | tags for ordering — list or comma-separated string; at most eight, 24 characters each, stored lowercase |
+| `tags` | no | tags for organising — list or comma-separated string; at most eight, 24 characters each, stored lowercase |
 | `domain` | no | address the link should live under; empty or unknown = main domain |
 | `utm` | no | object with `utm_source`, `utm_medium`, `utm_campaign`, `utm_term`, `utm_content`; appended to `url` |
 | `expires` | no | `YYYY-MM-DD`, today at the earliest |
@@ -131,18 +132,18 @@ A single link.
 
 ### `PATCH /links/{code}`
 
-Changes **only the fields passed**. A call that merely sets the target leaves
-the name untouched — unlike a form, which always submits all its fields. To
-remove a name, pass `"title": ""` explicitly.
+Changes **only the fields passed**. A call that merely sets the target
+leaves the name untouched — unlike a form, which always submits all its
+fields. To remove a name, pass `"title": ""` explicitly.
 
 In addition to the `POST` fields: `disabled` (`true`/`false`) blocks the
-link, `"password": ""` lifts the access protection.
+link, `"password": ""` removes the access protection.
 
 `utm` behaves the same way within its object: only the parameters passed are
 touched. `{"utm": {"utm_campaign": "winter"}}` swaps the campaign and leaves
 `utm_source` in place; an empty value removes a single parameter. The
 parameters are **not stored separately** — they live in `url`, and `utm` in
-the response is read out, not kept.
+the response is derived, not stored.
 
 ### `DELETE /links/{code}`
 
@@ -161,8 +162,8 @@ Deletes the link and its click counter. Response `{"deleted": "abc123"}`.
 switches). Attributes: `device` (`mobile`/`tablet`/`desktop`), `lang` and
 `country` (two letters each), `split` (a share from 1 to 99). The first
 matching switch wins, otherwise `url` applies. Needs the `link_rules`
-permission; at most eight per link. Evaluated on every request — nothing of
-it is stored, only how often each switch fired is counted.
+permission; at most eight per link. Evaluated on every request — none of it
+is stored, only how often each switch fired is counted.
 
 ### `GET /links/{code}/stats`
 
@@ -174,9 +175,9 @@ it is stored, only how often each switch fired is counted.
 ```
 
 `refs`, `devices` and `languages` are sums over all visits — no time series
-and no record per visit. They are absent when the instance has
-`'click_dims' => false`. `-` stands for visits without a recognisable origin
-(typed, QR code, app).
+and no record per visit. They are absent when the instance has `'click_dims'
+=> false`. `-` stands for visits without a recognisable origin (typed, QR
+code, app).
 
 `days` reaches back only as far as the account may see statistics. **`last`
 is day-precise, not second-precise** — there is no finer value because none
@@ -191,16 +192,16 @@ address, because no such thing is kept anywhere.
 | Field | Meaning |
 | --- | --- |
 | `lang` | Language of the target URL, two letters. Basis of the switches' language negotiation: only with it can a visitor with a matching second language be routed correctly. |
-| `max_visits` | Visit limit. Whole number from 1; once reached, the link answers with 410. Empty or 0 = unlimited. Bots and HEAD requests do not count. |
+| `max_visits` | Visit limit. Whole number, 1 or greater; once reached, the link returns 410. Empty or 0 = unlimited. Bots and HEAD requests do not count. |
 
 Both apply to `POST /links` and `PATCH /links/{code}` and appear in every
 link response.
 
 ### Tags (`/tags`)
 
-Tags hang on the links; here they can be managed across the whole reachable
-inventory at once – "reachable" being the same set that applies per link:
-your own links plus those of your working groups, everything for
+Tags live on individual links; here they can be managed across everything
+you can access at once – "reachable" being the same set that applies per
+link: your own links plus those of your working groups, everything for
 administrators.
 
 | Call | Effect |
@@ -220,9 +221,9 @@ curl -X PATCH https://example.org/api/tags/campain \
 { "tag": "campaign", "renamed_from": "campain", "links": 12 }
 ```
 
-The new name goes through the same treatment as on a link: lowercased, at
-most 24 characters. A tag none of your links carries answers with 404. That
-turns the typo in thirty links into one call instead of thirty `PATCH`es.
+The new name is treated the same way as on a link: lowercased, at most 24
+characters. A tag none of your links carries returns 404. That turns the
+typo in thirty links into one call instead of thirty `PATCH`es.
 
 ### `GET /health`
 
@@ -247,11 +248,11 @@ and therefore needs no key:
 curl -o code.svg "https://example.org/qr.php?c=abc123&format=svg"
 ```
 
-`format` can be `svg`, `png`, `pdf` or `eps`; on top come the designer's
-styling parameters (`style`, `eye`, `fg`, `bg`, `size`, `margin` …) – the
-complete list with values is in the [QR manual](qr-generator.en.md). Unknown
-codes answer with 404, the rate limit is `qr_rate_limit` (default 600 per
-hour and address, tighter for the heavy print formats).
+`format` can be `svg`, `png`, `pdf` or `eps`; plus the designer's styling
+parameters (`style`, `eye`, `fg`, `bg`, `size`, `margin` …) – the complete
+list with values is in the [QR manual](qr-generator.en.md). Unknown codes
+return 404, the rate limit is `qr_rate_limit` (default 600 per hour per
+address, tighter for the heavy print formats).
 
 ## Errors
 
@@ -269,12 +270,12 @@ hour and address, tighter for the heavy print formats).
 | 422 | `rejected` | input violates a rule |
 | 429 | `rate_limited`, `too_many_attempts` | hourly limit reached |
 
-**404 instead of 403 for foreign links** is deliberate: otherwise the API
-could be used to find out which short codes are already taken.
+**404 instead of 403 for other people's links** is deliberate: otherwise the
+API could be used to find out which short codes are already taken.
 
 ## Limits
 
-`'api_rate_limit'` in the configuration, default 300 requests per hour and
+`'api_rate_limit'` in the configuration, default 300 requests per hour per
 key. Counted per key, not per IP — a server using the API always comes from
 the same address. Failed authentications are counted separately per IP, so
 keys cannot be brute-forced.

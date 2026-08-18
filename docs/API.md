@@ -1,32 +1,32 @@
 # Programmierschnittstelle
 
-Kurzlinks anlegen, ändern, löschen und Klickzahlen abrufen — aus einem
-Skript, einem Kassensystem, einem Redaktionswerkzeug.
-🇬🇧 [English version](API.en.md).
+Kurzlinks anlegen, ändern, löschen und Klickzahlen abrufen – aus einem
+Skript, einem Kassensystem, einem Redaktionswerkzeug. 🇬🇧 [English
+version](API.en.md).
 
-Die Schnittstelle kann **nichts, was das Konto nicht auch über die Oberfläche
-könnte**. Rechte, Limits, Namensräume und Gruppenzugehörigkeit gelten
-unverändert: Ein Schlüssel ist ein zweiter Weg zur Anmeldung, keine zweite
-Berechtigung. Sämtliche Regeln kommen aus derselben Fassung wie die der
-Verwaltungsoberfläche ([`inc/linkrules.php`](../inc/linkrules.php)).
+Die Schnittstelle kann **nichts, was das Konto nicht auch über die
+Oberfläche könnte**. Rechte, Limits, Namensräume und Gruppenzugehörigkeit
+gelten unverändert: Ein Schlüssel ist ein zweiter Weg zur Anmeldung, keine
+zweite Berechtigung. Sämtliche Regeln stammen aus derselben Quelle wie die
+der Verwaltungsoberfläche ([`inc/linkrules.php`](../inc/linkrules.php)).
 
 ---
 
 ## Voraussetzungen
 
-Das Konto braucht das Recht **`api_access`**. Es hängt wie alle Rechte an einer
-Gruppe; ein Administrator schaltet es frei. Soll es auf einer Instanz für alle
-gelten, gehört es in `'default_perms'` in der Konfiguration.
+Das Konto braucht das Recht **`api_access`**. Es hängt wie alle Rechte an
+einer Gruppe; ein Administrator schaltet es frei. Soll es auf einer Instanz
+für alle gelten, gehört es in `'default_perms'` in der Konfiguration.
 
 ## Schlüssel anlegen
 
 *Profil → Programmierschnittstelle → Anlegen.* Der Schlüssel wird **einmal**
-angezeigt und danach nirgends mehr — gespeichert ist nur sein Hash. Geht er
+angezeigt und danach nirgends mehr – gespeichert ist nur sein Hash. Geht er
 verloren, wird er zurückgezogen und ein neuer angelegt.
 
-Ein Schlüssel beginnt mit `flk_`. Das ist Absicht: Taucht er versehentlich in
-einem Protokoll oder einem öffentlichen Repository auf, ist er als solcher zu
-erkennen und lässt sich gezielt suchen.
+Ein Schlüssel beginnt mit `flk_`. Das ist Absicht: Taucht er versehentlich
+in einem Protokoll oder einem öffentlichen Repository auf, ist er als
+solcher zu erkennen und lässt sich gezielt suchen.
 
 ## Anmeldung
 
@@ -34,8 +34,8 @@ erkennen und lässt sich gezielt suchen.
 Authorization: Bearer flk_…
 ```
 
-Nimmt der Server den Kopf `Authorization` vor PHP weg — auf manchem Shared
-Hosting der Fall —, geht auch:
+Entfernt der Server den Kopf `Authorization`, bevor PHP ihn sieht – auf
+manchem Shared Hosting der Fall —, geht auch:
 
 ```
 X-Api-Key: flk_…
@@ -44,10 +44,10 @@ X-Api-Key: flk_…
 Die mitgelieferte `.htaccess` reicht `Authorization` zusätzlich als
 Umgebungsvariable durch, sodass der übliche Weg in aller Regel funktioniert.
 
-**Sitzungs-Cookies werden bewusst nicht akzeptiert.** Andernfalls könnte eine
-fremde Seite im Browser eines angemeldeten Nutzers Anfragen stellen und dessen
-Links ändern. Ohne Cookie gibt es diese Angriffsfläche nicht — und deshalb
-braucht die Schnittstelle auch kein CSRF-Token.
+**Sitzungs-Cookies werden bewusst nicht akzeptiert.** Andernfalls könnte
+eine fremde Seite im Browser eines angemeldeten Nutzers Anfragen stellen und
+dessen Links ändern. Ohne Cookie gibt es diese Angriffsfläche nicht – und
+deshalb braucht die Schnittstelle auch kein CSRF-Token.
 
 ## Adressen
 
@@ -55,10 +55,10 @@ braucht die Schnittstelle auch kein CSRF-Token.
 | --- | --- |
 | `/api/links/abc123` | mit der Regel aus der mitgelieferten `.htaccess` |
 | `/api.php/links/abc123` | wenn der Server `PATH_INFO` liefert |
-| `/api.php?p=/links/abc123` | Rückfall, wenn nicht |
+| `/api.php?p=/links/abc123` | Ausweichweg, wenn nicht |
 
-Anfragekörper: JSON (`Content-Type: application/json`) oder
-Formularfelder — beides wird gelesen.
+Anfragekörper: JSON (`Content-Type: application/json`) oder Formularfelder –
+beides wird gelesen.
 
 ---
 
@@ -135,18 +135,19 @@ Ein einzelner Link.
 ### `PATCH /links/{code}`
 
 Ändert **nur die übergebenen Felder**. Ein Aufruf, der bloß das Ziel setzt,
-lässt den Namen unangetastet — anders als ein Formular, das seine Felder immer
-vollständig mitschickt. Um einen Namen zu entfernen, wird `"title": ""`
-ausdrücklich übergeben.
+lässt den Namen unangetastet – anders als ein Formular, das seine Felder
+immer vollständig mitschickt. Um einen Namen zu entfernen, wird `"title":
+""` ausdrücklich übergeben.
 
 Zusätzlich zu den Feldern von `POST`: `disabled` (`true`/`false`) sperrt den
 Link, `"password": ""` hebt den Zugriffsschutz auf.
 
 `utm` verhält sich innerhalb seines Objekts genauso: Nur die übergebenen
-Parameter werden angefasst. `{"utm": {"utm_campaign": "winter"}}` tauscht die
-Kampagne und lässt `utm_source` stehen; ein leerer Wert entfernt einen
-einzelnen Parameter. Die Parameter werden **nicht getrennt gespeichert** – sie
-stehen in `url`, und `utm` in der Antwort ist ausgelesen, nicht abgelegt.
+Parameter werden angefasst. `{"utm": {"utm_campaign": "winter"}}` tauscht
+die Kampagne und lässt `utm_source` stehen; ein leerer Wert entfernt einen
+einzelnen Parameter. Die Parameter werden **nicht getrennt gespeichert** –
+sie stehen in `url`, und `utm` in der Antwort ist ausgelesen, nicht
+abgelegt.
 
 ### `DELETE /links/{code}`
 
@@ -163,11 +164,11 @@ Löscht Link und Klickzähler. Antwort `{"deleted": "abc123"}`.
 
 `GET` liefert die Liste mit, `PATCH` setzt sie (eine leere Liste löscht alle
 Weichen). Merkmale: `device` (`mobile`/`tablet`/`desktop`), `lang` und
-`country` (je zwei Buchstaben) sowie `split` (Anteil von 1 bis 99). Die erste
-zutreffende Weiche gewinnt, sonst
-gilt `url`. Braucht das Recht `link_rules`; höchstens acht je Link.
-Ausgewertet wird bei jeder Anfrage – gespeichert wird davon nichts, gezählt
-nur, wie oft jede Weiche gegriffen hat.
+`country` (je zwei Buchstaben) sowie `split` (Anteil von 1 bis 99). Die
+erste zutreffende Weiche gewinnt, sonst gilt `url`. Braucht das Recht
+`link_rules`; höchstens acht je Link. Ausgewertet wird bei jeder Anfrage –
+gespeichert wird davon nichts, gezählt nur, wie oft jede Weiche gegriffen
+hat.
 
 ### `GET /links/{code}/stats`
 
@@ -184,10 +185,11 @@ Zeitreihe und kein Datensatz je Aufruf. Sie fehlen, wenn die Instanz
 Herkunft (getippt, QR-Code, App).
 
 `days` reicht nur so weit zurück, wie das Konto Statistik sehen darf.
-**`last` ist tagesgenau, nicht sekundengenau** — es gibt keine feinere Angabe,
-weil keine gespeichert wird. Einzelne Aufrufe existieren nicht, also auch nicht
-in der Schnittstelle: Es gibt keinen Endpunkt, der einen einzelnen Klick,
-seine Uhrzeit oder seine Adresse liefert, weil so etwas nirgends steht.
+**`last` ist tagesgenau, nicht sekundengenau** – es gibt keine feinere
+Angabe, weil keine gespeichert wird. Einzelne Aufrufe existieren nicht, also
+auch nicht in der Schnittstelle: Es gibt keinen Endpunkt, der einen
+einzelnen Klick, seine Uhrzeit oder seine Adresse liefert, weil so etwas
+nirgends steht.
 
 ---
 
@@ -195,7 +197,7 @@ seine Uhrzeit oder seine Adresse liefert, weil so etwas nirgends steht.
 
 | Feld | Bedeutung |
 | --- | --- |
-| `lang` | Sprache der Ziel-URL, zwei Buchstaben. Grundlage der Sprachverhandlung der Weichen: Nur mit ihr kann ein Besucher mit passender Zweitsprache richtig verteilt werden. |
+| `lang` | Sprache der Ziel-URL, zwei Buchstaben. Grundlage der Sprachauswahl der Weichen: Nur mit ihr kann ein Besucher mit passender Zweitsprache richtig verteilt werden. |
 | `max_visits` | Aufruf-Limit. Ganze Zahl ab 1; ist sie erreicht, antwortet der Link mit 410. Leer oder 0 = unbegrenzt. Bots und HEAD-Anfragen zählen nicht. |
 
 Beide gelten für `POST /links` und `PATCH /links/{code}` und stehen in jeder
@@ -204,7 +206,7 @@ Link-Antwort.
 ### Schlagworte (`/tags`)
 
 Schlagworte hängen an den Links; hier lassen sie sich über den ganzen
-erreichbaren Bestand auf einmal verwalten – „erreichbar" heißt dieselbe
+erreichbaren Bestand auf einmal verwalten – „erreichbar“ heißt dieselbe
 Menge, die auch je Link gilt: eigene Links plus die der Arbeitsgruppen, für
 Administratoren alle.
 
@@ -225,10 +227,10 @@ curl -X PATCH https://example.org/api/tags/kampanien \
 { "tag": "kampagne", "renamed_from": "kampanien", "links": 12 }
 ```
 
-Der neue Name durchläuft dieselbe Aufbereitung wie beim Link: kleingeschrieben,
-höchstens 24 Zeichen. Ein Schlagwort, das keiner der eigenen Links trägt,
-antwortet mit 404. So wird aus dem Tippfehler in dreißig Links ein Aufruf
-statt dreißig `PATCH`es.
+Der neue Name durchläuft dieselbe Aufbereitung wie beim Link:
+kleingeschrieben, höchstens 24 Zeichen. Ein Schlagwort, das keiner der
+eigenen Links trägt, antwortet mit 404. So wird aus dem Tippfehler in
+dreißig Links ein Aufruf statt dreißig `PATCH`-Aufrufen.
 
 ### `GET /health`
 
@@ -276,16 +278,16 @@ schweren Druckformate enger).
 | 422 | `rejected` | Eingabe verstößt gegen eine Regel |
 | 429 | `rate_limited`, `too_many_attempts` | Stundengrenze erreicht |
 
-**404 statt 403 für fremde Links** ist Absicht: Andernfalls ließe sich über die
-Schnittstelle herausfinden, welche Kurzcodes bereits vergeben sind.
+**404 statt 403 für fremde Links** ist Absicht: Andernfalls ließe sich über
+die Schnittstelle herausfinden, welche Kurzcodes bereits vergeben sind.
 
 ## Grenzen
 
 `'api_rate_limit'` in der Konfiguration, Vorgabe 300 Anfragen je Stunde und
-Schlüssel. Gezählt wird nach Schlüssel, nicht nach IP — ein Server, der die
-Schnittstelle bedient, kommt immer von derselben Adresse. Fehlgeschlagene
-Anmeldungen zählen getrennt nach IP, damit sich Schlüssel nicht durchprobieren
-lassen.
+Schlüssel. Gezählt wird nach Schlüssel, nicht nach IP – ein Server, der die
+Schnittstelle nutzt, kommt immer von derselben Adresse. Fehlgeschlagene
+Anmeldungen zählen getrennt nach IP, damit sich Schlüssel nicht
+durchprobieren lassen.
 
 Höchstens zehn Schlüssel je Konto.
 
@@ -305,6 +307,6 @@ while IFS=';' read -r url name; do
 done < liste.csv
 ```
 
-Für einen einmaligen Umzug von einem anderen Dienst ist der CSV-Import in der
-Oberfläche der kürzere Weg — er versteht die Exporte von Bitly, YOURLS, Shlink
-und Kutt unmittelbar.
+Für einen einmaligen Umzug von einem anderen Dienst ist der CSV-Import in
+der Oberfläche der kürzere Weg – er versteht die Exporte von Bitly, YOURLS,
+Shlink und Kutt unmittelbar.

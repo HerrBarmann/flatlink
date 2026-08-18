@@ -7,17 +7,17 @@ ones too, and ones you are not sure about.
 
 ## How
 
-**Please no public issue** for findings that can be exploited while they are
-unfixed. Instead:
+**Please do not open a public issue** for findings that can be exploited
+while they are unfixed. Instead:
 
-- **GitHub Security Advisory** — the preferred route:
-  [Report a vulnerability](https://github.com/HerrBarmann/flatlink/security/advisories/new)
-- **Mail** to the address named in the
-  [imprint of 1337.kiwi](https://1337.kiwi/impressum.php), ideally with
-  `[flatlink]` in the subject
+- **GitHub Security Advisory** — the preferred route: [Report a
+  vulnerability](https://github.com/HerrBarmann/flatlink/security/advisories/new)
+- **Mail** to the address named in the [imprint of
+  1337.kiwi](https://1337.kiwi/impressum.php), ideally with `[flatlink]` in
+  the subject
 
 Helpful: affected file and line, how to reproduce the finding, and your
-assessment of the impact. A proof of concept is nice, not a condition.
+assessment of the impact. A proof of concept is nice, but not a requirement.
 
 ## What you can expect
 
@@ -25,7 +25,8 @@ This is a one-person project, not a company with an on-call rotation.
 Realistically that means:
 
 - Acknowledgement within **three days**
-- An assessment of whether and how fast it will be fixed within **two weeks**
+- An assessment of whether and how fast it will be fixed within **two
+  weeks**
 - For critical findings I try to be considerably faster
 
 There is no bug bounty — there is no budget for one. If you wish, you will
@@ -40,7 +41,7 @@ The code in this repository. Of particular interest:
 - Injection of any kind, XSS, CSRF
 - Anything contradicting the privacy promise: if flatlink stores or reveals
   more about visitors than README and code claim, that is a security bug,
-  not a blemish
+  not a cosmetic issue
 
 **Not in scope:** the running instance 1337.kiwi as a target of active
 testing. Please test against your own installation — it is set up in three
@@ -57,29 +58,30 @@ Some things are not holes but deliberate decisions. For completeness:
   blocks from the [deployment guide](DEPLOYMENT.en.md) on nginx. Whether
   that protection actually holds is something the instance checks itself
   since 2.5.1: it places a canary file into the data directory, fetches it
-  over its own `base_url` and deletes it again. The result is shown under
+  via its own `base_url` and deletes it again. The result is shown under
   *Settings* — "open" is a standing red warning, and "unclear" (the instance
   cannot reach itself) is explicitly not an all-clear.
 - **Google Safe Browsing fails open:** if the service is unreachable, the
   link is created rather than rejected. Availability beats completeness of
-  the check here. So this state does not stay silent, failures are counted
-  and shown under *Reports* once the check keeps running into nothing.
+  the check here. So that this state does not go unnoticed, failures are
+  counted and shown under *Reports* once the check keeps failing.
 - **Sign-in attempts are counted, not delayed.** Up to 2.5.0 a `sleep()`
   delayed the response after failed attempts. That slows attackers, but
   occupies a PHP process for its duration — on shared hosting with a handful
-  of processes, exactly that is the more effective attack. Since 2.5.1 the
+  of processes, that is precisely the more effective attack. Since 2.5.1 the
   instance answers immediately with 429 and `Retry-After` instead.
 - **Targets in private address ranges are blocked** (10.x, 172.16–31.x,
   192.168.x, 127.x, `localhost`, `fc00::/7`, `fe80::/10`), as are addresses
   with a userinfo part (`https://bank.example@evil.tld/`). The server never
-  fetches targets, so this is not about SSRF but about the short link as
-  packaging for internal addresses. Names are not resolved in the process —
-  that would be one network request per form submission and thus a lever
-  itself. Purely internal instances set `'allow_private_targets' => true`.
-- **IP hashes are pseudonymous, not anonymous.** They are built with an
-  instance-own secret (`data/secret.key`) and thus cannot be reversed
-  without server access — but they remain personal data in the sense of the
-  GDPR and belong in the privacy statement.
+  fetches targets, so this is not about SSRF but about the short link as a
+  wrapper for internal addresses. Names are not resolved in the process —
+  that would be one network request per form submission and thus an attack
+  vector in itself. Purely internal instances set `'allow_private_targets'
+  => true`.
+- **IP hashes are pseudonymous, not anonymous.** They are built with a
+  secret unique to the instance (`data/secret.key`) and thus cannot be
+  reversed without server access — but they remain personal data within the
+  meaning of the GDPR and belong in the privacy statement.
 - **Links and accounts live in one SQLite file** (`data/flatlink.sqlite`,
   WAL mode). Lookup, limit checks and lists are targeted queries; the file,
   like the whole `data/` folder, belongs outside the webroot or behind the
@@ -93,24 +95,24 @@ Some things are not holes but deliberate decisions. For completeness:
   query), "phone/tablet/desktop" from the user agent, and two letters from
   the language list. Only the sum per value is stored; referrer and user
   agent themselves are not kept, and there is still no record per visit. At
-  most 40 distinct values per attribute, the rest collects under "others" —
-  also so nobody can bloat the counter file with invented origins. A
-  second-precise timestamp would, for a rarely visited link, be the one
-  value in the data from which a single visit could be placed in time.
-  Whoever needs finer statistics builds them via `inc/local.php` — and
+  most 40 distinct values per attribute, the rest is collected under
+  "others" — also so nobody can bloat the counter file with invented
+  origins. A second-precise timestamp would, for a rarely visited link, be
+  the one value in the data from which a single visit could be placed in
+  time. Whoever needs finer statistics builds them via `inc/local.php` — and
   amends their privacy statement.
 
 - **Two-factor sign-in** comes in two forms, set up in the profile and
   optionally enforceable: passkeys (WebAuthn) and one-time passwords from an
   app (TOTP). Passkeys are bound to the domain and therefore effective
-  against look-alike sign-in pages, which a typable code does not protect
-  from. Both protect the password sign-in — **not** the API: an access key
-  is its own credential and stands on its own.
+  against look-alike sign-in pages, which a typed code does not protect
+  against. Both protect the password sign-in — **not** the API: an access
+  key is its own credential and stands on its own.
 
 - **Resetting the second factor** can be done by an administrator under
-  *Users*. There are no recovery codes for passkeys, so this route is
-  needed — and it is at the same time the weakest point of the chain.
-  Whoever uses it must know who they are talking to.
+  *Users*. There are no recovery codes for passkeys, so this route is needed
+  — and it is at the same time the weakest link in the chain. Whoever uses
+  it must know who they are talking to.
 
 ## Retention
 
@@ -123,14 +125,14 @@ at most once a week:
 | IP hash of the double opt-in (`verified_ip`) | 12 months |
 | Rate-limit and sign-in-lock entries | 24 hours |
 | Pending registrations, mail changes | 24 hours |
-| Password reset procedures | 1 hour |
+| Password reset requests | 1 hour |
 | Long-unused short links | `link_gc_years`, off by default (advance warning by mail) |
 
-On top of that comes what the person concerned triggers themselves: the
-profile has a data export (Art. 15/20) and a delete button (Art. 17) that
-removes account, links and click counters. Links assigned to a group remain
-and merely lose their owner. Can be switched off via
-`'self_delete' => false` where accounts are managed centrally.
+On top of that comes what the data subject triggers themselves: the profile
+has a data export (Art. 15/20) and a delete button (Art. 17) that removes
+account, links and click counters. Links assigned to a group remain and
+merely lose their owner. Can be switched off via `'self_delete' => false`
+where accounts are managed centrally.
 
 ## Reports so far
 

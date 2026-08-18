@@ -8,13 +8,13 @@ Zwei Fassungen, weil sie verschiedene Zwecke haben:
 | Name | flatlink | z. B. 1337.kiwi |
 | Für wen | jede Instanz | eine bestimmte |
 | Adresse | wird beim Einrichten erfragt | steht fest |
-| Berechtigung | „Zugriff auf Websites, die du angibst" | „Zugriff auf 1337.kiwi" |
+| Berechtigung | „Zugriff auf Websites, die du angibst“ | „Zugriff auf 1337.kiwi“ |
 | Einzurichten | Adresse **und** Schlüssel | nur der Schlüssel |
 | Akzentfarbe | die des Systems | die der Instanz |
-| Wortlaut | „deine Instanz" | der Name der Instanz |
+| Wortlaut | „deine Instanz“ | der Name der Instanz |
 
-Die gebrandete Fassung verlangt **weniger** Rechte – das ist ihr eigentlicher
-Vorteil, und es lohnt sich, das in der Beschreibung zu sagen.
+Die gebrandete Fassung verlangt **weniger** Rechte – das ist ihr
+eigentlicher Vorteil, und es lohnt sich, das in der Beschreibung zu sagen.
 
 ## Pakete bauen
 
@@ -72,9 +72,9 @@ Einmalig 5 USD Entwicklergebühr, Prüfung dauert meist zwei bis fünf Tage.
 > • Keine Analyse, keine Kennungen, kein Hintergrundprozess
 >
 > BERECHTIGUNGEN
-> • „Aktiver Tab": die Adresse des Tabs, in dem du auf das Symbol klickst –
+> • „Aktiver Tab“: die Adresse des Tabs, in dem du auf das Symbol klickst –
 >   nur dann, nur diese
-> • „Speicher": Adresse und Zugangsschlüssel, bewusst im lokalen Speicher
+> • „Speicher“: Adresse und Zugangsschlüssel, bewusst im lokalen Speicher
 >   dieses Browsers statt in der Synchronisierung
 >
 > VORAUSSETZUNG
@@ -85,8 +85,7 @@ Einmalig 5 USD Entwicklergebühr, Prüfung dauert meist zwei bis fünf Tage.
 > Der Quelltext der Erweiterung sind vier Dateien mit gut 300 Zeilen –
 > nachlesbar an einem Nachmittag: github.com/HerrBarmann/flatlink
 
-**Kategorie:** Produktivität (Productivity)
-**Sprache:** Deutsch
+**Kategorie:** Produktivität (Productivity) **Sprache:** Deutsch
 
 ### Berechtigungen begründen
 
@@ -98,7 +97,7 @@ Chrome verlangt zu jeder Berechtigung einen Satz. Diese hier reichen:
 | `storage` | Speichert die Adresse der Instanz und den Zugangsschlüssel des Nutzers lokal. Ohne beides kann die Erweiterung keine Kurzlinks anlegen. |
 | Host-Zugriff | Die Erweiterung spricht mit der selbst gehosteten Instanz des Nutzers. Deren Adresse ist beim Bauen nicht bekannt, deshalb wird die Berechtigung erst beim Einrichten für genau diese eine Adresse angefragt. |
 | Host-Zugriff (gebrandet) | Die Erweiterung spricht ausschließlich mit https://1337.kiwi, dem Dienst, zu dem sie gehört. |
-| „Warum Remote Code?" | Wird nicht verwendet. Sämtlicher Code liegt im Paket. |
+| „Warum Remote Code?“ | Wird nicht verwendet. Sämtlicher Code liegt im Paket. |
 
 ### Datennutzung
 
@@ -117,8 +116,8 @@ Chrome fragt eine Liste ab. Die ehrlichen Antworten:
 | Werden Daten für Bonitätsprüfung / Kreditvergabe genutzt? | **Nein** |
 
 Die drei Bestätigungen am Ende („Ich verwende Daten nicht für nicht
-offengelegte Zwecke", „Ich verkaufe keine Daten", „Ich nutze keine Daten für
-Bonität") lassen sich alle guten Gewissens anhaken.
+offengelegte Zwecke“, „Ich verkaufe keine Daten“, „Ich nutze keine Daten für
+Bonität“) lassen sich alle guten Gewissens anhaken.
 
 **Datenschutz-Adresse:** eine Seite, die sagt, dass die Erweiterung nichts
 sammelt – für 1337.kiwi passt `https://1337.kiwi/datenschutz.php`.
@@ -130,9 +129,9 @@ sammelt – für 1337.kiwi passt `https://1337.kiwi/datenschutz.php`.
 Kostenlos. Zwei Wege:
 
 * **Listed** – im Verzeichnis auffindbar, mit Prüfung.
-* **Unlisted** – nur signiert, nicht im Verzeichnis. Das Paket kommt signiert
-  zurück und lässt sich selbst ausliefern: Ein Link auf die `.xpi` ist dann
-  ein echter Ein-Klick-Installer.
+* **Unlisted** – nur signiert, nicht im Verzeichnis. Das Paket kommt
+  signiert zurück und lässt sich selbst ausliefern: Ein Link auf die `.xpi`
+  ist dann ein echter Ein-Klick-Installer.
 
 **Zusammenfassung** (bis 250 Zeichen)
 
@@ -144,12 +143,12 @@ Kostenlos. Zwei Wege:
 **Beschreibung:** dieselbe wie bei Chrome (Firefox erlaubt einfaches HTML;
 die Aufzählungen dürfen dort `<ul><li>` sein).
 
-**Kategorien:** Lesezeichen, Produktivität
-**Schlagworte:** kurzlink, url-shortener, qr-code, selfhosted, datenschutz
-**Lizenz:** AGPL-3.0-or-later (steht im Paket)
-**Support-Adresse:** die Issues des Projekts
+**Kategorien:** Lesezeichen, Produktivität **Schlagworte:** kurzlink,
+url-shortener, qr-code, selfhosted, datenschutz **Lizenz:**
+AGPL-3.0-or-later (steht im Paket) **Support-Adresse:** die Issues des
+Projekts
 
-**Für die Prüfenden** (das Feld „Notes for reviewers"):
+**Für die Prüfenden** (das Feld „Notes for reviewers“):
 
 > Die Erweiterung spricht ausschließlich mit einer flatlink-Instanz, die der
 > Nutzer selbst angibt (bzw. mit https://1337.kiwi in dieser Fassung). Zum
@@ -164,19 +163,19 @@ Build-Prozesses. Hier gibt es keinen.
 ### Die Angabe zur Datenerhebung
 
 Seit 2025 verlangt Mozilla im Manifest ein Feld dazu; ohne es bricht der
-Upload mit *„The data_collection_permissions property is missing"* ab. Es
+Upload mit *„The data_collection_permissions property is missing“* ab. Es
 steht unter `browser_specific_settings.gecko`:
 
 ```json
 "data_collection_permissions": { "required": ["none"] }
 ```
 
-`none` ist Mozillas Wert für „sammelt keine Daten", und das ist hier die
+`none` ist Mozillas Wert für „sammelt keine Daten“, und das ist hier die
 zutreffende Angabe: Die Erweiterung überträgt die Adresse, die der Nutzer
 kürzen will, an dessen **eigene** Instanz – so wie ein FTP-Programm Dateien
 überträgt. An den Entwickler oder an Dritte geht nichts, gespeichert wird
-nur, was der Nutzer selbst anlegt, und der Zugangsschlüssel bleibt im lokalen
-Speicher seines Browsers.
+nur, was der Nutzer selbst anlegt, und der Zugangsschlüssel bleibt im
+lokalen Speicher seines Browsers.
 
 Wer das für seine Instanz anders einschätzt – etwa weil sie die Adressen
 auswertet –, gibt stattdessen die Kategorien des AMO-Formulars an
@@ -188,7 +187,8 @@ php tools/store-build.php … --daten=websiteActivity
 ```
 
 Im AMO-Formular tauchen dieselben Angaben noch einmal zum Anklicken auf –
-sie müssen zum Manifest passen, sonst kommt das Paket aus der Prüfung zurück.
+sie müssen zum Manifest passen, sonst kommt das Paket aus der Prüfung
+zurück.
 
 ---
 
@@ -245,10 +245,10 @@ Manifest, also gleich beim Bauen gesetzt)
 > • Keine Analyse, keine Kennungen, kein Hintergrundprozess
 >
 > BERECHTIGUNGEN
-> • „Aktiver Tab": die Adresse des Tabs, in dem du auf das Symbol klickst –
+> • „Aktiver Tab“: die Adresse des Tabs, in dem du auf das Symbol klickst –
 >   nur dann, nur diese
-> • „Zugriff auf 1337.kiwi": dorthin geht die Anfrage
-> • „Speicher": dein Zugangsschlüssel, bewusst im lokalen Speicher dieses
+> • „Zugriff auf 1337.kiwi“: dorthin geht die Anfrage
+> • „Speicher“: dein Zugangsschlüssel, bewusst im lokalen Speicher dieses
 >   Browsers statt in der Browser-Synchronisierung – ein Schlüssel hat in
 >   fremden Rechenzentren nichts verloren
 >
@@ -265,21 +265,19 @@ Manifest, also gleich beim Bauen gesetzt)
 > Nachmittag. Wer lieber selbst hostet, nimmt dieselbe Erweiterung in der
 > neutralen Fassung und trägt seine eigene Adresse ein.
 
-**Kategorie (Chrome):** Produktivität
-**Kategorien (Firefox):** Lesezeichen, Produktivität
-**Schlagworte:** kurzlink, url-shortener, qr-code, 1337.kiwi, datenschutz
-**Sprache:** Deutsch
-**Lizenz:** AGPL-3.0-or-later
-**Startseite:** `https://1337.kiwi`
-**Datenschutz:** `https://1337.kiwi/datenschutz.php`
-**Support:** `https://1337.kiwi/impressum.php`
+**Kategorie (Chrome):** Produktivität **Kategorien (Firefox):** Lesezeichen,
+Produktivität **Schlagworte:** kurzlink, url-shortener, qr-code, 1337.kiwi,
+datenschutz **Sprache:** Deutsch **Lizenz:** AGPL-3.0-or-later
+**Startseite:** `https://1337.kiwi` **Datenschutz:**
+`https://1337.kiwi/datenschutz.php` **Support:**
+`https://1337.kiwi/impressum.php`
 
 **Für die Prüfenden**
 
 > Diese Fassung gehört zum Dienst 1337.kiwi und spricht ausschließlich mit
 > https://1337.kiwi – der Host-Zugriff im Manifest ist entsprechend fest
 > gesetzt. Zum Testen: unter https://1337.kiwi ein kostenloses Konto anlegen,
-> im Profil unter „Browser-Erweiterung" einen Verbindungscode erzeugen und
+> im Profil unter „Browser-Erweiterung“ einen Verbindungscode erzeugen und
 > ihn in den Einstellungen der Erweiterung einfügen. Danach genügt ein Klick
 > auf das Symbol, um die geöffnete Seite zu kürzen.
 >
@@ -293,7 +291,8 @@ Manifest, also gleich beim Bauen gesetzt)
 
 1. Ein Klick in der Werkzeugleiste – die Adresse steht schon da
 2. Fertig: Kurzlink in der Zwischenablage, weiter zum QR-Designer
-3. Kennt die Seite schon einen Kurzlink, zeigt sie ihn statt einen zweiten anzulegen
+3. Kennt die Seite schon einen Kurzlink, zeigt sie ihn statt einen zweiten
+   anzulegen
 4. Einrichten mit einem Verbindungscode aus dem Profil
 
 ---
@@ -307,8 +306,8 @@ Firefox nimmt beliebige Größen, empfiehlt aber dasselbe Maß.
 `popup.html` und `popup.css` **aus einem entpackten Paket**, setzt daran
 genau das, was sonst `popup.js` zur Laufzeit setzt – welcher Abschnitt
 sichtbar ist, was in den Feldern steht –, und stellt das Ergebnis in eine
-Bühne mit Fensterrahmen und Erklärtext. Was auf dem Bild steht, steht so auch
-im Paket.
+Bühne mit Fensterrahmen und Erklärtext. Was auf dem Bild steht, steht so
+auch im Paket.
 
 ```bash
 unzip -q dist/1337-kiwi-1.2.1.zip -d /tmp/paket
@@ -331,21 +330,22 @@ done
 ```
 
 Der Faktor dahinter: Quick Look rendert mit **1024** CSS-Pixeln Breite und
-skaliert das Ergebnis auf die mit `-s` angegebene Kantenlänge. 2560 sind also
-2,5× – 640 CSS-Pixel Höhe landen bei 1600, der Rest des quadratischen Bildes
-ist Füllung und wird weggeschnitten. Das Herunterrechnen auf 1280×800 ergibt
-saubere Kanten.
+skaliert das Ergebnis auf die mit `-s` angegebene Kantenlänge. 2560 sind
+also 2,5× – 640 CSS-Pixel Höhe landen bei 1600, der Rest des quadratischen
+Bildes ist Füllung und wird weggeschnitten. Das Herunterrechnen auf 1280×800
+ergibt saubere Kanten.
 
 Zwei Fallen, beide beim ersten Anlauf zugeschnappt:
 
 * **Farbe.** Die neutrale Fassung holt sich die Akzentfarbe des Systems
   (`AccentColor`). Im Browser ist das richtig, auf einem Bildschirmfoto aber
   Zufall – es zeigte die Systemfarbe des Rechners, auf dem gebaut wurde. Die
-  Bühne setzt deshalb den dokumentierten Rückfall bzw. die Farbe der Instanz.
+  Bühne setzt deshalb den dokumentierten Rückfall bzw. die Farbe der
+  Instanz.
 * **Zwei Stylesheets, ein Dokument.** Bühne und Popup benutzen dieselben
   Namen – beide haben ein `h1`, beide setzen Regeln auf `body`. Ungebunden
-  gewinnt das spätere, und das Popup zog die ganze Bühne auf 22 rem zusammen.
-  `css_binden()` hängt jeden Selektor an `.popup`.
+  gewinnt das spätere, und das Popup zog die ganze Bühne auf 22 rem
+  zusammen. `css_binden()` hängt jeden Selektor an `.popup`.
 
 ---
 
@@ -358,11 +358,11 @@ dorthin statt eines Archivs. Kein FTP nötig – der Wert liegt in
 
 Angenommen werden nur `https` und nur die Adressen der Läden selbst
 (`chromewebstore.google.com`, `chrome.google.com`, `addons.mozilla.org`,
-`microsoftedge.microsoft.com`). Ein Knopf „Installieren" ist eine Empfehlung,
-und die soll nicht irgendwohin zeigen können; wer sich vertippt, bekommt eine
-Fehlermeldung statt eines stillen Knopfs ins Leere.
+`microsoftedge.microsoft.com`). Ein Knopf „Installieren“ ist eine
+Empfehlung, und die soll nicht irgendwohin zeigen können; wer sich vertippt,
+bekommt eine Fehlermeldung statt eines stillen Knopfs ins Leere.
 
-Im selben Formular steht der Schalter **„Archiv zum Selbstladen anbieten"**.
+Im selben Formular steht der Schalter **„Archiv zum Selbstladen anbieten“**.
 Für eine Instanz ohne Store-Eintrag ist das Archiv der einzige Weg – aber es
 muss von Hand entpackt und im Entwicklermodus geladen werden, und es
 aktualisiert sich nie. Wer im Laden steht, schaltet es ab. Der

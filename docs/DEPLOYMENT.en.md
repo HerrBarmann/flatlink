@@ -1,9 +1,10 @@
 # Running flatlink in production
 
 The condensed English guide: from a blank machine to a working instance. The
-[German deployment guide](DEPLOYMENT.md) is the detailed reference — it walks
-through Shibboleth metadata, LDAP debugging and hardening step by step; this
-page covers the same ground far enough to run an instance confidently.
+[German deployment guide](DEPLOYMENT.md) is the detailed reference — it
+walks through Shibboleth metadata, LDAP debugging and hardening step by
+step; this page covers the same ground far enough to run an instance
+confidently.
 
 ## 1. Two decisions first
 
@@ -15,15 +16,17 @@ the internal case; self-registration and public shortening can be switched
 off under *Settings*.
 
 **Where do accounts come from?** Local accounts always work. LDAP / Active
-Directory and Shibboleth / SAML / OIDC can run in parallel. Keep at least one
-local administrator account — if the directory fails, you would otherwise be
-locked out of your own administration.
+Directory and Shibboleth / SAML / OIDC can run in parallel. Keep at least
+one local administrator account — if the directory fails, you would
+otherwise be locked out of your own administration.
 
 ## 2. Requirements
 
 - **PHP 8.1+** with `json`, `mbstring` (core), `gd` (PNG/PDF export),
-  `fileinfo` (logo uploads), `openssl` (SMTP), `ldap` (only for LDAP sign-in)
-- A web server that can rewrite paths (Apache with `mod_rewrite`, nginx, Caddy)
+  `fileinfo` (logo uploads), `openssl` (SMTP), `ldap` (only for LDAP
+  sign-in)
+- A web server that can rewrite paths (Apache with `mod_rewrite`, nginx,
+  Caddy)
 - Write permission for the `data/` directory — nothing else
 
 No database server, no Composer, no build step.
@@ -65,9 +68,9 @@ valid reset tokens and, in mail mode `log`, complete mails:
 
 **Set `base_url` — this is not a matter of taste.** Left empty, flatlink
 guesses the address from the `Host` header, which is user input: someone
-triggering a password-reset mail for a foreign account could point the link
-in it at their own domain and capture the token. flatlink therefore sends
-**no** mails containing links while `base_url` is missing. The session
+triggering a password-reset mail for someone else's account could point the
+link in it at their own domain and capture the token. flatlink therefore
+sends **no** mails containing links while `base_url` is missing. The session
 cookie's `secure` flag is derived from it as well.
 
 ```php
@@ -107,14 +110,14 @@ server {
 ```
 
 The blocked directories are not optional: `tests/`, `tools/` and
-`extension/` are command-line and build material; best of all, do not upload
-them in the first place.
+`extension/` are command-line and build material; better still, do not
+upload them at all.
 
 ## 5. First start
 
 Open `/admin/` — the first run walks you through creating the first
 administrator. Then check *Settings*: it verifies that the data directory is
-protected (an active self-test fetches a canary file over your own
+protected (an active self-test fetches a canary file via your own
 `base_url`) and that mail delivery works.
 
 ## 6. Mail
@@ -131,8 +134,8 @@ protected (an active self-test fetches a canary file over your own
 ```
 
 In-house relays on port 25 without authentication work: STARTTLS is used
-when offered, credentials are only sent encrypted, and credentials without
-encryption abort instead of trying.
+when offered, credentials are only sent encrypted, and flatlink aborts
+rather than sending credentials unencrypted.
 
 ## 7. LDAP / Active Directory
 
@@ -163,8 +166,8 @@ It walks extension → configuration → connection → bind → search → pass
 and stops at the first broken step with a concrete suggestion.
 
 Directory groups can map to flatlink groups (`group_map`); `group_sync`
-decides how they meet locally assigned ones: `merge` (default), `replace`,
-`off`.
+decides how they combine with locally assigned ones: `merge` (default),
+`replace`, `off`.
 
 ## 8. Shibboleth / SAML / OIDC
 
@@ -172,8 +175,9 @@ The web server module (`mod_shib`, `mod_auth_mellon`, `mod_auth_openidc`)
 does the authentication; flatlink only reads the server variables it leaves
 behind (`REMOTE_USER`, display name, mail). Values arriving as **HTTP
 headers** are accepted only from proxies listed in `trusted_proxies` —
-anyone can forge a header, and an identity a client can claim is none. The
-German guide covers SP metadata and attribute release in detail.
+anyone can forge a header, and an identity a client can simply claim is no
+identity at all. The German guide covers SP metadata and attribute release
+in detail.
 
 ## 9. Operations
 
@@ -205,5 +209,5 @@ Browsing failures are surfaced in the admin UI rather than logged silently.
   — new files are the ones sync tools like to skip.
 - **Sign-in loops or mails without links:** `base_url` is missing or wrong.
 - **LDAP says "sign-in failed":** `php tools/ldap-check.php user -p`.
-- **`data/` reachable from outside:** the settings page tells you — move it
+- **`data/` accessible from outside:** the settings page tells you — move it
   out of the webroot or fix the server block above.

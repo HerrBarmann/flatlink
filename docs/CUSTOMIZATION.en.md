@@ -9,7 +9,7 @@ to make it yours.
 **Contents**
 
 1. [The one rule](#1-the-one-rule)
-2. [Colors](#2-colors)
+2. [Colours](#2-colours)
 3. [Logo, favicon and name](#3-logo-favicon-and-name)
 4. [Footer](#4-footer)
 5. [Type](#5-type)
@@ -25,12 +25,12 @@ to make it yours.
 ## 1. The one rule
 
 > **Never edit `assets/style.css`.**
-> Everything of your own belongs in `assets/custom.css`.
+> Anything of your own belongs in `assets/custom.css`.
 
-That file is loaded **after** the standard stylesheet and therefore overrides
-it. It is excluded via `.gitignore`, so a `git pull` never touches it.
-Whoever edits `style.css` instead has a conflict at the next update — and
-eventually an instance that can no longer be updated.
+That file is loaded **after** the standard stylesheet and therefore
+overrides it. It is excluded via `.gitignore`, so a `git pull` never touches
+it. Whoever edits `style.css` instead will hit a conflict on the next update
+— and eventually an instance that can no longer be updated.
 
 Getting started:
 
@@ -38,27 +38,27 @@ Getting started:
 cp assets/custom.example.css assets/custom.css
 ```
 
-The template contains every variable with its default value and commented-out
-examples for the most common wishes. From here on, save and reload is all it
-takes — a timestamp in the query string makes sure the browser never shows
-anything stale.
+The template contains every variable with its default value and
+commented-out examples for the most common requests. From here on, save and
+reload is all it takes — a timestamp in the query string makes sure the
+browser never shows anything stale.
 
 ---
 
-## 2. Colors
+## 2. Colours
 
-The fastest route to your own appearance. The whole interface hangs on nine
+The fastest route to your own appearance. The whole interface rests on nine
 variables; replace them and the instance is recolored without touching a
 single rule.
 
 | Variable | What for |
 | --- | --- |
-| `--paper` | page ground |
+| `--paper` | page background |
 | `--surface` | cards and panels |
 | `--ink` | text and borders |
 | `--muted` | secondary text, labels |
 | `--line` | separators |
-| `--accent` | signal color: primary action, success |
+| `--accent` | signal colour: primary action, success |
 | `--accent-deep` | the accent as **text** on a light ground |
 | `--accent-tint` | hover, highlighted rows |
 | `--on-accent` | text on a filled accent surface |
@@ -77,12 +77,12 @@ single rule.
 }
 ```
 
-Three things recolorings regularly fail on:
+Three things recolourings regularly trip over:
 
 **`--accent` and `--accent-deep` are not the same thing.** The first is a
-surface (buttons, borders), the second is text on a light ground. A red that
-looks good as a surface is often too light as body text. That is why there
-are two values — set both, not just one.
+surface (buttons, borders), the second is text on a light background. A red
+that looks good as a surface is often too light as body text. That is why
+there are two values — set both, not just one.
 
 **Check the contrast.** `--muted` on `--paper` and `--accent-deep` on
 `--surface` are the critical pairs. They should reach at least 4.5:1 so the
@@ -101,7 +101,7 @@ whose system is set to dark. The second block is part of the job:
         --ink:         #F2E9DA;
         --muted:       #B0A08A;
         --line:        #35291B;
-        --accent:      #E8556E;   /* stronger on dark, or it drowns */
+        --accent:      #E8556E;   /* stronger on dark, or it gets lost */
         --accent-deep: #F2919F;
         --accent-tint: #2A1A1E;
         --on-accent:   #14100A;
@@ -109,12 +109,12 @@ whose system is set to dark. The second block is part of the job:
 }
 ```
 
-Do not simply invert the light values: dark surfaces swallow color, the
+Do not simply invert the light values: dark surfaces swallow colour, the
 accent has to be stronger and lighter there.
 
 Whoever deliberately offers only a light appearance leaves the block out and
-sets `:root { color-scheme: light; }` instead — then form fields render light
-as well.
+sets `:root { color-scheme: light; }` instead — then form fields render
+light as well.
 
 ---
 
@@ -140,7 +140,7 @@ The size is decided by the stylesheet, not the file:
 ```
 
 Just the logo, without the wordmark? Then hide the name — but keep it
-reachable for screen readers:
+accessible to screen readers:
 
 ```css
 .brand-logo { height: 2.4em; }
@@ -168,9 +168,9 @@ Relative targets are resolved against the webroot, absolute ones
 entirely sufficient.
 
 **Whoever runs a public instance probably needs this.** In Germany and large
-parts of the EU an imprint and a privacy statement are mandatory. flatlink
-deliberately ships no templates for them — they depend on operator, purpose
-and usage, and a bundled template would do more harm than good.
+parts of the EU a legal notice and a privacy statement are mandatory.
+flatlink deliberately ships no templates for them — they depend on operator,
+purpose and usage, and a bundled template would do more harm than good.
 
 ### The origin line
 
@@ -196,7 +196,7 @@ white-label — there is a written waiver: <dennis@1337.hamburg>.
 
 Left alone, flatlink uses system fonts: a monospace for everything
 product-like — header, short links, codes, buttons, labels — and the
-operating system's standard grotesque for body text. Nothing is loaded, it
+operating system's default sans-serif for body text. Nothing is loaded, it
 is there instantly, and it looks right everywhere.
 
 Your own typeface:
@@ -234,7 +234,7 @@ character width, such as aligned numbers and codes.
 
 ## 6. Individual areas
 
-When the variables are not enough, these are the classes to intervene at:
+When the variables are not enough, these are the classes to hook into:
 
 | Class | Area |
 | --- | --- |
@@ -250,7 +250,7 @@ When the variables are not enough, these are the classes to intervene at:
 | `.short-row` / `.grid-form` / `.check` | form layouts |
 | `.designer` | two-column layout of the QR designer |
 | `.origin` | origin line in the footer |
-| `main` | content area; grows so the footer stays down |
+| `main` | content area; grows so the footer stays at the bottom |
 | `body.<name>` | a whole design variant, see below (`body_class`) |
 
 The QR designer has three extension points in `inc/local.php`:
@@ -258,14 +258,14 @@ The QR designer has three extension points in `inc/local.php`:
 content above and `designer_outro()` below the tool. The page itself stays
 core code while an instance can grow it into a discoverable landing page.
 
-A few proven interventions:
+A few tried-and-tested tweaks:
 
 ```css
 /* Angular instead of round */
 :root { --radius: 0; }
 .btn { border-radius: 0; }
 
-/* Header in the house color */
+/* Header in the brand colour */
 .site-head {
     background: var(--accent);
     border-bottom: 0;
@@ -287,7 +287,7 @@ A few proven interventions:
 
 ### Variants you can switch off
 
-A bigger rebuild is risky: if it does not please, it has to be operated out
+A bigger rebuild is risky: if you end up not liking it, it has to be cut out
 again — and usually something good is lost along the way. For that there is
 `body_class` in the configuration. The value lands as a class on `<body>`,
 and everything written under it applies only as long as it is set:
@@ -304,12 +304,12 @@ body.angular .card { border-width: 2px; box-shadow: 5px 5px 0 var(--ink); }
 body.angular .btn { border-radius: 0; }
 ```
 
-An empty value withdraws the whole variant without deleting a line of CSS —
-and a different value switches to the next one. Two drafts can be maintained
-side by side and viewed in alternation.
+An empty value switches the whole variant off without deleting a line of CSS
+— and a different value switches to the next one. Two drafts can be
+maintained side by side and switched between.
 
-For **full-width color bands** that break out of the content column, this
-pattern has proven itself:
+For **full-width colour bands** that break out of the content column, this
+pattern works well:
 
 ```css
 body.variant .band { position: relative; }
@@ -330,8 +330,8 @@ body.variant { overflow-x: clip; }   /* not 'hidden': that breaks position: stic
 Two stumbling blocks here: with a visible scrollbar, a `100vw` wide element
 is slightly wider than the content — hence `overflow-x: clip` on the `body`.
 And such a surface must not reach below the last content, not even "just a
-bit to be safe": it lengthens the scroll area, and the page scrolls on into
-nothing.
+bit to be safe": it lengthens the scroll area, and the page scrolls into
+empty space.
 
 ---
 
@@ -339,8 +339,8 @@ nothing.
 
 The generated codes can be adapted independently of the website's look.
 
-**A sender line under every code** — useful when printed codes should be
-recognisable:
+**An attribution line under every code** — useful when printed codes should
+be recognisable:
 
 ```php
 'qr_brand_text' => 'example-university.edu',
@@ -350,23 +350,23 @@ It appears as a discreet line below frameless codes and inside the band of
 framed ones. Empty means: no line.
 
 **Clean lettering in PNG.** Frame and sender texts are always set cleanly in
-SVG. For PNG and PDF the image library needs a TrueType file: put any
-`.ttf` into `assets/fonts/`, the first one found is used. Without a file a
-rough system font steps in — readable, but not pretty.
+SVG. For PNG and PDF the image library needs a TrueType file: put any `.ttf`
+into `assets/fonts/`, the first one found is used. Without a file a coarse
+system font is used instead — readable, but not pretty.
 
-No font is bundled on purpose, so no foreign font license attaches to the
-project. Freely usable are, for instance, DejaVu Sans Mono, JetBrains Mono
+No font is bundled on purpose, so no third-party font licence attaches to
+the project. Freely usable options include DejaVu Sans Mono, JetBrains Mono
 or Inter.
 
-**Colors and shapes of the codes** are set by each user in the QR designer —
-that is part of the interface, not configuration.
+**Colours and shapes of the codes** are set by each user in the QR designer
+— that is part of the interface, not configuration.
 
 ---
 
 ## 8. A complete example
 
 This is what a fully converted instance looks like — warm paper, strong red,
-angular shapes, own logo. Tested, not imagined.
+angular shapes, your own logo. Tested, not imagined.
 
 `inc/config.php`:
 
@@ -419,10 +419,10 @@ untouched, as do `inc/config.php`, `assets/fonts/` and all your own image
 files.
 
 What that means: your overrides keep applying, but when a new version
-renames classes or rebuilds areas, individual rules can run into nothing.
-**Variables are safe from that** — they are the most reliable layer and the
-reason to solve as much as possible through them. Rules aimed at concrete
-classes are less so.
+renames classes or rebuilds areas, individual rules can end up matching
+nothing. **Variables are safe from that** — they are the most reliable layer
+and the reason to solve as much as possible through them. Rules aimed at
+concrete classes are less so.
 
 After a bigger update it is therefore worth a short look at your own
 instance. New options appear first in `inc/config.example.php` and
@@ -432,9 +432,9 @@ instance. New options appear first in `inc/config.example.php` and
 
 ## 10. Your own pages and functions
 
-Additional pages are simply further files in the webroot — they can include
-`inc/store.php` and reuse all the building blocks. They enter the navigation
-via the configuration:
+Additional pages are just more files in the webroot — they can include
+`inc/store.php` and reuse all the building blocks. They are added to the
+navigation via the configuration:
 
 ```php
 'nav_links'       => ['Help' => 'help.php'],      // always visible
@@ -461,16 +461,16 @@ It can only **add**, though: existing functions cannot be overridden in PHP.
 
 Without touching the source, you can **not** change:
 
-- **Individual wordings of the interface.** The language can be switched
+- **The exact wording of the interface.** The language can be switched
   instance-wide (`'language' => 'en'`), but rewording individual texts means
   editing the language files in the core.
 - **Structure and order of the existing pages.** Which card sits where is
-  decided by the respective PHP script.
+  decided by the individual PHP script.
 - **The order of navigation items.** Your own entries always come first.
 
-Whoever needs to get at those will not get around a fork — the license
-expressly allows it. Expect to merge by hand occasionally on updates.
+Anyone who needs those cannot avoid a fork — the license expressly allows
+it. Expect to merge by hand occasionally on updates.
 
-And if your customization is missing a hook that would help others too:
-[say so](https://github.com/HerrBarmann/flatlink/issues). That is exactly
-how this guide came to be.
+And if your customisation is missing a hook that would help others too: [say
+so](https://github.com/HerrBarmann/flatlink/issues). That is exactly how
+this guide came to be.

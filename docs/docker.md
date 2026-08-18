@@ -1,13 +1,13 @@
 # flatlink im Container
 
-Ein Image, ein Volume, fertig. Zurück zum [README](../README.de.md). –
-🇬🇧 [English version](docker.en.md)
+Ein Image, ein Volume, fertig. Zurück zur [README](../README.de.md). – 🇬🇧
+[English version](docker.en.md)
 
-flatlink braucht keinen Container: Dateien auf ein Webspace kopieren tut es
-auch, und genau dafür ist es gebaut. Wer aber ohnehin alles in Containern
+flatlink braucht keinen Container: Dateien auf einen Webspace kopieren tut
+es auch, und genau dafür ist es gebaut. Wer aber ohnehin alles in Containern
 betreibt, bekommt hier ein Image, das sich einfügt – mit Umgebungsvariablen
-statt Konfigurationsdatei, einem Volume für die Daten und einem
-Gesundheitsendpunkt für den Wächter.
+statt Konfigurationsdatei, einem Volume für die Daten und einem Endpunkt für
+die Zustandsprüfung.
 
 ## In zwei Minuten
 
@@ -44,16 +44,17 @@ hier sind die, die sich über die Umgebung setzen lassen.
 | `FLATLINK_DEMO_MODE` | `true` macht die Instanz zur Spielwiese mit Selbst-Reset |
 | `FLATLINK_API_RATE_LIMIT` | Anfragen je Stunde und Schlüssel |
 
-Ein leerer Wert zählt als „nicht gesetzt". Wahrheitswerte verstehen `1`,
+Ein leerer Wert zählt als „nicht gesetzt“. Als Wahrheitswert gelten `1`,
 `true`, `yes` und `on`.
 
-**`FLATLINK_BASE_URL` ist keine Geschmacksfrage.** Ohne sie rät flatlink die
-Adresse aus dem `Host`-Kopf der Anfrage – und der ist Nutzereingabe. Wer
-eine Passwort-Mail für ein fremdes Konto auslöst, könnte den Link darin auf
-die eigene Domain biegen und das Token abgreifen. flatlink verschickt
+**`FLATLINK_BASE_URL` ist keine Geschmacksfrage.** Ohne sie errät flatlink
+die Adresse anhand des `Host`-Kopfs der Anfrage – und der ist Nutzereingabe.
+Wer eine Passwort-Mail für ein fremdes Konto auslöst, könnte den Link darin
+auf die eigene Domain biegen und das Token abgreifen. flatlink verschickt
 deshalb **gar keine** Mails mit Links, solange die Adresse fehlt; der
 Container schreibt beim Start einen Hinweis ins Protokoll. Hinter einem
-Proxy trägt hier die Adresse von **außen**, nicht `http://flatlink:80`.
+Proxy gehört hier die Adresse von **außen** hinein, nicht
+`http://flatlink:80`.
 
 ### Lieber eine ausgeschriebene Konfiguration?
 
@@ -67,8 +68,8 @@ volumes:
 
 Beide Wege sind gleichberechtigt. Die Variablen sind die Abkürzung für den
 Normalfall, die Datei die Ansage für alles Weitere – etwa für Shibboleth,
-Webhooks oder mehrere Domains, die sich nicht sinnvoll in eine Zeile
-pressen lassen.
+Webhooks oder mehrere Domains, die sich nicht sinnvoll in eine Zeile pressen
+lassen.
 
 ## Daten
 
@@ -98,8 +99,8 @@ docker exec flatlink php /var/www/html/tools/backup-export.php /var/lib/flatlink
 
 ## Hinter einem Proxy
 
-Der Regelfall: Traefik, Caddy oder nginx nehmen TLS an und reichen weiter.
-Zwei Dinge gehören dann gesetzt:
+Der Regelfall: Traefik, Caddy oder nginx nehmen die TLS-Verbindung entgegen
+und reichen weiter. Zwei Dinge müssen dann gesetzt sein:
 
 ```yaml
 environment:
@@ -108,8 +109,8 @@ environment:
 ```
 
 Ohne den zweiten Eintrag sieht flatlink für **alle** Besucher die Adresse
-des Proxys. Rate-Limit und Anmeldesperre gälten dann versehentlich
-gemeinsam – ein einzelner Nutzer könnte den Dienst für alle blockieren.
+des Proxys. Rate-Limit und Anmeldesperre griffen dann für alle Besucher
+zusammen – ein einzelner Nutzer könnte den Dienst für alle blockieren.
 
 ## Eigenes Aussehen
 
@@ -128,15 +129,16 @@ Farben, Logo, Schrift, alles updatesicher über Variablen.
 
 - **Keinen Cron.** Aufräumen, Demo-Reset und Ablauf hängen am Seitenaufbau.
 - **Keinen Datenbankdienst.** SQLite liegt im Volume.
-- **Keinen zweiten Container** für den Webserver: Apache und PHP stecken
-  im Image, und die mitgelieferte `.htaccess` gilt damit unverändert – sie
-  schreibt Kurzcodes um und sperrt, was gesperrt gehört.
+- **Keinen zweiten Container** für den Webserver: Apache und PHP stecken im
+  Image, und die mitgelieferte `.htaccess` gilt damit unverändert – sie
+  schreibt Kurzcodes um und sperrt, was verschlossen bleiben muss.
 
-## Gesundheit
+## Zustandsprüfung
 
 `GET /api/health` antwortet ohne Schlüssel mit `{"status":"pass"}` – das
 prüft auch der eingebaute `HEALTHCHECK` alle 30 Sekunden. `docker ps` zeigt
-das Ergebnis als `healthy`; ein Wächter von außen fragt dieselbe Adresse.
+das Ergebnis als `healthy`; eine Überwachung von außen fragt dieselbe
+Adresse.
 
 ## Aktualisieren
 
@@ -149,8 +151,8 @@ ist nicht nötig – das Datenformat wächst mit und liest ältere Bestände
 unverändert.
 
 Feste Fassungen sind angenehmer als `latest`, wenn dir ein unbeabsichtigter
-Sprung ungelegen käme: `ghcr.io/herrbarmann/flatlink:3.1` bleibt bei den
-3.1er-Ausgaben, `:3.1.0` bei genau dieser.
+Sprung ungelegen käme: `ghcr.io/herrbarmann/flatlink:3.2` bleibt bei den
+3.2er-Ausgaben, `:3.2.1` bei genau dieser.
 
 ## Selbst bauen
 
@@ -162,5 +164,5 @@ cd flatlink && docker build -t flatlink .
 Ins Image kommt nur, was eine laufende Instanz braucht: `tests/`, `tools/`,
 `extension/` und die Bildschirmfotos bleiben draußen (siehe
 `.dockerignore`). Der Webserver besitzt keine einzige Datei der Anwendung –
-er darf ausschließlich ins Datenverzeichnis schreiben. Ein Einbruch über
-PHP kann die Anwendung damit nicht umschreiben.
+er darf ausschließlich ins Datenverzeichnis schreiben. Ein Einbruch über PHP
+kann die Anwendung damit nicht umschreiben.

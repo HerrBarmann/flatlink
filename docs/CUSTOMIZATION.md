@@ -27,11 +27,11 @@ Anleitung zeigt, wie daraus deiner wird.
 > **Ändere niemals `assets/style.css`.**
 > Alles Eigene gehört in `assets/custom.css`.
 
-Diese Datei wird **nach** dem Standard-Stylesheet geladen und überschreibt es
-damit. Sie ist per `.gitignore` ausgenommen, ein `git pull` fasst sie also nie
-an. Wer stattdessen `style.css` bearbeitet, hat beim nächsten Update einen
-Konflikt – und irgendwann eine Instanz, die sich nicht mehr aktualisieren
-lässt.
+Diese Datei wird **nach** dem Standard-Stylesheet geladen und überschreibt
+es damit. Sie ist per `.gitignore` ausgenommen, ein `git pull` fasst sie
+also nie an. Wer stattdessen `style.css` bearbeitet, hat beim nächsten
+Update einen Konflikt – und irgendwann eine Instanz, die sich nicht mehr
+aktualisieren lässt.
 
 Loslegen:
 
@@ -40,17 +40,17 @@ cp assets/custom.example.css assets/custom.css
 ```
 
 Die Vorlage enthält alle Variablen mit ihren Vorgabewerten und
-auskommentierte Beispiele für die häufigsten Wünsche. Ab jetzt reicht Speichern
-und neu laden – ein Zeitstempel im Query-String sorgt dafür, dass der Browser
-nichts Altes zeigt.
+auskommentierte Beispiele für die häufigsten Wünsche. Ab jetzt reicht
+Speichern und neu laden – ein Zeitstempel im Query-String sorgt dafür, dass
+der Browser nichts Altes zeigt.
 
 ---
 
 ## 2. Farben
 
-Der schnellste Weg zum eigenen Auftritt. Die gesamte Oberfläche hängt an neun
-Variablen; wer sie ersetzt, hat die Instanz umgefärbt, ohne eine einzige Regel
-anzufassen.
+Der schnellste Weg zum eigenen Auftritt. Die gesamte Oberfläche hängt an
+neun Variablen; wer sie ersetzt, hat die Instanz umgefärbt, ohne eine
+einzige Regel anzufassen.
 
 | Variable | Wofür |
 | --- | --- |
@@ -82,17 +82,17 @@ Drei Dinge, an denen Umfärbungen regelmäßig scheitern:
 
 **`--accent` und `--accent-deep` sind nicht dasselbe.** Der erste ist eine
 Fläche (Schaltflächen, Ränder), der zweite ist Schrift auf hellem Grund. Ein
-Rot, das als Fläche gut aussieht, ist als Fließtext oft zu hell. Deshalb gibt
-es zwei Werte – setz beide, nicht nur einen.
+Rot, das als Fläche gut aussieht, ist als Fließtext oft zu hell. Deshalb
+gibt es zwei Werte – setz beide, nicht nur einen.
 
 **Prüf den Kontrast.** `--muted` auf `--paper` und `--accent-deep` auf
-`--surface` sind die kritischen Paare. Sie sollten mindestens 4,5:1 erreichen,
-damit der Text auch für Menschen mit eingeschränktem Sehvermögen lesbar bleibt.
-Ein Kontrastrechner braucht dafür zehn Sekunden.
+`--surface` sind die kritischen Paare. Sie sollten mindestens 4,5:1
+erreichen, damit der Text auch für Menschen mit eingeschränktem Sehvermögen
+lesbar bleibt. Ein Kontrastrechner braucht dafür zehn Sekunden.
 
-**Vergiss das dunkle Erscheinungsbild nicht.** Setzt du nur die hellen Werte,
-sieht die Instanz für alle mit dunkler Systemeinstellung weiterhin blaugrau
-aus – oder schlimmer, halb umgefärbt. Der zweite Block gehört dazu:
+**Vergiss das dunkle Erscheinungsbild nicht.** Setzt du nur die hellen
+Werte, sieht die Instanz für alle mit dunkler Systemeinstellung weiterhin
+blaugrau aus – oder schlimmer, halb umgefärbt. Der zweite Block gehört dazu:
 
 ```css
 @media (prefers-color-scheme: dark) {
@@ -113,8 +113,8 @@ aus – oder schlimmer, halb umgefärbt. Der zweite Block gehört dazu:
 Dabei nicht einfach die hellen Werte umdrehen: Dunkle Flächen schlucken
 Farbe, der Akzent muss dort kräftiger und heller sein.
 
-Wer bewusst nur ein helles Erscheinungsbild anbietet, lässt den Block weg und
-setzt stattdessen `:root { color-scheme: light; }` – dann rendern auch
+Wer bewusst nur ein helles Erscheinungsbild anbietet, lässt den Block weg
+und setzt stattdessen `:root { color-scheme: light; }` – dann rendern auch
 Formularfelder hell.
 
 ---
@@ -129,9 +129,9 @@ Diese drei stehen in `inc/config.php`, nicht im Stylesheet:
 'favicon'   => 'favicon.svg',   // Datei in assets/
 ```
 
-Das Logo erscheint links neben dem Namen in der Kopfzeile. Lege die Datei nach
-`assets/` und trag nur den Dateinamen ein. SVG ist die beste Wahl – gestochen
-scharf auf jedem Bildschirm und meist nur wenige Kilobyte.
+Das Logo erscheint links neben dem Namen in der Kopfzeile. Lege die Datei
+nach `assets/` und trag nur den Dateinamen ein. SVG ist die beste Wahl –
+gestochen scharf auf jedem Bildschirm und meist nur wenige Kilobyte.
 
 Die Größe bestimmt das Stylesheet, nicht die Datei:
 
@@ -140,16 +140,17 @@ Die Größe bestimmt das Stylesheet, nicht die Datei:
 .brand { font-size: 1.15rem; }        /* Schriftgröße des Namens */
 ```
 
-Nur das Logo ohne Schriftzug? Dann den Namen ausblenden – aber für Vorlesefunktionen
-zugänglich lassen:
+Nur das Logo ohne Schriftzug? Dann den Namen ausblenden – aber für
+Vorlesefunktionen zugänglich lassen:
 
 ```css
 .brand-logo { height: 2.4em; }
 .brand { font-size: 0; }              /* verbirgt den Text, nicht das Bild */
 ```
 
-Der Name aus `site_name` erscheint außerdem im Seitentitel, in den Systemmails
-und in der Fußzeile – er sollte also auch ohne Logo für sich stehen können.
+Der Name aus `site_name` erscheint außerdem im Seitentitel, in den
+Systemmails und in der Fußzeile – er sollte also auch ohne Logo für sich
+stehen können.
 
 ---
 
@@ -171,7 +172,7 @@ nach außen. Eine einfache HTML-Datei neben `index.php` reicht völlig.
 Deutschland und weiten Teilen der EU sind Impressum und Datenschutzerklärung
 Pflicht. flatlink liefert dafür bewusst keine Vorlagen – sie hängen von
 Betreiber, Zweck und Nutzung ab, und eine mitgelieferte Vorlage würde mehr
-Schaden anrichten als helfen.
+schaden als nützen.
 
 ### Die Herkunftszeile
 
@@ -179,16 +180,18 @@ Die Zeile mit dem kleinen Kiwi im Seitenfuß **verlangt die Lizenz** – als
 Zusatzbedingung nach § 7(b) der AGPL. Sie darf übersetzt, umformuliert und
 dezent gesetzt werden; das gehört ausdrücklich dazu. Wer sie an die eigene
 Gestaltung anpassen will, überschreibt `.origin` in `assets/custom.css` oder
-ersetzt `origin_note()` über [`inc/local.php`](#10-eigene-seiten-und-funktionen) – solange
-„flatlink" genannt und auf <https://1337.kiwi/flatlink> verlinkt bleibt.
+ersetzt `origin_note()` über
+[`inc/local.php`](#10-eigene-seiten-und-funktionen) – solange „flatlink“
+genannt und auf <https://1337.kiwi/flatlink> verlinkt bleibt.
 
 ```php
 'show_origin' => false,
 ```
 
-Diesen Schalter gibt es für Tests und für den Fall unten. **Er allein erlaubt
-nicht, ohne die Zeile zu betreiben.** Für eine Fassung ohne sie – etwa als
-White-Label – gibt es eine schriftliche Freistellung: <dennis@1337.hamburg>.
+Diesen Schalter gibt es für Tests und für den unten beschriebenen Fall. **Er
+allein erlaubt nicht, ohne die Zeile zu betreiben.** Für eine Fassung ohne
+sie – etwa als White-Label – gibt es eine schriftliche Freistellung:
+<dennis@1337.hamburg>.
 
 ---
 
@@ -227,15 +230,16 @@ body { font-family: "Hausschrift", sans-serif; }
 > Software, deren ganzer Sinn darin besteht, Besucher *nicht* zu erfassen,
 > wäre das ein Eigentor – und in der EU obendrein rechtlich heikel.
 
-Behalte für `--mono` eine echte Monospace. An mehreren Stellen ist auf
-gleiche Zeichenbreite gebaut, etwa bei ausgerichteten Zahlen und Codes.
+Behalte für `--mono` eine echte Monospace. An mehreren Stellen verlässt sich
+das Layout auf gleiche Zeichenbreite, etwa bei ausgerichteten Zahlen und
+Codes.
 
 ---
 
 ## 6. Einzelne Bereiche
 
 Wenn die Variablen nicht reichen, hier die Klassen, an denen sich gezielt
-eingreifen lässt:
+ansetzen lässt:
 
 | Klasse | Bereich |
 | --- | --- |
@@ -256,9 +260,9 @@ eingreifen lässt:
 
 Der QR-Designer kennt drei Erweiterungspunkte in `inc/local.php`:
 `designer_description()` liefert die Meta-Beschreibung, `designer_intro()`
-Inhalt oberhalb und `designer_outro()` unterhalb des Werkzeugs. So bleibt die
-Seite selbst Kern-Code, während eine Instanz sie zur auffindbaren Landingpage
-ausbauen kann.
+Inhalt oberhalb und `designer_outro()` unterhalb des Werkzeugs. So bleibt
+die Seite selbst Kern-Code, während eine Instanz sie zur auffindbaren
+Einstiegsseite ausbauen kann.
 
 Ein paar erprobte Eingriffe:
 
@@ -291,9 +295,9 @@ Ein paar erprobte Eingriffe:
 
 Ein größerer Umbau ist heikel: Gefällt er nicht, muss man ihn wieder
 herausoperieren – und dabei geht meist versehentlich auch etwas Gutes mit
-verloren. Dafür gibt es `body_class` in der Konfiguration. Der Wert landet als
-Klasse am `<body>`, und alles, was darunter geschrieben ist, gilt nur, solange
-er gesetzt ist:
+verloren. Dafür gibt es `body_class` in der Konfiguration. Der Wert landet
+als Klasse am `<body>`, und alles, was darunter geschrieben ist, gilt nur,
+solange er gesetzt ist:
 
 ```php
 // inc/config.php
@@ -311,8 +315,8 @@ Ein leerer Wert nimmt die ganze Variante zurück, ohne dass eine Zeile CSS
 gelöscht wird – und ein anderer Wert schaltet auf die nächste um. So lassen
 sich zwei Entwürfe nebeneinander pflegen und im Wechsel ansehen.
 
-Für **vollflächige Farbbänder**, die aus der Inhaltsspalte ausbrechen, hat sich
-dieses Muster bewährt:
+Für **vollflächige Farbbänder**, die aus der Inhaltsspalte ausbrechen, hat
+sich dieses Muster bewährt:
 
 ```css
 body.variante .band { position: relative; }
@@ -332,18 +336,19 @@ body.variante { overflow-x: clip; }   /* nicht 'hidden': das bricht position: st
 
 Zwei Stolpersteine dabei: Ein `100vw` breites Element ist bei sichtbarer
 Bildlaufleiste minimal breiter als der Inhalt – daher `overflow-x: clip` am
-`body`. Und eine solche Fläche darf nicht unter den letzten Inhalt hinausragen,
-auch nicht „nur ein bisschen zur Sicherheit": Sie verlängert sonst die
-Scrollfläche, und die Seite lässt sich ins Leere weiterscrollen.
+`body`. Und eine solche Fläche darf nicht über den letzten Inhalt
+hinausragen, auch nicht „nur ein bisschen zur Sicherheit“: Sie verlängert
+sonst die Scrollfläche, und die Seite lässt sich ins Leere weiterscrollen.
 
 ---
 
 ## 7. QR-Codes
 
-Die erzeugten Codes lassen sich unabhängig vom Aussehen der Website anpassen.
+Die erzeugten Codes lassen sich unabhängig vom Aussehen der Website
+anpassen.
 
-**Absenderzeile unter jedem Code** – nützlich, wenn gedruckte Codes erkennbar
-sein sollen:
+**Absenderzeile unter jedem Code** – nützlich, wenn gedruckte Codes
+erkennbar sein sollen:
 
 ```php
 'qr_brand_text' => 'musterhochschule.de',
@@ -355,22 +360,22 @@ gerahmten im Band. Leer lassen heißt: keine Zeile.
 **Saubere Beschriftung im PNG.** Rahmen- und Absendertexte setzt flatlink im
 SVG immer sauber. Für PNG und PDF braucht die Bildbibliothek eine
 TrueType-Datei: irgendeine `.ttf` nach `assets/fonts/` legen, die erste
-gefundene wird genommen. Ohne Datei greift ein grober Systemfont – lesbar,
-aber nicht schön.
+gefundene wird genommen. Ohne Datei greift eine grobe Systemschrift –
+lesbar, aber nicht schön.
 
 Es liegt bewusst keine Schrift bei, damit dem Projekt keine fremde
 Font-Lizenz anhängt. Frei verwendbar sind etwa DejaVu Sans Mono, JetBrains
 Mono oder Inter.
 
-**Farben und Formen der Codes** stellt jeder Nutzer im QR-Designer selbst ein –
-das ist Teil der Oberfläche, keine Konfiguration.
+**Farben und Formen der Codes** stellt jeder Nutzer im QR-Designer selbst
+ein – das ist Teil der Oberfläche, keine Konfiguration.
 
 ---
 
 ## 8. Ein vollständiges Beispiel
 
-So sieht eine komplett umgestellte Instanz aus – warmes Papier, kräftiges Rot,
-kantige Formen, eigenes Logo. Getestet, nicht ausgedacht.
+So sieht eine komplett umgestellte Instanz aus – warmes Papier, kräftiges
+Rot, kantige Formen, eigenes Logo. Getestet, nicht ausgedacht.
 
 `inc/config.php`:
 
@@ -402,7 +407,7 @@ kantige Formen, eigenes Logo. Getestet, nicht ausgedacht.
 .btn { border-radius: 0; }
 ```
 
-`assets/logo.svg` – als Platzhalter genügt zum Ausprobieren:
+`assets/logo.svg` – ein Platzhalter zum Ausprobieren:
 
 ```svg
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 40">
@@ -425,11 +430,11 @@ Bilddateien.
 Was das bedeutet: Deine Überschreibungen greifen weiter, aber wenn eine neue
 Version Klassen umbenennt oder Bereiche umbaut, können einzelne Regeln ins
 Leere laufen. **Variablen sind davor sicher** – sie sind die verlässlichste
-Ebene und der Grund, warum du möglichst viel darüber lösen solltest. Regeln,
+Ebene und der Grund, warum du möglichst viel damit lösen solltest. Regeln,
 die auf konkrete Klassen zielen, sind es weniger.
 
-Nach einem größeren Update lohnt daher ein kurzer Blick auf die eigene Instanz.
-Kommen neue Optionen dazu, tauchen sie zuerst in
+Nach einem größeren Update lohnt daher ein kurzer Blick auf die eigene
+Instanz. Kommen neue Optionen dazu, tauchen sie zuerst in
 `inc/config.example.php` und `assets/custom.example.css` auf.
 
 ---
@@ -446,9 +451,9 @@ Navigation kommen sie über die Konfiguration:
 ```
 
 Brauchen diese Seiten eigene Hilfsfunktionen, gehören die nach
-**`inc/local.php`**. Existiert die Datei, wird sie automatisch geladen; sie ist
-vom Update ausgenommen und damit der richtige Ort für alles, was nur deine
-Installation braucht.
+**`inc/local.php`**. Existiert die Datei, wird sie automatisch geladen; sie
+ist vom Update ausgenommen und damit der richtige Ort für alles, was nur
+deine Installation braucht.
 
 ```php
 <?php
@@ -459,8 +464,8 @@ function hinweis_kasten(string $text): string
 }
 ```
 
-Sie kann allerdings nur **ergänzen**: Vorhandene Funktionen lassen sich in PHP
-nicht überschreiben.
+Sie kann allerdings nur **ergänzen**: Vorhandene Funktionen lassen sich in
+PHP nicht überschreiben.
 
 ## 11. Wo die Grenze liegt
 
@@ -471,12 +476,14 @@ Ohne Eingriff in den Quelltext lässt sich **nicht** ändern:
   umzuformulieren heißt, die Sprachdateien im Kern anzufassen.
 - **Aufbau und Reihenfolge der bestehenden Seiten.** Welche Karte wo steht,
   entscheidet das jeweilige PHP-Skript.
-- **Die Reihenfolge der Navigationspunkte.** Eigene Einträge stehen immer vorn.
+- **Die Reihenfolge der Navigationspunkte.** Eigene Einträge stehen immer
+  vorn.
 
-Wer daran muss, kommt um einen Fork nicht herum – die Lizenz erlaubt das
+Wer da ran muss, kommt um einen Fork nicht herum – die Lizenz erlaubt das
 ausdrücklich. Rechne dann damit, bei Updates gelegentlich von Hand
 zusammenführen zu müssen.
 
-Und falls dir für deine Anpassung ein Haken fehlt, der auch anderen nützen
-würde: [Sag Bescheid](https://github.com/HerrBarmann/flatlink/issues). Genau
-so ist diese Anleitung entstanden.
+Und falls dir für deine Anpassung ein Erweiterungspunkt fehlt, der auch
+anderen nützen würde: [Sag
+Bescheid](https://github.com/HerrBarmann/flatlink/issues). Genau so ist
+diese Anleitung entstanden.

@@ -3,9 +3,10 @@
 🇬🇧 A condensed [English version](DEPLOYMENT.en.md) exists; this German guide
 is the step-by-step reference.
 
-Eine Anleitung von der leeren Maschine bis zur angebundenen Hochschul-Anmeldung.
-Sie ist bewusst ausführlich – wer nur schnell etwas ausprobieren will, ist mit
-den drei Zeilen im [README](../README.de.md#installation) schneller.
+Eine Anleitung von der leeren Maschine bis zur angebundenen
+Hochschul-Anmeldung. Sie ist bewusst ausführlich – wer nur schnell etwas
+ausprobieren will, ist mit den drei Zeilen im
+[README](../README.de.md#installation) schneller.
 
 **Inhalt**
 
@@ -16,7 +17,8 @@ den drei Zeilen im [README](../README.de.md#installation) schneller.
 5. [Erster Start](#5-erster-start)
 6. [E-Mail-Versand](#6-e-mail-versand)
 7. [LDAP und Active Directory](#7-ldap-und-active-directory)
-8. [Shibboleth, SAML und OpenID Connect](#8-shibboleth-saml-und-openid-connect)
+8. [Shibboleth, SAML und OpenID
+   Connect](#8-shibboleth-saml-und-openid-connect)
 9. [Gruppen und Rechte in der Praxis](#9-gruppen-und-rechte-in-der-praxis)
 10. [Betrieb](#10-betrieb)
 11. [Wenn etwas nicht geht](#11-wenn-etwas-nicht-geht)
@@ -35,12 +37,13 @@ den drei Zeilen im [README](../README.de.md#installation) schneller.
 Zwei Entscheidungen bestimmen fast alles Weitere.
 
 **Öffentlich oder intern?** Eine öffentliche Instanz, an der sich jeder
-registrieren kann, braucht Missbrauchsschutz: Rate-Limits, ein Meldeformular,
-enge Regeln für Wunsch-Namen, eventuell Safe Browsing. Eine interne Instanz für
-eine Organisation braucht das meist nicht – dafür zentrale Anmeldung und
-Gruppen. Beides lässt sich mischen, aber die Standardwerte zielen auf den
-internen Fall: Selbst-Registrierung und öffentliches Kürzen lassen sich im
-Admin-Bereich unter *Einstellungen* abschalten.
+registrieren kann, braucht Missbrauchsschutz: Rate-Limits, ein
+Meldeformular, enge Regeln für Wunsch-Namen, eventuell Safe Browsing. Eine
+interne Instanz für eine Organisation braucht das meist nicht – dafür
+zentrale Anmeldung und Gruppen. Beides lässt sich mischen, aber die
+Standardwerte zielen auf den internen Fall: Selbst-Registrierung und
+öffentliches Kürzen lassen sich im Admin-Bereich unter *Einstellungen*
+abschalten.
 
 **Woher kommen die Konten?** Drei Wege, beliebig kombinierbar:
 
@@ -50,20 +53,20 @@ Admin-Bereich unter *Einstellungen* abschalten.
 | LDAP / Active Directory | vorhandenes Verzeichnis im Haus | mittel |
 | Shibboleth / SAML / OIDC | Hochschule, Föderation, echtes SSO | hoch |
 
-Lokale Konten funktionieren immer parallel weiter. Lass mindestens ein lokales
-Administrator-Konto bestehen – wenn das Verzeichnis oder der IdP ausfällt,
-kommst du sonst nicht mehr in die Verwaltung.
+Lokale Konten funktionieren immer parallel weiter. Lass mindestens ein
+lokales Administrator-Konto bestehen – wenn das Verzeichnis oder der IdP
+ausfällt, kommst du sonst nicht mehr in die Verwaltung.
 
 ---
 
 ## 2. Voraussetzungen
 
 - **PHP 8.1** oder neuer
-- **Erweiterungen:** `json`, `mbstring` (Kern), `gd` für PNG- und PDF-Export,
-  `fileinfo` für Logo-Uploads, `openssl` für SMTP, `ldap` nur für die
-  LDAP-Anmeldung
-- **Webserver**, der Pfade umschreiben kann (Apache mit `mod_rewrite`, nginx,
-  Caddy, …)
+- **Erweiterungen:** `json`, `mbstring` (Kern), `gd` für PNG- und
+  PDF-Export, `fileinfo` für Logo-Uploads, `openssl` für SMTP, `ldap` nur
+  für die LDAP-Anmeldung
+- **Webserver**, der Pfade umschreiben kann (Apache mit `mod_rewrite`,
+  nginx, Caddy, …)
 - **Schreibrechte** im Anwendungsverzeichnis für das Verzeichnis `data/`
 
 Prüfen, was vorhanden ist:
@@ -106,9 +109,9 @@ cd flatlink
 sudo cp inc/config.example.php inc/config.php
 ```
 
-Ein Update ist damit später ein `git pull`. Wer kein Git auf dem Server möchte,
-lädt das ZIP-Archiv von GitHub und entpackt es – dann sind Updates allerdings
-Handarbeit.
+Ein Update ist damit später ein `git pull`. Wer kein Git auf dem Server
+möchte, lädt das ZIP-Archiv von GitHub und entpackt es – dann sind Updates
+allerdings Handarbeit.
 
 ### Rechte setzen
 
@@ -148,7 +151,7 @@ sudo chmod 640 /var/www/flatlink/inc/config.php
 > ```
 >
 > Bleibt es im Webroot, sperr das Verzeichnis zusätzlich im Webserver (siehe
-> nächster Abschnitt) – auf nginx, Caddy und LiteSpeed ist die `.htaccess`
+> nächster Abschnitt) – unter nginx, Caddy und LiteSpeed ist die `.htaccess`
 > wirkungslos.
 
 ### Konfiguration anpassen
@@ -161,13 +164,13 @@ Alles steckt in `inc/config.php`. Für den Anfang reichen zwei Werte:
 ```
 
 > **`base_url` gehört gesetzt – das ist keine Geschmacksfrage.** Bleibt der
-> Wert leer, errät flatlink die Adresse aus dem `Host`-Header des Requests.
+> Wert leer, errät flatlink die Adresse aus dem `Host`-Header der Anfrage.
 > Der ist eine Nutzereingabe: Wer eine Passwort-vergessen-Mail für ein fremdes
 > Konto anstößt, könnte den Link darin sonst auf die eigene Domain zeigen
 > lassen und den Token abgreifen. flatlink verschickt deshalb **gar keine**
 > Mails mit Links, solange `base_url` fehlt – der Reset bliebe wirkungslos.
-> Auch das `secure`-Flag des Sitzungs-Cookies wird daraus abgeleitet, was
-> hinter einem TLS-terminierenden Proxy den Unterschied macht.
+> Auch das `secure`-Flag des Sitzungs-Cookies wird daraus abgeleitet, worauf
+> es hinter einem TLS-terminierenden Proxy ankommt.
 
 Für eine interne Instanz lohnt sich außerdem:
 
@@ -182,8 +185,8 @@ Für eine interne Instanz lohnt sich außerdem:
 
 ## 4. Webserver einrichten
 
-flatlink braucht eine einzige Umschreibung: Alles, was keine echte Datei ist,
-geht an `go.php`, das den Kurzcode auflöst.
+flatlink braucht eine einzige Umschreibung: Alles, was keine echte Datei
+ist, geht an `go.php`, das den Kurzcode auflöst.
 
 ### Apache
 
@@ -200,7 +203,7 @@ gelesen. Dafür muss `AllowOverride` gesetzt sein:
         Require all granted
     </Directory>
 
-    # Interne Verzeichnisse sperren – doppelter Boden zur .htaccess
+    # Interne Verzeichnisse sperren – doppelter Boden zusätzlich zur .htaccess
     <DirectoryMatch "^/var/www/flatlink/(inc|data)">
         Require all denied
     </DirectoryMatch>
@@ -262,27 +265,28 @@ server {
 }
 ```
 
-Den Socket-Pfad an die installierte PHP-Version anpassen –
-`ls /run/php/` zeigt, was da ist.
+Den Socket-Pfad an die installierte PHP-Version anpassen – `ls /run/php/`
+zeigt, was da ist.
 
 ### Hinter einem Reverse Proxy
 
-Steht nginx, Traefik oder HAProxy davor, sieht flatlink für **alle** Besucher
-dieselbe Adresse – Rate-Limit und Login-Sperre gelten dann versehentlich für
-alle gemeinsam, und ein einzelner Nutzer kann den Dienst für die anderen
-blockieren. Deshalb die Proxy-Adressen eintragen:
+Steht nginx, Traefik oder HAProxy davor, sieht flatlink für **alle**
+Besucher dieselbe Adresse – Rate-Limit und Login-Sperre gelten dann
+versehentlich für alle gemeinsam, und ein einzelner Nutzer kann den Dienst
+für die anderen blockieren. Deshalb die Proxy-Adressen eintragen:
 
 ```php
 'trusted_proxies' => ['127.0.0.1', '::1'],
 ```
 
 Nur bei Anfragen von diesen Adressen wird `X-Forwarded-For` überhaupt
-ausgewertet – und dann von rechts nach links, bis ein Eintrag kommt, der kein
-bekannter Proxy ist. Alles andere wäre gefährlicher als das Problem: Ohne
-diese Prüfung könnte sich jeder per Header eine beliebige Adresse geben und
-sämtliche Limits umgehen.
+ausgewertet – und dann von rechts nach links, bis ein Eintrag kommt, der
+kein bekannter Proxy ist. Alles andere wäre gefährlicher als das Problem:
+Ohne diese Prüfung könnte sich jeder per Header eine beliebige Adresse geben
+und sämtliche Limits umgehen.
 
-Der Proxy muss `X-Forwarded-For` selbst setzen bzw. überschreiben. Bei nginx:
+Der Proxy muss `X-Forwarded-For` selbst setzen bzw. überschreiben. Bei
+nginx:
 
 ```nginx
 proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -291,17 +295,18 @@ proxy_set_header X-Forwarded-Proto $scheme;
 
 ### HTTPS
 
-Ohne TLS gibt es kein sinnvolles flatlink: Sitzungs-Cookies, Passwörter und bei
-LDAP auch fremde Zugangsdaten laufen sonst im Klartext. Mit Let's Encrypt:
+Ohne TLS gibt es kein sinnvolles flatlink: Sitzungs-Cookies, Passwörter und
+bei LDAP auch fremde Zugangsdaten laufen sonst im Klartext. Mit Let's
+Encrypt:
 
 ```bash
 sudo certbot --apache -d kurz.example.org      # oder --nginx
 ```
 
-Das `secure`-Flag des Sitzungs-Cookies leitet flatlink aus der konfigurierten
-`base_url` ab. Steht dort `https://`, wird es gesetzt – auch dann, wenn ein
-Proxy TLS terminiert und intern per HTTP weiterreicht, wo PHP von sich aus
-keine gesicherte Verbindung sähe.
+Das `secure`-Flag des Sitzungs-Cookies leitet flatlink aus der
+konfigurierten `base_url` ab. Steht dort `https://`, wird es gesetzt – auch
+dann, wenn ein Proxy TLS terminiert und intern per HTTP weiterreicht, wo PHP
+von sich aus keine gesicherte Verbindung sähe.
 
 ---
 
@@ -310,13 +315,13 @@ keine gesicherte Verbindung sähe.
 Ruf die Seite im Browser auf. Es gibt zwei Wege zum ersten Konto:
 
 **Über die Ersteinrichtung.** Solange keine Konten existieren, zeigt
-`/admin/` statt des Logins ein Einrichtungsformular. Das dort angelegte Konto
-wird Administrator.
+`/admin/` statt des Logins ein Einrichtungsformular. Das dort angelegte
+Konto wird Administrator.
 
-**Über die Registrierung.** Ebenfalls möglich – auch hier wird das erste Konto
-automatisch Administrator. Im Auslieferungszustand steht der Mailversand auf
-`log`, die Bestätigungsmail landet also in `data/mail.log`; den Link von dort
-kopieren und aufrufen.
+**Über die Registrierung.** Ebenfalls möglich – auch hier wird das erste
+Konto automatisch Administrator. Im Auslieferungszustand steht der
+Mailversand auf `log`, die Bestätigungsmail landet also in `data/mail.log`;
+den Link von dort kopieren und aufrufen.
 
 Danach im Admin-Bereich unter *Einstellungen* festlegen, ob die öffentliche
 Link-Erstellung und die Selbst-Registrierung offen bleiben sollen. Für eine
@@ -327,9 +332,9 @@ interne Instanz: beides aus.
 ## 6. E-Mail-Versand
 
 Gebraucht wird er für Registrierungsbestätigungen, Passwort-Reset und die
-Vorwarnung vor dem automatischen Aufräumen. Wer ausschließlich über LDAP oder
-SSO anmeldet und das Aufräumen abgeschaltet lässt, braucht ihn gar nicht –
-dann bleibt `'mode' => 'log'` stehen.
+Vorwarnung vor dem automatischen Aufräumen. Wer ausschließlich über LDAP
+oder SSO anmeldet und das Aufräumen abgeschaltet lässt, braucht ihn gar
+nicht – dann bleibt `'mode' => 'log'` stehen.
 
 ### Konfiguration
 
@@ -346,10 +351,10 @@ dann bleibt `'mode' => 'log'` stehen.
 'contact_email' => 'it-support@example.org',   // erscheint in Systemmails
 ```
 
-flatlink bringt einen minimalen SMTP-Client mit (`inc/mail.php`): Verbindung,
-`STARTTLS`, `AUTH LOGIN`, fertig. Er kann bewusst wenig – kein OAuth2, keine
-Anhänge, keine Warteschlange. Für ein paar Systemmails am Tag reicht das; wer
-Massenversand braucht, ist hier falsch.
+flatlink bringt einen minimalen SMTP-Client mit (`inc/mail.php`):
+Verbindung, `STARTTLS`, `AUTH LOGIN`, fertig. Er kann bewusst wenig – kein
+OAuth2, keine Anhänge, keine Warteschlange. Für ein paar Systemmails am Tag
+reicht das; wer Massenversand braucht, ist hier falsch.
 
 **Port 465 statt 587?** Dann `'port' => 465` – der Client erkennt implizites
 TLS an der Portnummer. Wenn dein Anbieter nur 465 anbietet und es hakt, ist
@@ -366,8 +371,8 @@ tail -f data/mail.log
 
 ### Damit die Mails ankommen
 
-Systemmails landen gern im Spam. Drei DNS-Einträge verhindern das – sie gehören
-zur **Domain der Absenderadresse**, nicht zur Domain der Instanz:
+Systemmails landen gern im Spam. Drei DNS-Einträge verhindern das – sie
+gehören zur **Domain der Absenderadresse**, nicht zur Domain der Instanz:
 
 **SPF** – erlaubt dem Mailserver, für deine Domain zu senden:
 
@@ -392,23 +397,23 @@ _dmarc.example.org.  TXT  "v=DMARC1; p=none; rua=mailto:dmarc@example.org"
 
 Zwei Erfahrungswerte aus dem Betrieb von 1337.kiwi:
 
-- **DKIM braucht bei manchen Anbietern Zeit.** Nach dem Anlegen eines Postfachs
-  kann es Stunden dauern, bis wirklich signiert wird. Wenn der Eintrag stimmt
-  und trotzdem `dkim=none` in den Kopfzeilen steht: erst warten, dann den
-  Support fragen.
-- **Prüfen lässt sich das am schnellsten** über [mail-tester.com](https://www.mail-tester.com)
-  (eine Testmail hinschicken, Punktzahl ablesen) oder direkt in den Kopfzeilen
-  einer empfangenen Mail: Dort muss `spf=pass`, `dkim=pass` und `dmarc=pass`
-  stehen.
+- **DKIM braucht bei manchen Anbietern Zeit.** Nach dem Anlegen eines
+  Postfachs kann es Stunden dauern, bis wirklich signiert wird. Wenn der
+  Eintrag stimmt und trotzdem `dkim=none` in den Kopfzeilen steht: erst
+  warten, dann den Support fragen.
+- **Prüfen lässt sich das am schnellsten** über
+  [mail-tester.com](https://www.mail-tester.com) (eine Testmail hinschicken,
+  Punktzahl ablesen) oder direkt in den Kopfzeilen einer empfangenen Mail:
+  Dort muss `spf=pass`, `dkim=pass` und `dmarc=pass` stehen.
 
 ---
 
 ## 7. LDAP und Active Directory
 
-flatlink fragt hier selbst beim Verzeichnis nach. Kennung und Passwort werden
-im gewohnten Login-Formular eingegeben; geprüft wird per Bind als der gefundene
-Nutzer. Das Passwort wird nirgends gespeichert und mit keinem lokalen Hash
-verglichen.
+flatlink fragt hier selbst beim Verzeichnis nach. Kennung und Passwort
+werden im gewohnten Login-Formular eingegeben; geprüft wird per Bind als der
+gefundene Nutzer. Das Passwort wird nirgends gespeichert und mit keinem
+lokalen Hash verglichen.
 
 ### Voraussetzung
 
@@ -418,8 +423,8 @@ php -m | grep ldap || sudo apt install php-ldap
 
 ### Erst außerhalb von flatlink prüfen
 
-Bevor du irgendetwas konfigurierst: Klärt `ldapsearch`, ob Verbindung, Bind und
-Filter überhaupt stimmen? Das erspart viel Rätselraten.
+Bevor du irgendetwas konfigurierst: Kläre mit `ldapsearch`, ob Verbindung,
+Bind und Filter überhaupt stimmen. Das erspart viel Rätselraten.
 
 ```bash
 # OpenLDAP
@@ -463,9 +468,9 @@ Was hier zurückkommt, übernimmst du eins zu eins in die Konfiguration.
 ],
 ```
 
-`%s` wird durch die Eingabe ersetzt – vorher escaped, LDAP-Injection ist also
-nicht möglich. Der Filter muss **genau einen** Treffer liefern; mehrdeutige
-Kennungen werden abgelehnt.
+`%s` wird durch die Eingabe ersetzt – vorher maskiert, LDAP-Injection ist
+also nicht möglich. Der Filter muss **genau einen** Treffer liefern;
+mehrdeutige Kennungen werden abgelehnt.
 
 ### Verschlüsselung
 
@@ -493,25 +498,25 @@ Zwei Betriebsarten:
   Overlay.
 
 `group_map` bildet Verzeichnisnamen auf flatlink-Gruppen ab. **Die Gruppen
-müssen in flatlink vorher angelegt sein** – aus dem Verzeichnis kommende Namen
-können nie neue Gruppen erfinden. Ist `group_map` leer, wird ein Name nur
+müssen in flatlink vorher angelegt sein** – Namen aus dem Verzeichnis können
+nie neue Gruppen entstehen lassen. Ist `group_map` leer, wird ein Name nur
 übernommen, wenn es lokal eine gleichnamige Gruppe gibt.
 
 ### Reihenfolge beim Login
 
-Erst wird das lokale Passwort geprüft, dann das Verzeichnis. Konten, die einmal
-über LDAP angemeldet waren, sind als solche markiert und können sich **nicht**
-mehr über ein lokales Passwort anmelden – sonst ließe sich die zentrale
-Anmeldung über ein altes Passwort umgehen. Auch der Passwort-Reset ist für sie
-gesperrt.
+Erst wird das lokale Passwort geprüft, dann das Verzeichnis. Konten, die
+einmal über LDAP angemeldet waren, sind als solche markiert und können sich
+**nicht** mehr über ein lokales Passwort anmelden – sonst ließe sich die
+zentrale Anmeldung über ein altes Passwort umgehen. Auch der Passwort-Reset
+ist für sie gesperrt.
 
 ---
 
 ## 8. Shibboleth, SAML und OpenID Connect
 
-Der Weg für Hochschulen. Hier authentifiziert **nicht flatlink**, sondern der
-Webserver: Ein Servermodul spricht mit dem Identity Provider, und flatlink
-liest nur noch, wen der Server durchgelassen hat.
+Der Weg für Hochschulen. Hier authentifiziert **nicht flatlink**, sondern
+der Webserver: Ein Servermodul spricht mit dem Identity Provider, und
+flatlink liest nur noch, wen der Server durchgelassen hat.
 
 Das Verfahren ist dasselbe für `mod_shib` (Shibboleth), `mod_auth_mellon`
 (SAML) und `mod_auth_openidc` (OpenID Connect) – nur die Modulkonfiguration
@@ -527,9 +532,10 @@ Browser  →  Apache + mod_shib  →  IdP der Hochschule
 ```
 
 Du betreibst den **Service Provider** (SP). Der **Identity Provider** (IdP)
-gehört dem Rechenzentrum – den richtest du nicht ein, du meldest dich dort an.
-In Deutschland läuft das meist über die Föderation **DFN-AAI**: Beide Seiten
-laden ihre Metadaten dort hoch und vertrauen sich darüber.
+gehört dem Rechenzentrum – den richtest du nicht ein, du meldest dich dort
+an. In Deutschland läuft das meist über die Föderation **DFN-AAI**: Beide
+Seiten laden ihre Metadaten dort hoch und vertrauen einander auf dieser
+Grundlage.
 
 ### 8.2 SP installieren
 
@@ -548,7 +554,8 @@ sudo systemctl enable --now shibd
 sudo systemctl status shibd
 ```
 
-Schlüsselpaar für den SP erzeugen, falls das Paket das nicht schon getan hat:
+Schlüsselpaar für den SP erzeugen, falls das Paket das nicht schon getan
+hat:
 
 ```bash
 cd /etc/shibboleth
@@ -559,8 +566,8 @@ sudo shib-keygen -u _shibd -h kurz.example.org
 
 In `/etc/shibboleth/shibboleth2.xml` sind drei Stellen wichtig.
 
-**Die eigene Kennung (`entityID`)** – eine URL, die den SP eindeutig benennt.
-Sie muss nicht erreichbar sein, aber stabil bleiben:
+**Die eigene Kennung (`entityID`)** – eine URL, die den SP eindeutig
+benennt. Sie muss nicht erreichbar sein, aber stabil bleiben:
 
 ```xml
 <ApplicationDefaults entityID="https://kurz.example.org/shibboleth"
@@ -588,8 +595,8 @@ erste vorhandene Wert gewinnt. `eppn` (eduPersonPrincipalName, etwa
 </MetadataProvider>
 ```
 
-Bei nur einem festen IdP entfällt die Discovery, dann reicht
-`<SSO entityID="https://idp.example.org/idp/shibboleth">SAML2</SSO>`.
+Bei nur einem festen IdP entfällt die Discovery, dann reicht `<SSO
+entityID="https://idp.example.org/idp/shibboleth">SAML2</SSO>`.
 
 > Metadaten-URLs, Zertifikatsnamen und Filter unterscheiden sich je nach
 > Föderation und Shibboleth-Version. Die aktuell gültigen Werte stehen in der
@@ -624,9 +631,9 @@ Deine SP-Metadaten stehen jetzt unter:
 https://kurz.example.org/Shibboleth.sso/Metadata
 ```
 
-Diese Datei geht ans Rechenzentrum bzw. in die Föderation. Dazu die Bitte,
-**welche Attribute freigegeben werden sollen** – ohne Freigabe kommt nichts an,
-selbst wenn alles andere stimmt. Für flatlink genügen:
+Diese Datei geht ans Rechenzentrum bzw. in die Föderation. Dazu die Angabe,
+**welche Attribute freigegeben werden sollen** – ohne Freigabe kommt nichts
+an, selbst wenn alles andere stimmt. Für flatlink genügen:
 
 - `eppn` – zwingend, das ist die Kennung
 - `displayName` – **dringend empfohlen**, siehe unten
@@ -644,14 +651,14 @@ selbst wenn alles andere stimmt. Für flatlink genügen:
 > verfügbar, hilft die Suche in der Nutzerverwaltung, die auch Teile der
 > Kennung und die E-Mail-Adresse findet.
 
-Weniger zu verlangen ist hier die bessere Haltung: flatlink braucht weder Namen
-noch Matrikelnummer noch Fakultät.
+Weniger zu verlangen ist hier die bessere Haltung: flatlink braucht weder
+Namen noch Matrikelnummer noch Fakultät.
 
 ### 8.5 Apache: Was geschützt wird
 
-Entscheidend ist, **nur den Login-Bereich** zu schützen. Wird die ganze Seite
-geschützt, funktionieren die Kurzlinks selbst nicht mehr – jeder Aufruf würde
-zum IdP umgeleitet.
+Entscheidend ist, **nur den Login-Bereich** zu schützen. Wird die ganze
+Seite geschützt, funktionieren die Kurzlinks selbst nicht mehr – jeder
+Aufruf würde zum IdP umgeleitet.
 
 ```apache
 # Der Anmeldebereich verlangt eine Sitzung
@@ -668,7 +675,8 @@ zum IdP umgeleitet.
 </Location>
 ```
 
-Der Rest der Seite – Kurzlinks, QR-Endpunkt, Startseite – bleibt bewusst offen.
+Der Rest der Seite – Kurzlinks, QR-Endpunkt, Startseite – bleibt bewusst
+offen.
 
 ### 8.6 flatlink konfigurieren
 
@@ -716,13 +724,13 @@ Leute, die direkt auf `/admin/` landen.
 > nachweislich überschreibt. Ohne Eintrag werden sie verworfen und die
 > Anmeldung schlägt fehl. Das ist Absicht.
 
-Relevant wird das, wenn zwischen Apache und flatlink noch ein Proxy steht oder
-`ShibUseHeaders On` gesetzt ist. **Setz `ShibUseHeaders` möglichst nicht** –
-die Voreinstellung mit Umgebungsvariablen ist der sichere Weg.
+Relevant wird das, wenn zwischen Apache und flatlink noch ein Proxy steht
+oder `ShibUseHeaders On` gesetzt ist. **Setz `ShibUseHeaders` möglichst
+nicht** – die Voreinstellung mit Umgebungsvariablen ist der sichere Weg.
 
 Wenn du `trusted_proxies` brauchst: Trag die Adresse ein, mit der der Proxy
-tatsächlich ankommt. Bei einem lokalen Proxy können das zwei sein, je nachdem
-ob er über IPv4 oder IPv6 verbindet:
+tatsächlich ankommt. Bei einem lokalen Proxy können das zwei sein, je
+nachdem, ob er über IPv4 oder IPv6 kommt:
 
 ```php
 'trusted_proxies' => ['127.0.0.1', '::1'],
@@ -741,8 +749,8 @@ https://kurz.example.org/Shibboleth.sso/Session   → welche Attribute angekomme
 https://kurz.example.org/Shibboleth.sso/Status    → Zustand des SP
 ```
 
-`/Session` ist der schnellste Weg zur Antwort auf „warum ist der Nutzer nicht
-angemeldet". Stehen dort keine Attribute, liegt es am IdP oder an der
+`/Session` ist der schnellste Weg zur Antwort auf „warum ist der Nutzer
+nicht angemeldet“. Stehen dort keine Attribute, liegt es am IdP oder an der
 `attribute-map.xml` – nicht an flatlink.
 
 Logdateien: `/var/log/shibboleth/shibd.log` und `transaction.log`.
@@ -750,19 +758,19 @@ Logdateien: `/var/log/shibboleth/shibd.log` und `transaction.log`.
 ### 8.9 Andere Module
 
 **SAML mit `mod_auth_mellon`:** gleiche Struktur, Attribute kommen als
-`MELLON_*`-Umgebungsvariablen. In flatlink dann etwa
-`'user_var' => 'MELLON_eppn'`.
+`MELLON_*`-Umgebungsvariablen. In flatlink dann etwa `'user_var' =>
+'MELLON_eppn'`.
 
 **OpenID Connect mit `mod_auth_openidc`:** Attribute als `OIDC_CLAIM_*`.
-Beispiel: `'user_var' => 'OIDC_CLAIM_preferred_username'`,
-`'mail_var' => 'OIDC_CLAIM_email'`, `'group_var' => 'OIDC_CLAIM_groups'`.
-Der Trennzeichen-Eintrag muss zum Format des Claims passen.
+Beispiel: `'user_var' => 'OIDC_CLAIM_preferred_username'`, `'mail_var' =>
+'OIDC_CLAIM_email'`, `'group_var' => 'OIDC_CLAIM_groups'`. Der
+Trennzeichen-Eintrag muss zum Format des Claims passen.
 
 ---
 
 ## 9. Gruppen und Rechte in der Praxis
 
-Gruppen leisten zweierlei: geteilten Zugriff auf Links und die Vergabe von
+Gruppen leisten zweierlei: gemeinsamen Zugriff auf Links und die Vergabe von
 Rechten. Reihenfolge beim Einrichten:
 
 1. **Gruppen anlegen** im Admin-Bereich unter *Gruppen* – mit einer Kennung
@@ -784,16 +792,17 @@ Verfügbare Rechte:
 | `links_all` | sieht und verwaltet alle Links der Instanz |
 | `reports_manage` | bearbeitet Meldungen und sperrt Links |
 
-`links_all` und `reports_manage` zusammen ergeben eine Redaktion: volle Sicht
-auf die Links und den Meldungs-Eingang, aber kein Zugriff auf Konten, Gruppen,
-Einstellungen und Protokoll. Siehe [docs/gruppen.md](gruppen.md).
+`links_all` und `reports_manage` zusammen ergeben eine Redaktion: volle
+Sicht auf die Links und den Meldungs-Eingang, aber kein Zugriff auf Konten,
+Gruppen, Einstellungen und Protokoll. Siehe [docs/gruppen.md](gruppen.md).
 
 ### Wer darf sich überhaupt anmelden?
 
-Die wichtigste Frage bei einer Föderation – und die am leichtesten übersehene.
-Ein Verbund wie die DFN-AAI authentifiziert Angehörige **aller** beteiligten
-Einrichtungen. Ohne Einschränkung bekommt also jedes Mitglied jeder deutschen
-Hochschule auf deiner Instanz ein Konto. Drei Bremsen, beliebig kombinierbar:
+Die wichtigste Frage bei einer Föderation – und die am leichtesten
+übersehene. Ein Verbund wie die DFN-AAI authentifiziert Angehörige **aller**
+beteiligten Einrichtungen. Ohne Einschränkung bekommt also jedes Mitglied
+jeder deutschen Hochschule auf deiner Instanz ein Konto. Drei Bremsen,
+beliebig kombinierbar:
 
 ```php
 'allowed_scopes' => ['hfmt-hamburg.de'],   // nur die eigene Einrichtung
@@ -824,7 +833,7 @@ Verzeichnis-Gruppen.
 ### Namensräume statt Namensstreit
 
 Ist der Zugang bewusst offen, hilft die andere Richtung: Jede Gruppe bekommt
-ein Präfix, und ihre Mitglieder legen nur darunter an.
+ein Präfix, und ihre Mitglieder legen ihre Links nur darunter an.
 
 | Gruppe | Präfix | Ergebnis |
 | --- | --- | --- |
@@ -833,8 +842,8 @@ ein Präfix, und ihre Mitglieder legen nur darunter an.
 | (Verwaltung, ohne Präfix) | – | `kurz.hochschule.de/immatrikulation` |
 
 So kann niemand versehentlich den kurzen, zentralen Namen belegen, und die
-Bereiche kommen sich nicht in die Quere. Administratoren bleiben unbeschränkt.
-Gesetzt wird das Präfix im Admin-Bereich unter *Gruppen*.
+Bereiche kommen sich nicht in die Quere. Administratoren bleiben
+unbeschränkt. Gesetzt wird das Präfix im Admin-Bereich unter *Gruppen*.
 
 Ein bewährter Zuschnitt für eine Hochschule:
 
@@ -842,13 +851,13 @@ Ein bewährter Zuschnitt für eine Hochschule:
 'default_perms' => ['logo_upload'],     // darf jeder
 ```
 
-…und dann eine Gruppe „Redaktion" mit `custom_code` und `csv_import` für die
+…und dann eine Gruppe „Redaktion“ mit `custom_code` und `csv_import` für die
 Handvoll Leute, die Plakate und Aushänge verantworten. Der Grund: Der
 Namensraum einer Instanz ist endlich. Wer sich `/studium` sichert, nimmt ihn
 allen anderen weg – das gehört in wenige Hände.
 
-**Geteilte Links** entstehen, indem beim Anlegen eine Gruppe gewählt wird. Alle
-Mitglieder können sie dann bearbeiten, umziehen lassen und löschen. Genau
+**Geteilte Links** entstehen, indem beim Anlegen eine Gruppe gewählt wird.
+Alle Mitglieder können sie dann bearbeiten, verschieben und löschen. Genau
 darum geht es: Ein gedruckter Aushang soll nicht davon abhängen, ob die
 Kollegin, die ihn angelegt hat, noch im Haus ist.
 
@@ -865,9 +874,10 @@ verworfen und aus einem festen Demo-Bestand neu aufgebaut. Der Reset hängt
 träge am Seitenaufbau – **kein Cron nötig**, das läuft auch auf Shared
 Hosting ohne SSH.
 
-In die Konfiguration der Demo gehören außerdem: `mail` auf `'mode' => 'log'`,
-Selbstregistrierung aus, keine Webhooks, kein Safe-Browsing-Schlüssel – der
-Modus erzwingt das nicht, er macht Band, Reset und Bestand.
+In die Konfiguration der Demo gehören außerdem: `mail` auf `'mode' =>
+'log'`, Selbstregistrierung aus, keine Webhooks, kein
+Safe-Browsing-Schlüssel – der Modus erzwingt das nicht, er macht Band, Reset
+und Bestand.
 
 ### Sicherung
 
@@ -877,29 +887,30 @@ Alles Veränderliche liegt unter `data/`. Ein Backup ist ein Kopiervorgang:
 sudo tar czf flatlink-$(date +%F).tar.gz -C /var/www/flatlink data inc/config.php
 ```
 
-`inc/config.php` mitnehmen – sie enthält Zugangsdaten und steht bewusst nicht
-im Repository. Und weil sie das tut: Das Backup gehört an einen Ort, an dem
-nicht jeder mitliest.
+`inc/config.php` mitnehmen – sie enthält Zugangsdaten und steht bewusst
+nicht im Repository. Und weil sie das enthält: Das Backup gehört an einen
+Ort, an dem nicht jeder mitliest.
 
 **Für versionierte Sicherungen** – rsync, borg, ein Git-Repository – gibt es
-einen Export, der den Bestand in ein Verzeichnis schreibt statt in ein Archiv:
+einen Export, der den Bestand in ein Verzeichnis schreibt statt in ein
+Archiv:
 
 ```bash
 php tools/backup-export.php /var/backups/flatlink
 ```
 
-Die Datenbank kommt dabei als **SQL-Text** heraus, nicht als Datei. Das ist der
-Unterschied, der ein Git-Repository benutzbar hält: Drei neue Kurzlinks sind
-drei neue Zeilen statt einer neuen Kopie der ganzen Datenbank. Gleicher
+Die Datenbank kommt dabei als **SQL-Text** heraus, nicht als Datei. Das ist
+der Unterschied, der ein Git-Repository benutzbar hält: Drei neue Kurzlinks
+sind drei neue Zeilen statt einer neuen Kopie der ganzen Datenbank. Gleicher
 Datenstand ergibt gleiche Bytes – keine Zeitstempel im Inhalt, feste
-Reihenfolge –, sonst meldete jeder Lauf eine Änderung. Zurückgespielt wird mit
-`sqlite3 data/<datenbank> < datenbank.sql`; der genaue Ablauf liegt als
+Reihenfolge –, sonst meldete jeder Lauf eine Änderung. Zurückgespielt wird
+mit `sqlite3 data/<datenbank> < datenbank.sql`; der genaue Ablauf liegt als
 `WIEDERHERSTELLEN.md` im Export.
 
 `inc/config.php` bleibt ohne `--mit-config` draußen. Was drin ist –
-Passwort-Hashes, E-Mail-Adressen, das Instanz-Geheimnis –, entscheidet über den
-Ort: Ein Repository dafür muss privat sein, und seine Historie vergisst nichts,
-auch ein gelöschtes Konto nicht.
+Passwort-Hashes, E-Mail-Adressen, das Instanz-Geheimnis –, entscheidet über
+den Ort: Ein Repository dafür muss privat sein, und seine Historie vergisst
+nichts, auch ein gelöschtes Konto nicht.
 
 ### Aktualisieren
 
@@ -908,18 +919,19 @@ cd /var/www/flatlink
 sudo git pull
 ```
 
-`data/` und `inc/config.php` bleiben unangetastet. Nach einem Update lohnt ein
-Blick in `inc/config.example.php`: Neue Optionen tauchen dort zuerst auf.
-Fehlen sie in deiner `config.php`, greift automatisch der Vorgabewert aus der
-Beispieldatei – die Instanz läuft also weiter, auch wenn du nichts tust.
+`data/` und `inc/config.php` bleiben unangetastet. Nach einem Update lohnt
+ein Blick in `inc/config.example.php`: Neue Optionen tauchen dort zuerst
+auf. Fehlen sie in deiner `config.php`, greift automatisch der Vorgabewert
+aus der Beispieldatei – die Instanz läuft also weiter, auch wenn du nichts
+tust.
 
 ### Was nicht ins Webroot gehört
 
 `tests/`, `tools/` und `extension/` sind Werkzeuge für Kommandozeile und
 Store-Bau – auf dem Server werden sie nicht gebraucht und gehören dort auch
-nicht hin. Die mitgelieferte `.htaccess` sperrt sie ab, und die Skripte tragen
-seit 2.9.5 zusätzlich einen eigenen CLI-Riegel; unter nginx (siehe oben) muss
-die Sperre in der Server-Konfiguration nachgezogen werden:
+nicht hin. Die mitgelieferte `.htaccess` sperrt sie ab, und die Skripte
+haben seit 2.9.5 zusätzlich eine eigene CLI-Sperre; unter nginx (siehe oben)
+muss die Sperre in der Server-Konfiguration nachgezogen werden:
 
 ```nginx
 location ~ ^/(inc|data|tests|tools|extension|\.git)(/|$) { deny all; }
@@ -927,20 +939,21 @@ location ~ ^/(Dockerfile|docker-compose\.ya?ml|docker-entrypoint\.sh|\.dockerign
 ```
 
 Der Grund ist konkret: `tests/einstellungen.php` legt für seinen Lauf ein
-Admin-Konto an, dessen Passwort im Quelltext steht. Es räumt sich seit 2.9.5
-selbst wieder ab und läuft nur noch auf der Kommandozeile – aber die sauberste
-Fassung eines Werkzeugs, das auf dem Server nichts verloren hat, ist die, die
-gar nicht erst dort liegt.
+Admin-Konto an, dessen Passwort im Quelltext steht. Das Skript räumt das
+Konto seit 2.9.5 selbst wieder weg und läuft nur noch auf der Kommandozeile
+– aber die sauberste Fassung eines Werkzeugs, das auf dem Server nichts
+verloren hat, ist die, die gar nicht erst dort liegt.
 
 ### Härten
 
 - **Interne Instanz:** öffentliche Link-Erstellung und Selbst-Registrierung
   unter *Einstellungen* abschalten.
-- **Öffentliche Instanz:** `public_rate_limit` prüfen und Google Safe Browsing
-  erwägen (`safe_browsing_key`). Achtung: Dabei wird die Ziel-URL beim Anlegen
-  an Google übertragen – das gehört in die Datenschutzerklärung.
-- **Zugriffs-Logs.** flatlink speichert keine IP-Adressen, dein Webserver
-  in aller Regel schon. Wer den Anspruch ernst meint, kürzt oder deaktiviert
+- **Öffentliche Instanz:** `public_rate_limit` prüfen und Google Safe
+  Browsing erwägen (`safe_browsing_key`). Achtung: Dabei wird die Ziel-URL
+  beim Anlegen an Google übertragen – das gehört in die
+  Datenschutzerklärung.
+- **Zugriffs-Logs.** flatlink speichert keine IP-Adressen, dein Webserver in
+  aller Regel schon. Wer den Anspruch ernst meint, kürzt oder deaktiviert
   sie dort – sonst ist die Aussage nur die halbe Wahrheit.
 - **Mindestens ein lokales Admin-Konto** behalten, damit ein Ausfall des IdP
   oder Verzeichnisses dich nicht aussperrt.
@@ -950,8 +963,8 @@ gar nicht erst dort liegt.
 Wer eine öffentliche Instanz betreibt, braucht je nach Land eigene Angaben –
 in Deutschland typischerweise Impressum und Datenschutzerklärung. flatlink
 liefert dafür bewusst keine Vorlagen: Sie hängen von Betreiber, Zweck und
-Nutzung ab, und eine mitgelieferte Vorlage würde mehr Schaden anrichten als
-helfen. Eigene Seiten anlegen und in `page_footer()` in
+Nutzung ab, und eine mitgelieferte Vorlage würde mehr schaden als nützen.
+Eigene Seiten anlegen und in `page_footer()` in
 [`inc/helpers.php`](../inc/helpers.php) verlinken.
 
 ---
@@ -960,23 +973,24 @@ helfen. Eigene Seiten anlegen und in `page_footer()` in
 
 | Symptom | Wahrscheinliche Ursache |
 | --- | --- |
-| „Konfiguration fehlt" | `inc/config.php` nicht angelegt – aus `config.example.php` kopieren |
+| „Konfiguration fehlt“ | `inc/config.php` nicht angelegt – aus `config.example.php` kopieren |
 | Kurzlinks führen zu 404 | Umschreibung greift nicht: `mod_rewrite` aus, `AllowOverride None`, oder bei nginx die `location`-Blöcke vergessen |
 | Weiße Seite, keine Meldung | PHP-Fehler – ins Fehlerprotokoll des Webservers sehen |
-| „Kein Zugriff" beim Speichern | `data/` gehört nicht dem Webserver-Benutzer |
+| „Kein Zugriff“ beim Speichern | `data/` gehört nicht dem Webserver-Benutzer |
 | QR-Code als SVG ok, PNG kaputt | `gd` fehlt |
 | Rahmentext im PNG grob gerastert | keine TrueType-Datei – eine `.ttf` nach `assets/fonts/` legen |
 | Mails kommen nicht an | zuerst `'mode' => 'log'` und `data/mail.log` prüfen; danach SPF/DKIM/DMARC |
 | Mails landen im Spam | DKIM fehlt oder ist noch nicht aktiv (kann nach Einrichtung dauern) |
 | LDAP-Login schlägt immer fehl | Filter liefert keinen oder mehr als einen Treffer – mit `ldapsearch` gegenprüfen |
-| LDAP: „Can't contact LDAP server" | TLS-Zertifikat nicht vertrauenswürdig – `TLS_CACERT` setzen |
+| LDAP: „Can't contact LDAP server“ | TLS-Zertifikat nicht vertrauenswürdig – `TLS_CACERT` setzen |
 | LDAP-Gruppen bleiben leer | `memberOf` nicht vorhanden → `group_mode` auf `search` stellen |
 | SSO: Nutzer wird nicht angemeldet | `/Shibboleth.sso/Session` aufrufen – kommen dort Attribute an? |
 | SSO: Attribute da, flatlink meldet nicht an | Name in `user_var` stimmt nicht, oder es ist eine `HTTP_`-Variable ohne `trusted_proxies` |
 | SSO: funktioniert lokal, nicht über Proxy | `trusted_proxies` fehlt – auch `::1` eintragen |
 | Nach Abmelden sofort wieder angemeldet | `logout_url` nicht gesetzt: Der IdP hält die Sitzung |
-| Aussperrt: kein Admin mehr | `sqlite3 data/flatlink.sqlite "UPDATE users SET role='admin', data=json_set(data,'$.role','admin') WHERE name='DEINE-KENNUNG'"` |
+| Ausgesperrt: kein Admin mehr | `sqlite3 data/flatlink.sqlite "UPDATE users SET role='admin', data=json_set(data,'$.role','admin') WHERE name='DEINE-KENNUNG'"` |
 
-Wenn nichts davon passt: [ein Issue aufmachen](https://github.com/HerrBarmann/flatlink/issues).
-Hilfreich sind PHP-Version, Webserver, Anmeldeweg und der Auszug aus dem
-Fehlerprotokoll – aber bitte **ohne** Zugangsdaten aus `config.php`.
+Wenn nichts davon passt: [ein Issue
+aufmachen](https://github.com/HerrBarmann/flatlink/issues). Hilfreich sind
+PHP-Version, Webserver, Anmeldeweg und der Auszug aus dem Fehlerprotokoll –
+aber bitte **ohne** Zugangsdaten aus `config.php`.

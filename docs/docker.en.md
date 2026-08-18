@@ -1,13 +1,13 @@
 # flatlink in a container
 
-One image, one volume, done. Back to the [README](../README.md). –
-🇩🇪 [Deutsche Fassung](docker.md)
+One image, one volume, done. Back to the [README](../README.md). – 🇩🇪
+[Deutsche Fassung](docker.md)
 
 flatlink does not need a container: copying files onto a web space works
 just as well, and that is what it was built for. But if you run everything
-in containers anyway, here is an image that fits in – environment variables
-instead of a configuration file, one volume for the data, and a health
-endpoint for your watchdog.
+in containers anyway, here is an image that fits right in – environment
+variables instead of a configuration file, one volume for the data, and a
+health endpoint for your watchdog.
 
 ## In two minutes
 
@@ -19,15 +19,15 @@ docker run -d --name flatlink -p 8080:80 \
 ```
 
 Then open `http://localhost:8080/admin/` – the first visit creates the
-administrator account. With the `docker-compose.yml` from the project it is
-the same: `docker compose up -d` (or `docker-compose up -d`, depending on
-how Compose is installed for you).
+administrator account. The `docker-compose.yml` in the project does the
+same: `docker compose up -d` (or `docker-compose up -d`, depending on how
+Compose is installed for you).
 
 ## Environment variables
 
 Only what you pass is set – everything else keeps its default from
 `inc/config.example.php`. The full list of options lives there; these are
-the ones settable through the environment.
+the ones you can set through the environment.
 
 | Variable | Meaning |
 | --- | --- |
@@ -49,11 +49,11 @@ An empty value counts as "not set". Booleans accept `1`, `true`, `yes` and
 
 **`FLATLINK_BASE_URL` is not a matter of taste.** Without it flatlink
 guesses the address from the request's `Host` header – which is user input.
-Someone triggering a password mail for a foreign account could bend the
-link in it to their own domain and capture the token. flatlink therefore
+Someone triggering a password mail for a foreign account could point the
+link in it at their own domain and capture the token. flatlink therefore
 sends **no** mails containing links while the address is missing; the
-container writes a note to the log on startup. Behind a proxy this carries
-the address seen from **outside**, not `http://flatlink:80`.
+container writes a note to the log on startup. Behind a proxy this is the
+address seen from **outside**, not `http://flatlink:80`.
 
 ### Prefer a written-out configuration?
 
@@ -64,15 +64,15 @@ volumes:
   - ./config.php:/var/www/html/inc/config.php:ro
 ```
 
-Both ways are equal. The variables are the shortcut for the common case,
-the file is the statement for everything beyond – Shibboleth, webhooks or
-several domains do not compress into one line sensibly.
+Neither way is second best. The variables are the shortcut for the common
+case, the file is the place for everything beyond – Shibboleth, webhooks or
+several domains do not sensibly fit on a single line.
 
 ## Data
 
 Everything mutable lives in **one** directory: `/var/lib/flatlink`. Links,
-accounts, click counters, logos, the SQLite file. That is the only thing a
-new image has to survive – and therefore the only thing to back up:
+accounts, click counters, logos, the SQLite file. That is the only thing
+that has to survive a new image – and therefore the only thing to back up:
 
 ```bash
 docker run --rm -v flatlink-data:/data -v "$PWD":/here alpine \
@@ -95,8 +95,8 @@ docker exec flatlink php /var/www/html/tools/backup-export.php /var/lib/flatlink
 
 ## Behind a proxy
 
-The common case: Traefik, Caddy or nginx terminate TLS and pass on. Two
-things belong set then:
+The common case: Traefik, Caddy or nginx terminate TLS and forward the
+request. Two things need setting then:
 
 ```yaml
 environment:
@@ -105,8 +105,8 @@ environment:
 ```
 
 Without the second entry flatlink sees the proxy's address for **all**
-visitors. Rate limit and sign-in lock would then apply collectively by
-accident – a single user could block the service for everyone.
+visitors. Rate limit and sign-in lock would then apply to everyone
+collectively – a single user could block the service for the rest.
 
 ## Your own look
 
@@ -118,22 +118,23 @@ volumes:
   - ./custom.css:/var/www/html/assets/custom.css:ro
 ```
 
-What to put in it is in the [customization guide](CUSTOMIZATION.en.md) –
-colors, logo, type, all update-safe through variables.
+The [customisation guide](CUSTOMIZATION.en.md) covers what goes in it –
+colours, logo, type, all update-safe through variables.
 
 ## What the container does not need
 
-- **No cron.** Cleanup, demo reset and expiry hang off page loads.
+- **No cron.** Cleanup, demo reset and expiry all ride on page loads.
 - **No database service.** SQLite lives in the volume.
 - **No second container** for the web server: Apache and PHP are in the
   image, so the bundled `.htaccess` applies unchanged – it rewrites short
-  codes and blocks what belongs blocked.
+  codes and blocks what should stay blocked.
 
 ## Health
 
-`GET /api/health` answers without a key with `{"status":"pass"}` – the
-built-in `HEALTHCHECK` asks the same every 30 seconds. `docker ps` shows
-the result as `healthy`; an external watchdog queries the same address.
+`GET /api/health` needs no key and answers `{"status":"pass"}` – the
+built-in `HEALTHCHECK` asks the same thing every 30 seconds. `docker ps`
+shows the result as `healthy`; an external watchdog queries the same
+address.
 
 ## Updating
 
@@ -142,11 +143,11 @@ docker compose pull && docker compose up -d
 ```
 
 The volume stays, the application is replaced. No migration step is needed –
-the data format grows with it and reads older inventories unchanged.
+the data format grows with it and reads older data unchanged.
 
-Fixed versions are more comfortable than `latest` if an unintended jump
-would come at a bad time: `ghcr.io/herrbarmann/flatlink:3.1` stays on the
-3.1 releases, `:3.1.0` on exactly this one.
+Pinning a version is easier to live with than `latest` if an unintended jump
+would come at a bad time: `ghcr.io/herrbarmann/flatlink:3.2` stays on the
+3.2 releases, `:3.2.1` on exactly that one.
 
 ## Building it yourself
 
@@ -157,6 +158,6 @@ cd flatlink && docker build -t flatlink .
 
 Only what a running instance needs goes into the image: `tests/`, `tools/`,
 `extension/` and the screenshots stay out (see `.dockerignore`). The web
-server owns not a single file of the application – it may write to the data
-directory and nowhere else. A break-in through PHP therefore cannot rewrite
-the application.
+server does not own a single file of the application – it may write to the
+data directory and nowhere else. A break-in through PHP therefore cannot
+rewrite the application.

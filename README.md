@@ -1,21 +1,20 @@
 <h1 align="center">flatlink</h1>
 
-<p align="center">
-  <strong>The self-hosted URL shortener – with a QR designer and link-in-bio pages.</strong><br>
-  Plain PHP. No database server, no Composer, no build step –<br>
-  copy the files to a web space and you're done.
-</p>
+<p align="center"> <strong>The self-hosted URL shortener – with a QR
+designer and link-in-bio pages.</strong><br> Plain PHP. No database server,
+no Composer, no build step –<br> copy the files to your web host and you're
+done. </p>
 
-<p align="center">
-  <a href="LICENSE"><img alt="AGPL-3.0 license" src="https://img.shields.io/badge/License-AGPL--3.0-1a7f37"></a>
-  <img alt="PHP 8.1+" src="https://img.shields.io/badge/PHP-8.1%2B-777bb4">
-  <img alt="Zero dependencies" src="https://img.shields.io/badge/Dependencies-0-0a7ea4">
-  <img alt="No database server" src="https://img.shields.io/badge/Database%20server-none-555">
-</p>
+<p align="center"> <a href="LICENSE"><img alt="AGPL-3.0 license"
+src="https://img.shields.io/badge/License-AGPL--3.0-1a7f37"></a> <img
+alt="PHP 8.1+" src="https://img.shields.io/badge/PHP-8.1%2B-777bb4"> <img
+alt="Zero dependencies"
+src="https://img.shields.io/badge/Dependencies-0-0a7ea4"> <img alt="No
+database server"
+src="https://img.shields.io/badge/Database%20server-none-555"> </p>
 
-<p align="center">
-  <img src="docs/screenshots/en/link-list.webp" alt="The link list with tags, groups and click counts" width="820">
-</p>
+<p align="center"> <img src="docs/screenshots/en/link-list.webp" alt="The
+link list with tags, groups and click counts" width="820"> </p>
 
 > 🇩🇪 Deutsche Fassung: **[README.de.md](README.de.md)** – German is the project's
 > source language; this translation follows it.
@@ -24,17 +23,17 @@
 
 ## The point
 
-flatlink wants to be the best open-source URL shortener you can run yourself –
-with a QR generator that goes all the way to the print shop, and link-in-bio
-pages. It is built for the places that need such a thing most urgently:
-universities, libraries and public bodies that cannot – or must not – hand
-their links to a service outside the house. Sign-in via LDAP and Shibboleth,
-groups with permissions and limits, namespaces per department and multiple
-domains are therefore not add-ons but the core.
+flatlink aims to be the best open-source URL shortener you can run yourself
+– with a QR generator that goes all the way to the print shop, and
+link-in-bio pages. It is built for the places that need such a thing most
+urgently: universities, libraries and public bodies that cannot – or must
+not – hand their links to an outside service. Sign-in via LDAP and
+Shibboleth, groups with permissions and limits, namespaces per department
+and multiple domains are therefore not add-ons but the core.
 
-For this purpose, privacy is not a separate feature – it comes along as a way
-of building. Where practically every URL shortener logs **who** clicks,
-flatlink stores exactly this per link – in full, not abridged:
+For this purpose, privacy is not a separate feature – it follows from how
+the thing is built. Where practically every URL shortener logs **who**
+clicks, flatlink stores exactly this per link – in full, not abridged:
 
 ```json
 { "n": 1840, "last": "2026-08-14", "days": { "2026-08-14": 72 },
@@ -43,21 +42,22 @@ flatlink stores exactly this per link – in full, not abridged:
   "langs": { "de": 1701, "en": 139 } }
 ```
 
-Counters, nothing else. No record for individual visits, hence no IP addresses
-and no stored device or browser fingerprints. The lower three lines answer the
-most common question asked of any statistic – *where do my clicks come from?* –
-without following visitors to do it: three coarse attributes are derived from
-each request and **added up**. From the referrer only the hostname survives
-(never the path, which can carry a search query), from the browser identifier
-one of three words, from the language list two letters. No single visit can be
-read out of a total, because no single visit is ever stored.
+Counters, nothing else. No record of individual visits, hence no IP
+addresses and no stored device or browser fingerprints. The lower three
+lines answer the most common question asked of any statistic – *where do my
+clicks come from?* – without following visitors to do it: three coarse
+attributes are derived from each request and **added up**. From the referrer
+only the hostname survives (never the path, which can carry a search query),
+from the browser identifier one of three words, from the language list two
+letters. No single visit can be read out of a total, because no single visit
+is ever stored.
 
-For anyone to whom even that is too much: switch it off
-(`'click_dims' => false`) and the first line is all that remains.
+For anyone to whom even that is too much: switch it off (`'click_dims' =>
+false`) and the first line is all that remains.
 
-Even the last visit is only recorded to the day. For a link with a handful of
-clicks, a time of day would otherwise be the single value in the whole data
-set by which one visit could be placed in time – and joined with other
+Even the last visit is only recorded to the day. For a link with a handful
+of clicks, a time of day would otherwise be the single value in the whole
+data set by which one visit could be placed in time – and joined with other
 sources.
 
 This is not a statement of intent; it can be read in
@@ -65,55 +65,50 @@ This is not a statement of intent; it can be read in
 check – that is exactly why the code is open. The redirect path (`go.php`)
 does not even start a session unless the link is password-protected.
 
-<p align="center">
-  <img src="docs/screenshots/en/statistics.webp" alt="Statistics of a link: daily values, monthly overview, CSV export" width="760">
-</p>
+<p align="center"> <img src="docs/screenshots/en/statistics.webp"
+alt="Statistics of a link: daily values, monthly overview, CSV export"
+width="760"> </p>
 
 ## What it looks like
 
 The screenshots show the German interface; the language is switchable per
 instance – see [What's included](#whats-included).
 
-<table>
-<tr>
-<td width="50%" valign="top">
-<a href="docs/screenshots/en/qr-designer.webp"><img src="docs/screenshots/en/qr-designer.webp" alt="QR designer with module and eye shapes, colors and live preview"></a>
-<p><strong>QR designer.</strong> Module and eye shapes, free colors, a logo in
-the middle, a frame with text. Export as SVG, PNG, vector PDF and EPS,
-optionally in CMYK – from an in-house encoder, without any third-party
-library.</p>
-<p><strong>Five types, one generator.</strong> Besides URLs and short links
-also Wi-Fi access, contacts (vCard), events (iCalendar) and GS1 Digital
-Links – reachable via tabs, with the same design options. These four are
-static: the data lives in the code itself, nothing is stored, and they keep
-working even without the instance.</p>
-</td>
-<td width="50%" valign="top">
-<a href="docs/screenshots/en/qr-batch.webp"><img src="docs/screenshots/en/qr-batch.webp" alt="QR batch: select several links and download them as a ZIP"></a>
-<p><strong>QR batches.</strong> Twenty table displays in one archive, with a
-CSV overview for the print shop. flatlink writes the ZIP itself – even
-without the PHP <code>zip</code> extension.</p>
-<a href="docs/screenshots/en/logo-library.webp"><img src="docs/screenshots/en/logo-library.webp" alt="Logo library with preview, renaming and group sharing"></a>
-<p><strong>Logo library.</strong> Upload your own logos, rename them and share
-them with groups – whoever may use one sees it in the designer and on
-link-in-bio pages. Sharing means permission to use, not to manage.</p>
-</td>
-</tr>
-<tr>
-<td width="50%" valign="top">
-<a href="docs/screenshots/en/new-link.webp"><img src="docs/screenshots/en/new-link.webp" alt="Form for a new short link with name, tags and UTM builder"></a>
-<p><strong>Creating.</strong> Custom name, a label for your own overview,
-tags for filtering, expiry date, password protection and a builder for
-campaign parameters.</p>
-</td>
-<td width="50%" valign="top" align="center">
-<a href="docs/screenshots/en/link-in-bio.webp"><img src="docs/screenshots/en/link-in-bio.webp" alt="Link-in-bio page with five targets" width="260"></a>
-<p align="left"><strong>Link in bio.</strong> One page with several targets
-under one short code. Counted like everything else: per day, for the page and
-per target, without visitor records.</p>
-</td>
-</tr>
-</table>
+<table> <tr> <td width="50%" valign="top"> <a
+href="docs/screenshots/en/qr-designer.webp"><img
+src="docs/screenshots/en/qr-designer.webp" alt="QR designer with module and
+eye shapes, colours and live preview"></a> <p><strong>QR designer.</strong>
+Module and eye shapes, free colours, a logo in the middle, a frame with
+text. Export as SVG, PNG, vector PDF and EPS, optionally in CMYK – from an
+in-house encoder, without any third-party library.</p> <p><strong>Five
+types, one generator.</strong> Besides URLs and short links also Wi-Fi
+access, contacts (vCard), events (iCalendar) and GS1 Digital Links –
+reachable via tabs, with the same design options. These four are static: the
+data lives in the code itself, nothing is stored, and they keep working even
+without the instance.</p> </td> <td width="50%" valign="top"> <a
+href="docs/screenshots/en/qr-batch.webp"><img
+src="docs/screenshots/en/qr-batch.webp" alt="QR batch: select several links
+and download them as a ZIP"></a> <p><strong>QR batches.</strong> Twenty
+table tents in one archive, with a CSV overview for the print shop. flatlink
+writes the ZIP itself – even without the PHP <code>zip</code> extension.</p>
+<a href="docs/screenshots/en/logo-library.webp"><img
+src="docs/screenshots/en/logo-library.webp" alt="Logo library with preview,
+renaming and group sharing"></a> <p><strong>Logo library.</strong> Upload
+your own logos, rename them and share them with groups – whoever may use one
+sees it in the designer and on link-in-bio pages. Sharing means permission
+to use, not to manage.</p> </td> </tr> <tr> <td width="50%" valign="top"> <a
+href="docs/screenshots/en/new-link.webp"><img
+src="docs/screenshots/en/new-link.webp" alt="Form for a new short link with
+name, tags and UTM builder"></a> <p><strong>Creating.</strong> Custom name,
+a label for your own overview, tags for filtering, expiry date, password
+protection and a builder for campaign parameters.</p> </td> <td width="50%"
+valign="top" align="center"> <a
+href="docs/screenshots/en/link-in-bio.webp"><img
+src="docs/screenshots/en/link-in-bio.webp" alt="Link-in-bio page with five
+targets" width="260"></a> <p align="left"><strong>Link in bio.</strong> One
+page with several targets under one short code. Counted like everything
+else: per day, for the page and per target, without visitor records.</p>
+</td> </tr> </table>
 
 ## Running in five minutes
 
@@ -127,10 +122,11 @@ php -S localhost:8080 router.php
 Open `http://localhost:8080/admin/` in the browser – the first visit creates
 the admin account. (`router.php` emulates for the built-in server what the
 `.htaccess` does in production – without it, a short link leads to the start
-page instead of its target.) For production: copy the files to your web space,
-make `data/` writable, set `base_url` in the configuration. Details under
-[Installation](#installation). For an English interface, set
-`'language' => 'en'` in `inc/config.php` or switch it later under *Settings*.
+page instead of its target.) For production: copy the files to your web
+host, make `data/` writable, set `base_url` in the configuration. Details
+under [Installation](#installation). For an English interface, set
+`'language' => 'en'` in `inc/config.php` or switch it later under
+*Settings*.
 
 ## Who this is for
 
@@ -138,27 +134,27 @@ make `data/` writable, set `base_url` in the configuration. Details under
   hand short links to a service outside Europe. Sign-in via LDAP or
   Shibboleth, groups with their own permissions and limits, namespaces per
   department.
-- **Clubs, practices, restaurants, small businesses** that want to print a QR
-  code and change its target later without replacing the sticker.
+- **Clubs, practices, restaurants, small businesses** that want to print a
+  QR code and change its target later without replacing the sticker.
 - **Agencies** serving several brands: separate domains per client, shared
   working groups, an API for automation.
-- **Anyone who wants to prove a sentence instead of asserting it.** "We don't
-  track" is a claim on a website. With the source code next to it, it becomes
-  verifiable.
+- **Anyone who wants to prove a claim rather than merely assert it.** "We
+  don't track" is a claim on a website. With the source code next to it, it
+  becomes verifiable.
 
 ## Where it runs in production
 
-Whether the software survives everyday use can be checked: the public service
-[1337.kiwi](https://1337.kiwi) runs on the same technical base – a side effect
-of the project, with its own design and the content a public offering needs.
-What proves itself in operation there ends up in this source; what is added
-here for organizations (central sign-in, groups, permissions) the public
-service doesn't need.
+Whether the software survives everyday use can be checked: the public
+service [1337.kiwi](https://1337.kiwi) runs on the same technical base – a
+side effect of the project, with its own design and the content a public
+offering needs. What holds up in production there ends up in this source;
+what is added here for organisations (central sign-in, groups, permissions)
+the public service doesn't need.
 
-Installing flatlink does **not give you an imitation of it**: a neutral theme,
-your own short codes, your own domain. What remains is a discreet attribution
-line in the footer – the [license](#license) requires it, and that is also all
-it requires.
+Installing flatlink does **not give you an imitation of it**: a neutral
+theme, your own short codes, your own domain. What remains is a discreet
+attribution line in the footer – the [license](#license) requires it, and
+that is also all it requires.
 
 ## What's included
 
@@ -170,8 +166,8 @@ it requires.
   **versions 1–40**, error correction L/M/Q/H) – without any third-party
   library. Up to 2953 characters, so long addresses with campaign parameters
   fit too
-- **QR designer** at `qr-designer.php`: module and eye shapes, free colors,
-  **gradients**, **print colors in CMYK**, export as SVG, PNG, **vector PDF
+- **QR designer** at `qr-designer.php`: module and eye shapes, free colours,
+  **gradients**, **print colours in CMYK**, export as SVG, PNG, **vector PDF
   and EPS**. Signed-in users additionally get their own logo, a frame with
   text and the selection of their links on the same page – a short link can
   be created right there as well
@@ -179,12 +175,12 @@ it requires.
   counted like everything else – per day, for the page and per target,
   without visitor records
 - **Static QR codes** for an **unshortened address or free text**, Wi-Fi
-  access, contacts (vCard), events (iCalendar) and **GS1 Digital Link** – the
-  input is stored nowhere; it is encoded straight into the graphic, so these
-  codes work entirely independently of the service
-- **An English interface**: German is the source language, the language is set
-  per instance (`'language'` in the configuration or under *Settings*, at
-  runtime). A further language is one file under `inc/lang/`; whatever a
+  access, contacts (vCard), events (iCalendar) and **GS1 Digital Link** –
+  the input is stored nowhere; it is encoded straight into the graphic, so
+  these codes work entirely independently of the service
+- **An English interface**: German is the source language, the language is
+  set per instance (`'language'` in the configuration or under *Settings*,
+  at runtime). Another language is one file under `inc/lang/`; whatever a
   translation lacks stays visibly German instead of blank
 - **Accounts** with self-registration via double opt-in, password reset and
   roles (user/admin), including usage limits per account
@@ -200,24 +196,24 @@ it requires.
   changed what and when – administration only, never visitors; JSON lines,
   ready for a central log
 - **CSV export of the link list** in the format of the built-in import –
-  whoever wants to leave takes everything along; lock-in fear is not a
-  business model
+  anyone leaving takes everything with them; lock-in fear is not a business
+  model
 - **Central sign-in** via LDAP/Active Directory or via the web server
-  (Shibboleth, SAML, OpenID Connect) – see
-  [Accounts and sign-in](docs/konten.en.md)
+  (Shibboleth, SAML, OpenID Connect) – see [Accounts and
+  sign-in](docs/konten.en.md)
 - **Groups** in two modes: as a permission group (permissions and limits,
   links stay private) or as a working group whose links the whole team
   manages together
-- **CSV import** for many links at once – the exports of Bitly and YOURLS can
-  be uploaded unchanged
+- **CSV import** for many links at once – the exports of Bitly and YOURLS
+  can be uploaded unchanged
 - **API** with access keys per account, see the [API guide](docs/API.en.md)
 - **Abuse protection**: rate limits per IP (only a keyed hash is stored, no
   plain addresses), a report form, a blocking function, optional Google Safe
-  Browsing – optionally with a **re-check across the stock**, against targets
-  that turn malicious only after creation
+  Browsing – optionally with a **re-check across the stock**, against
+  targets that turn malicious only after creation
 - **Backup as an archive**: one button that outputs the database (copied
   consistently), settings, counters and logos as a ZIP with instructions –
-  for everyone who cannot reach the data directory
+  for everyone who cannot access the data directory
 - **Automatic cleanup** of never-visited links, with advance warning by mail
   (disabled by default)
 - **Storage without operations**: links and accounts in one SQLite file,
@@ -231,8 +227,8 @@ it requires.
   PNG/PDF), `fileinfo` (logo upload), `openssl` (only for SMTP), `ldap`
   (only for LDAP sign-in)
 - A web server with `mod_rewrite` or an equivalent rewrite facility. The
-  bundled `.htaccess` additionally provides a fallback via
-  `ErrorDocument 404` in case rewrites don't take effect at your host.
+  bundled `.htaccess` additionally provides a fallback via `ErrorDocument
+  404` in case rewrites don't take effect at your host.
 
 No database server, no Composer, no build step.
 
@@ -245,18 +241,18 @@ cp inc/config.example.php inc/config.php
 ```
 
 Then adjust `inc/config.php` (at least `site_name`), put the files into the
-webroot and make sure the web server may write into the directory – `data/`
-is created on first use.
+webroot and make sure the web server can write to the directory – `data/` is
+created on first use.
 
-For a quick try, the built-in server is enough. It knows no rewrites, hence
-the bundled router script – it emulates the `.htaccess` rules so short links
-and `/api/…` work too:
+For a quick try, the built-in server is enough. It does not support
+rewrites, hence the bundled router script – it emulates the `.htaccess`
+rules so short links and `/api/…` work too:
 
 ```bash
 php -S localhost:8080 router.php
 ```
 
-**Rather a container?** One image, one volume, no database service:
+**Prefer a container?** One image, one volume, no database service:
 
 ```bash
 docker run -d -p 8080:80 -e FLATLINK_BASE_URL="http://localhost:8080" \
@@ -267,8 +263,8 @@ Details in the [Docker guide](docs/docker.en.md).
 
 **First account:** register via `register.php`. By default, mail delivery is
 set to `log`, so the confirmation mail ends up in `data/mail.log` – copy the
-link from there and open it. The first account created automatically gets the
-admin role.
+link from there and open it. The first account created automatically gets
+the admin role.
 
 > **For real operation** there is a detailed
 > **[deployment guide](docs/DEPLOYMENT.en.md)**: permissions and web server
@@ -277,8 +273,8 @@ admin role.
 > and attribute release – plus operation, backup and a table of the most
 > common pitfalls.
 >
-> **Your own colors, your own logo?** See the
-> **[customization guide](docs/CUSTOMIZATION.en.md)** – update-safe via
+> **Your own colours, your own logo?** See the
+> **[customisation guide](docs/CUSTOMIZATION.en.md)** – update-safe via
 > `assets/custom.css`, without touching the source.
 
 ## Configuration
@@ -298,7 +294,7 @@ switches:
 | `sso` | Central sign-in via the web server (Shibboleth/SAML/OIDC) |
 | `ldap` | Sign-in against LDAP or Active Directory |
 | `qr_brand_text` | Optional attribution line under generated QR codes |
-| `custom_code_min_len` / `custom_code_quota` | Brakes against namespace squatting on public instances |
+| `custom_code_min_len` / `custom_code_quota` | Curbs on namespace squatting on public instances |
 | `mail` | `log` writes to `data/mail.log`, `smtp` really sends |
 | `safe_browsing_key` | Empty = off. See the note below |
 | `safety_recheck_days` | Re-check the stock every N days (`0` = off) |
@@ -319,11 +315,11 @@ The README is the overview; the depth lives in dedicated documents:
 | [Short links day to day](docs/kurzlinks.en.md) | Tags, campaign parameters, link in bio, migrating from Bitly or YOURLS |
 | [Accounts and sign-in](docs/konten.en.md) | Passkeys and one-time passwords, LDAP, Shibboleth/SAML/OIDC, data access and deletion |
 | [Groups, permissions and domains](docs/gruppen.en.md) | Permission and working groups, limits, namespaces, multiple domains per instance |
-| [Browser extension](extension/README.md) | "shorten this page" for Chrome and Firefox, against your own instance |
+| [Browser extension](extension/README.md) | "shorten this page" for Chrome and Firefox, pointed at your own instance |
 | [API](docs/API.en.md) | the API |
 | [Deployment](docs/DEPLOYMENT.en.md) | production setup, condensed – the [German guide](docs/DEPLOYMENT.md) is the step-by-step reference |
 | [Docker](docs/docker.en.md) | image, environment variables, volume, health endpoint |
-| [Customization](docs/CUSTOMIZATION.en.md) | your own look without changing the core |
+| [Customisation](docs/CUSTOMIZATION.en.md) | your own look without changing the core |
 | [What flatlink will never do](docs/niemals.md) | the features that will never exist here – and why (German) |
 | [Accessibility](docs/barrierefreiheit.en.md) | self-assessment against WCAG 2.1 AA, with a statement template for public bodies |
 | [Security](docs/SECURITY.en.md) | what is stored, what is not, and how to report vulnerabilities |
@@ -363,15 +359,15 @@ be the worst possible idea exactly there. The rest – settings, groups, logo
 names – is small, constant, and easier to repair in a text file than in a
 table.
 
-One honest limit remains: the admin's full list over *millions* of links still
-loads the whole stock into memory even with the database – whoever really
-gets there raises `memory_limit`. A per-page query is the next step, when
-someone needs it.
+One honest limit remains: the admin's full list over *millions* of links
+still loads the whole stock into memory even with the database – whoever
+really gets there raises `memory_limit`. A per-page query is the next step,
+when someone needs it.
 
 ## What's not included
 
-So nobody goes looking for it: no statistics by country or device – that lies
-in the nature of the thing. Groups share links and permissions but do not
+So nobody goes looking for it: no statistics by country or device – that
+follows from the design. Groups share links and permissions but do not
 separate tenants from each other: administrators always see everything.
 
 Also not included are **legal notice, privacy policy and terms of service**.
@@ -393,9 +389,9 @@ php tests/optionen.php http://localhost:8080
 [`tests/optionen.php`](tests/optionen.php) checks that every design option
 actually arrives at `qr.php`. The occasion was a bug another test could not
 find: four module shapes were built in the renderer and offered in the
-designer, but the whitelist in `qr.php` didn't know them – and an unknown
-value is silently reset to the default there. Whoever chose "diamond" got a
-square, without a word about it.
+designer, but the allowlist in `qr.php` didn't recognise them – and an
+unknown value is silently reset to the default there. Whoever chose
+"diamond" got a square, without a word about it.
 
 The earlier test only asked whether the result **scans**. A code whose shape
 was discarded along the way scans just as well – the question was asked
@@ -407,17 +403,17 @@ once through the URL, and compared byte by byte.
 Bug reports and pull requests are welcome. One request up front: the freedom
 from dependencies is not an accident but the core of the project. A patch
 that requires Composer, a build step or a database *server* will not be
-merged – even if it makes things more elegant. (SQLite passes this test:
-one file under `data/`, no infrastructure.)
+merged – even if it makes things more elegant. (SQLite passes this test: one
+file under `data/`, no infrastructure.)
 
 ## License
 
-**[GNU AGPL v3](LICENSE)** with an additional attribution term under
-section 7(b) of the license. What that means in practice:
+**[GNU AGPL v3](LICENSE)** with an additional attribution term under section
+7(b) of the license. What that means in practice:
 
-**Allowed without asking** – commercially too, for paying customers too:
-use it, run it yourself, change it, pass it on, rename it, restyle it, extend
-it for your own purposes.
+**Allowed without asking** – commercially too, for paying customers too: use
+it, run it yourself, change it, pass it on, rename it, restyle it, extend it
+for your own purposes.
 
 **Two conditions:**
 
@@ -427,8 +423,8 @@ it for your own purposes.
    removing it is not. The reference point is `origin_note()` in
    [`inc/helpers.php`](inc/helpers.php).
 2. **Changes stay open.** Whoever offers a *modified* version as a network
-   service must make the source of that version available to its users
-   (AGPL § 13). Whoever runs it unmodified doesn't have to publish anything.
+   service must make the source of that version available to its users (AGPL
+   § 13). Whoever runs it unmodified doesn't have to publish anything.
 
 Why not MIT: because MIT allows closing the source and building a service
 from it where nobody can check anymore what happens to the click data. The
