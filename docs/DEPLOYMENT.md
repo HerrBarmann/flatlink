@@ -89,6 +89,10 @@ Erweiterungen nicht.
 Keine Datenbank, kein Composer, kein Build-Schritt – das ist kein Zufall,
 sondern der Kern des Projekts.
 
+> Wer ohnehin alles in Containern betreibt, nimmt die
+> [Docker-Anleitung](docker.md): ein Bild, ein Volume – die Kapitel 3 und 4
+> dieser Seite entfallen dann.
+
 ---
 
 ## 3. Grundinstallation

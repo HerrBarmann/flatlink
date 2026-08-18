@@ -1,0 +1,54 @@
+# flatlink starten: docker compose up -d
+#
+# Danach http://localhost:8080/admin/ aufrufen – der erste Aufruf legt das
+# Administratorkonto an. Für den Dauerbetrieb gehört ein Proxy mit TLS davor
+# (Traefik, Caddy, nginx); FLATLINK_BASE_URL muss dann die Adresse tragen,
+# unter der die Instanz von außen erreichbar ist.
+
+services:
+  flatlink:
+    image: ghcr.io/herrbarmann/flatlink:latest
+    # Statt des fertigen Images selbst bauen? Dann diese Zeile einkommentieren
+    # und die Zeile darüber auskommentieren:
+    # build: .
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    environment:
+      FLATLINK_SITE_NAME: "Kurzlinks"
+      # OHNE SLASH AM ENDE. Leer heißt: keine Mails mit Links.
+      FLATLINK_BASE_URL: "http://localhost:8080"
+      FLATLINK_LANGUAGE: "de"
+
+      # Öffentlich kürzen und Selbstregistrierung – für eine interne
+      # Instanz beides auf "off".
+      FLATLINK_PUBLIC_MODE: "on"
+      FLATLINK_REGISTRATION: "on"
+
+      # Hinter einem Proxy: dessen Adresse eintragen, sonst gelten Rate-Limit
+      # und Anmeldesperre versehentlich für alle Besucher gemeinsam.
+      # FLATLINK_TRUSTED_PROXIES: "172.16.0.0/12"
+
+      # Mailversand. Ohne diese Angaben landen Mails in data/mail.log –
+      # gut zum Ausprobieren, nichts für den Betrieb.
+      # FLATLINK_SMTP_HOST: "mail.example.org"
+      # FLATLINK_SMTP_PORT: "587"
+      # FLATLINK_SMTP_USER: "no-reply@example.org"
+      # FLATLINK_SMTP_PASS: "…"
+      # FLATLINK_MAIL_FROM: "no-reply@example.org"
+
+      # Anmeldung am Verzeichnis (LDAP oder Active Directory)
+      # FLATLINK_LDAP_URI: "ldaps://ldap.example.org:636"
+      # FLATLINK_LDAP_BASE_DN: "ou=people,dc=example,dc=org"
+      # FLATLINK_LDAP_USER_FILTER: "(uid=%s)"
+
+    volumes:
+      # Links, Konten, Klickzähler, Logos. Das Einzige, was bleiben muss.
+      - flatlink-data:/var/lib/flatlink
+      # Eigenes Aussehen, updatesicher (siehe docs/CUSTOMIZATION.md):
+      # - ./custom.css:/var/www/html/assets/custom.css:ro
+      # Lieber eine ausgeschriebene Konfiguration statt Variablen?
+      # - ./config.php:/var/www/html/inc/config.php:ro
+
+volumes:
+  flatlink-data:

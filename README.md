@@ -256,6 +256,15 @@ and `/api/…` work too:
 php -S localhost:8080 router.php
 ```
 
+**Rather a container?** One image, one volume, no database service:
+
+```bash
+docker run -d -p 8080:80 -e FLATLINK_BASE_URL="http://localhost:8080" \
+  -v flatlink-data:/var/lib/flatlink ghcr.io/herrbarmann/flatlink:latest
+```
+
+Details in the [Docker guide](docs/docker.en.md).
+
 **First account:** register via `register.php`. By default, mail delivery is
 set to `log`, so the confirmation mail ends up in `data/mail.log` – copy the
 link from there and open it. The first account created automatically gets the
@@ -313,6 +322,7 @@ The README is the overview; the depth lives in dedicated documents:
 | [Browser extension](extension/README.md) | "shorten this page" for Chrome and Firefox, against your own instance |
 | [API](docs/API.en.md) | the API |
 | [Deployment](docs/DEPLOYMENT.en.md) | production setup, condensed – the [German guide](docs/DEPLOYMENT.md) is the step-by-step reference |
+| [Docker](docs/docker.en.md) | image, environment variables, volume, health endpoint |
 | [Customization](docs/CUSTOMIZATION.en.md) | your own look without changing the core |
 | [What flatlink will never do](docs/niemals.md) | the features that will never exist here – and why (German) |
 | [Accessibility](docs/barrierefreiheit.en.md) | self-assessment against WCAG 2.1 AA, with a statement template for public bodies |

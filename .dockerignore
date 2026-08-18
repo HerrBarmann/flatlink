@@ -1,0 +1,30 @@
+# Was nicht ins Image gehört.
+#
+# Zweierlei Gründe: Manches hat im Netz nichts zu suchen (Konfiguration mit
+# Zugangsdaten, Laufzeitdaten), manches bläht nur auf (Bildschirmfotos,
+# Werkzeuge für die Kommandozeile).
+
+# Zugangsdaten und Laufzeitdaten – die kommen von außen, nie aus dem Image
+inc/config.php
+inc/local.php
+data/
+
+# Kommandozeilen- und Baumaterial
+tests/
+tools/
+extension/
+.github/
+dist/
+
+# Bildschirmfotos: 1,5 MB, die niemand im Container braucht
+docs/screenshots/
+
+# Entwicklungsumgebung
+.git/
+.gitignore
+.DS_Store
+*.zip
+*.tmp.*
+Dockerfile
+.dockerignore
+docker-compose.yml

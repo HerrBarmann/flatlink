@@ -28,6 +28,9 @@ locked out of your own administration.
 
 No database server, no Composer, no build step.
 
+Running containers anyway? Then the [Docker guide](docker.en.md) is the
+shorter path — one image, one volume, no steps 3 and 4 of this page.
+
 ```bash
 # Debian / Ubuntu
 sudo apt install php-gd php-mbstring php-ldap
