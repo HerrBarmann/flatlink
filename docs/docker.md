@@ -1,11 +1,11 @@
 # flatlink im Container
 
-Ein Bild, ein Volume, fertig. Zurück zum [README](../README.de.md). –
+Ein Image, ein Volume, fertig. Zurück zum [README](../README.de.md). –
 🇬🇧 [English version](docker.en.md)
 
 flatlink braucht keinen Container: Dateien auf ein Webspace kopieren tut es
 auch, und genau dafür ist es gebaut. Wer aber ohnehin alles in Containern
-betreibt, bekommt hier ein Bild, das sich einfügt – mit Umgebungsvariablen
+betreibt, bekommt hier ein Image, das sich einfügt – mit Umgebungsvariablen
 statt Konfigurationsdatei, einem Volume für die Daten und einem
 Gesundheitsendpunkt für den Wächter.
 
@@ -74,7 +74,7 @@ pressen lassen.
 
 Alles Veränderliche liegt in **einem** Verzeichnis: `/var/lib/flatlink`.
 Links, Konten, Klickzähler, Logos, die SQLite-Datei. Das ist das Einzige,
-was ein neues Bild überleben muss – und damit auch alles, was gesichert
+was ein neues Image überleben muss – und damit auch alles, was gesichert
 werden muss:
 
 ```bash
@@ -84,7 +84,7 @@ docker run --rm -v flatlink-data:/daten -v "$PWD":/hier alpine \
 
 Für eine versionierbare Sicherung gibt es den Textexport – ein Betriebstag
 sind ein paar geänderte Zeilen statt einer neuen Binärdatei. Der Ordner
-`tools/` liegt dafür bewusst **nicht** im Bild (Kommandozeilen-Werkzeuge
+`tools/` liegt dafür bewusst **nicht** im Image (Kommandozeilen-Werkzeuge
 haben im Netz nichts zu suchen), also einhängen:
 
 ```yaml
@@ -129,7 +129,7 @@ Farben, Logo, Schrift, alles updatesicher über Variablen.
 - **Keinen Cron.** Aufräumen, Demo-Reset und Ablauf hängen am Seitenaufbau.
 - **Keinen Datenbankdienst.** SQLite liegt im Volume.
 - **Keinen zweiten Container** für den Webserver: Apache und PHP stecken
-  im Bild, und die mitgelieferte `.htaccess` gilt damit unverändert – sie
+  im Image, und die mitgelieferte `.htaccess` gilt damit unverändert – sie
   schreibt Kurzcodes um und sperrt, was gesperrt gehört.
 
 ## Gesundheit
@@ -159,7 +159,7 @@ git clone https://github.com/HerrBarmann/flatlink.git
 cd flatlink && docker build -t flatlink .
 ```
 
-Im Bild landet nur, was eine laufende Instanz braucht: `tests/`, `tools/`,
+Ins Image kommt nur, was eine laufende Instanz braucht: `tests/`, `tools/`,
 `extension/` und die Bildschirmfotos bleiben draußen (siehe
 `.dockerignore`). Der Webserver besitzt keine einzige Datei der Anwendung –
 er darf ausschließlich ins Datenverzeichnis schreiben. Ein Einbruch über

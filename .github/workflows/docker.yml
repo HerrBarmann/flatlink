@@ -1,9 +1,9 @@
-# Bild bauen und nach ghcr.io veröffentlichen.
+# Image bauen und nach ghcr.io veröffentlichen.
 #
 # Läuft bei jeder Fassung (Tag v*) und bei jedem Stand auf main. Gebaut wird
 # für amd64 und arm64: übliche Server sprechen das eine, Macs und die
 # günstigen ARM-Maschinen der Anbieter das andere.
-name: Container-Bild
+name: Container-Image
 
 on:
   push:
@@ -65,7 +65,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # Ein Bild, das nicht startet, ist keins. Deshalb wird das frisch
+      # Ein Image, das nicht startet, ist keins. Deshalb wird das frisch
       # gebaute einmal hochgefahren und gefragt, wie es ihm geht – auf der
       # Architektur des Läufers, ohne Emulator.
       - name: Probelauf

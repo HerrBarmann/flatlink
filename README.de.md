@@ -254,7 +254,7 @@ deshalb das mitgelieferte Wegweiser-Skript dazu – es bildet die Regeln der
 php -S localhost:8080 router.php
 ```
 
-**Lieber im Container?** Ein Bild, ein Volume, kein Datenbankdienst:
+**Lieber im Container?** Ein Image, ein Volume, kein Datenbankdienst:
 
 ```bash
 docker run -d -p 8080:80 -e FLATLINK_BASE_URL="http://localhost:8080" \
@@ -322,7 +322,7 @@ Die vier Handbücher gibt es auch auf Englisch (`.en.md` daneben):
 | [Browser-Erweiterung](extension/README.md) | „diese Seite kürzen" für Chrome und Firefox, gegen die eigene Instanz |
 | [In die Läden bringen](docs/store-einreichung.md) | Pakete bauen, Store-Texte, Berechtigungs-Begründungen, Datenschutzangaben |
 | [Deployment](docs/DEPLOYMENT.md) | Installation für den Dauerbetrieb, von Dateirechten bis Shibboleth |
-| [Docker](docs/docker.md) | Bild, Umgebungsvariablen, Volume, Gesundheitsendpunkt |
+| [Docker](docs/docker.md) | Image, Umgebungsvariablen, Volume, Gesundheitsendpunkt |
 | [Anpassung](docs/CUSTOMIZATION.md) | eigenes Aussehen ohne Änderungen am Kern |
 | [Was flatlink nie tun wird](docs/niemals.md) | die Funktionen, die es hier nie geben wird – und warum |
 | [Barrierefreiheit](docs/barrierefreiheit.md) | Selbsteinschätzung nach WCAG 2.1 AA samt Muster-Erklärung für öffentliche Stellen |
