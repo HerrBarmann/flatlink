@@ -21,8 +21,11 @@ declare(strict_types=1);
 
 $pfad = (string)parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
 
-// Interne Verzeichnisse: hier liegen Konfiguration und Laufzeitdaten
-if (preg_match('#^/(inc|data)(/|$)#', $pfad) === 1) {
+// Interne Verzeichnisse: hier liegen Konfiguration und Laufzeitdaten.
+// Dazu, was die .htaccess ebenfalls sperrt – damit beim Ausprobieren nichts
+// erreichbar ist, was auf dem echten Server verschlossen bleibt.
+if (preg_match('#^/(inc|data|tests|tools|extension|\.git)(/|$)#', $pfad) === 1
+    || preg_match('#^/(Dockerfile|docker-compose\.ya?ml|docker-entrypoint\.sh|\.dockerignore|\.gitignore)$#', $pfad) === 1) {
     http_response_code(403);
     exit('Forbidden');
 }

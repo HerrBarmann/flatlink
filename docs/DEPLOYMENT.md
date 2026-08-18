@@ -922,7 +922,8 @@ seit 2.9.5 zusätzlich einen eigenen CLI-Riegel; unter nginx (siehe oben) muss
 die Sperre in der Server-Konfiguration nachgezogen werden:
 
 ```nginx
-location ~ ^/(inc|data|tests|tools|extension)(/|$) { deny all; }
+location ~ ^/(inc|data|tests|tools|extension|\.git)(/|$) { deny all; }
+location ~ ^/(Dockerfile|docker-compose\.ya?ml|docker-entrypoint\.sh|\.dockerignore|\.gitignore)$ { deny all; }
 ```
 
 Der Grund ist konkret: `tests/einstellungen.php` legt für seinen Lauf ein

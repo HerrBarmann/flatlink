@@ -14,7 +14,20 @@ RewriteBase /
 # tests/ und tools/ sind Kommandozeilen-Werkzeuge; extension/ ist Quellmaterial
 # für den Store-Bau. Nichts davon gehört ausgeliefert – die Skripte tragen zwar
 # selbst einen CLI-Riegel, aber eine zweite Wand kostet nichts.
-RewriteRule ^(inc|data|tests|tools|extension)(/|$) - [F,L]
+#
+# .git steht ausdrücklich dabei, weil die Installationsanleitung zum Klonen
+# rät: Liegt das Repository im Webroot, ließe sich sonst über /.git/ die
+# gesamte Historie herunterladen – samt allem, was jemand versehentlich
+# einmal eingecheckt hat.
+RewriteRule ^(inc|data|tests|tools|extension|\.git)(/|$) - [F,L]
+
+# Dateien, die zum Bauen und Betreiben gehören, nicht zum Ausliefern.
+# Der Grund ist nicht das Dockerfile – das steht ohnehin öffentlich auf
+# GitHub –, sondern die docker-compose.yml: Genau dort trägt ein Betreiber
+# seine SMTP- und LDAP-Zugangsdaten ein. Landet sie je im Webroot, wäre sie
+# ohne diese Zeile für jeden lesbar.
+# .well-known bleibt bewusst frei: darüber laufen die Zertifikatsprüfungen.
+RewriteRule ^(Dockerfile|docker-compose\.ya?ml|docker-entrypoint\.sh|\.dockerignore|\.gitignore)$ - [F,L]
 
 # Programmierschnittstelle unter /api/… erreichbar machen. Muss vor der
 # Kurzcode-Regel stehen, sonst hielte diese „api" für einen Kurzcode.

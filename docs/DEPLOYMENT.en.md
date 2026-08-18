@@ -88,7 +88,8 @@ server {
     root /var/www/flatlink;
     index index.php;
 
-    location ~ ^/(inc|data|tests|tools|extension)(/|$) { deny all; }
+    location ~ ^/(inc|data|tests|tools|extension|\.git)(/|$) { deny all; }
+    location ~ ^/(Dockerfile|docker-compose\.ya?ml|docker-entrypoint\.sh|\.dockerignore|\.gitignore)$ { deny all; }
 
     location ~ \.php$ {
         include snippets/fastcgi-php.conf;
