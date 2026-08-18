@@ -1,5 +1,8 @@
 # flatlink betreiben
 
+🇬🇧 A condensed [English version](DEPLOYMENT.en.md) exists; this German guide
+is the step-by-step reference.
+
 Eine Anleitung von der leeren Maschine bis zur angebundenen Hochschul-Anmeldung.
 Sie ist bewusst ausführlich – wer nur schnell etwas ausprobieren will, ist mit
 den drei Zeilen im [README](README.de.md#installation) schneller.
@@ -848,6 +851,19 @@ Kollegin, die ihn angelegt hat, noch im Haus ist.
 ---
 
 ## 10. Betrieb
+
+### Eine Demo-Instanz betreiben
+
+`'demo_mode' => true` macht aus einer Instanz eine öffentliche Spielwiese:
+ein Hinweisband mit den Zugangsdaten (`demo / demo-1234`) über jeder Seite,
+und der gesamte Bestand wird etwa alle `demo_reset_minutes` (Vorgabe 60)
+verworfen und aus einem festen Demo-Bestand neu aufgebaut. Der Reset hängt
+träge am Seitenaufbau – **kein Cron nötig**, das läuft auch auf Shared
+Hosting ohne SSH.
+
+In die Konfiguration der Demo gehören außerdem: `mail` auf `'mode' => 'log'`,
+Selbstregistrierung aus, keine Webhooks, kein Safe-Browsing-Schlüssel – der
+Modus erzwingt das nicht, er macht Band, Reset und Bestand.
 
 ### Sicherung
 

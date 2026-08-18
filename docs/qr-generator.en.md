@@ -23,6 +23,70 @@ The static path also takes `mailto:`, `tel:` or simply a text. If something
 domain-shaped lacks a scheme, `https://` is prepended – otherwise the input
 is left untouched.
 
+## Five types, one generator
+
+A QR code contains text – what that text means is decided by the application
+reading it. The same encoder therefore does more than addresses:
+
+| Tab | File | What the code holds |
+| --- | --- | --- |
+| Link | `qr-designer.php` | an address, a short link or free text |
+| Wi-Fi | `wlan-qr.php` | `WIFI:` – network name, encryption, password |
+| Contact | `vcard-qr.php` | a vCard 3.0 |
+| Event | `termin-qr.php` | an iCalendar entry (`VEVENT`) |
+| GS1 | `gs1-qr.php` | a GS1 Digital Link (see below) |
+
+The tabs appear on each of these pages (`qr_type_nav()`); signed in, the
+first one leads to the designer in the admin area, where logos and the link
+assignment come on top.
+
+All four extra types produce **static** codes: the data lives in the code
+itself, nothing is stored, and they keep working even if this instance no
+longer exists. The price is that they cannot be changed any more – whoever
+needs that takes a short link.
+
+The inputs go to `qr.php` via POST, not as address parameters: a Wi-Fi
+password has no business in server logs or browser history.
+
+## The logo library
+
+It has a **page of its own** under *Logos* in the administration
+(`admin/logos.php`). That is not cosmetics: the selection in the designer
+belongs to designing one code, the library is an inventory maintained
+independently of it – whoever uploads a logo rarely wants to build a QR code
+in that moment. The designer therefore keeps only the selection field and a
+pointer here.
+
+On the page every logo is a card: preview on a checkered ground (so you can
+see where the transparency sits in cut-out images), name, owner, sharing and
+delete button. Logos shared by others via a group appear as well, but
+without management – use yes, change no.
+
+Whoever has the `logo_upload` permission can upload their own logos; how
+many is bounded by the `logos` limit. A logo belongs to whoever uploaded it.
+
+**Sharing.** Every own logo can be shared with groups. Members of those
+groups then find it in their selection, marked with the account it belongs
+to. The special value "all signed-in accounts" opens it to everyone.
+
+Sharing means **permission to use**, not to manage: renaming and deleting
+stay with the owner (and administrators), and the logo still counts towards
+their quota. Whoever sees a shared logo in their list can use it, but take
+it from nobody.
+
+Technically the share lives in `data/logos.json` as a list of group ids
+(`shared`); the star `*` stands for all accounts. Groups that no longer
+exist are discarded on save.
+
+### The logo no longer cuts modules
+
+Modules touching the logo's clear area are not drawn at all – previously the
+area was laid over the finished modules, leaving half moons and bar stumps at
+its edge. The handful of extra missing modules is well within the error
+correction's budget; with a logo it is set to H anyway. Whoever disables the
+clear area (`logoShape: none`) still gets the logo directly on the modules –
+that is meant for transparent logos.
+
 ## The encoder
 
 Plain PHP following ISO/IEC 18004, byte mode, versions 1–40, all four error

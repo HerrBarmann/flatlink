@@ -143,6 +143,74 @@ LDAP server is unreachable for once.
 With `ldap://`, be sure to enable `start_tls`, otherwise the password crosses
 the network in plain text. Better yet, use `ldaps://` right away.
 
+**When sign-in fails**, the interface deliberately does not say why –
+otherwise one could read off which identifiers exist. Whoever sets up the
+instance needs exactly that information though:
+
+```bash
+php tools/ldap-check.php identifier -p
+```
+
+The tool walks through extension, configuration, connection, bind, search and
+password check in order and stops at the first thing that is wrong – with a
+concrete suggestion instead of an error number. The password is prompted, not
+passed as an argument, otherwise it would sit in the process list. The
+sign-in also writes its reason to the web server's error log.
+
+### Deleting an account
+
+Both paths – self-deletion in the profile and deletion by the administration –
+clean up the same way: access tokens are revoked, open confirmations
+discarded, and the links are distributed.
+
+| | |
+| --- | --- |
+| Links of a **working group** | stay with the group and merely lose their owner. That is what groups are for – a departing colleague does not take the shared poster along. |
+| Links **without a group** | would be ownerless afterwards. When the administration deletes, the administrator decides: transfer to themselves or delete as well. Whoever deletes themselves has nobody to hand over to – there they are deleted. |
+
+When in doubt, transfer: a printed code whose target disappears leads
+nowhere, and you only notice when someone complains.
+
+**Changing a link's owner** also works without deleting – in the edit form of
+the link list, visible to administrators and accounts with `links_all`.
+"Nobody" can be chosen there too: the link then belongs only to its group.
+Without a group the instance refuses, otherwise nobody but the administration
+would find the link any more.
+
+### Creating accounts from the directory
+
+With `auto_create` set to `false`, an account used to come into being only
+*after* a failed sign-in attempt: the attempt created a queue entry an
+administrator then approved. That works, but it makes people fail in a way
+they cannot interpret – and whoever wants to prepare an account before
+someone starts simply could not.
+
+Under *Users → Create from directory* you can therefore search directly – by
+name, identifier or e-mail. One click creates the account, with display name
+and address from the directory; sign-in works immediately. Whoever already
+has an account appears as such and not as a button.
+
+The search runs with the service account from `bind_dn`, i.e. with the same
+rights as sign-in. Two keys control it:
+
+| | |
+| --- | --- |
+| `search_filter` | **Leave empty.** The filter is then built from the attributes already configured (`uid_attr`, `name_attr`, `mail_attr`) plus `cn`, `sn`, `givenName`, `mail`. Only set it for special cases, e.g. to narrow down to a department. |
+| `uid_attr` | Attribute holding the identifier. Empty = read from the `user_filter`, which is almost always right. |
+
+That the filter grows from the configuration is the point: a directory that
+keeps its display name in a custom field finds people through a hard-wired
+`(cn=*%s*)` only by their identifier. Whoever set `name_attr` has already
+said where the name lives; a second entry for it would be one more source of
+error.
+
+Several words are AND-combined, each across all attributes. "Dennis Bormann"
+thus also matches an entry "Bormann, Dennis" – and two name parts make the
+search narrower, not wider.
+
+The queue remains alongside: whoever signs in without an account still lands
+there. Both lead to the same result, just from different sides.
+
 ### Groups from the directory
 
 Both paths can take over group memberships: with SSO from an attribute like

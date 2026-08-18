@@ -2,6 +2,7 @@
 
 Kurzlinks anlegen, ändern, löschen und Klickzahlen abrufen — aus einem
 Skript, einem Kassensystem, einem Redaktionswerkzeug.
+🇬🇧 [English version](API.en.md).
 
 Die Schnittstelle kann **nichts, was das Konto nicht auch über die Oberfläche
 könnte**. Rechte, Limits, Namensräume und Gruppenzugehörigkeit gelten
@@ -61,7 +62,7 @@ Formularfelder — beides wird gelesen.
 
 ---
 
-> Für den Alltag gibt es die [Browser-Erweiterung](extension/README.de.md): Sie
+> Für den Alltag gibt es die [Browser-Erweiterung](extension/README.md): Sie
 > nutzt genau diese Schnittstelle, um die geöffnete Seite mit einem Klick zu
 > kürzen.
 
@@ -162,7 +163,8 @@ Löscht Link und Klickzähler. Antwort `{"deleted": "abc123"}`.
 
 `GET` liefert die Liste mit, `PATCH` setzt sie (eine leere Liste löscht alle
 Weichen). Merkmale: `device` (`mobile`/`tablet`/`desktop`), `lang` und
-`country` (je zwei Buchstaben). Die erste zutreffende Weiche gewinnt, sonst
+`country` (je zwei Buchstaben) sowie `split` (Anteil von 1 bis 99). Die erste
+zutreffende Weiche gewinnt, sonst
 gilt `url`. Braucht das Recht `link_rules`; höchstens acht je Link.
 Ausgewertet wird bei jeder Anfrage – gespeichert wird davon nichts, gezählt
 nur, wie oft jede Weiche gegriffen hat.
@@ -188,6 +190,16 @@ in der Schnittstelle: Es gibt keinen Endpunkt, der einen einzelnen Klick,
 seine Uhrzeit oder seine Adresse liefert, weil so etwas nirgends steht.
 
 ---
+
+### Zwei Felder seit 3.0
+
+| Feld | Bedeutung |
+| --- | --- |
+| `lang` | Sprache der Ziel-URL, zwei Buchstaben. Grundlage der Sprachverhandlung der Weichen: Nur mit ihr kann ein Besucher mit passender Zweitsprache richtig verteilt werden. |
+| `max_visits` | Aufruf-Limit. Ganze Zahl ab 1; ist sie erreicht, antwortet der Link mit 410. Leer oder 0 = unbegrenzt. Bots und HEAD-Anfragen zählen nicht. |
+
+Beide gelten für `POST /links` und `PATCH /links/{code}` und stehen in jeder
+Link-Antwort.
 
 ## Fehler
 
@@ -235,5 +247,5 @@ done < liste.csv
 ```
 
 Für einen einmaligen Umzug von einem anderen Dienst ist der CSV-Import in der
-Oberfläche der kürzere Weg — er versteht die Exporte von Bitly und YOURLS
-unmittelbar.
+Oberfläche der kürzere Weg — er versteht die Exporte von Bitly, YOURLS, Shlink
+und Kutt unmittelbar.

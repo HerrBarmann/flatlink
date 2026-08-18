@@ -210,7 +210,7 @@ it requires.
   manages together
 - **CSV import** for many links at once – the exports of Bitly and YOURLS can
   be uploaded unchanged
-- **API** with access keys per account, see [API.md](API.md)
+- **API** with access keys per account, see [API.en.md](API.en.md)
 - **Abuse protection**: rate limits per IP (only a keyed hash is stored, no
   plain addresses), a report form, a blocking function, optional Google Safe
   Browsing – optionally with a **re-check across the stock**, against targets
@@ -262,7 +262,7 @@ link from there and open it. The first account created automatically gets the
 admin role.
 
 > **For real operation** there is a detailed
-> **[deployment guide](DEPLOYMENT.md)** (German): permissions and web server
+> **[deployment guide](DEPLOYMENT.en.md)**: permissions and web server
 > configuration for Apache and nginx, mail delivery including SPF/DKIM/DMARC,
 > LDAP and Active Directory, the complete Shibboleth setup including Apache
 > and attribute release – plus operation, backup and a table of the most
@@ -311,8 +311,8 @@ The README is the overview; the depth lives in dedicated documents:
 | [Accounts and sign-in](docs/konten.en.md) | Passkeys and one-time passwords, LDAP, Shibboleth/SAML/OIDC, data access and deletion |
 | [Groups, permissions and domains](docs/gruppen.en.md) | Permission and working groups, limits, namespaces, multiple domains per instance |
 | [Browser extension](extension/README.md) | "shorten this page" for Chrome and Firefox, against your own instance |
-| [API.md](API.md) | the API (German) |
-| [DEPLOYMENT.md](DEPLOYMENT.md) | installation for production, from file permissions to Shibboleth (German) |
+| [API.en.md](API.en.md) | the API |
+| [DEPLOYMENT.en.md](DEPLOYMENT.en.md) | production setup, condensed – the [German guide](DEPLOYMENT.md) is the step-by-step reference |
 | [CUSTOMIZATION.md](CUSTOMIZATION.md) | your own look without changing the core (German) |
 | [What flatlink will never do](docs/niemals.md) | the features that will never exist here – and why (German) |
 | [Accessibility](docs/barrierefreiheit.en.md) | self-assessment against WCAG 2.1 AA, with a statement template for public bodies |

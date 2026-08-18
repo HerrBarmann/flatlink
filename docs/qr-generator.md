@@ -79,6 +79,15 @@ Technisch steht die Freigabe in `data/logos.json` als Liste von
 Gruppen-Kennungen (`shared`), der Stern `*` steht für alle Konten. Gruppen,
 die es nicht mehr gibt, werden beim Speichern verworfen.
 
+### Das Logo schneidet keine Module mehr an
+
+Module, die die Freifläche des Logos berühren, werden gar nicht erst
+gezeichnet – vorher wurde die Fläche über die fertigen Module gelegt, und am
+Rand blieben Halbmonde und Balkenstummel stehen. Die paar Module mehr
+verkraftet die Fehlerkorrektur; mit Logo steht sie ohnehin auf H. Wer die
+Freifläche abschaltet (`logoShape: none`), bekommt das Logo weiter direkt auf
+den Modulen – das ist für durchsichtige Logos gedacht.
+
 ## Der Encoder
 
 Reines PHP nach ISO/IEC 18004, Byte-Mode, Versionen 1–40, alle vier

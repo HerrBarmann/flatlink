@@ -38,6 +38,32 @@ einschließlich** seines Tages gilt). Ein leeres Feld heißt „sofort".
 Verfügbar auch über die [Schnittstelle](../API.md) (Feld `starts`, dazu
 `pending` in der Antwort) und im CSV-Export.
 
+## Was zählt – und was nicht
+
+Die Zähler sollen Besuche zählen, nicht Verkehr. Drei Sorten Aufrufe bleiben
+deshalb draußen, alle ohne einen Krümel Speicherung – die Kennung wird geprüft
+und vergessen:
+
+- **Bekannte Bots.** Vorschau-Dienste der Messenger, Suchmaschinen,
+  Monitoring, dazu Werkzeuge wie `curl`. Jede in einen Chat geworfene
+  Nachricht löste sonst einen „Klick" aus, und ein Uptime-Check zählte 1440
+  Besucher am Tag. Weitergeleitet wird selbstverständlich trotzdem.
+- **HEAD-Anfragen** – so fragt Werkzeug, nicht Publikum.
+- **Der Besitzer selbst** und seine Arbeitsgruppe, sofern angemeldet: Wer
+  seinen frisch gedruckten Code fünfmal testet, hebt seine Kampagne nicht um
+  fünf. Geprüft wird nur, wenn ohnehin ein Sitzungs-Keks mitkommt – für
+  anonyme Besucher startet die Weiterleitung weiterhin keine Session.
+
+## Aufruf-Limit
+
+Ein Link kann auf eine Zahl von Aufrufen begrenzt werden – „nur die ersten
+50 bekommen den Rabatt". Danach antwortet er wie ein abgelaufener: 410, mit
+Begründung statt Rätselraten. Das Feld steht beim Anlegen unter *Mehr
+Optionen* und beim Bearbeiten neben dem Ablaufdatum; leer heißt unbegrenzt.
+Geprüft wird gegen den Zähler, der ohnehin geführt wird – und weil Bots nicht
+zählen, meint das Limit echte Besuche. Über die [Schnittstelle](../API.md)
+heißt das Feld `max_visits`.
+
 ## Weichen: ein Link, mehrere Ziele
 
 Ein Plakat hängt einmal, aber die Leute davor sind verschieden. Ein Link kann
@@ -182,6 +208,13 @@ Gesetzt werden kann nur, was in der eigenen Auswahl steht; ein bereits
 gespeichertes Logo bleibt beim Bearbeiten unangetastet, damit es einem Vertreter
 nicht unter der Hand verschwindet.
 
+**Impressum und Datenschutz.** Der Fuß der Seite kann beide Pflichtlinks
+tragen: Die Instanz gibt in `bio_legal_defaults` ihre eigenen Seiten vor, und
+jede Bio-Seite kann sie durch eigene Adressen ersetzen – wer seine Seite
+geschäftlich betreibt, ist presserechtlich selbst verantwortlich und verlinkt
+**sein** Impressum, nicht das des Dienstes. Je Seite gilt eine Quelle
+vollständig; leer und ohne Vorgabe bleibt der Fuß frei.
+
 Gezählt wird wie überall: ein Zähler je Tag für die Seite und einer je Ziel.
 Damit Letzteres möglich ist, zeigen die Schaltflächen auf den eigenen Code mit
 einer laufenden Nummer (`/abc123?i=2`) statt unmittelbar auf die Zieladresse.
@@ -222,9 +255,11 @@ einer Tür klebt, muss nicht auch im Index stehen.
 ## Umzug von einem anderen Dienst
 
 Der CSV-Import unter *Links → CSV-Import* erkennt die Spalten an der Kopfzeile
-statt an ihrer Reihenfolge. Der Export von **Bitly** (`Bitlink`, `Long URL`,
-`Title`) und die von **YOURLS** (`keyword`, `url`, `title`) lassen sich damit
-unverändert hochladen. Steht in der Code-Spalte eine vollständige Adresse wie
+statt an ihrer Reihenfolge. Die Exporte von **Bitly** (`Bitlink`, `Long URL`,
+`Title`), **YOURLS** (`keyword`, `url`, `title`), **Shlink** (Web-Client:
+`shortCode`, `longUrl`, `title`, `tags` – die Pipe-getrennten Schlagworte
+werden zu unseren Kommas) und **Kutt** (`address`, `target`, `description`)
+lassen sich damit unverändert hochladen. Steht in der Code-Spalte eine vollständige Adresse wie
 `bit.ly/3xYz9`, wird der letzte Teil übernommen – die Kurzcodes bleiben also
 erhalten, und gedruckte Codes zeigen nach dem Umschalten der Domain weiter
 dorthin, wo sie sollen.
