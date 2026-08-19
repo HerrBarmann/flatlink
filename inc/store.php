@@ -330,7 +330,7 @@ function link_update(string $code, string $url, array $opts = []): bool
         $l['updated'] = date('c');
         // Nur das Ziel wird nachgehalten: Es ist die eine Angabe, deren
         // stille Änderung jemandem schadet – ein gedruckter Code führt dann
-        // woandershin, ohne dass es jemand merkt. Titel oder Schlagworte
+        // woandershin, ohne dass es jemand merkt. Titel oder Schlagwörter
         // sind Ordnung, keine Zusage.
         if ($vorher !== '' && $vorher !== $url) {
             $l = link_history_add($l, $vorher, $url, $wer);
@@ -361,7 +361,7 @@ function link_history_add(array $l, string $von, string $nach, ?string $wer): ar
 }
 
 /**
- * Titel und Schlagworte in einen Datensatz übernehmen.
+ * Titel und Schlagwörter in einen Datensatz übernehmen.
  *
  * Leere Angaben löschen das Feld, statt einen leeren String abzulegen: Ein
  * Datensatz soll nur enthalten, was auch gesetzt ist – das hält die Ablagen
@@ -413,11 +413,11 @@ function link_apply_meta(array $l, array $opts): array
     return $l;
 }
 
-/** Höchstzahl Schlagworte je Link – mehr ordnet nicht, sondern verwirrt */
+/** Höchstzahl Schlagwörter je Link – mehr ordnet nicht, sondern verwirrt */
 const TAGS_MAX = 8;
 
 /**
- * Schlagworte säubern.
+ * Schlagwörter säubern.
  *
  * Angenommen wird eine Liste oder eine Zeichenkette mit Kommas. Vergleich und
  * Ablage laufen in Kleinschreibung: „Kampagne" und „kampagne" sollen dieselbe
@@ -443,14 +443,14 @@ function tags_normalize($roh): array
     return $out;
 }
 
-/** Schlagworte eines Links als Eingabetext */
+/** Schlagwörter eines Links als Eingabetext */
 function tags_text(?array $l): string
 {
     return implode(', ', (array)($l['tags'] ?? []));
 }
 
 /**
- * Alle vergebenen Schlagworte mit ihrer Häufigkeit, für Filterlisten.
+ * Alle vergebenen Schlagwörter mit ihrer Häufigkeit, für Filterlisten.
  *
  * @param array<string,array> $links
  * @return array<string,int> Schlagwort => Anzahl, häufigste zuerst

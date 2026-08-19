@@ -21,58 +21,116 @@ link list with tags, groups and click counts" width="820"> </p>
 
 ---
 
-## The point
+## What flatlink is
 
-flatlink aims to be the best open-source URL shortener you can run yourself
-– with a QR generator that goes all the way to the print shop, and
-link-in-bio pages. It is built for the places that need such a thing most
-urgently: universities, libraries and public bodies that cannot – or must
-not – hand their links to an outside service. Sign-in via LDAP and
-Shibboleth, groups with permissions and limits, namespaces per department
-and multiple domains are therefore not add-ons but the core.
+A URL shortener you run yourself: shorten links, generate QR codes fit for
+the print shop, build link-in-bio pages – on your domain, in your building.
+Plain PHP, no database server, no Composer, no build step.
 
-For this purpose, privacy is not a separate feature – it follows from how
-the thing is built. Where practically every URL shortener logs **who**
-clicks, flatlink stores exactly this per link – in full, not abridged:
+It is built for universities, libraries and public bodies that are not
+allowed to hand their links to an outside service. That is why sign-in via
+LDAP and Shibboleth, groups with permissions and limits, namespaces per
+department and multiple domains are core, not add-ons.
 
-```json
-{ "n": 1840, "last": "2026-08-14", "days": { "2026-08-14": 72 },
-  "refs": { "google.com": 210, "-": 1630 },
-  "devs": { "mobile": 1402, "desktop": 438 },
-  "langs": { "de": 1701, "en": 139 } }
-```
+And it counts visits without recording visitors: no IP addresses, no record
+per request, no profiles – [verifiable in the source](#what-is-not-stored),
+not merely claimed.
 
-Counters, nothing else. No record of individual visits, hence no IP
-addresses and no stored device or browser fingerprints. The lower three
-lines answer the most common question asked of any statistic – *where do my
-clicks come from?* – without following visitors to do it: three coarse
-attributes are derived from each request and **added up**. From the referrer
-only the hostname survives (never the path, which can carry a search query),
-from the browser identifier one of three words, from the language list two
-letters. No single visit can be read out of a total, because no single visit
-is ever stored.
+## Features
 
-For anyone to whom even that is too much: switch it off (`'click_dims' =>
-false`) and the first line is all that remains.
+### Short links
 
-Even the last visit is only recorded to the day. For a link with a handful
-of clicks, a time of day would otherwise be the single value in the whole
-data set by which one visit could be placed in time – and joined with other
-sources.
+| | |
+| --- | --- |
+| **Code** | random or custom, with a minimum length and a quota to curb squatting on short names |
+| **Order** | a label for your own overview, up to eight tags, filtering and search across the inventory |
+| **Time window** | a start date (print the code before the target exists) and an expiry date |
+| **Visit limit** | "only the first 50" – after that the link answers with 410 |
+| **Protection** | a password before the redirect, and blocking of individual links |
+| **Switches** | one link, several targets – by device, language, country or share (A/B). The language switch negotiates against the target's own language, storing nothing in the process |
+| **Campaigns** | a builder for `utm_*` parameters, with suggestions from what you already use |
+| **Migration** | CSV import from Bitly, YOURLS, Shlink and Kutt – short codes survive; CSV export in the same format |
+| **Multiple domains** | one per client or institution, all in a single instance |
 
-This is not a statement of intent; it can be read in
-[`inc/store.php`](inc/store.php) in about ten lines (`clicks_bump()`). Go
-check – that is exactly why the code is open. The redirect path (`go.php`)
-does not even start a session unless the link is password-protected.
+### QR codes
 
-<p align="center"> <img src="docs/screenshots/en/statistics.webp"
-alt="Statistics of a link: daily values, monthly overview, CSV export"
-width="760"> </p>
+| | |
+| --- | --- |
+| **In-house encoder** | ISO/IEC 18004, byte mode, versions 1–40, all four error correction levels – without any third-party library, verified with a foreign decoder across all 160 combinations |
+| **Designer** | seven module shapes, four eye shapes (ring and core separately), free colours, gradients, a frame with text |
+| **Logo** | from a library that can be shared with groups; modules under the logo are omitted entirely rather than clipped |
+| **Five types** | address/short link, Wi-Fi access, contact (vCard), event (iCalendar), GS1 Digital Link – the last four store nothing at all |
+| **Print** | SVG, PNG, vector PDF and EPS, optionally in CMYK – the format print shops ask for |
+| **Batches** | twenty codes in one ZIP, with an overview as CSV |
+| **Readability check** | contrast, quiet zone, logo coverage and module size, live while you design |
+
+### Link in bio
+
+One page with several targets under a single short code – for the profile on
+a social network, the sticker in a shop window. Your own colours and logo,
+legal notice and privacy links in the footer (your own or the instance's).
+Counted per day, for the page and per target.
+
+### Statistics without visitor profiles
+
+| | |
+| --- | --- |
+| **What is counted** | visits in total and per calendar day, plus origin, device class and language **as sums** |
+| **What does not count** | known bots, HEAD requests and the signed-in owner |
+| **What is missing** | times of day, IP addresses, records per visit, recognition – none of it exists, so none of it is in the API either |
+| **Switchable** | `'click_dims' => false` leaves the plain counters and nothing else |
+| **Export** | CSV per link and across the whole inventory |
+
+### Accounts, groups, sign-in
+
+| | |
+| --- | --- |
+| **Accounts** | self-registration via double opt-in, password reset, roles, per-account limits |
+| **Two factors** | passkeys (WebAuthn) and one-time passwords (TOTP), enforceable instance-wide |
+| **Central sign-in** | LDAP and Active Directory with directory search; Shibboleth, SAML and OpenID Connect through the web server |
+| **Groups** | as a permission group (rights and limits) or a working group (the team manages the links together) |
+| **Namespaces** | a prefix per department – `/lib/opening-hours` belongs to the library |
+| **Data access** | export and delete button in the profile, Art. 15/17/20 GDPR without a ticket system |
+| **Sessions** | a list of active sign-ins; end one or all others |
+
+### Operations
+
+| | |
+| --- | --- |
+| **Installation** | copy the files – or use a container image for amd64 and arm64 |
+| **Backup** | one button that writes database, settings, counters and logos into a ZIP; plus a text export for versionable backups |
+| **API** | links, tags and a health endpoint for monitoring, with access keys per account |
+| **Browser extension** | "shorten this page" for Chrome and Firefox, pointed at your own instance |
+| **Abuse protection** | rate limits, a report form, blocking, optionally Google Safe Browsing including a re-check pass over the existing links |
+| **Audit log** | who administered what, and when – administration only, never visitors |
+| **Cleanup** | never-visited links after N years, with advance warning by mail (off by default) |
+| **Demo mode** | a public playground that resets itself – without cron |
+| **Bilingual** | interface in German or English, switchable at runtime |
+| **Accessible** | tested against WCAG 2.1 AA, with a [self-assessment](docs/barrierefreiheit.en.md) and a statement template for public bodies |
+
+### What the others do not have
+
+The comparison with Shlink, YOURLS and Kutt, reduced to features:
+
+- **QR codes fit for the print shop.** Vector PDF, EPS and CMYK from an
+  in-house encoder – elsewhere the export stops at PNG.
+- **Switches with language negotiation.** A Chinese browser with English as
+  a second language gets the English page; a German browser gets the German
+  one.
+- **Link-in-bio in the same tool**, under the same permissions and counters.
+- **Central sign-in for institutions** – Shibboleth and LDAP, not just OAuth
+  for individual accounts.
+- **Statistics that need no profiles.** The question "where do my clicks
+  come from?" is answered without storing a single visit.
+- **No database server, no build step.** It runs on a three-euro web host.
+
+What remains exclusive to the commercial services is the thing this project
+does not build: visitor profiles.
 
 ## What it looks like
 
 The screenshots show the German interface; the language is switchable per
-instance – see [What's included](#whats-included).
+instance – see [Operations](#operations).
 
 <table> <tr> <td width="50%" valign="top"> <a
 href="docs/screenshots/en/qr-designer.webp"><img
@@ -110,23 +168,217 @@ page with several targets under one short code. Counted like everything
 else: per day, for the page and per target, without visitor records.</p>
 </td> </tr> </table>
 
-## Running in five minutes
+## Installation
+
+### Requirements
+
+| | |
+| --- | --- |
+| **PHP** | 8.1 or newer |
+| **Required extensions** | `json`, `mbstring`, `pdo_sqlite` |
+| **Optional** | `gd` (PNG and PDF export), `fileinfo` (logo upload), `openssl` (SMTP), `ldap` (LDAP sign-in only) |
+| **Web server** | Apache, nginx, Caddy – anything that can rewrite paths |
+| **Write access** | for exactly one directory: `data/` |
+
+No database server, no Composer, no build step. To see what you have:
 
 ```bash
+php -v && php -m | grep -E '^(json|mbstring|pdo_sqlite|gd|fileinfo|openssl|ldap)$'
+```
+
+### Route 1: Upload the files
+
+The usual case on shared hosting, with no command line at all.
+
+1. [Download the latest release as a
+   ZIP](https://github.com/HerrBarmann/flatlink/releases/latest) and unpack
+   it.
+2. Copy `inc/config.example.php` to `inc/config.php` and set `base_url` in
+   it (see [Configuration](#configuration)).
+3. Upload everything except `tests/`, `tools/` and `extension/` to the
+   webroot – those three are command-line tools and have no business being
+   on the web.
+4. `data/` is created on first use. If you get an error instead, the web
+   server lacks write permission in the target folder.
+
+### Route 2: Container
+
+One image, one volume, no database service:
+
+```bash
+docker run -d -p 8080:80 \
+  -e FLATLINK_BASE_URL="http://localhost:8080" \
+  -v flatlink-data:/var/lib/flatlink \
+  ghcr.io/herrbarmann/flatlink:latest
+```
+
+There the configuration comes from `FLATLINK_*` environment variables; a
+mounted `inc/config.php` still takes precedence. Details in the [Docker
+guide](docs/docker.en.md).
+
+### Route 3: With Git
+
+If you have a command line on the server, updating later is a `git pull`:
+
+```bash
+cd /var/www
 git clone https://github.com/HerrBarmann/flatlink.git
-cd flatlink
-cp inc/config.example.php inc/config.php
+cd flatlink && cp inc/config.example.php inc/config.php
+```
+
+Set permissions – the web server writes to `data/` and nowhere else:
+
+```bash
+sudo chown -R root:www-data /var/www/flatlink
+sudo find /var/www/flatlink -type d -exec chmod 750 {} \;
+sudo find /var/www/flatlink -type f -exec chmod 640 {} \;
+sudo mkdir -p /var/www/flatlink/data
+sudo chown -R www-data:www-data /var/www/flatlink/data
+sudo chmod 700 /var/www/flatlink/data
+```
+
+### First start
+
+Open `/admin/` in a browser. The first visit walks you through the setup and
+creates the administrator account – the first account automatically gets the
+admin role.
+
+After that, glance at *Settings*: the instance checks for itself whether its
+data directory is reachable from outside, and whether mail delivery works.
+
+**To try it out**, the built-in server is enough. It does not support
+rewrites, hence the bundled router script – it emulates the `.htaccess`
+rules so that short links and `/api/…` work:
+
+```bash
 php -S localhost:8080 router.php
 ```
 
-Open `http://localhost:8080/admin/` in the browser – the first visit creates
-the admin account. (`router.php` emulates for the built-in server what the
-`.htaccess` does in production – without it, a short link leads to the start
-page instead of its target.) For production: copy the files to your web
-host, make `data/` writable, set `base_url` in the configuration. Details
-under [Installation](#installation). For an English interface, set
-`'language' => 'en'` in `inc/config.php` or switch it later under
-*Settings*.
+## Configuration
+
+Everything lives in `inc/config.php`. The commented template with **all**
+options is [`inc/config.example.php`](inc/config.example.php); anything
+absent there keeps its default. What follows are the switches people
+actually touch.
+
+### The essentials
+
+```php
+'site_name' => 'Short links of Example University',
+'base_url'  => 'https://s.example.org',   // no trailing slash
+'data_dir'  => '/var/lib/flatlink',       // empty = data/ next to the application
+```
+
+> **`base_url` is not a matter of taste.** Left empty, flatlink guesses the
+> address from the `Host` header – which is user input. Someone triggering a
+> password-reset mail for another account could otherwise point the link in
+> it at their own domain and capture the token. flatlink therefore sends
+> **no** mails containing links while the address is missing. The session
+> cookie's `secure` flag depends on it as well.
+
+> **`data_dir` belongs outside the webroot.** It holds password hashes,
+> valid reset tokens and, in mail mode `log`, complete mails in plain text.
+> If your host does not allow that, the bundled `.htaccess` protects it –
+> but only Apache reads that file.
+
+### Who may do what
+
+| Option | Meaning |
+| --- | --- |
+| `public_mode` | `on`, `prefix` or `off` – may people shorten without an account? |
+| `registration` | `on` or `off` – self-registration |
+| `default_perms` | permissions every signed-in account has without a group |
+| `limits` | links, statistics depth and logos per account (`0` = unlimited) |
+| `custom_code_min_len`, `custom_code_quota` | curbs on squatting short names |
+
+Both public shortening and self-registration can also be switched at runtime
+under *Settings*, without touching the file.
+
+### Sign-in
+
+| Option | Meaning |
+| --- | --- |
+| `ldap` | LDAP or Active Directory; `tools/ldap-check.php` verifies the settings from the command line |
+| `sso` | Shibboleth, SAML or OpenID Connect through the web server |
+| `totp_required` | enforce a second factor: `off`, `admins` or `all` |
+
+Local accounts always keep working alongside. **Keep at least one local
+administrator account** – if the directory fails, you would otherwise be
+locked out of your own administration.
+
+### Mail
+
+```php
+'mail' => [
+    'mode' => 'smtp',                 // 'log' writes to data/mail.log
+    'host' => 'mail.example.org',
+    'port' => 587,                    // 587 STARTTLS, 465 TLS, 25 in-house relay
+    'user' => 'no-reply@example.org', // empty = no authentication
+    'pass' => '…',
+    'from' => 'no-reply@example.org',
+],
+```
+
+Without these, mode `log` applies: the confirmation mail lands in
+`data/mail.log` and you copy the link from there. Good for trying things
+out, not for production.
+
+### Operations and security
+
+| Option | Meaning |
+| --- | --- |
+| `trusted_proxies` | addresses of upstream proxies – **without them, rate limit and sign-in lock apply to all visitors collectively by accident** |
+| `safe_browsing_key` | Google Safe Browsing; empty = off |
+| `safety_recheck_days` | re-check existing links every N days (`0` = off) |
+| `link_gc_years` | remove never-visited links after N years (`0` = off) |
+| `click_dims` | `false` counts visits only, without origin/device/language |
+| `demo_mode` | public playground with a self-reset |
+| `language` | `de` or `en` |
+
+> **For real operation** the **[deployment guide](docs/DEPLOYMENT.en.md)**
+> takes it step by step: web server blocks for Apache and nginx, mail
+> delivery including SPF/DKIM/DMARC, LDAP and Active Directory, the complete
+> Shibboleth setup – plus operation, backup and a table of the most common
+> pitfalls.
+>
+> **Your own colours, your own logo?** That is what the **[customization
+> guide](docs/CUSTOMIZATION.en.md)** is for – update-safe via
+> `assets/custom.css`, without touching the source.
+
+## What is not stored
+
+Where practically every URL shortener logs **who** clicks, flatlink stores
+exactly this per link – in full, not abridged:
+
+```json
+{ "n": 1840, "last": "2026-08-14", "days": { "2026-08-14": 72 },
+  "refs": { "google.com": 210, "-": 1630 },
+  "devs": { "mobile": 1402, "desktop": 438 },
+  "langs": { "de": 1701, "en": 139 } }
+```
+
+Counters, nothing else. No record of individual visits, hence no IP
+addresses and no stored device or browser fingerprints. The lower three
+lines answer the most common question asked of any statistic – *where do my
+clicks come from?* – without following visitors to do it: three coarse
+attributes are derived from each request and **added up**. From the referrer
+only the hostname survives (never the path, which can carry a search query),
+from the browser identifier one of three words, from the language list two
+letters. No single visit can be read out of a total, because no single visit
+is ever stored.
+
+Even the last visit is recorded only to the day. For a link with a handful
+of clicks, a time of day would otherwise be the single value in the whole
+data set by which one visit could be placed in time – and joined with other
+sources.
+
+This is not a statement of intent; it can be read in
+[`inc/store.php`](inc/store.php) in about ten lines (`clicks_bump()`). Go
+check – that is exactly why the code is open. The redirect path (`go.php`)
+does not even start a session unless the link is password-protected.
+
+If even that is too much for you, switch it off (`'click_dims' => false`)
+and the first line is all that remains.
 
 ## Who this is for
 
@@ -142,168 +394,11 @@ under [Installation](#installation). For an English interface, set
   don't track" is a claim on a website. With the source code next to it, it
   becomes verifiable.
 
-## Where it runs in production
-
 Whether the software survives everyday use can be checked: the public
 service [1337.kiwi](https://1337.kiwi) runs on the same technical base – a
 side effect of the project, with its own design and the content a public
-offering needs. What holds up in production there ends up in this source;
-what is added here for organisations (central sign-in, groups, permissions)
-the public service doesn't need.
-
-Installing flatlink does **not give you an imitation of it**: a neutral
-theme, your own short codes, your own domain. What remains is a discreet
-attribution line in the footer – the [license](#license) requires it, and
-that is also all it requires.
-
-## What's included
-
-- **Short links** with random or self-chosen codes, an optional label, tags
-  for filtering, **a start date and an expiry date**, and optional password
-  protection – a code can be printed and handed out before its target goes
-  live
-- **QR codes** from an in-house encoder (ISO/IEC 18004, byte mode,
-  **versions 1–40**, error correction L/M/Q/H) – without any third-party
-  library. Up to 2953 characters, so long addresses with campaign parameters
-  fit too
-- **QR designer** at `qr-designer.php`: module and eye shapes, free colours,
-  **gradients**, **print colours in CMYK**, export as SVG, PNG, **vector PDF
-  and EPS**. Signed-in users additionally get their own logo, a frame with
-  text and the selection of their links on the same page – a short link can
-  be created right there as well
-- **Link-in-bio pages**: one page with several targets under one short code,
-  counted like everything else – per day, for the page and per target,
-  without visitor records
-- **Static QR codes** for an **unshortened address or free text**, Wi-Fi
-  access, contacts (vCard), events (iCalendar) and **GS1 Digital Link** –
-  the input is stored nowhere; it is encoded straight into the graphic, so
-  these codes work entirely independently of the service
-- **An English interface**: German is the source language, the language is
-  set per instance (`'language'` in the configuration or under *Settings*,
-  at runtime). Another language is one file under `inc/lang/`; whatever a
-  translation lacks stays visibly German instead of blank
-- **Accounts** with self-registration via double opt-in, password reset and
-  roles (user/admin), including usage limits per account
-- **QR codes individually or as a batch in a ZIP**, with a CSV overview
-- **Two-factor sign-in**: passkeys (WebAuthn) or one-time passwords from an
-  app, with recovery codes, optionally enforceable for the whole instance
-- **Data access and deletion in the profile**: data export as JSON and a
-  button that really removes the account and its links – GDPR Art. 15, 17
-  and 20 without a ticket system
-- **Session management in the profile**: a list of active sign-ins, revoke
-  one or all others; a password change signs the rest out automatically
-- **An audit log of administrative actions**: who blocked, approved or
-  changed what and when – administration only, never visitors; JSON lines,
-  ready for a central log
-- **CSV export of the link list** in the format of the built-in import –
-  anyone leaving takes everything with them; lock-in fear is not a business
-  model
-- **Central sign-in** via LDAP/Active Directory or via the web server
-  (Shibboleth, SAML, OpenID Connect) – see [Accounts and
-  sign-in](docs/konten.en.md)
-- **Groups** in two modes: as a permission group (permissions and limits,
-  links stay private) or as a working group whose links the whole team
-  manages together
-- **CSV import** for many links at once – the exports of Bitly and YOURLS
-  can be uploaded unchanged
-- **API** with access keys per account, see the [API guide](docs/API.en.md)
-- **Abuse protection**: rate limits per IP (only a keyed hash is stored, no
-  plain addresses), a report form, a blocking function, optional Google Safe
-  Browsing – optionally with a **re-check across the stock**, against
-  targets that turn malicious only after creation
-- **Backup as an archive**: one button that outputs the database (copied
-  consistently), settings, counters and logos as a ZIP with instructions –
-  for everyone who cannot access the data directory
-- **Automatic cleanup** of never-visited links, with advance warning by mail
-  (disabled by default)
-- **Storage without operations**: links and accounts in one SQLite file,
-  everything else in small JSON files – no database server, backup = copy
-  the folder, see [How the data is stored](#how-the-data-is-stored)
-
-## Requirements
-
-- PHP 8.1 or newer
-- Extensions: `json`, `mbstring`, `pdo_sqlite` (storage), `gd` (for
-  PNG/PDF), `fileinfo` (logo upload), `openssl` (only for SMTP), `ldap`
-  (only for LDAP sign-in)
-- A web server with `mod_rewrite` or an equivalent rewrite facility. The
-  bundled `.htaccess` additionally provides a fallback via `ErrorDocument
-  404` in case rewrites don't take effect at your host.
-
-No database server, no Composer, no build step.
-
-## Installation
-
-```bash
-git clone https://github.com/HerrBarmann/flatlink.git
-cd flatlink
-cp inc/config.example.php inc/config.php
-```
-
-Then adjust `inc/config.php` (at least `site_name`), put the files into the
-webroot and make sure the web server can write to the directory – `data/` is
-created on first use.
-
-For a quick try, the built-in server is enough. It does not support
-rewrites, hence the bundled router script – it emulates the `.htaccess`
-rules so short links and `/api/…` work too:
-
-```bash
-php -S localhost:8080 router.php
-```
-
-**Prefer a container?** One image, one volume, no database service:
-
-```bash
-docker run -d -p 8080:80 -e FLATLINK_BASE_URL="http://localhost:8080" \
-  -v flatlink-data:/var/lib/flatlink ghcr.io/herrbarmann/flatlink:latest
-```
-
-Details in the [Docker guide](docs/docker.en.md).
-
-**First account:** register via `register.php`. By default, mail delivery is
-set to `log`, so the confirmation mail ends up in `data/mail.log` – copy the
-link from there and open it. The first account created automatically gets
-the admin role.
-
-> **For real operation** there is a detailed
-> **[deployment guide](docs/DEPLOYMENT.en.md)**: permissions and web server
-> configuration for Apache and nginx, mail delivery including SPF/DKIM/DMARC,
-> LDAP and Active Directory, the complete Shibboleth setup including Apache
-> and attribute release – plus operation, backup and a table of the most
-> common pitfalls.
->
-> **Your own colours, your own logo?** See the
-> **[customisation guide](docs/CUSTOMIZATION.en.md)** – update-safe via
-> `assets/custom.css`, without touching the source.
-
-## Configuration
-
-Everything lives in `inc/config.php`; the commented template is
-[`inc/config.example.php`](inc/config.example.php). The most important
-switches:
-
-| Option | Meaning |
-| --- | --- |
-| `site_name` | Display name in title, header and mails |
-| `base_url` | Fixed base URL; empty = automatic detection |
-| `sqlite_file` | Path of the storage file; empty = `data/flatlink.sqlite` |
-| `language` | Interface language of the instance (`de` is the source language, `en` ships along) |
-| `limits` | Links, statistics depth and logos per account (`0` = unlimited) |
-| `default_perms` | Permissions every signed-in account has without a group |
-| `sso` | Central sign-in via the web server (Shibboleth/SAML/OIDC) |
-| `ldap` | Sign-in against LDAP or Active Directory |
-| `qr_brand_text` | Optional attribution line under generated QR codes |
-| `custom_code_min_len` / `custom_code_quota` | Curbs on namespace squatting on public instances |
-| `mail` | `log` writes to `data/mail.log`, `smtp` really sends |
-| `safe_browsing_key` | Empty = off. See the note below |
-| `safety_recheck_days` | Re-check the stock every N days (`0` = off) |
-| `link_gc_years` | `0` = no automatic cleanup |
-| `data_dir` | Keep runtime data outside the webroot – recommended |
-| `trusted_proxies` | Addresses of upstream proxies; needed for correct rate limits |
-
-At runtime, the admin area additionally lets you switch off public link
-creation and self-registration – handy when the instance is internal only.
+offering needs. Installing flatlink does **not** give you an imitation of
+it: a neutral theme, your own codes, your own domain.
 
 ## Manual
 
@@ -360,7 +455,7 @@ names – is small, constant, and easier to repair in a text file than in a
 table.
 
 One honest limit remains: the admin's full list over *millions* of links
-still loads the whole stock into memory even with the database – whoever
+still loads the whole stock into memory even with the database – anyone who
 really gets there raises `memory_limit`. A per-page query is the next step,
 when someone needs it.
 
@@ -390,7 +485,7 @@ php tests/optionen.php http://localhost:8080
 actually arrives at `qr.php`. The occasion was a bug another test could not
 find: four module shapes were built in the renderer and offered in the
 designer, but the allowlist in `qr.php` didn't recognise them – and an
-unknown value is silently reset to the default there. Whoever chose
+unknown value is silently reset to the default there. Anyone who chose
 "diamond" got a square, without a word about it.
 
 The earlier test only asked whether the result **scans**. A code whose shape
@@ -424,7 +519,7 @@ for your own purposes.
    [`inc/helpers.php`](inc/helpers.php).
 2. **Changes stay open.** Whoever offers a *modified* version as a network
    service must make the source of that version available to its users (AGPL
-   § 13). Whoever runs it unmodified doesn't have to publish anything.
+   § 13). Anyone who runs it unmodified doesn't have to publish anything.
 
 Why not MIT: because MIT allows closing the source and building a service
 from it where nobody can check anymore what happens to the click data. The

@@ -87,7 +87,7 @@ Firefox-Fassung, die unsignierte Add-ons erlaubt (ESR, Developer Edition).
 | Kürzen | Adresse des Tabs, Name (aus dem Seitentitel vorgeschlagen), Wunsch-Name |
 | Domain | Auswahl, wenn die Instanz mehrere führt – sonst verborgen |
 | Gruppe | Auswahl, wenn das Konto Arbeitsgruppen hat – sonst verborgen |
-| Mehr | Schlagworte und Ablaufdatum, in einer Klappe |
+| Mehr | Schlagwörter und Ablaufdatum, in einer Klappe |
 | Schon gekürzt | Gibt es für diese Adresse bereits einen Kurzlink, steht er da – mit Kopieren-Knopf, statt einen zweiten anzulegen |
 | Ergebnis | Kurzlink kopieren, oder weiter in die Instanz: QR-Designer und Linkverwaltung, beide direkt beim frisch angelegten Link |
 | Rahmen | Hinweis, sobald das Link-Limit zu 80 % belegt ist |

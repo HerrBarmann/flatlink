@@ -14,7 +14,7 @@ second on "show all" lifts the filter again. Filter and search combine.
 
 Tags are **stored lowercase**: "Campaign" and "campaign" belong in the same
 drawer, otherwise you end up with both after a week. They are for
-organising, not for access control – whoever wants to control access uses
+organising, not for access control – anyone who wants to control access uses
 [groups](gruppen.en.md).
 
 Also available via the [API](API.md) (field `tags`, filter `?tag=`) and in
@@ -65,7 +65,7 @@ limit means real visits. Via the [API](API.md) the field is `max_visits`.
 ## Switches: one link, several targets
 
 A poster hangs once, but the people in front of it differ. A link can
-therefore carry **switches**: whoever scans with a phone lands in the app
+therefore carry **switches**: anyone who scans with a phone lands in the app
 store; whoever prefers English gets the English page; everyone else the main
 target.
 
@@ -122,7 +122,7 @@ any time. Next to every stored switch you can see how often it fired – that
 shows whether a switch you set is ever used.
 
 The **first matching switch wins**; if none matches, the main target
-applies. The order is the whole logic – no and/or, no nesting. Whoever needs
+applies. The order is the whole logic – no and/or, no nesting. Anyone who needs
 more does not need a short-link tool. At most eight switches per link; the
 permission is called `link_rules`.
 
@@ -164,7 +164,7 @@ uses it.
 
 **No storage of its own.** The parameters live in the target URL and nowhere
 else. The builder reads them from there and writes them back – storing them
-on the link as well would mean maintaining two truths. Whoever edits the
+on the link as well would mean maintaining two truths. Anyone who edits the
 address by hand edits the campaign with it, and the form shows the new state
 the next time it is opened.
 
@@ -205,7 +205,7 @@ untouched when edited, so it does not vanish under a deputy's hands.
 
 **Imprint and privacy.** The page footer can carry both mandatory links: the
 instance provides its own pages in `bio_legal_defaults`, and every bio page
-can replace them with its own addresses – whoever runs their page
+can replace them with its own addresses – anyone who runs their page
 commercially is legally responsible themselves and links **their** imprint,
 not the service's. For each page, one source applies in full; empty and
 without a default the footer stays empty.

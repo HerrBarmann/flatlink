@@ -194,7 +194,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'expires' => $holen('expires'),
             'starts' => $holen('starts'),
             'title' => $holen('title'),
-            // Shlink trennt Schlagworte mit |, wir mit Komma – beides annehmen
+            // Shlink trennt Schlagwörter mit |, wir mit Komma – beides annehmen
             'tags' => str_replace('|', ',', $holen('tags')),
         ];
     }

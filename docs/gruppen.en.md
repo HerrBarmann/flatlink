@@ -23,7 +23,7 @@ They come in two kinds, and the distinction is not cosmetic: the first says
 **what an account may do with its own links** – on an instance with paid
 plans that is precisely the plan. The second says **what someone may do for
 others**, and describes a role in the organisation. The interface therefore
-shows them in two labelled blocks; whoever sets up a "Marketing" work group
+shows them in two labelled blocks; anyone who sets up a "Marketing" work group
 should not accidentally tick something that costs money.
 
 *What an account may do itself:*
@@ -104,7 +104,7 @@ kurz.hochschule.de/stud/mensaplan          ← group "Students", prefix stud
 
 That settles the fight over short names before it starts: every unit has its
 own space, and `/mensaplan` stays free for the central administration.
-Whoever is in several groups with a prefix chooses at creation;
+Anyone who is in several groups with a prefix chooses at creation;
 administrators are not restricted. Without a prefix everything behaves as
 before.
 
@@ -121,7 +121,7 @@ do additionally – even without a group. Administrators may always do
 everything.
 
 Custom names in particular are a good example of why this is tied to groups:
-the namespace of an instance is finite, and whoever secures `/team` takes it
+the namespace of an instance is finite, and anyone who secures `/team` takes it
 from everyone else. As a group permission it can be granted deliberately,
 instead of allowing it for everyone or no one.
 
@@ -151,7 +151,7 @@ each other. That is why it is chosen explicitly at creation:
 
 The difference is not a subtlety. If a paid plan hangs on a group and that
 group is set up as a working group, it appears in every customer's
-assignment field – and whoever selects it by accident releases their link to
+assignment field – and anyone who selects it by accident releases their link to
 all other customers for editing and deletion.
 
 The interface therefore creates new groups as **permission groups**. The

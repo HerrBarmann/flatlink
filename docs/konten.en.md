@@ -6,7 +6,7 @@ to the [README](../README.md). – 🇩🇪 [Deutsche Fassung](konten.md).
 
 ## Two-factor sign-in
 
-Why this is in here: whoever takes over an account can change the target of
+Why this is in here: anyone who takes over an account can change the target of
 a short link – including one whose code has long been printed on a sign. The
 damage then hits not the account holder but everyone who scans. For a
 service that hands out printed codes, a password alone is a thin door.
@@ -52,7 +52,7 @@ won't keep.
 **There are no recovery codes.** A passkey cannot be written down and put in
 a safe. Hence two ways back: register a second device – or an administrator
 resets the second factor under *Users*. That possibility is intentional and
-at the same time the weakest link in the chain; whoever uses it should be
+at the same time the weakest link in the chain; anyone who uses it should be
 sure who they are talking to.
 
 ### One-time passwords from an app (TOTP)
@@ -85,7 +85,7 @@ guided to the profile after signing in instead of being locked out; the last
 remaining method can then no longer be removed.
 
 **API keys are not affected** – they are their own credential and carry no
-password a second factor could protect. Whoever wants to protect an account
+password a second factor could protect. Anyone who wants to protect an account
 particularly well therefore also reviews its key list.
 
 ## Central sign-in
@@ -166,7 +166,7 @@ discarded, and the links are distributed.
 | | |
 | --- | --- |
 | Links of a **working group** | stay with the group and merely lose their owner. That is what groups are for – a departing colleague does not take the shared poster with them. |
-| Links **without a group** | would be ownerless afterwards. When the administration deletes, the administrator decides: transfer to themselves or delete as well. Whoever deletes themselves has nobody to hand over to – there they are deleted. |
+| Links **without a group** | would be ownerless afterwards. When the administration deletes, the administrator decides: transfer to themselves or delete as well. Anyone who deletes themselves has nobody to hand over to – there they are deleted. |
 
 When in doubt, transfer: a printed code whose target disappears leads
 nowhere, and you only notice when someone complains.
@@ -187,7 +187,7 @@ someone starts simply could not.
 
 Under *Users → Create from directory* you can therefore search directly – by
 name, identifier or e-mail. One click creates the account, with display name
-and address from the directory; sign-in works immediately. Whoever already
+and address from the directory; sign-in works immediately. Anyone who already
 has an account appears as such and not as a button.
 
 The search runs with the service account from `bind_dn`, i.e. with the same
@@ -208,7 +208,7 @@ Multiple words are combined with AND, each across all attributes. "Dennis
 Bormann" thus also matches an entry "Bormann, Dennis" – and two name parts
 make the search narrower, not wider.
 
-The queue remains alongside: whoever signs in without an account still lands
+The queue remains alongside: anyone who signs in without an account still lands
 there. Both lead to the same result, just from different sides.
 
 ### Groups from the directory
@@ -248,7 +248,7 @@ sign-in could be bypassed with an old password.
 
 ### What centrally managed accounts can do in the profile
 
-Whoever signs in via LDAP or the web server has no password hash here – the
+Anyone who signs in via LDAP or the web server has no password hash here – the
 login rejects such accounts locally, and every sign-in via the directory
 removes any leftover hash. The profile therefore shows no password form but
 a note where the password belongs. Same for the display name: if the
@@ -308,7 +308,7 @@ Set `'self_delete' => false` there – the export is unaffected.
 **Google Safe Browsing** is **off** by default. Whoever enables it sends the
 target URL of every newly created link to Google. For a public instance that
 is effective protection against phishing abuse, for an internal one it is
-usually unnecessary. Whoever switches it on should state it in their privacy
+usually unnecessary. Anyone who switches it on should state it in their privacy
 policy.
 
 **The web server keeps logging.** flatlink stores no IP addresses; the

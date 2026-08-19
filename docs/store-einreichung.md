@@ -59,7 +59,7 @@ Einmalig 5 USD Entwicklergebühr, Prüfung dauert meist zwei bis fünf Tage.
 >
 > WAS SIE KANN
 > • Die Adresse des aktuellen Tabs kürzen, Name und Wunsch-Adresse optional
-> • Schlagworte und Ablaufdatum gleich mitgeben
+> • Schlagwörter und Ablaufdatum gleich mitgeben
 > • Erkennt, wenn du diese Seite schon einmal gekürzt hast, und zeigt den
 >   vorhandenen Kurzlink statt einen zweiten anzulegen
 > • Kurzlink mit einem Klick in die Zwischenablage
@@ -143,7 +143,7 @@ Kostenlos. Zwei Wege:
 **Beschreibung:** dieselbe wie bei Chrome (Firefox erlaubt einfaches HTML;
 die Aufzählungen dürfen dort `<ul><li>` sein).
 
-**Kategorien:** Lesezeichen, Produktivität **Schlagworte:** kurzlink,
+**Kategorien:** Lesezeichen, Produktivität **Schlagwörter:** kurzlink,
 url-shortener, qr-code, selfhosted, datenschutz **Lizenz:**
 AGPL-3.0-or-later (steht im Paket) **Support-Adresse:** die Issues des
 Projekts
@@ -231,7 +231,7 @@ Manifest, also gleich beim Bauen gesetzt)
 >
 > WAS SIE KANN
 > • Die Adresse des aktuellen Tabs kürzen – Titel und Wunsch-Name optional
-> • Schlagworte und Ablaufdatum gleich mitgeben
+> • Schlagwörter und Ablaufdatum gleich mitgeben
 > • Erkennt, wenn du diese Seite schon einmal gekürzt hast, und zeigt den
 >   vorhandenen Kurzlink – statt einen zweiten anzulegen, der dieselbe Seite
 >   noch einmal zählt
@@ -266,7 +266,7 @@ Manifest, also gleich beim Bauen gesetzt)
 > neutralen Fassung und trägt seine eigene Adresse ein.
 
 **Kategorie (Chrome):** Produktivität **Kategorien (Firefox):** Lesezeichen,
-Produktivität **Schlagworte:** kurzlink, url-shortener, qr-code, 1337.kiwi,
+Produktivität **Schlagwörter:** kurzlink, url-shortener, qr-code, 1337.kiwi,
 datenschutz **Sprache:** Deutsch **Lizenz:** AGPL-3.0-or-later
 **Startseite:** `https://1337.kiwi` **Datenschutz:**
 `https://1337.kiwi/datenschutz.php` **Support:**

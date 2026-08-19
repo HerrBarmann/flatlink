@@ -94,7 +94,7 @@ redirect all work without scripts. JavaScript only improves the QR designer
   live preview. The controls are operable and labelled, but whether one can
   design meaningfully without seeing the preview is doubtful. The generated
   files are unaffected.
-- **Colour choices in custom themes**: whoever uses `custom.css` leaves the
+- **Colour choices in custom themes**: anyone who uses `custom.css` leaves the
   checked state.
 
 ## When something does not work

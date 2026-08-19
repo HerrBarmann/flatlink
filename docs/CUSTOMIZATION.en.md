@@ -112,7 +112,7 @@ whose system is set to dark. The second block is part of the job:
 Do not simply invert the light values: dark surfaces swallow colour, the
 accent has to be stronger and lighter there.
 
-Whoever deliberately offers only a light appearance leaves the block out and
+Anyone who deliberately offers only a light appearance leaves the block out and
 sets `:root { color-scheme: light; }` instead — then form fields render
 light as well.
 
@@ -177,7 +177,7 @@ purpose and usage, and a bundled template would do more harm than good.
 The line with the small kiwi in the page footer **is required by the
 license** — as an additional term under § 7(b) of the AGPL. It may be
 translated, reworded and set discreetly; that is expressly part of the deal.
-Whoever wants to fit it to their own design overrides `.origin` in
+Anyone who wants to fit it to their own design overrides `.origin` in
 `assets/custom.css` or replaces `origin_note()` via
 [`inc/local.php`](#10-your-own-pages-and-functions) — as long as "flatlink"
 is named and <https://1337.kiwi/flatlink> stays linked.

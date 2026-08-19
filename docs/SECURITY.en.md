@@ -111,7 +111,7 @@ Some things are not holes but deliberate decisions. For completeness:
 
 - **Resetting the second factor** can be done by an administrator under
   *Users*. There are no recovery codes for passkeys, so this route is needed
-  — and it is at the same time the weakest link in the chain. Whoever uses
+  — and it is at the same time the weakest link in the chain. Anyone who uses
   it must know who they are talking to.
 
 ## Retention

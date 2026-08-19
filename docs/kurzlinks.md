@@ -1,18 +1,18 @@
 # Kurzlinks im Alltag
 
-Ordnung und Werkzeuge rund um die Links: Schlagworte, Kampagnen-Parameter,
+Ordnung und Werkzeuge rund um die Links: Schlagwörter, Kampagnen-Parameter,
 Link-in-Bio-Seiten und der Umzug von einem anderen Dienst. Zurück zur
 [README](../README.de.md). – 🇬🇧 [English version](kurzlinks.en.md).
 
-## Schlagworte
+## Schlagwörter
 
 Ab ein paar hundert Links reicht die Suche nicht mehr. Jeder Link nimmt bis
-zu acht Schlagworte auf, mit Komma getrennt eingegeben. Über der Liste steht
-eine Wolke aller vergebenen Schlagworte mit ihrer Häufigkeit; ein Klick
+zu acht Schlagwörter auf, mit Komma getrennt eingegeben. Über der Liste steht
+eine Wolke aller vergebenen Schlagwörter mit ihrer Häufigkeit; ein Klick
 filtert, ein zweiter auf „alle anzeigen“ hebt den Filter wieder auf. Filter
 und Suche lassen sich verbinden.
 
-Schlagworte werden **kleingeschrieben abgelegt**: „Kampagne“ und „kampagne“
+Schlagwörter werden **kleingeschrieben abgelegt**: „Kampagne“ und „kampagne“
 sollen dieselbe Schublade sein, sonst hat man nach einer Woche beide. Sie
 sind Ordnung, keine Berechtigung – wer Zugriff regeln will, nimmt
 [Gruppen](gruppen.md#zwei-arten-von-gruppen).
@@ -262,7 +262,7 @@ Der CSV-Import unter *Links → CSV-Import* erkennt die Spalten an der
 Kopfzeile statt an ihrer Reihenfolge. Die Exporte von **Bitly** (`Bitlink`,
 `Long URL`, `Title`), **YOURLS** (`keyword`, `url`, `title`), **Shlink**
 (Web-Client: `shortCode`, `longUrl`, `title`, `tags` – die Pipe-getrennten
-Schlagworte werden auf unsere Kommas umgestellt) und **Kutt** (`address`,
+Schlagwörter werden auf unsere Kommas umgestellt) und **Kutt** (`address`,
 `target`, `description`) lassen sich damit unverändert hochladen. Steht in
 der Code-Spalte eine vollständige Adresse wie `bit.ly/3xYz9`, wird der
 letzte Teil übernommen – die Kurzcodes bleiben also erhalten, und gedruckte

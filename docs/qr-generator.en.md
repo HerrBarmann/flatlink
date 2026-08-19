@@ -42,7 +42,7 @@ assignment are added on top.
 
 All four extra types produce **static** codes: the data lives in the code
 itself, nothing is stored, and they keep working even if this instance no
-longer exists. The price is that they cannot be changed any more – whoever
+longer exists. The price is that they cannot be changed any more – anyone who
 needs that takes a short link.
 
 The inputs go to `qr.php` via POST, not as address parameters: a Wi-Fi
@@ -62,7 +62,7 @@ see where the transparency sits in cut-out images), name, owner, sharing and
 delete button. Logos shared by others via a group appear as well, but not
 for managing – use yes, change no.
 
-Whoever has the `logo_upload` permission can upload their own logos; how
+Anyone who has the `logo_upload` permission can upload their own logos; how
 many is bounded by the `logos` limit. A logo belongs to whoever uploaded it.
 
 **Sharing.** Any logo of your own can be shared with groups. Members of
@@ -71,7 +71,7 @@ belongs to. The special value "all signed-in accounts" opens it to everyone.
 
 Sharing means **permission to use**, not to manage: renaming and deleting
 stay with the owner (and administrators), and the logo still counts towards
-their quota. Whoever sees a shared logo in their list can use it, but cannot
+their quota. Anyone who sees a shared logo in their list can use it, but cannot
 take it away from anyone.
 
 Technically the share lives in `data/logos.json` as a list of group ids
@@ -246,7 +246,7 @@ the list. At most 200 codes per archive.
 The path leads through the list: filter by tag or group, then the button
 above the list – the selection is already made.
 
-The ZIP contains **an overview as CSV**. Whoever hands a batch to a print
+The ZIP contains **an overview as CSV**. Anyone who hands a batch to a print
 shop needs the mapping from file to target, not just the images; and the
 file names additionally carry the link's label, so they still mean something
 on someone else's desk.

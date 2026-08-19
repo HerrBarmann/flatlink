@@ -353,7 +353,7 @@ if ($ressource === 'links') {
         foreach (['url', 'expires', 'starts', 'group', 'title', 'lang', 'max_visits'] as $f) {
             if (array_key_exists($f, $in)) $rein[$f] = (string)$in[$f];
         }
-        // Schlagworte dürfen als Liste oder als Zeichenkette mit Kommas kommen
+        // Schlagwörter dürfen als Liste oder als Zeichenkette mit Kommas kommen
         if (array_key_exists('tags', $in)) $rein['tags'] = $in['tags'];
         if (array_key_exists('domain', $in)) $rein['domain'] = (string)$in['domain'];
         if (is_array($in['utm'] ?? null)) $rein['utm'] = $in['utm'];

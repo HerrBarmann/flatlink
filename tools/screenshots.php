@@ -217,7 +217,7 @@ $szenen = [
                 . 'die Verwaltung und ohne fremden Dienst dazwischen.',
         'punkte' => ['Adresse und Titel stehen schon da',
                      'Wunsch-Name statt Zufallscode',
-                     'Schlagworte und Ablaufdatum, wenn du sie brauchst'],
+                     'Schlagwörter und Ablaufdatum, wenn du sie brauchst'],
         'abschnitt' => 'kuerzen',
         'offen' => ['mehr'],
         'text' => ['ziel' => $lang],

@@ -199,7 +199,7 @@ if ($hatDims): ?>
 <?php $historie = array_reverse((array)($link['history'] ?? [])); if ($historie !== []): ?>
 <div class="card">
     <h2><?= t('Änderungen am Ziel') ?></h2>
-    <p class="muted small"><?= t('Ein gedruckter Code lässt sich nicht zurückrufen – wohin er führt, schon. Deshalb steht hier, wer das Ziel wann geändert hat. Die letzten %d Änderungen; Name, Schlagworte und Gestaltung bleiben außen vor, sie sind Ordnung und keine Zusage.', LINK_HISTORY_MAX) ?></p>
+    <p class="muted small"><?= t('Ein gedruckter Code lässt sich nicht zurückrufen – wohin er führt, schon. Deshalb steht hier, wer das Ziel wann geändert hat. Die letzten %d Änderungen; Name, Schlagwörter und Gestaltung bleiben außen vor, sie sind Ordnung und keine Zusage.', LINK_HISTORY_MAX) ?></p>
     <div class="table-scroll"><table>
         <tr><th><?= t('Zeit') ?></th><th><?= t('Konto') ?></th><th><?= t('Von') ?></th><th><?= t('Nach') ?></th></tr>
         <?php foreach ($historie as $h): ?>

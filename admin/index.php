@@ -307,11 +307,11 @@ if ($neu !== null && link_access($user, $neu)):
         <button class="btn btn-primary" type="submit"><?= t('Kürzen') ?></button>
     </div>
     <details class="mehr">
-        <summary><?= t('Mehr Optionen: Name, Schlagworte, Wunsch-Name, Kampagne …') ?></summary>
+        <summary><?= t('Mehr Optionen: Name, Schlagwörter, Wunsch-Name, Kampagne …') ?></summary>
         <div>
             <label for="c-title"><?= t('Name') ?> <span class="muted">(<?= t('optional – nur für dich, damit du den Link in der Liste wiederfindest') ?>)</span></label>
             <input id="c-title" type="text" name="title" maxlength="120" placeholder="<?= t('z. B. Speisekarte Sommer') ?>">
-            <label for="c-tags"><?= t('Schlagworte') ?> <span class="muted">(<?= t('optional, mit Komma trennen – zum Filtern der Liste') ?>)</span></label>
+            <label for="c-tags"><?= t('Schlagwörter') ?> <span class="muted">(<?= t('optional, mit Komma trennen – zum Filtern der Liste') ?>)</span></label>
             <input id="c-tags" type="text" name="tags" maxlength="220" placeholder="<?= t('kampagne, sommer, plakat') ?>">
         </div>
         <?= utm_form('c', [], $utmVorschlaege) ?>
@@ -447,7 +447,7 @@ if ($neu !== null && link_access($user, $neu)):
             <input id="e-url" type="text" name="url" value="<?= e($editLink['url']) ?>" required>
             <label for="e-title"><?= t('Name') ?> <span class="muted">(<?= t('optional') ?>)</span></label>
             <input id="e-title" type="text" name="title" maxlength="120" value="<?= e((string)($editLink['title'] ?? '')) ?>">
-            <label for="e-tags"><?= t('Schlagworte') ?> <span class="muted">(<?= t('mit Komma trennen') ?>)</span></label>
+            <label for="e-tags"><?= t('Schlagwörter') ?> <span class="muted">(<?= t('mit Komma trennen') ?>)</span></label>
             <input id="e-tags" type="text" name="tags" maxlength="220" value="<?= e(tags_text($editLink)) ?>">
             <?= utm_form('e', utm_extract((string)($editLink['url'] ?? '')), $utmVorschlaege) ?>
             <?php

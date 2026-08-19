@@ -119,7 +119,7 @@ curl -X POST https://example.org/api/links \
 | `url` | ja | http/https; fehlt das Schema, wird `https://` ergänzt |
 | `code` | nein | Wunsch-Name; braucht das Recht `custom_code` |
 | `title` | nein | Name für die eigene Übersicht |
-| `tags` | nein | Schlagworte zum Ordnen – Liste oder Zeichenkette mit Kommas; höchstens acht, je 24 Zeichen, werden kleingeschrieben |
+| `tags` | nein | Schlagwörter zum Ordnen – Liste oder Zeichenkette mit Kommas; höchstens acht, je 24 Zeichen, werden kleingeschrieben |
 | `domain` | nein | Adresse, unter der der Link stehen soll; leer oder unbekannt = Hauptdomain |
 | `utm` | nein | Objekt mit `utm_source`, `utm_medium`, `utm_campaign`, `utm_term`, `utm_content`; wird an `url` gehängt |
 | `expires` | nein | `JJJJ-MM-TT`, frühestens heute |
@@ -203,16 +203,16 @@ nirgends steht.
 Beide gelten für `POST /links` und `PATCH /links/{code}` und stehen in jeder
 Link-Antwort.
 
-### Schlagworte (`/tags`)
+### Schlagwörter (`/tags`)
 
-Schlagworte hängen an den Links; hier lassen sie sich über den ganzen
+Schlagwörter hängen an den Links; hier lassen sie sich über den ganzen
 erreichbaren Bestand auf einmal verwalten – „erreichbar“ heißt dieselbe
 Menge, die auch je Link gilt: eigene Links plus die der Arbeitsgruppen, für
 Administratoren alle.
 
 | Aufruf | Wirkung |
 | --- | --- |
-| `GET /tags` | alle vergebenen Schlagworte mit Anzahl der Links |
+| `GET /tags` | alle vergebenen Schlagwörter mit Anzahl der Links |
 | `PATCH /tags/{tag}` | umbenennen, Feld `name`; trägt ein Link beide, verschmelzen sie |
 | `DELETE /tags/{tag}` | von allen Links entfernen |
 
