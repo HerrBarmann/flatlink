@@ -179,4 +179,4 @@ Paket: 1280×800, wie Chrome es verlangt, wahlweise auf Deutsch oder Englisch.
 
 ## Version
 
-1.3.3 – gebaut gegen die Schnittstelle von flatlink 3.5.0.
+1.3.4 – gebaut gegen die Schnittstelle von flatlink 3.5.1.
