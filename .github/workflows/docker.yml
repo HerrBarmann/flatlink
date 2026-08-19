@@ -72,11 +72,13 @@ jobs:
         if: github.event_name != 'pull_request'
         run: |
           docker build -t flatlink-probe --load .
-          # Den Port aus dem Image lesen, statt ihn hier zu wiederholen –
-          # sonst bricht dieser Schritt bei der nächsten Portänderung, und
-          # zwar erst nachdem das Image längst veröffentlicht ist.
-          PORT=$(docker image inspect flatlink-probe \
-            --format '{{range $p, $_ := .Config.ExposedPorts}}{{$p}}{{end}}' | cut -d/ -f1)
+          # Den Port aus der Apache-Konfiguration lesen, statt ihn hier zu
+          # wiederholen – sonst bricht dieser Schritt bei der nächsten
+          # Portänderung, und zwar erst nach der Veröffentlichung. Nicht aus
+          # ExposedPorts: Das Basis-Image bringt zusätzlich 80 mit, und wer
+          # von zwei Einträgen der richtige ist, weiß nur ports.conf.
+          PORT=$(docker run --rm --entrypoint sed flatlink-probe \
+            -n 's/^Listen //p' /etc/apache2/ports.conf | head -1)
           echo "Image lauscht auf $PORT"
           docker run -d --name probe -p 8080:"$PORT" \
             -e FLATLINK_BASE_URL=http://localhost:8080 flatlink-probe
