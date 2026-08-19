@@ -36,18 +36,18 @@ data:
   # gälten versehentlich für alle gemeinsam.
   FLATLINK_TRUSTED_PROXIES: "10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
 ---
-# Zugangsdaten gehören nicht in die ConfigMap. Erzeugen mit:
+# Zugangsdaten gehören nicht in diese Datei, und deshalb steht hier auch kein
+# Secret-Objekt. Ein leeres Secret im Manifest wäre eine Falle: Das nächste
+# `kubectl apply -f flatlink.yaml` – also jedes Update – überschriebe damit
+# das von Hand gesetzte Passwort mit einer leeren Zeichenkette. Der Pod
+# startete neu und verschickte ab da still keine Mails mehr; auffallen würde
+# es erst, wenn sich jemand nicht registrieren kann.
+#
+# Einmalig anlegen, dann bleibt es unangetastet:
 #   kubectl -n flatlink create secret generic flatlink-secrets \
 #     --from-literal=FLATLINK_SMTP_PASS=… --from-literal=FLATLINK_LDAP_BIND_PASS=…
-apiVersion: v1
-kind: Secret
-metadata:
-  name: flatlink-secrets
-  namespace: flatlink
-type: Opaque
-stringData:
-  FLATLINK_SMTP_PASS: ""
----
+#
+# Das Deployment bindet es unten über envFrom.secretRef ein.
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -86,7 +86,10 @@ spec:
           type: RuntimeDefault
       containers:
         - name: flatlink
-          image: ghcr.io/herrbarmann/flatlink:3.3
+          # major.minor – Fehlerbehebungen kommen automatisch, ein Sprung auf
+          # 3.6 nicht. Wer reproduzierbar ausrollen will, pinnt die volle
+          # Fassung (…:3.5.1); die Action baut alle drei Formen.
+          image: ghcr.io/herrbarmann/flatlink:3.5
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -96,6 +99,11 @@ spec:
                 name: flatlink
             - secretRef:
                 name: flatlink-secrets
+                # optional, damit ein Cluster ohne dieses Secret trotzdem hochkommt:
+                # Wer keine Mails verschickt und kein LDAP nutzt, braucht es nicht.
+                # Ohne das Flag bliebe der Pod in CreateContainerConfigError stehen,
+                # und die Ursache stuende nur im Ereignisprotokoll.
+                optional: true
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: false   # Apache schreibt seine PID-Datei

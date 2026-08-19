@@ -192,7 +192,7 @@ address, because no such thing is kept anywhere.
 | Field | Meaning |
 | --- | --- |
 | `lang` | Language of the target URL, two letters. Basis of the switches' language negotiation: only with it can a visitor with a matching second language be routed correctly. |
-| `max_visits` | Visit limit. Whole number, 1 or greater; once reached, the link returns 410. Empty or 0 = unlimited. Bots and HEAD requests do not count. |
+| `max_visits` | Visit limit. Whole number, 1 or greater; once reached, the link returns 410. Empty or 0 = unlimited. **Every redirect handed out** counts towards it, including those from bots and HEAD requests – unlike the statistics, which leave both out. It governs the short link, it does not protect the destination (see [Short links](kurzlinks.en.md#visit-limit)). |
 
 Both apply to `POST /links` and `PATCH /links/{code}` and appear in every
 link response.

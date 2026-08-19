@@ -198,7 +198,7 @@ nirgends steht.
 | Feld | Bedeutung |
 | --- | --- |
 | `lang` | Sprache der Ziel-URL, zwei Buchstaben. Grundlage der Sprachauswahl der Weichen: Nur mit ihr kann ein Besucher mit passender Zweitsprache richtig verteilt werden. |
-| `max_visits` | Aufruf-Limit. Ganze Zahl ab 1; ist sie erreicht, antwortet der Link mit 410. Leer oder 0 = unbegrenzt. Bots und HEAD-Anfragen zählen nicht. |
+| `max_visits` | Aufruf-Limit. Ganze Zahl ab 1; ist sie erreicht, antwortet der Link mit 410. Leer oder 0 = unbegrenzt. Dagegen zählt **jede ausgelieferte Weiterleitung**, auch die von Bots und HEAD-Anfragen – anders als die Statistik, die beides auslässt. Steuert den Kurzlink, schützt nicht das Ziel (siehe [Kurzlinks](kurzlinks.md#aufruf-limit)). |
 
 Beide gelten für `POST /links` und `PATCH /links/{code}` und stehen in jeder
 Link-Antwort.

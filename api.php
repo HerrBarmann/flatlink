@@ -75,7 +75,16 @@ if ($pfad === '') $pfad = (string)($_GET['p'] ?? '');
 // eingebaute PHP-Server legt in PATH_INFO den vollen Pfad ab („/api/me"),
 // Apache mit PATH_INFO-Unterstützung nur den Rest („/me"), und ohne sie
 // bleibt nur die Adresse. Nach dem Abschneiden ist die Herkunft egal.
-$pfad = (string)preg_replace('#^/?api(?:\.php)?(?=/|$)#i', '', $pfad);
+//
+// Abgeschnitten wird ab dem LETZTEN „/api" im Pfad, nicht ab dem Anfang.
+// Liegt die Instanz in einem Unterverzeichnis, lautet die Adresse
+// „/links/api/health" – ein am Anfang verankerter Ausdruck greift dort nicht,
+// und jeder Aufruf endete in einem 404 „Diesen Endpunkt gibt es nicht".
+// Aufgefallen ist das erst im Review, weil die eigene Instanz im Wurzel-
+// verzeichnis liegt und der Unterverzeichnis-Fall in der Anleitung steht.
+if (preg_match('#^(?:.*)/?api(?:\.php)?(?=/|$)#i', $pfad, $m) === 1) {
+    $pfad = substr($pfad, strlen($m[0]));
+}
 $teile = array_values(array_filter(explode('/', trim($pfad, '/')), fn($t) => $t !== ''));
 
 // ---- Gesundheit (ohne Schlüssel) -----------------------------------------

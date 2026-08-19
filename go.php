@@ -75,6 +75,10 @@ if (link_ausgeschoepft($code, $link)) {
 // Einmal je Anfrage entschieden, an allen Zählstellen benutzt – auch von den
 // Bio-Seiten (inc/bio.php liest dieselbe Funktion).
 $zaehlbar = click_zaehlbar($link);
+// Nur für Links MIT Aufruflimit wird auch das Nichtzählbare mitgeschrieben –
+// sonst ginge die Grenze am Bot-Filter vorbei. Bei allen anderen bleibt eine
+// Bot-Anfrage ein Aufruf, der keine Datei anfasst.
+$limitiert = !$zaehlbar && (int)($link['max_visits'] ?? 0) > 0;
 
 // Link-in-Bio-Seiten leiten nicht weiter, sondern zeigen ihre Ziele. Die
 // Abzweigung steht bewusst hinter Sperre und Ablauf – auch eine Seite kann
@@ -111,6 +115,7 @@ if (!empty($link['pass'])) {
             }
             [$ziel, $weiche] = route_target($link);
             if ($zaehlbar) clicks_bump($code, null, $weiche);
+elseif ($limitiert) clicks_roh_bump($code);
             header('Location: ' . $ziel, true, 302);
             exit;
         } else {
@@ -151,5 +156,6 @@ if (($link['og_title'] ?? '') !== '' && route_ist_vorschau()) {
     preview_render($code, $link, $ziel);
 }
 if ($zaehlbar) clicks_bump($code, null, $weiche);
+elseif ($limitiert) clicks_roh_bump($code);
 header('Location: ' . $ziel, true, 302);
 exit;

@@ -60,9 +60,22 @@ Ein Link kann auf eine Höchstzahl von Aufrufen begrenzt werden – „nur die
 ersten 50 bekommen den Rabatt“. Danach antwortet er wie ein abgelaufener:
 410, mit Begründung statt Rätselraten. Das Feld steht beim Anlegen unter
 *Mehr Optionen* und beim Bearbeiten neben dem Ablaufdatum; leer heißt
-unbegrenzt. Geprüft wird gegen den Zähler, der ohnehin geführt wird – und
-weil Bots nicht zählen, meint das Limit echte Besuche. Über die
-[Schnittstelle](API.md) heißt das Feld `max_visits`.
+unbegrenzt. Über die [Schnittstelle](API.md) heißt das Feld `max_visits`.
+
+Gezählt wird dafür **jede ausgelieferte Weiterleitung** – auch die von
+Vorschau-Diensten und Kommandozeilenwerkzeugen, die in der Statistik bewusst
+fehlen. Das ist Absicht: Ein Limit, das den Bot-Filter mitbenutzt, ließe sich
+mit einem beliebigen `User-Agent` umgehen. Die Statistik bleibt davon
+unberührt und zählt weiterhin nur echte Besuche; für das Limit läuft ein
+zweiter, ungefilterter Zähler mit – aber nur bei Links, die überhaupt eines
+gesetzt haben.
+
+**Kein Zugangsschutz.** Das Limit steuert, wie oft der *Kurzlink* weiterleitet
+– es schützt nicht das Ziel. Wer die Zieladresse einmal hat, ruft sie direkt
+auf, ohne je an dieser Grenze vorbeizukommen. Für „nur die ersten 50 bekommen
+den Rabatt" ist das in Ordnung, solange der Rabatt am Ziel geprüft wird; als
+alleinige Schranke vor etwas Schützenswertem taugt es nicht. Dafür gibt es den
+Passwortschutz – und für Ernsteres eine Anmeldung am Ziel.
 
 ## Weichen: ein Link, mehrere Ziele
 

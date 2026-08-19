@@ -58,9 +58,23 @@ checked and forgotten:
 A link can be capped at a number of visits – "only the first 50 get the
 discount". After that it answers like an expired link: 410, with a reason
 instead of guesswork. The field sits under *More options* when creating and
-next to the expiry date when editing; empty means unlimited. The check runs
-against the counter that is kept anyway – and since bots do not count, the
-limit means real visits. Via the [API](API.md) the field is `max_visits`.
+next to the expiry date when editing; empty means unlimited. Via the
+[API](API.md) the field is `max_visits`.
+
+What counts towards it is **every redirect handed out** – including those from
+preview services and command-line tools, which the statistics deliberately
+leave out. That is on purpose: a limit sharing the bot filter could be walked
+past with any `User-Agent`. The statistics are unaffected and still count real
+visits only; the limit runs on a second, unfiltered counter – kept solely for
+links that actually have one set.
+
+**Not an access control.** The limit governs how often the *short link*
+redirects – it does not protect the destination. Anyone who has the target
+address once will open it directly, never passing this boundary. For "only the
+first 50 get the discount" that is fine, as long as the discount is checked at
+the destination; as the sole barrier in front of something worth protecting it
+is not enough. Use the password protection for that – and a login at the
+destination for anything more serious.
 
 ## Switches: one link, several targets
 

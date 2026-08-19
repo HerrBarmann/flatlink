@@ -127,7 +127,17 @@ function link_expired(array $link): bool
 function link_ausgeschoepft(string $code, array $link): bool
 {
     $m = (int)($link['max_visits'] ?? 0);
-    return $m > 0 && (int)(clicks_get($code)['n'] ?? 0) >= $m;
+    if ($m <= 0) return false;
+    $c = clicks_get($code);
+    // Gegen den UNGEFILTERTEN Zähler prüfen, nicht gegen den der Statistik.
+    // Der statistische lässt Bots aus – für Kampagnenzahlen richtig, für ein
+    // Limit fatal: Wer „User-Agent: curl/8.0" schickt, wurde weitergeleitet,
+    // ohne den Zähler zu bewegen, und kam damit beliebig oft durch. Das Limit
+    // fiel mit einem einzigen Header.
+    //
+    // max() statt nur n_roh, damit Links aus der Zeit vor diesem Feld nicht
+    // plötzlich bei null anfangen.
+    return max((int)($c['n'] ?? 0), (int)($c['n_roh'] ?? 0)) >= $m;
 }
 
 /**
@@ -702,6 +712,28 @@ function click_zaehlbar(?array $link = null): bool
     return true;
 }
 
+/**
+ * Eine ausgelieferte Weiterleitung zählen, die nicht in die Statistik geht.
+ *
+ * Gedacht für den einen Fall, in dem das nötig ist: Ein Link hat ein
+ * Aufruflimit, und der Aufruf kommt von etwas, das `click_zaehlbar()`
+ * aussortiert – ein Bot, ein HEAD-Abruf. In der Statistik hat er nichts zu
+ * suchen, im Limit schon, sonst ließe sich die Grenze mit einem beliebigen
+ * User-Agent umgehen.
+ *
+ * Deshalb schreibt diese Funktion nur ein einziges Feld und rührt weder Tage
+ * noch Herkunftssummen an. Aufgerufen wird sie ausschließlich bei Links mit
+ * gesetztem Limit – für alle anderen bleibt eine Bot-Anfrage das, was sie war:
+ * ein Aufruf, der keine Datei anfasst.
+ */
+function clicks_roh_bump(string $code): void
+{
+    json_update(clicks_file($code), function (array $c): array {
+        $c['n_roh'] = (int)($c['n_roh'] ?? $c['n'] ?? 0) + 1;
+        return $c;
+    });
+}
+
 function clicks_bump(string $code, ?int $item = null, ?int $weiche = null): void
 {
     $herkunft = $item === null ? click_dims() : [];
@@ -719,7 +751,11 @@ function clicks_bump(string $code, ?int $item = null, ?int $weiche = null): void
             // sekundengenauer Zeitpunkt der einzige Wert im gesamten Bestand, über
             // den sich ein einzelner Besuch zeitlich verorten – und mit anderen
             // Quellen zusammenführen – ließe. Für „letzter Aufruf" genügt der Tag.
-            return ['n' => ($z['n'] ?? 0) + 1, 'last' => $today, 'days' => $days];
+            // n_roh läuft neben n her und wird auch von clicks_roh_bump()
+            // erhöht – es zählt jede ausgelieferte Weiterleitung, damit das
+            // Aufruflimit nicht am Bot-Filter vorbeigeht.
+            return ['n' => ($z['n'] ?? 0) + 1, 'n_roh' => ($z['n_roh'] ?? $z['n'] ?? 0) + 1,
+                    'last' => $today, 'days' => $days];
         };
         if ($item === null) {
             // Die Ziel-Zähler bleiben unangetastet – deshalb wird ergänzt und
