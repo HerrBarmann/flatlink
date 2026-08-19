@@ -104,7 +104,7 @@ $logos = qr_logo_choices($user);
 
 // Die Instanz darf oberhalb und unterhalb eigene Texte einhängen – dort steht
 // bei 1337.kiwi der Erklärtext, der die Seite auffindbar macht.
-page_header('QR-Code-Generator', false,
+page_header(t('QR-Code-Generator'), false,
     function_exists('designer_description') ? designer_description() : null,
     base_url() . '/qr-designer.php');
 show_flash();
