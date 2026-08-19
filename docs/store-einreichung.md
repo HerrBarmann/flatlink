@@ -71,8 +71,11 @@ Einmalig 5 USD Entwicklergebühr, Prüfung dauert meist zwei bis fünf Tage.
 > • Erkennt, wenn du diese Seite schon einmal gekürzt hast, und zeigt den
 >   vorhandenen Kurzlink statt einen zweiten anzulegen
 > • Kurzlink mit einem Klick in die Zwischenablage
-> • Ein Klick weiter zum QR-Designer deiner Instanz – mit Farben, Formen,
->   Logo und Druckdateien
+> • QR-Code zum Abscannen – der schnellste Weg vom Bildschirm aufs Handy;
+>   auf Wunsch als PNG zu speichern
+> • Tastenkürzel Alt+Shift+K, im Browser frei änderbar
+> • Ein Klick weiter zum QR-Designer deiner Instanz – dort gibt es Farben,
+>   Formen, Logo und Druckdateien (PDF, EPS, CMYK)
 >
 > WAS SIE NICHT TUT
 > • Keine Seiteninhalte lesen, keine Skripte in Seiten einspritzen
@@ -90,7 +93,7 @@ Einmalig 5 USD Entwicklergebühr, Prüfung dauert meist zwei bis fünf Tage.
 > ein Zugangsschlüssel aus deinem Profil. Am schnellsten geht das Einrichten
 > mit einem Verbindungscode: in der Instanz erzeugen, hier einfügen.
 >
-> Der Quelltext der Erweiterung sind vier Dateien mit gut 300 Zeilen –
+> Der Quelltext der Erweiterung sind vier Dateien mit gut 500 Zeilen –
 > nachlesbar an einem Nachmittag: github.com/HerrBarmann/flatlink
 
 **Kategorie:** Produktivität (Productivity) **Sprache:** Deutsch
@@ -144,9 +147,8 @@ Kostenlos. Zwei Wege:
 **Zusammenfassung** (bis 250 Zeichen)
 
 > Kürzt die geöffnete Seite auf deiner eigenen flatlink-Instanz. Ein Klick in
-> der Werkzeugleiste, Kurzlink in der Zwischenablage, von dort weiter zum
-> QR-Designer. Spricht mit keiner anderen Adresse – kein Anbieter dazwischen,
-> der mitliest.
+> der Werkzeugleiste, Kurzlink in der Zwischenablage, QR-Code zum Abscannen.
+> Spricht mit keiner anderen Adresse – kein Anbieter dazwischen, der mitliest.
 
 **Beschreibung:** dieselbe wie bei Chrome (Firefox erlaubt einfaches HTML;
 die Aufzählungen dürfen dort `<ul><li>` sein).
@@ -164,6 +166,12 @@ Projekts
 > Profil einen Zugangsschlüssel anlegen und in den Einstellungen der
 > Erweiterung eintragen. Kein Build-Schritt – der Quelltext im Paket ist der
 > ausgelieferte Code, es gibt keine Minifizierung und keine Bündelung.
+>
+> Zum QR-Code im Ergebnis: Das <img> zeigt auf /qr.php derselben Instanz, mit
+> der die Erweiterung ohnehin spricht. Der Code wird dort erzeugt, nicht von
+> einem Dienst Dritter geholt; es werden keine Kennungen mitgeschickt, und ein
+> Zugangsschlüssel ist dafür nicht nötig, weil ein QR-Code zum Kurzlink gehört
+> und nicht zum Konto.
 
 Der letzte Satz ist wichtig: Firefox verlangt sonst die Quellen des
 Build-Prozesses. Hier gibt es keinen.
@@ -221,9 +229,9 @@ Manifest, also gleich beim Bauen gesetzt)
 **Zusammenfassung** (Firefox, max. 250 Zeichen)
 
 > Kürzt die geöffnete Seite auf 1337.kiwi: ein Klick in der Werkzeugleiste,
-> Kurzlink in der Zwischenablage, von dort weiter zum QR-Designer. Sie
-> spricht mit keiner anderen Adresse als 1337.kiwi – niemand sitzt
-> dazwischen und liest mit.
+> Kurzlink in der Zwischenablage, QR-Code zum Abscannen. Sie spricht mit
+> keiner anderen Adresse als 1337.kiwi – niemand sitzt dazwischen und liest
+> mit.
 
 **Ausführliche Beschreibung**
 
@@ -244,6 +252,9 @@ Manifest, also gleich beim Bauen gesetzt)
 >   vorhandenen Kurzlink – statt einen zweiten anzulegen, der dieselbe Seite
 >   noch einmal zählt
 > • Kurzlink mit einem Klick in die Zwischenablage
+> • QR-Code zum Abscannen, gleich im Fenster – der schnellste Weg vom
+>   Bildschirm aufs Handy; auf Wunsch als PNG zu speichern
+> • Tastenkürzel Alt+Shift+K, im Browser frei änderbar
 > • Von dort weiter in den QR-Designer von 1337.kiwi: Farben, Formen, Logo,
 >   Rahmen mit Text und Druckdateien in PDF und EPS
 >

@@ -77,17 +77,29 @@ async function konto() {
         if (!antwort.ok) return;
         const d = await antwort.json();
 
+        // Einträge werden gebaut, nicht als HTML zusammengesetzt: Domains und
+        // Gruppennamen kommen zwar aus der eigenen Instanz, sind aber von
+        // Menschen vergeben. Ein Anführungszeichen im Namen zerlegte sonst das
+        // Attribut, spitze Klammern brächten Markup ins Popup.
+        const option = (wert, text) => {
+            const o = document.createElement('option');
+            o.value = wert;
+            o.textContent = text;
+            return o;
+        };
+
         const domains = (d.domains || []).filter(Boolean);
         if (domains.length > 1) {
-            $('domain').innerHTML = domains
-                .map((x, i) => `<option value="${x}">${x}${i === 0 ? ' (Standard)' : ''}</option>`).join('');
+            const feld = $('domain');
+            feld.replaceChildren(...domains.map((x, i) =>
+                option(x, i === 0 ? x + ' (Standard)' : x)));
             $('domain-block').hidden = false;
         }
 
         const gruppen = (d.assignable_groups || []).filter(Boolean);
         if (gruppen.length > 0) {
-            $('gruppe').innerHTML = '<option value="">– keine –</option>'
-                + gruppen.map(g => `<option value="${g}">${g}</option>`).join('');
+            const feld = $('gruppe');
+            feld.replaceChildren(option('', '– keine –'), ...gruppen.map(g => option(g, g)));
             $('gruppe-block').hidden = false;
         }
 
