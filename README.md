@@ -129,9 +129,6 @@ does not build: visitor profiles.
 
 ## What it looks like
 
-The screenshots show the German interface; the language is switchable per
-instance – see [Operations](#operations).
-
 <table> <tr> <td width="50%" valign="top"> <a
 href="docs/screenshots/en/qr-designer.webp"><img
 src="docs/screenshots/en/qr-designer.webp" alt="QR designer with module and
@@ -379,6 +376,10 @@ does not even start a session unless the link is password-protected.
 
 If even that is too much for you, switch it off (`'click_dims' => false`)
 and the first line is all that remains.
+
+<p align="center"> <img src="docs/screenshots/en/statistics.webp"
+alt="Statistics of a link: daily values, monthly overview, CSV export"
+width="760"> </p>
 
 ## Who this is for
 

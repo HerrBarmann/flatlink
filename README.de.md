@@ -45,7 +45,7 @@ Quelltext](#was-nicht-gespeichert-wird), nicht nur behauptet.
 | **Code** | zufällig oder selbst gewählt, mit Mindestlänge und Kontingent gegen das Besetzen kurzer Namen |
 | **Ordnung** | Name für die eigene Übersicht, bis zu acht Schlagwörter, Filter und Suche über den Bestand |
 | **Zeitfenster** | Startdatum (Code drucken, bevor das Ziel steht) und Ablaufdatum |
-| **Aufruf-Limit** | „nur die ersten 50" – danach antwortet der Link mit 410 |
+| **Aufruf-Limit** | „nur die ersten 50“ – danach antwortet der Link mit 410 |
 | **Schutz** | Passwort vor der Weiterleitung, Sperren einzelner Links |
 | **Weichen** | ein Link, mehrere Ziele – nach Gerät, Sprache, Land oder Anteil (A/B). Die Sprachweiche verhandelt gegen die Sprache des Ziels, ohne dabei etwas zu speichern |
 | **Kampagnen** | Baukasten für `utm_*`-Parameter mit Vorschlägen aus dem Bestand |
@@ -100,7 +100,7 @@ Gezählt wird je Tag, für die Seite und je Ziel.
 | **Installation** | Dateien kopieren – oder ein Container-Image für amd64 und arm64 |
 | **Sicherung** | ein Knopf, der Datenbank, Einstellungen, Zähler und Logos als ZIP ausgibt; dazu ein Textexport für versionierbare Sicherungen |
 | **Schnittstelle** | Links, Schlagwörter und ein Gesundheitsendpunkt fürs Monitoring, mit Zugangsschlüsseln je Konto |
-| **Browser-Erweiterung** | „diese Seite kürzen" für Chrome und Firefox, gegen die eigene Instanz |
+| **Browser-Erweiterung** | „diese Seite kürzen“ für Chrome und Firefox, gegen die eigene Instanz |
 | **Missbrauchsschutz** | Rate-Limits, Meldeformular, Sperrfunktion, optional Google Safe Browsing samt Wiederholungslauf über den Bestand |
 | **Protokoll** | wer wann was verwaltet hat – nur Verwaltung, nie Besucher |
 | **Aufräumen** | nie aufgerufene Links nach N Jahren, mit Vorwarnung per Mail (aus Vorgabe) |
@@ -120,7 +120,7 @@ Der Vergleich mit Shlink, YOURLS und Kutt, auf Funktionen heruntergebrochen:
 - **Zentrale Anmeldung für Einrichtungen** – Shibboleth und LDAP, nicht nur
   OAuth für Einzelkonten.
 - **Statistik, die keine Profile braucht.** Die Frage „woher kommen meine
-  Klicks?" wird beantwortet, ohne einen einzigen Besuch zu speichern.
+  Klicks?“ wird beantwortet, ohne einen einzigen Besuch zu speichern.
 - **Kein Datenbank-Server, kein Build-Schritt.** Läuft auf dem Webspace für
   drei Euro im Monat.
 
@@ -380,6 +380,9 @@ eine Session, solange kein Passwortschutz auf dem Link liegt.
 
 Wem selbst das zu viel ist, der schaltet es ab (`'click_dims' => false`) und
 hat wieder genau die erste Zeile.
+
+<p align="center"> <img src="docs/screenshots/statistik.webp" alt="Statistik
+eines Links: Tageswerte, Monatsübersicht, CSV-Export" width="760"> </p>
 
 ## Für wen das gedacht ist
 
