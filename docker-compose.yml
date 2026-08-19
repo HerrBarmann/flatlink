@@ -13,7 +13,9 @@ services:
     # build: .
     restart: unless-stopped
     ports:
-      - "8080:80"
+      # Der Container lauscht seit 3.3.0 auf 8080 statt 80 – ein
+      # unprivilegierter Port, damit er ohne root laufen kann.
+      - "8080:8080"
     environment:
       FLATLINK_SITE_NAME: "Kurzlinks"
       # OHNE SLASH AM ENDE. Leer heißt: keine Mails mit Links.

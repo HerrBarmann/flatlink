@@ -203,7 +203,7 @@ The usual case on shared hosting, with no command line at all.
 One image, one volume, no database service:
 
 ```bash
-docker run -d -p 8080:80 \
+docker run -d -p 8080:8080 \
   -e FLATLINK_BASE_URL="http://localhost:8080" \
   -v flatlink-data:/var/lib/flatlink \
   ghcr.io/herrbarmann/flatlink:latest
@@ -211,7 +211,7 @@ docker run -d -p 8080:80 \
 
 There the configuration comes from `FLATLINK_*` environment variables; a
 mounted `inc/config.php` still takes precedence. Details in the [Docker
-guide](docs/docker.en.md).
+guide](docs/docker.en.md) – it also carries ready-made Kubernetes manifests.
 
 ### Route 3: With Git
 
@@ -414,7 +414,7 @@ The README is the overview; the depth lives in dedicated documents:
 | [Browser extension](extension/README.md) | "shorten this page" for Chrome and Firefox, pointed at your own instance |
 | [API](docs/API.en.md) | the API |
 | [Deployment](docs/DEPLOYMENT.en.md) | production setup, condensed – the [German guide](docs/DEPLOYMENT.md) is the step-by-step reference |
-| [Docker](docs/docker.en.md) | image, environment variables, volume, health endpoint |
+| [Docker and Kubernetes](docs/docker.en.md) | image, environment variables, volume, health endpoint, ready-made manifests |
 | [Customisation](docs/CUSTOMIZATION.en.md) | your own look without changing the core |
 | [What flatlink will never do](docs/niemals.md) | the features that will never exist here – and why (German) |
 | [Accessibility](docs/barrierefreiheit.en.md) | self-assessment against WCAG 2.1 AA, with a statement template for public bodies |

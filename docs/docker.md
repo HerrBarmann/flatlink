@@ -12,7 +12,7 @@ die Zustandsprüfung.
 ## In zwei Minuten
 
 ```bash
-docker run -d --name flatlink -p 8080:80 \
+docker run -d --name flatlink -p 8080:8080 \
   -e FLATLINK_BASE_URL="http://localhost:8080" \
   -v flatlink-data:/var/lib/flatlink \
   ghcr.io/herrbarmann/flatlink:latest
@@ -140,6 +140,45 @@ prüft auch der eingebaute `HEALTHCHECK` alle 30 Sekunden. `docker ps` zeigt
 das Ergebnis als `healthy`; eine Überwachung von außen fragt dieselbe
 Adresse.
 
+## Kubernetes
+
+Fertige Manifeste liegen unter
+[`deploy/kubernetes/flatlink.yaml`](../deploy/kubernetes/flatlink.yaml) –
+Namespace, ConfigMap, Secret, PVC, Deployment, Service und Ingress in einer
+Datei. Anpassen muss man die Adresse (ConfigMap **und** Ingress) und
+gegebenenfalls die `storageClassName`:
+
+```bash
+kubectl apply -f deploy/kubernetes/flatlink.yaml
+```
+
+**Ein Pod, nicht mehr.** Der Bestand liegt in einer SQLite-Datei auf einem
+Volume, das genau ein Pod beschreiben darf. Deshalb stehen in den Manifesten
+`replicas: 1` und `strategy: Recreate` – mit der Vorgabe `RollingUpdate`
+liefen beim Ausrollen kurz zwei Pods auf derselben Datei, und genau dort ist
+SQLite verwundbar. Das ist keine Übergangslösung, sondern die Bauweise:
+flatlink ist für Instanzen gedacht, die auf einen Webspace passen. Wer
+waagerecht skalieren muss, braucht etwas anderes.
+
+**Ohne root.** Das Image lauscht auf Port 8080 und läuft als `www-data` in
+Gruppe 0. Damit erfüllt es den Pod-Security-Standard `restricted`
+(`runAsNonRoot`, `allowPrivilegeEscalation: false`, alle Capabilities
+abgelegt) und läuft auch dort, wo der Cluster eine eigene, zufällige
+Benutzerkennung erzwingt – OpenShift etwa. Das Volume ordnet `fsGroup: 0`
+zu; ein `chown` beim Start gibt es nicht mehr.
+
+**Die Proben hängen an `/api/health`.** Beim allerersten Start legt die
+Instanz ihre Datenbank an und meldet bis dahin ehrlich 503 – dafür ist die
+`startupProbe` da.
+
+**Zugangsdaten** gehören ins Secret, nicht in die ConfigMap:
+
+```bash
+kubectl -n flatlink create secret generic flatlink-secrets \
+  --from-literal=FLATLINK_SMTP_PASS=… \
+  --from-literal=FLATLINK_LDAP_BIND_PASS=…
+```
+
 ## Aktualisieren
 
 ```bash
@@ -151,8 +190,8 @@ ist nicht nötig – das Datenformat wächst mit und liest ältere Bestände
 unverändert.
 
 Feste Fassungen sind angenehmer als `latest`, wenn dir ein unbeabsichtigter
-Sprung ungelegen käme: `ghcr.io/herrbarmann/flatlink:3.2` bleibt bei den
-3.2er-Ausgaben, `:3.2.1` bei genau dieser.
+Sprung ungelegen käme: `ghcr.io/herrbarmann/flatlink:3.3` bleibt bei den
+3.3er-Ausgaben, `:3.3.0` bei genau dieser.
 
 ## Selbst bauen
 

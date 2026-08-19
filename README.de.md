@@ -205,7 +205,7 @@ Der übliche Fall auf Shared Hosting, ganz ohne Kommandozeile.
 Ein Image, ein Volume, kein Datenbankdienst:
 
 ```bash
-docker run -d -p 8080:80 \
+docker run -d -p 8080:8080 \
   -e FLATLINK_BASE_URL="http://localhost:8080" \
   -v flatlink-data:/var/lib/flatlink \
   ghcr.io/herrbarmann/flatlink:latest
@@ -213,7 +213,8 @@ docker run -d -p 8080:80 \
 
 Die Konfiguration kommt dort aus `FLATLINK_*`-Umgebungsvariablen; eine
 eingehängte eigene `inc/config.php` hat weiterhin Vorrang. Einzelheiten in
-der [Docker-Anleitung](docs/docker.md).
+der [Docker-Anleitung](docs/docker.md) – dort stehen auch fertige
+Kubernetes-Manifeste.
 
 ### Weg 3: Mit Git
 
@@ -420,7 +421,7 @@ vier Handbücher gibt es auch auf Englisch (`.en.md` daneben):
 | [Browser-Erweiterung](extension/README.md) | „diese Seite kürzen“ für Chrome und Firefox, gegen die eigene Instanz |
 | [In die Läden bringen](docs/store-einreichung.md) | Pakete bauen, Store-Texte, Berechtigungs-Begründungen, Datenschutzangaben |
 | [Deployment](docs/DEPLOYMENT.md) | Installation für den Dauerbetrieb, von Dateirechten bis Shibboleth |
-| [Docker](docs/docker.md) | Image, Umgebungsvariablen, Volume, Gesundheitsendpunkt |
+| [Docker und Kubernetes](docs/docker.md) | Image, Umgebungsvariablen, Volume, Zustandsprüfung, fertige Manifeste |
 | [Anpassung](docs/CUSTOMIZATION.md) | eigenes Aussehen ohne Änderungen am Kern |
 | [Was flatlink nie tun wird](docs/niemals.md) | die Funktionen, die es hier nie geben wird – und warum |
 | [Barrierefreiheit](docs/barrierefreiheit.md) | Selbsteinschätzung nach WCAG 2.1 AA samt Muster-Erklärung für öffentliche Stellen |

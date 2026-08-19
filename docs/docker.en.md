@@ -12,7 +12,7 @@ health endpoint for your watchdog.
 ## In two minutes
 
 ```bash
-docker run -d --name flatlink -p 8080:80 \
+docker run -d --name flatlink -p 8080:8080 \
   -e FLATLINK_BASE_URL="http://localhost:8080" \
   -v flatlink-data:/var/lib/flatlink \
   ghcr.io/herrbarmann/flatlink:latest
@@ -136,6 +136,45 @@ built-in `HEALTHCHECK` asks the same thing every 30 seconds. `docker ps`
 shows the result as `healthy`; an external watchdog queries the same
 address.
 
+## Kubernetes
+
+Ready-made manifests live in
+[`deploy/kubernetes/flatlink.yaml`](../deploy/kubernetes/flatlink.yaml) –
+namespace, ConfigMap, Secret, PVC, Deployment, Service and Ingress in one
+file. What you have to adjust is the address (in the ConfigMap **and** the
+Ingress) and possibly the `storageClassName`:
+
+```bash
+kubectl apply -f deploy/kubernetes/flatlink.yaml
+```
+
+**One pod, no more.** The inventory lives in a SQLite file on a volume that
+exactly one pod may write to. Hence `replicas: 1` and `strategy: Recreate`
+in the manifests – with the default `RollingUpdate`, two pods would briefly
+share the same file during a rollout, and that is precisely where SQLite is
+vulnerable. This is not a stopgap but the design: flatlink is meant for
+instances that fit on a web host. If you need to scale out, you need
+something else.
+
+**No root.** The image listens on port 8080 and runs as `www-data` in group
+0. That satisfies the `restricted` pod security standard (`runAsNonRoot`,
+   `allowPrivilegeEscalation: false`, all capabilities dropped) and it also
+   runs where the cluster assigns an arbitrary user id of its own –
+   OpenShift, for instance. The volume is handed over via `fsGroup: 0`;
+   there is no `chown` at startup any more.
+
+**The probes hang off `/api/health`.** On the very first start the instance
+creates its database and honestly reports 503 until it is done – that is
+what the `startupProbe` is for.
+
+**Credentials** belong in the Secret, not in the ConfigMap:
+
+```bash
+kubectl -n flatlink create secret generic flatlink-secrets \
+  --from-literal=FLATLINK_SMTP_PASS=… \
+  --from-literal=FLATLINK_LDAP_BIND_PASS=…
+```
+
 ## Updating
 
 ```bash
@@ -146,8 +185,8 @@ The volume stays, the application is replaced. No migration step is needed –
 the data format grows with it and reads older data unchanged.
 
 Pinning a version is easier to live with than `latest` if an unintended jump
-would come at a bad time: `ghcr.io/herrbarmann/flatlink:3.2` stays on the
-3.2 releases, `:3.2.1` on exactly that one.
+would come at a bad time: `ghcr.io/herrbarmann/flatlink:3.3` stays on the
+3.3 releases, `:3.3.0` on exactly that one.
 
 ## Building it yourself
 

@@ -10,6 +10,7 @@ inc/local.php
 data/
 
 # Kommandozeilen- und Baumaterial
+deploy/
 tests/
 tools/
 extension/

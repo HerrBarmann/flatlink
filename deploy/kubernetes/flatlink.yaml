@@ -1,0 +1,161 @@
+# flatlink in Kubernetes.
+#
+# EIN Pod, nicht mehr. Der Bestand liegt in einer SQLite-Datei auf einem
+# Volume, das genau ein Pod beschreiben darf – deshalb replicas: 1 und die
+# Strategie Recreate. Mit der Vorgabe RollingUpdate liefen beim Ausrollen
+# kurz zwei Pods auf derselben Datei, und genau da ist SQLite verwundbar.
+# Das ist keine Übergangslösung, sondern die Bauweise: flatlink ist für
+# Instanzen gedacht, die auf einen Webspace passen.
+#
+#   kubectl apply -f flatlink.yaml
+#
+# Vorher anpassen: die Adresse in ConfigMap und Ingress, und die
+# storageClassName, falls dein Cluster keine Vorgabe hat.
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: flatlink
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: flatlink
+  namespace: flatlink
+data:
+  # OHNE Schrägstrich am Ende, und die Adresse von AUSSEN – nicht die des
+  # Service. Fehlt sie, verschickt flatlink keine Mails mit Links.
+  FLATLINK_BASE_URL: "https://kurz.example.org"
+  FLATLINK_SITE_NAME: "Kurzlinks"
+  FLATLINK_LANGUAGE: "de"
+  # Der Ingress-Controller steht davor: ohne diesen Eintrag sieht flatlink
+  # für alle Besucher dessen Adresse, und Rate-Limit wie Anmeldesperre
+  # gälten versehentlich für alle gemeinsam.
+  FLATLINK_TRUSTED_PROXIES: "10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
+---
+# Zugangsdaten gehören nicht in die ConfigMap. Erzeugen mit:
+#   kubectl -n flatlink create secret generic flatlink-secrets \
+#     --from-literal=FLATLINK_SMTP_PASS=… --from-literal=FLATLINK_LDAP_BIND_PASS=…
+apiVersion: v1
+kind: Secret
+metadata:
+  name: flatlink-secrets
+  namespace: flatlink
+type: Opaque
+stringData:
+  FLATLINK_SMTP_PASS: ""
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: flatlink-data
+  namespace: flatlink
+spec:
+  accessModes:
+    - ReadWriteOnce          # mehr braucht es nicht, und mehr verträgt SQLite nicht
+  resources:
+    requests:
+      storage: 2Gi
+  # storageClassName: standard
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flatlink
+  namespace: flatlink
+spec:
+  replicas: 1                # siehe Kopf – nicht erhöhen
+  strategy:
+    type: Recreate           # niemals zwei Pods auf derselben SQLite-Datei
+  selector:
+    matchLabels:
+      app: flatlink
+  template:
+    metadata:
+      labels:
+        app: flatlink
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 33        # www-data
+        fsGroup: 0           # das Volume gehört Gruppe 0, wie im Image
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: flatlink
+          image: ghcr.io/herrbarmann/flatlink:3.3
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: flatlink
+            - secretRef:
+                name: flatlink-secrets
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false   # Apache schreibt seine PID-Datei
+            capabilities:
+              drop: ["ALL"]
+          # Derselbe Endpunkt, den auch eine Überwachung von außen abfragt.
+          # Beim ersten Start legt die Instanz ihre Datenbank an und meldet
+          # bis dahin ehrlich 503 – dafür die Anlaufzeit.
+          startupProbe:
+            httpGet: { path: /api/health, port: http }
+            periodSeconds: 3
+            failureThreshold: 20
+          readinessProbe:
+            httpGet: { path: /api/health, port: http }
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /api/health, port: http }
+            periodSeconds: 30
+          resources:
+            requests: { cpu: 50m, memory: 128Mi }
+            limits:   { memory: 512Mi }
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/flatlink
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: flatlink-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: flatlink
+  namespace: flatlink
+spec:
+  selector:
+    app: flatlink
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: flatlink
+  namespace: flatlink
+  annotations:
+    # Logo-Uploads und CSV-Importe brauchen etwas Luft
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts: ["kurz.example.org"]
+      secretName: flatlink-tls
+  rules:
+    - host: kurz.example.org
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: flatlink
+                port:
+                  name: http
