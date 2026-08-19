@@ -406,6 +406,14 @@ Design und den Inhalten, die ein öffentliches Angebot braucht. Wer flatlink
 installiert, bekommt **kein Imitat davon**: ein neutrales Theme, das eigene
 Kürzel, die eigene Domain.
 
+Eine zweite Instanz betreibt die **Hochschule für Musik und Theater Hamburg**,
+und ihre Anforderungen haben einen guten Teil dessen geprägt, was hier drin
+ist: die Anmeldung am Hochschulverzeichnis, Gruppen mit eigenen Rechten und
+Limits, Namensräume je Abteilung und der CSV-Import, der einen vorhandenen
+YOURLS-Bestand übernommen hat. Gebaut für ein reales Haus statt für eine
+Merkmalsliste – weshalb etwa der Verzeichnisabgleich sich weigert, auf eine
+unvollständige Antwort hin zu handeln.
+
 ### Und für wen nicht
 
 Eine Architektur-Entscheidung schließt manche Einsätze aus, und das steht

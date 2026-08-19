@@ -401,6 +401,13 @@ side effect of the project, with its own design and the content a public
 offering needs. Installing flatlink does **not** give you an imitation of
 it: a neutral theme, your own codes, your own domain.
 
+The **Hamburg University of Music and Drama** runs a second instance, and its
+requirements shaped a good deal of what is in here: sign-in against the
+university directory, groups with their own permissions and limits, namespaces
+per department, and the CSV import that took over an existing YOURLS stock.
+Features built for one real institution rather than for a checklist – which is
+why the directory sync, for one, refuses to act on an incomplete answer.
+
 ### And who it is not for
 
 One architectural decision rules some deployments out, and it is better said
