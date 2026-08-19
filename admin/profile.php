@@ -40,6 +40,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $action === 'delete'                                  => '#loeschen',
         default                                               => '',
     };
+    // Absolut, nicht relativ: Vor manchen Servern steht eine Zwischenschicht,
+    // die einen relativen Location-Header in eine vollständige Adresse
+    // umschreibt – und dabei das Fragment verliert. Dann landet man nach dem
+    // Absenden wieder ganz oben, obwohl der Anker stimmt. Auf einem Apache
+    // ohne Proxy fällt das nie auf; die Anmeldung leitet aus demselben Grund
+    // schon immer absolut um.
+    $zurueck = base_url() . '/admin/profile.php' . $anker;
 
     // ---- Passkeys ----
     // Diese drei Fälle antworten mit JSON statt mit einer Seite: Sie werden
@@ -68,7 +75,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             flash(t('Dieser Passkey war nicht (mehr) hinterlegt.'), 'err');
         }
-        redirect_to('profile.php' . $anker);
+        redirect_to($zurueck);
     }
 
     if ($action === 'totp_start') {
@@ -79,7 +86,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             totp_begin($user['name']);
         }
-        redirect_to('profile.php' . $anker);
+        redirect_to($zurueck);
     }
 
     if ($action === 'totp_confirm') {
@@ -89,7 +96,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!bucket_rate_ok('nachweis', 20, $user['name'])) {
             http_response_code(429);
             flash(t('Zu viele Versuche – bitte später erneut.'), 'err');
-            redirect_to('profile.php' . $anker);
+            redirect_to($zurueck);
         }
         $codes = totp_confirm($user['name'], (string)($_POST['code'] ?? ''));
         if ($codes === null) {
@@ -99,7 +106,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['fresh_recovery'] = $codes;
             flash(t('Zwei-Faktor-Anmeldung ist aktiv.'));
         }
-        redirect_to('profile.php' . $anker);
+        redirect_to($zurueck);
     }
 
     if ($action === 'totp_off') {
@@ -109,7 +116,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!bucket_rate_ok('nachweis', 20, $user['name'])) {
             http_response_code(429);
             flash(t('Zu viele Versuche – bitte später erneut.'), 'err');
-            redirect_to('profile.php' . $anker);
+            redirect_to($zurueck);
         }
         $nachweis = $extern
             ? trim((string)($_POST['confirm'] ?? '')) === $user['name']
@@ -122,7 +129,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             totp_disable($user['name']);
             flash(t('Zwei-Faktor-Anmeldung abgeschaltet.'));
         }
-        redirect_to('profile.php' . $anker);
+        redirect_to($zurueck);
     }
 
     if ($action === 'token_new') {
@@ -138,24 +145,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['fresh_token'] = $neu['token'];
             flash(t('Zugangsschlüssel angelegt.'));
         }
-        redirect_to('profile.php' . $anker);
+        redirect_to($zurueck);
     }
 
     if ($action === 'token_revoke') {
         $ok = token_revoke($user['name'], (string)($_POST['id'] ?? ''));
         flash($ok ? t('Zugangsschlüssel zurückgezogen.') : t('Diesen Schlüssel gibt es nicht.'), $ok ? 'ok' : 'err');
-        redirect_to('profile.php' . $anker);
+        redirect_to($zurueck);
     }
 
     if ($action === 'connect_code') {
         if (!user_can($user['name'], 'api_access')) {
             flash(t('Für den Zugriff über die Schnittstelle fehlt deinem Konto die Berechtigung.'), 'err');
-            redirect_to('profile.php' . $anker);
+            redirect_to($zurueck);
         }
         // Wie beim frisch angelegten Schlüssel: einmal anzeigen, dann weg
         $_SESSION['connect_code'] = ext_connect_code($user['name']);
         audit(t('Verbindungscode für die Erweiterung erzeugt'));
-        redirect_to('profile.php' . $anker);
+        redirect_to($zurueck);
     }
 
     if ($action === 'export') {
@@ -179,7 +186,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!bucket_rate_ok('nachweis', 20, $user['name'])) {
             http_response_code(429);
             flash(t('Zu viele Versuche – bitte später erneut.'), 'err');
-            redirect_to('profile.php' . $anker);
+            redirect_to($zurueck);
         }
         $nachweis = $extern
             ? trim((string)($_POST['confirm'] ?? '')) === $user['name']
@@ -188,13 +195,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             flash($extern
                 ? t('Zum Löschen bitte die Kennung genau so eintippen, wie sie oben steht.')
                 : t('Das Passwort stimmt nicht – es wurde nichts gelöscht.'), 'err');
-            redirect_to('profile.php' . $anker);
+            redirect_to($zurueck);
         }
         $umfang = account_delete_scope($user['name']);
         $err = account_delete($user['name']);
         if ($err !== null) {
             flash($err, 'err');
-            redirect_to('profile.php' . $anker);
+            redirect_to($zurueck);
         }
         auth_logout();
         // Keine Flash-Nachricht: Die Sitzung ist gerade beendet worden, sie
@@ -284,7 +291,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    redirect_to('profile.php' . $anker);
+    redirect_to($zurueck);
 }
 
 // Bestätigungslink aus der Mail: neue Adresse aktivieren
@@ -299,7 +306,7 @@ if (isset($_GET['token'])) {
         $err = user_set_email($user['name'], (string)$d['email']);
         flash($err ?? t('E-Mail-Adresse aktualisiert: %s', $d['email']), $err === null ? 'ok' : 'err');
     }
-    redirect_to('profile.php' . $anker);
+    redirect_to($zurueck);
 }
 
 page_header(t('Profil'), true);

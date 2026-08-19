@@ -64,6 +64,16 @@ foreach ($aktionen as $a) {
     $pruefe("Aktion '$a' kehrt zu einem Abschnitt zurück", $trifft);
 }
 
+// Die Umleitung muss eine VOLLSTÄNDIGE Adresse tragen. Ein relativer
+// Location-Header wird von manchen vorgeschalteten Servern in eine absolute
+// Adresse umgeschrieben – und dabei geht das Fragment verloren. Der Anker
+// stimmt dann, aber man landet trotzdem oben. Auf einem Apache ohne Proxy
+// fällt das nie auf, weshalb es nur auf einer von zwei Instanzen auftrat.
+$pruefe('die Umleitung nennt eine vollständige Adresse',
+    str_contains($quelle, "base_url() . '/admin/profile.php' . \$anker"));
+$pruefe('keine relative Umleitung mehr übrig',
+    !str_contains($quelle, "redirect_to('profile.php"));
+
 // Und der Stil muss den Absprung abfangen, sonst klebt die Überschrift oben.
 $css = (string)file_get_contents(__DIR__ . '/../assets/style.css');
 $pruefe('der Stil hält Abstand zum Fensterrand', str_contains($css, 'scroll-margin-top'));
