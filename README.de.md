@@ -419,7 +419,6 @@ vier Handbücher gibt es auch auf Englisch (`.en.md` daneben):
 | [Gruppen, Rechte und Domains](docs/gruppen.md) | Rechte- und Arbeitsgruppen, Limits, Namensräume, mehrere Domains je Instanz |
 | [Schnittstelle](docs/API.md) | die Programmierschnittstelle |
 | [Browser-Erweiterung](extension/README.md) | „diese Seite kürzen“ für Chrome und Firefox, gegen die eigene Instanz |
-| [In die Läden bringen](docs/store-einreichung.md) | Pakete bauen, Store-Texte, Berechtigungs-Begründungen, Datenschutzangaben |
 | [Deployment](docs/DEPLOYMENT.md) | Installation für den Dauerbetrieb, von Dateirechten bis Shibboleth |
 | [Docker und Kubernetes](docs/docker.md) | Image, Umgebungsvariablen, Volume, Zustandsprüfung, fertige Manifeste |
 | [Anpassung](docs/CUSTOMIZATION.md) | eigenes Aussehen ohne Änderungen am Kern |

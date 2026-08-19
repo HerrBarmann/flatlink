@@ -21,3 +21,6 @@ inc/local.php
 # in die Versionsverwaltung
 /dist/
 *.zip
+
+# Betriebswissen für die Ladeneinreichung – gehört nicht ins öffentliche Repo
+docs/store-einreichung.md

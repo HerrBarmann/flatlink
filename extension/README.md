@@ -1,7 +1,7 @@
 # Browser-Erweiterung
 
-Kürzt die geöffnete Seite auf **deiner eigenen** flatlink-Instanz – ein Klick
-in der Werkzeugleiste, Kurzlink in der Zwischenablage.
+Kürzt die geöffnete Seite auf **deiner eigenen** flatlink-Instanz – ein
+Klick in der Werkzeugleiste, Kurzlink in der Zwischenablage.
 
 Der Unterschied zu den Erweiterungen der bekannten Dienste: Sie redet mit
 genau einer Adresse, nämlich der, die du einträgst. Es gibt keinen Anbieter
@@ -20,8 +20,8 @@ Weil die Browser ihn abgeschafft haben, nicht weil er fehlt:
   gemacht werden, weil deren Adresse im Manifest steht.
 
 Für den Weg über die Läden braucht es also eine **generische** Fassung, die
-erst beim Einrichten erfährt, zu welcher Instanz sie gehört. Genau dafür gibt
-es den Verbindungscode.
+erst beim Einrichten erfährt, zu welcher Instanz sie gehört. Genau dafür
+gibt es den Verbindungscode.
 
 ## Der schnellste Weg: Verbindungscode
 
@@ -33,15 +33,16 @@ Erweiterung installiert (aus einem Laden oder als Archiv), dann:
 
 Im Code stehen Adresse und ein frisch erzeugter Zugangsschlüssel. Er wird
 geprüft, bevor etwas gespeichert wird. Weitergeben sollte man ihn nicht: Wer
-ihn hat, kann im eigenen Namen Kurzlinks anlegen – zurückziehen lässt er sich
-unter *Profil → Zugangsschlüssel*.
+ihn hat, kann im eigenen Namen Kurzlinks anlegen – zurückziehen lässt er
+sich unter *Profil → Zugangsschlüssel*.
 
 ## Der bequeme Weg: fertig vorbereitet aus der Instanz
 
 Wer ein Konto auf einer flatlink-Instanz hat, braucht diesen Ordner gar
-nicht: Unter **Profil → Browser-Erweiterung** liegt ein Knopf, der ein Archiv
-baut, in dem alles schon steht – Adresse, Name und Symbole der Instanz und
-auf Wunsch ein eigens dafür erzeugter Zugangsschlüssel. Laden, fertig.
+nicht: Unter **Profil → Browser-Erweiterung** liegt ein Knopf, der ein
+Archiv baut, in dem alles schon steht – Adresse, Name und Symbole der
+Instanz und auf Wunsch ein eigens dafür erzeugter Zugangsschlüssel. Laden,
+fertig.
 
 Die vorbereitete Fassung verlangt außerdem weniger: Weil die Adresse
 feststeht, fragt sie nach Zugriff auf genau diese eine – nicht nach der
@@ -54,8 +55,8 @@ Konto, oder wer lieber selbst einträgt.
 
 1. In deiner Instanz unter **Profil → Zugangsschlüssel** einen Schlüssel
    anlegen. Er wird nur einmal angezeigt.
-2. Die Erweiterung laden (siehe unten) und in ihren Einstellungen die Adresse
-   deiner Instanz und den Schlüssel eintragen.
+2. Die Erweiterung laden (siehe unten) und in ihren Einstellungen die
+   Adresse deiner Instanz und den Schlüssel eintragen.
 3. **Prüfen und speichern** – dabei fragt der Browser die Berechtigung für
    genau diese Adresse ab. Erst wenn `/api/me` antwortet, wird gespeichert.
 
@@ -94,8 +95,8 @@ Firefox-Fassung, die unsignierte Add-ons erlaubt (ESR, Developer Edition).
 | Rahmen | Hinweis, sobald das Link-Limit zu 80 % belegt ist |
 
 Nicht dabei, und zwar mit Absicht: **UTM-Parameter** (fünf Felder – wer
-Kampagnen baut, sitzt in der Verwaltung), **Passwortschutz** (selten, und ein
-Passwortfeld im Popup lädt zum Missverständnis ein) und **Statistik**
+Kampagnen baut, sitzt in der Verwaltung), **Passwortschutz** (selten, und
+ein Passwortfeld im Popup lädt zum Missverständnis ein) und **Statistik**
 (Auswerten ist nicht Aufgabe eines Werkzeugs zum Anlegen). Alles drei kann
 die Schnittstelle – die Oberfläche der Instanz auch.
 
@@ -138,10 +139,26 @@ Zeilen – nachlesbar an einem Nachmittag.
 ## In die Läden bringen
 
 Wer die Erweiterung im Chrome Web Store oder bei addons.mozilla.org anbieten
-will – als generische Fassung oder gebrandet für die eigene Instanz –, findet
-in [docs/store-einreichung.md](../docs/store-einreichung.md) alles dafür:
-Bau-Befehle, Beschreibungstexte, die Begründungen zu jeder Berechtigung und
-die Antworten auf die Datenschutz-Fragebögen.
+will – als generische Fassung oder gebrandet für die eigene Instanz –, baut
+sich die Pakete mit [`tools/store-build.php`](../tools/store-build.php):
+
+```bash
+php tools/store-build.php --out=./dist
+php tools/store-build.php --out=./dist --instanz=https://kurz.example.org \
+  --name="Kurzlinks" --icon=/pfad/zu/icon-512.png
+```
+
+Die Fassungsnummer steht in `extension/manifest.json` und wandert von dort
+ins Paket; `--version=` übersteuert sie einmalig. Vor dem Hochladen lohnt
+Mozillas eigene Prüfung – sie findet, was die Läden später bemängeln:
+
+```bash
+cd extension && npx web-ext lint
+```
+
+Bildschirmfotos für die Ladenseiten baut
+[`tools/screenshots.php`](../tools/screenshots.php) aus einem entpackten
+Paket: 1280×800, wie Chrome es verlangt.
 
 ## Version
 
