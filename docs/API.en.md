@@ -27,6 +27,33 @@ A key starts with `flk_`. That is deliberate: if it accidentally shows up in
 a log or a public repository, it is recognisable as such and can be searched
 for.
 
+### Scope: allowed to do less than the account
+
+A key can never do **more** than its account may – permissions, limits and
+groups apply unchanged. It can do **less**, and that is the point: a key
+travels further than a password. It sits in a point-of-sale system, in a
+workshop job, in a pairing code someone passes on via the clipboard.
+
+| Scope | Allowed |
+| --- | --- |
+| **Full access** | everything the account may (default) |
+| **Create and edit** | everything except `DELETE` |
+| **Read only** | `GET` only |
+
+A call beyond the scope ends in **403** with `scope_exceeded`, before it
+touches the hourly allowance.
+
+On top of that there is **own links only**: such a key sees and changes
+exclusively what was created with it – not even what the same account creates
+through the interface. Everything else is answered like someone else's link,
+that is with 404. For a point-of-sale system producing review codes every day
+this is the real safeguard: a stolen key cannot reach the rest of the stock.
+
+Keys from before this release carry no scope and keep the full one – they do
+not suddenly stop working. Since 3.5.3 the pairing code for the browser
+extension creates a key **without the right to delete**; the extension needs
+none.
+
 ## Authentication
 
 ```
@@ -298,6 +325,7 @@ are exempt from both.
 | --- | --- | --- |
 | 401 | `no_key`, `bad_key`, `no_account` | key missing, unknown or revoked |
 | 403 | `no_permission` | account lacks `api_access` |
+| 403 | `scope_exceeded` | key may not use this method (see scope) |
 | 404 | `not_found` | link or endpoint does not exist |
 | 405 | `method_not_allowed` | method not available here |
 | 409 | `not_created` | code already taken |

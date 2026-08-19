@@ -28,6 +28,35 @@ Ein Schlüssel beginnt mit `flk_`. Das ist Absicht: Taucht er versehentlich
 in einem Protokoll oder einem öffentlichen Repository auf, ist er als
 solcher zu erkennen und lässt sich gezielt suchen.
 
+### Umfang: weniger dürfen als das Konto
+
+Ein Schlüssel kann nie **mehr**, als sein Konto darf – Rechte, Limits und
+Gruppen gelten unverändert. Er kann aber **weniger**, und das ist der Sinn:
+Ein Schlüssel wandert weiter als ein Passwort. Er steckt im Kassensystem, im
+Auftrag einer Werkstatt, in einem Verbindungscode, den jemand per
+Zwischenablage weiterreicht.
+
+| Umfang | Erlaubt |
+| --- | --- |
+| **Voller Zugriff** | alles, was das Konto darf (Voreinstellung) |
+| **Anlegen und ändern** | alles außer `DELETE` |
+| **Nur lesen** | nur `GET` |
+
+Ein Aufruf jenseits des Umfangs endet mit **403** und `scope_exceeded`,
+bevor er das Stundenkontingent berührt.
+
+Dazu kommt **nur eigene Links**: Ein so gesetzter Schlüssel sieht und ändert
+ausschließlich, was mit ihm selbst angelegt wurde – auch nicht das, was
+dasselbe Konto über die Oberfläche erzeugt. Alles Übrige beantwortet die
+Schnittstelle wie einen fremden Link, also mit 404. Für ein Kassensystem, das
+täglich Bewertungs-Codes erzeugt, ist das die eigentliche Absicherung: Ein
+gestohlener Schlüssel kommt an den restlichen Bestand nicht heran.
+
+Schlüssel aus der Zeit vor dieser Fassung tragen keinen Umfang und behalten
+den vollen – sie hören nicht plötzlich auf zu funktionieren. Der
+Verbindungscode für die Browser-Erweiterung erzeugt seit 3.5.3 einen Schlüssel
+**ohne Löschrecht**; die Erweiterung braucht keines.
+
 ## Anmeldung
 
 ```
@@ -306,6 +335,7 @@ Konten sind von beidem ausgenommen.
 | --- | --- | --- |
 | 401 | `no_key`, `bad_key`, `no_account` | Schlüssel fehlt, ist unbekannt oder zurückgezogen |
 | 403 | `no_permission` | Konto hat `api_access` nicht |
+| 403 | `scope_exceeded` | Schlüssel darf dieses Verfahren nicht (siehe Umfang) |
 | 404 | `not_found` | Link oder Endpunkt gibt es nicht |
 | 405 | `method_not_allowed` | Methode hier nicht vorgesehen |
 | 409 | `not_created` | Code bereits vergeben |

@@ -1247,4 +1247,15 @@ your password immediately and contact us.
     'Was jemand für andere darf' => 'What someone may do for others',
     'Reicht über das eigene Konto hinaus – das ist eine Rolle, kein Tarif. Diese beiden zusammen ergeben eine Redaktion: alles, was Links betrifft, aber keine Konten, Domains oder Einstellungen.'
         => 'Reaches beyond your own account – that is a role, not a plan. The two together make an editorial team: everything to do with links, but no accounts, domains or settings.',
+    'Voller Zugriff' => 'Full access',
+    'Anlegen und ändern, nicht löschen' => 'Create and edit, not delete',
+    'Nur lesen' => 'Read only',
+    'Ein Schlüssel meldet ein Programm unter deinem Konto an. Er kann nie mehr, als du selbst darfst – und auf Wunsch deutlich weniger.' => 'A key signs a program in under your account. It can never do more than you may – and, if you like, considerably less.',
+    'Umfang' => 'Scope',
+    'nur eigene Links' => 'own links only',
+    '(mehr als dein Konto darf er nie – aber weniger)' => '(never more than your account may – but less)',
+    'Nur Links, die mit diesem Schlüssel angelegt wurden' => 'Only links created with this key',
+    'Der Schlüssel sieht und ändert nichts vom übrigen Bestand des Kontos – auch nicht das, was du selbst hier anlegst. Passend für ein Kassensystem oder einen Auftrag, der laufend Codes erzeugt.' => 'The key neither sees nor changes anything else the account holds – not even what you create here yourself. Suited to a point-of-sale system or a job that keeps producing codes.',
+    'Dieser Zugangsschlüssel darf nur lesen.' => 'This API key may only read.',
+    'Dieser Zugangsschlüssel darf nicht löschen.' => 'This API key may not delete.',
 ];

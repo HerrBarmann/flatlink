@@ -138,7 +138,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif (count(tokens_of($user['name'])) >= 10) {
             flash(t('Höchstens zehn Zugangsschlüssel pro Konto – zieh zuerst einen zurück.'), 'err');
         } else {
-            $neu = token_create($user['name'], (string)($_POST['label'] ?? ''));
+            $neu = token_create($user['name'], (string)($_POST['label'] ?? ''),
+                (string)($_POST['scope'] ?? TOKEN_VOLL), ($_POST['own_only'] ?? '') === '1');
             // Der Klartext wird nirgends gespeichert; er muss also jetzt gezeigt
             // werden oder gar nicht. Über die Sitzung, damit die Umleitung
             // hinter dem Formular erhalten bleibt.
@@ -545,15 +546,22 @@ show_flash();
         </div>
         <?php endif; ?>
         <?php $doku = trim((string)cfg('api_doc_url')); ?>
-        <p class="muted small"><?= t('Ein Schlüssel meldet ein Programm unter deinem Konto an. Er kann nie mehr, als du selbst darfst.') ?><?php if ($doku !== ''): ?>
+        <p class="muted small"><?= t('Ein Schlüssel meldet ein Programm unter deinem Konto an. Er kann nie mehr, als du selbst darfst – und auf Wunsch deutlich weniger.') ?><?php if ($doku !== ''): ?>
         <a href="<?= e(str_contains($doku, '://') ? $doku : base_url() . '/' . ltrim($doku, '/')) ?>"><?= t('Zur Anleitung') ?></a>.<?php endif; ?></p>
         <?php $meine = tokens_of($user['name']); ?>
         <?php if ($meine !== []): ?>
         <div class="table-scroll"><table>
-            <tr><th><?= t('Bezeichnung') ?></th><th><?= t('Anfang') ?></th><th><?= t('Angelegt') ?></th><th><?= t('Zuletzt benutzt') ?></th><th></th></tr>
+            <tr><th><?= t('Bezeichnung') ?></th><th><?= t('Umfang') ?></th><th><?= t('Anfang') ?></th><th><?= t('Angelegt') ?></th><th><?= t('Zuletzt benutzt') ?></th><th></th></tr>
             <?php foreach ($meine as $t): ?>
             <tr>
                 <td><?= e((string)($t['label'] ?? '')) ?: '<span class="muted">' . t('ohne') . '</span>' ?></td>
+                <td class="small"><?php
+                    $umf = token_umfaenge()[(string)($t['scope'] ?? TOKEN_VOLL)] ?? token_umfaenge()[TOKEN_VOLL];
+                    echo e($umf);
+                    if (!empty($t['own_only'])) {
+                        echo '<br><span class="muted">' . t('nur eigene Links') . '</span>';
+                    }
+                ?></td>
                 <td><code><?= e((string)($t['hint'] ?? '')) ?>…</code></td>
                 <td class="small"><?= e(date('d.m.Y', strtotime((string)$t['created']))) ?></td>
                 <td class="small"><?= ($t['last_used'] ?? null) !== null
@@ -573,10 +581,21 @@ show_flash();
             <?= csrf_field() ?>
             <input type="hidden" name="action" value="token_new">
             <label for="p-label"><?= t('Neuer Schlüssel') ?> <span class="muted"><?= t('(Bezeichnung, damit du ihn später zuordnen kannst)') ?></span></label>
-            <div class="short-row">
-                <input id="p-label" type="text" name="label" maxlength="60" placeholder="z. B. Kassensystem">
-                <button class="btn" type="submit"><?= t('Anlegen') ?></button>
-            </div>
+            <input id="p-label" type="text" name="label" maxlength="60" placeholder="z. B. Kassensystem">
+
+            <label for="p-scope"><?= t('Umfang') ?> <span class="muted"><?= t('(mehr als dein Konto darf er nie – aber weniger)') ?></span></label>
+            <select id="p-scope" name="scope" style="max-width:22rem">
+                <?php foreach (token_umfaenge() as $wert => $titel): ?>
+                <option value="<?= e($wert) ?>"><?= e($titel) ?></option>
+                <?php endforeach; ?>
+            </select>
+
+            <label class="radio" style="margin-top:.6rem">
+                <input type="checkbox" name="own_only" value="1">
+                <span><?= t('Nur Links, die mit diesem Schlüssel angelegt wurden') ?><br>
+                <span class="muted small"><?= t('Der Schlüssel sieht und ändert nichts vom übrigen Bestand des Kontos – auch nicht das, was du selbst hier anlegst. Passend für ein Kassensystem oder einen Auftrag, der laufend Codes erzeugt.') ?></span></span>
+            </label>
+            <p><button class="btn" type="submit"><?= t('Anlegen') ?></button></p>
         </form>
     <?php endif; ?>
 

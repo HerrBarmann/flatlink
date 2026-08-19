@@ -179,6 +179,29 @@ if (!user_can($name, 'api_access')) {
     api_fail(403, 'no_permission', t('Diesem Konto fehlt die Berechtigung für die Schnittstelle.'));
 }
 
+// Der Umfang des Schlüssels. Er kann nie mehr als das Konto, aber weniger:
+// „nur lesen" verbietet alles außer GET, „anlegen und ändern" das Löschen.
+// Geprüft wird vor dem Rate-Limit, damit ein Aufruf, der ohnehin nicht
+// erlaubt ist, kein Kontingent verbraucht.
+if (!token_darf($eintrag, $method)) {
+    api_fail(403, 'scope_exceeded', (string)($eintrag['scope'] ?? '') === TOKEN_LESEN
+        ? t('Dieser Zugangsschlüssel darf nur lesen.')
+        : t('Dieser Zugangsschlüssel darf nicht löschen.'));
+}
+
+// Herkunftsbindung: Ein so gesetzter Schlüssel sieht ausschließlich Links,
+// die mit ihm selbst angelegt wurden. Die Kennung steht an jedem Link im
+// Feld `via`; alles Ältere und alles aus der Oberfläche trägt keines und
+// bleibt damit außen vor – genau das ist der Zweck.
+$nurEigene = token_nur_eigene($eintrag) ? (string)$eintrag['id'] : null;
+
+/** Gehört dieser Link in die Sicht des benutzten Schlüssels? */
+function api_sichtbar(array $l): bool
+{
+    global $nurEigene;
+    return $nurEigene === null || (string)($l['via'] ?? '') === $nurEigene;
+}
+
 // Ab hier ist der Schlüssel bekannt – also nach ihm zählen und nicht nach der
 // IP: Ein Server, der die Schnittstelle bedient, kommt immer von derselben.
 $limit = max(1, (int)cfg('api_rate_limit'));
@@ -224,7 +247,10 @@ function api_link_or_fail(array $user, string $code): array
     // Bewusst dieselbe Antwort für „gibt es nicht" und „gehört jemand anderem":
     // Sonst ließe sich über die Schnittstelle herausfinden, welche Kurzcodes
     // vergeben sind.
-    if ($l === null || !link_access($user, $l)) {
+    // api_sichtbar() zieht die Herkunftsbindung mit ein: Ein Schlüssel, der
+    // nur seine eigenen Links sehen darf, bekommt für alle anderen dieselbe
+    // Antwort wie für fremde – auch für die des eigenen Kontos.
+    if ($l === null || !link_access($user, $l) || !api_sichtbar($l)) {
         api_fail(404, 'not_found', t('Diesen Kurzlink gibt es nicht, oder er gehört einem anderen Konto.'));
     }
     return $l;
@@ -259,7 +285,7 @@ if ($ressource === 'links') {
     // ---- Sammlung ----
     if (count($teile) === 1) {
         if ($method === 'GET') {
-            $links = links_visible($user);
+            $links = array_filter(links_visible($user), 'api_sichtbar');
             $q = trim((string)($_GET['q'] ?? ''));
             if ($q !== '') {
                 $links = array_filter($links, fn($l, $c) => stripos((string)$c, $q) !== false
@@ -310,6 +336,18 @@ if ($ressource === 'links') {
 
             $pass = (string)($in['password'] ?? '');
             if ($pass !== '') link_set_password($ergebnis, password_hash($pass, PASSWORD_DEFAULT));
+
+            // Herkunft vermerken, wenn der Schlüssel daran gebunden ist –
+            // sonst fände er den eben angelegten Link im nächsten Aufruf
+            // nicht wieder. Nur in diesem Fall, damit an den übrigen Links
+            // kein Feld steht, das niemand liest.
+            if ($nurEigene !== null) {
+                link_write($ergebnis, function (?array $l) use ($nurEigene) {
+                    if ($l === null) return false;
+                    $l['via'] = $nurEigene;
+                    return $l;
+                });
+            }
 
             header('Location: ' . base_url() . '/api.php/links/' . rawurlencode($ergebnis));
             api_out(201, api_link($ergebnis, (array)link_get($ergebnis)));
@@ -415,7 +453,7 @@ if ($ressource === 'tags') {
     // regieren. Ein Administrator erfasst damit wirklich den ganzen Bestand.
     if (count($teile) === 1) {
         if ($method !== 'GET') api_fail(405, 'method_not_allowed', t('Hier ist nur GET vorgesehen.'));
-        $z = tags_counts(links_visible($user));
+        $z = tags_counts(array_filter(links_visible($user), 'api_sichtbar'));
         ksort($z, SORT_NATURAL | SORT_FLAG_CASE);
         $out = [];
         foreach ($z as $t => $n) $out[] = ['tag' => (string)$t, 'links' => $n];
@@ -427,7 +465,7 @@ if ($ressource === 'tags') {
         // Schlagwort mit Leerzeichen muss beides denselben Wert ergeben.
         $tag = tags_normalize(rawurldecode($teile[1]))[0] ?? '';
         if ($tag === '') api_fail(404, 'not_found', t('Dieses Schlagwort trägt keiner deiner Links.'));
-        $betroffen = array_keys(array_filter(links_visible($user),
+        $betroffen = array_keys(array_filter(array_filter(links_visible($user), 'api_sichtbar'),
             fn($l) => in_array($tag, (array)($l['tags'] ?? []), true)));
         if ($betroffen === []) {
             api_fail(404, 'not_found', t('Dieses Schlagwort trägt keiner deiner Links.'));

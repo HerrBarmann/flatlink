@@ -41,7 +41,12 @@ require_once __DIR__ . '/token.php';
  */
 function ext_connect_code(string $konto): string
 {
-    $schluessel = (string)(token_create($konto, 'Browser-Erweiterung ' . date('d.m.Y'))['token'] ?? '');
+    // Die Erweiterung liest (Konto, Limits, Dubletten) und legt an – löschen
+    // muss sie nie. Der Code wandert per Zwischenablage und landet mitunter
+    // in einem Chatfenster; ein Schlüssel, der damit nichts löschen kann, ist
+    // der kleinere Schaden.
+    $schluessel = (string)(token_create($konto, 'Browser-Erweiterung ' . date('d.m.Y'),
+        TOKEN_SCHREIB)['token'] ?? '');
     $roh = json_encode([
         'u' => base_url(true) ?: base_url(),
         't' => $schluessel,

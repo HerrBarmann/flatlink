@@ -5,9 +5,26 @@ declare(strict_types=1);
 /**
  * Zugangsschlüssel für die Programmierschnittstelle.
  *
- * Ein Schlüssel gehört immer zu einem Konto und kann nie mehr, als dieses Konto
+ * Ein Schlüssel gehört immer zu einem Konto und kann nie MEHR, als dieses Konto
  * selbst darf: Rechte, Limits und Gruppenzugehörigkeit gelten unverändert
- * weiter. Er ist ein zweiter Weg zur Anmeldung, keine zweite Berechtigung.
+ * weiter. Er kann aber **weniger**.
+ *
+ * Das ist der Unterschied zu früher, als hier stand „keine zweite
+ * Berechtigung". Ein Schlüssel wandert weiter als ein Passwort — er steckt im
+ * Kassensystem, im Fertigungsauftrag einer Werkstatt, in einem
+ * Verbindungscode für die Browser-Erweiterung. Wer ihn dort einsetzt, will
+ * meist genau eine Sache erlauben und nicht das ganze Konto. Deshalb trägt
+ * jeder Schlüssel einen Umfang:
+ *
+ *   TOKEN_VOLL   alles, was das Konto darf (Voreinstellung, wie bisher)
+ *   TOKEN_SCHREIB anlegen und ändern, aber nicht löschen
+ *   TOKEN_LESEN  nur lesen
+ *
+ * Dazu kommt die Herkunftsbindung `own_only`: Ein so gesetzter Schlüssel
+ * sieht und ändert ausschließlich Links, die mit ihm selbst angelegt wurden.
+ * Für ein Kassensystem, das täglich Bewertungs-Codes erzeugt, ist das die
+ * eigentliche Absicherung — es kommt an den übrigen Bestand des Kontos gar
+ * nicht heran.
  *
  * Gespeichert wird nur der SHA-256-Hash, nie der Schlüssel selbst – wer die
  * Datei liest, kann sich damit nicht anmelden. Bewusst kein password_hash():
@@ -20,6 +37,45 @@ require_once __DIR__ . '/helpers.php';
 
 /** Erkennungszeichen am Anfang jedes Schlüssels, damit er in Protokollen auffällt */
 const TOKEN_PREFIX = 'flk_';
+
+/** Umfang eines Schlüssels – mehr als das Konto darf, wird daraus nie */
+const TOKEN_VOLL = 'full';
+const TOKEN_SCHREIB = 'write';
+const TOKEN_LESEN = 'read';
+
+/** Die drei Stufen mit ihrer Beschriftung, in absteigender Reichweite */
+function token_umfaenge(): array
+{
+    return [
+        TOKEN_VOLL => t('Voller Zugriff'),
+        TOKEN_SCHREIB => t('Anlegen und ändern, nicht löschen'),
+        TOKEN_LESEN => t('Nur lesen'),
+    ];
+}
+
+/**
+ * Darf ein Schlüssel dieses Verfahren?
+ *
+ * Alles, was den Bestand nicht anfasst, ist Lesen. DELETE braucht den vollen
+ * Umfang; alles Übrige (POST, PATCH, PUT) gilt als Schreiben.
+ *
+ * Unbekannte Umfänge werden wie TOKEN_VOLL behandelt: Schlüssel aus der Zeit
+ * vor diesem Feld haben gar keinen, und die sollen weiter funktionieren.
+ */
+function token_darf(array $eintrag, string $methode): bool
+{
+    $umfang = (string)($eintrag['scope'] ?? TOKEN_VOLL);
+    $methode = strtoupper($methode);
+    if ($umfang === TOKEN_LESEN) return in_array($methode, ['GET', 'HEAD'], true);
+    if ($umfang === TOKEN_SCHREIB) return $methode !== 'DELETE';
+    return true;
+}
+
+/** Sieht dieser Schlüssel nur, was mit ihm selbst angelegt wurde? */
+function token_nur_eigene(array $eintrag): bool
+{
+    return !empty($eintrag['own_only']);
+}
 
 /**
  * Die Schlüssel liegen in der Datenbank, nicht in einer Datei: Nachgeschlagen
@@ -34,8 +90,10 @@ const TOKEN_PREFIX = 'flk_';
  *
  * @return array{token:string,id:string}
  */
-function token_create(string $user, string $label): array
+function token_create(string $user, string $label, string $umfang = TOKEN_VOLL,
+                      bool $nurEigene = false): array
 {
+    if (!isset(token_umfaenge()[$umfang])) $umfang = TOKEN_VOLL;
     $plain = TOKEN_PREFIX . bin2hex(random_bytes(20));
     $abdruck = hash('sha256', $plain);
     $id = substr($abdruck, 0, 12);
@@ -49,6 +107,10 @@ function token_create(string $user, string $label): array
         'hint' => substr($plain, 0, strlen(TOKEN_PREFIX) + 6),
         'created' => date('c'),
         'last_used' => null,
+        'scope' => $umfang,
+        // Nur setzen, wenn gewünscht – ein fehlendes Feld ist die Antwort
+        // „nein" und hält den Datensatz klein.
+        'own_only' => $nurEigene ?: null,
     ]);
     return ['token' => $plain, 'id' => $id];
 }
