@@ -20,10 +20,10 @@ eigentlicher Vorteil, und es lohnt sich, das in der Beschreibung zu sagen.
 
 ```bash
 # generisch
-php tools/store-build.php --out=./dist --version=1.2.1
+php tools/store-build.php --out=./dist
 
 # gebrandet (Beispiel 1337.kiwi)
-php tools/store-build.php --out=./dist --version=1.2.1 \
+php tools/store-build.php --out=./dist \
   --instanz=https://1337.kiwi --name="1337.kiwi" \
   --icon=/pfad/zu/icon-512.png --farbe="#7ABA1C" --farbetext="#101408"
 ```
@@ -32,9 +32,17 @@ Ein Zugangsschlüssel kommt **nie** ins Paket: Ein Paket im Laden bekommen
 alle, ein Schlüssel gehört einem. Den gibt es weiterhin nur über das Profil
 der eigenen Instanz.
 
-Die Läden nehmen keine zweite Einreichung mit derselben Versionsnummer an –
-`--version=` also bei jedem Anlauf hochzählen, auch wenn der erste an einem
-Formularfehler gescheitert ist.
+**Die Fassungsnummer steht in `extension/manifest.json`** – dort wird sie vor
+dem Einreichen hochgezählt, und das Paket übernimmt sie. `--version=` gibt es
+weiterhin, um eine Nummer einmalig zu übersteuern (etwa für einen zweiten
+Anlauf nach einem Formularfehler), aber die Wahrheit steht im Manifest.
+
+Das ist keine Förmlichkeit: Wird sie nur beim Bauen mitgegeben, weiß das
+Repository nicht, was im Laden liegt. Genau so stand hier eine Weile 1.0.0,
+während die Läden bereits 1.2.1 führten – und ein Paket mit kleinerer Nummer
+weisen beide Läden zurück.
+
+Aktueller Stand: **1.3.0**. Vorher im Laden: 1.2.1.
 
 ---
 
@@ -310,7 +318,7 @@ Bühne mit Fensterrahmen und Erklärtext. Was auf dem Bild steht, steht so
 auch im Paket.
 
 ```bash
-unzip -q dist/1337-kiwi-1.2.1.zip -d /tmp/paket
+unzip -q dist/1337-kiwi-1.3.0.zip -d /tmp/paket
 php tools/screenshots.php --paket=/tmp/paket --out=/tmp/bilder \
   --name="1337.kiwi" --instanz=https://1337.kiwi \
   --logo=/pfad/zu/icon-512.png --mono=/pfad/zu/mono.ttf \
