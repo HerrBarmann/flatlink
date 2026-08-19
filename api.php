@@ -143,21 +143,25 @@ if ($schluessel === '') {
     api_fail(401, 'no_key', t('Kein Zugangsschlüssel. Erwartet wird der Kopf „Authorization: Bearer flk_…" oder „X-Api-Key: flk_…".'));
 }
 
-// Versuche zählen, bevor der Schlüssel geprüft wird – sonst ließe sich hier
-// ungebremst durchprobieren. Gezählt wird nach IP, denn einen gültigen
-// Schlüssel gibt es in diesem Moment ja noch nicht.
-if (!bucket_rate_ok('apiauth', 60)) {
+// Durchprobieren von Schlüsseln bremsen – aber nur das. Hier wird deshalb
+// nur GELESEN; gezählt wird erst unten, wenn sich ein Schlüssel tatsächlich
+// als falsch erweist. Andernfalls verbrauchte jeder rechtmäßige Aufruf sein
+// eigenes Kontingent, und die Schnittstelle wäre nach 60 Anfragen je Stunde
+// dicht – gleich, was 'api_rate_limit' erlaubt.
+if (!api_source_ok()) {
     api_fail(429, 'too_many_attempts', t('Zu viele fehlgeschlagene Anmeldungen – bitte später erneut.'));
 }
 
 $eintrag = token_find($schluessel);
 if ($eintrag === null) {
+    bucket_rate_ok('apiauth', 60);
     api_fail(401, 'bad_key', t('Dieser Zugangsschlüssel ist unbekannt oder zurückgezogen.'));
 }
 
 $name = (string)$eintrag['user'];
 $konto = user_get($name);
 if ($konto === null) {
+    bucket_rate_ok('apiauth', 60);
     api_fail(401, 'no_account', t('Das Konto zu diesem Schlüssel gibt es nicht mehr.'));
 }
 $user = ['name' => $name, 'role' => (string)($konto['role'] ?? 'user')];

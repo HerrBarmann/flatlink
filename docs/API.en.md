@@ -277,8 +277,9 @@ API could be used to find out which short codes are already taken.
 
 `'api_rate_limit'` in the configuration, default 300 requests per hour per
 key. Counted per key, not per IP — a server using the API always comes from
-the same address. Failed authentications are counted separately per IP, so
-keys cannot be brute-forced.
+the same address. Failed authentications are counted separately per IP – at
+most 60 per hour, so keys cannot be brute-forced. Successful calls do not
+touch that budget; they only count against the hourly limit above.
 
 At most ten keys per account.
 

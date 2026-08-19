@@ -286,8 +286,9 @@ die Schnittstelle herausfinden, welche Kurzcodes bereits vergeben sind.
 `'api_rate_limit'` in der Konfiguration, Vorgabe 300 Anfragen je Stunde und
 Schlüssel. Gezählt wird nach Schlüssel, nicht nach IP – ein Server, der die
 Schnittstelle nutzt, kommt immer von derselben Adresse. Fehlgeschlagene
-Anmeldungen zählen getrennt nach IP, damit sich Schlüssel nicht
-durchprobieren lassen.
+Anmeldungen zählen getrennt nach IP – höchstens 60 je Stunde, damit sich
+Schlüssel nicht durchprobieren lassen. Rechtmäßige Aufrufe rühren dieses
+Kontingent nicht an; für sie gilt allein die Stundengrenze oben.
 
 Höchstens zehn Schlüssel je Konto.
 

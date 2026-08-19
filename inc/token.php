@@ -109,3 +109,18 @@ function tokens_drop_user(string $user): void
     $st = db()->prepare('DELETE FROM tokens WHERE owner = ?');
     $st->execute([$user]);
 }
+
+/**
+ * Darf von dieser Adresse überhaupt noch ein Schlüssel geprüft werden?
+ *
+ * Gegenstück zu login_source_ok(): Es liest nur. Gezählt wird in api.php
+ * ausschließlich dann, wenn ein Schlüssel sich als falsch erweist – sonst
+ * verbrauchten rechtmäßige Aufrufe das Kontingent, das dem Durchprobieren
+ * gilt.
+ */
+function api_source_ok(): bool
+{
+    $file = data_path('ratelimit') . '/apiauth-' . ip_hash() . '.json';
+    $d = json_read($file, []);
+    return ($d['hour'] ?? '') !== date('YmdH') || (int)($d['n'] ?? 0) < 60;
+}
