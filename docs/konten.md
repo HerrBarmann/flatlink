@@ -297,14 +297,9 @@ andere Programme lahmzulegen.
 Instanzen, deren Erweiterung im Chrome Web Store, bei den Firefox-Add-ons
 oder den Edge-Add-ons steht.
 
-*Archiv zum Selbstladen* baut ein Paket, das schon auf diese Instanz
-eingerichtet ist: Adresse, Name und Symbole stehen drin, auf Wunsch auch der
-Zugangsschlüssel – dann ist die Erweiterung nach dem Laden sofort benutzbar.
-Wer den Haken wegnimmt, bekommt ein Archiv ohne Zugangsmittel; die
-Erweiterung fragt dann beim ersten Öffnen danach. Für eine Instanz ohne
-Store-Eintrag ist das der einzige Weg – aber es muss von Hand entpackt und
-im Entwicklermodus geladen werden und aktualisiert sich nie. Wer im Laden
-steht, schaltet es in den Einstellungen ab.
+Eine Instanz ohne eigenen Store-Eintrag braucht nichts weiter: Die neutrale
+Fassung steht in den Läden, fragt beim ersten Öffnen nach der Adresse, und
+der Verbindungscode trägt Adresse und Schlüssel in einem Zug ein.
 
 **Konto löschen** entfernt das Konto und alle Links, die nur daran hängen,
 samt Klickzählern. Links **mit Gruppenzuordnung bleiben** und verlieren nur

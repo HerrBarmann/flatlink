@@ -1,0 +1,258 @@
+{
+  "extName": {
+    "message": "flatlink",
+    "description": "Name of the extension in the store and the toolbar"
+  },
+  "extDescription": {
+    "message": "Shorten the page you are on to your own flatlink server – one click in the toolbar, no third-party service.",
+    "description": "Short description, 132 characters at most"
+  },
+  "commandShorten": {
+    "message": "Shorten this page",
+    "description": "Label of the keyboard shortcut"
+  },
+  "htmlLang": {
+    "message": "en",
+    "description": "Wert für <html lang> – die Sprache DIESER Datei, nicht die des Browsers"
+  },
+  "setupTitle": {
+    "message": "Set it up first"
+  },
+  "setupIntroA": {
+    "message": "The quickest way is a pairing code: on your flatlink server, under"
+  },
+  "setupIntroPath": {
+    "message": "Profile → Browser extension"
+  },
+  "setupIntroB": {
+    "message": "generate one and paste it here – it holds both the address and the API key."
+  },
+  "openOptions": {
+    "message": "Open settings"
+  },
+  "shortenTitle": {
+    "message": "Shorten this page"
+  },
+  "labelName": {
+    "message": "Name"
+  },
+  "labelNameHint": {
+    "message": "(optional, for your own overview)"
+  },
+  "labelCode": {
+    "message": "Custom name"
+  },
+  "labelCodeHint": {
+    "message": "(optional)"
+  },
+  "codePlaceholder": {
+    "message": "random if left empty"
+  },
+  "labelDomain": {
+    "message": "Domain"
+  },
+  "labelGroup": {
+    "message": "Group"
+  },
+  "moreSummary": {
+    "message": "More: tags, expiry date"
+  },
+  "labelTags": {
+    "message": "Tags"
+  },
+  "labelTagsHint": {
+    "message": "(separate with commas)"
+  },
+  "tagsPlaceholder": {
+    "message": "expo, autumn"
+  },
+  "labelExpires": {
+    "message": "Expiry date"
+  },
+  "labelExpiresHint": {
+    "message": "(empty = no expiry)"
+  },
+  "alreadyLabel": {
+    "message": "Already shortened:"
+  },
+  "copyButton": {
+    "message": "Copy"
+  },
+  "shortenButton": {
+    "message": "Shorten"
+  },
+  "manageLinksLong": {
+    "message": "Manage my links"
+  },
+  "doneTitle": {
+    "message": "Done"
+  },
+  "againButton": {
+    "message": "One more"
+  },
+  "copiedHint": {
+    "message": "Copied to the clipboard."
+  },
+  "qrAlt": {
+    "message": "QR code for the short link"
+  },
+  "savePng": {
+    "message": "Save as PNG"
+  },
+  "designQr": {
+    "message": "Design the QR code"
+  },
+  "myLinks": {
+    "message": "My links"
+  },
+  "cannotShorten": {
+    "message": "This page cannot be shortened."
+  },
+  "domainDefault": {
+    "message": "$domain$ (default)",
+    "placeholders": {
+      "domain": {
+        "content": "$1"
+      }
+    }
+  },
+  "groupNone": {
+    "message": "– none –"
+  },
+  "quotaUsed": {
+    "message": "$used$ of $total$ links used",
+    "placeholders": {
+      "used": {
+        "content": "$1"
+      },
+      "total": {
+        "content": "$2"
+      }
+    }
+  },
+  "copiedShort": {
+    "message": "Copied"
+  },
+  "errKeyInvalid": {
+    "message": "The API key is no longer valid."
+  },
+  "errNoPermission": {
+    "message": "This account does not have permission for that."
+  },
+  "errTooMany": {
+    "message": "Too many requests – please wait a moment."
+  },
+  "errStatus": {
+    "message": "The server responded with $code$.",
+    "placeholders": {
+      "code": {
+        "content": "$1"
+      }
+    }
+  },
+  "errNoLink": {
+    "message": "The response contained no short link."
+  },
+  "errUnreachable": {
+    "message": "The server cannot be reached. Check the address in the settings – and grant permission there."
+  },
+  "settingsHeading": {
+    "message": "Settings"
+  },
+  "labelPairing": {
+    "message": "Pairing code"
+  },
+  "redeemButton": {
+    "message": "Connect"
+  },
+  "pairingHintA": {
+    "message": "You generate the code on your flatlink server, under"
+  },
+  "pairingHintPath": {
+    "message": "Profile → Browser extension"
+  },
+  "pairingHintB": {
+    "message": "It holds the address and the API key – copy it once, paste it here, done."
+  },
+  "orManual": {
+    "message": "Or enter both by hand:"
+  },
+  "labelInstance": {
+    "message": "Address of your flatlink server"
+  },
+  "instancePlaceholder": {
+    "message": "https://short.example.org"
+  },
+  "labelToken": {
+    "message": "API key"
+  },
+  "tokenHintA": {
+    "message": "You create one on your flatlink server:"
+  },
+  "tokenHintPath": {
+    "message": "Profile → API keys"
+  },
+  "tokenHintB": {
+    "message": "It is shown only once. It is kept in this browser's local storage – not in browser sync, so it never travels through anyone else's data centre."
+  },
+  "checkSaveButton": {
+    "message": "Check and save"
+  },
+  "removeButton": {
+    "message": "Remove access"
+  },
+  "connectedAs": {
+    "message": "Connected as $account$.",
+    "placeholders": {
+      "account": {
+        "content": "$1"
+      }
+    }
+  },
+  "savedConnectedAs": {
+    "message": "Saved. Connected as $account$.",
+    "placeholders": {
+      "account": {
+        "content": "$1"
+      }
+    }
+  },
+  "unknownAccount": {
+    "message": "unknown"
+  },
+  "errBothNeeded": {
+    "message": "Both the address and the API key are needed."
+  },
+  "errNoHostAccess": {
+    "message": "Without access to this address the extension cannot talk to your flatlink server."
+  },
+  "errKeyWrong": {
+    "message": "The API key is not valid. Is it correct, and does it belong to this server?"
+  },
+  "errNoApi": {
+    "message": "No flatlink API answers at this address. What is meant is the server's home page – without /admin and without a path after it."
+  },
+  "errStatusAddress": {
+    "message": "The server responded with $code$. Is the address right?",
+    "placeholders": {
+      "code": {
+        "content": "$1"
+      }
+    }
+  },
+  "errUnreachableShort": {
+    "message": "The server cannot be reached at this address."
+  },
+  "accessRemoved": {
+    "message": "Access removed. The key itself stays valid on your flatlink server – revoke it there if it should be gone."
+  },
+  "errNotPairingCode": {
+    "message": "That does not look like a pairing code – those begin with “flc_”."
+  },
+  "errCodeIncomplete": {
+    "message": "The code is incomplete. Perhaps it was not copied in full?"
+  },
+  "errCodeUnreadable": {
+    "message": "The code cannot be read. Perhaps it was not copied in full?"
+  }
+}

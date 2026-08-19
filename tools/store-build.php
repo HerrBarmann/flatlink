@@ -23,9 +23,10 @@ declare(strict_types=1);
  *
  * Was NICHT hineingehört: ein Zugangsschlüssel. Ein Paket im Laden bekommen
  * alle – ein Schlüssel gehört einem. Den gibt es weiterhin nur über das
- * Profil der eigenen Instanz (siehe inc/extbuild.php).
+ * Profil der eigenen Instanz (siehe inc/extension.php).
  */
 require_once __DIR__ . '/../inc/zip.php';
+require_once __DIR__ . '/extlocale.php';
 
 if (PHP_SAPI !== 'cli') {
     http_response_code(403);
@@ -53,6 +54,11 @@ $version = (string)($opt['version'] ?? '');
 // Wer das anders einschätzt, gibt hier die Kategorien an, die das
 // AMO-Formular auflistet (kommagetrennt).
 $daten = (string)($opt['daten'] ?? 'none');
+// Rückfallsprache des Pakets. Die neutrale Fassung tritt international auf und
+// bleibt bei Englisch; eine Fassung für deutsche Kundschaft dreht das um. Die
+// Erweiterung kann beides – das hier bestimmt nur, was ein Browser bekommt,
+// dessen Sprache keine der beiden ist.
+$locale = strtolower((string)($opt['locale'] ?? ''));
 
 $quelle = dirname(__DIR__) . '/extension';
 if (!is_file($quelle . '/manifest.json')) {
@@ -68,10 +74,18 @@ $manifest = json_decode((string)file_get_contents($quelle . '/manifest.json'), t
 if ($version === '') $version = (string)($manifest['version'] ?? '1.0.0');
 $manifest['version'] = $version;
 
+if ($locale !== '') {
+    if (!is_dir($quelle . '/_locales/' . $locale)) {
+        exit("--locale=$locale: dafür gibt es keinen Ordner unter extension/_locales/\n");
+    }
+    $manifest['default_locale'] = $locale;
+}
+
+// Name und Beschreibung stehen als __MSG_…__ im Manifest und kommen aus
+// _locales/. Hier dürfen sie NICHT durch feste Zeichenketten ersetzt werden,
+// sonst spräche das Paket wieder nur eine Sprache. Gebrandet wird deshalb
+// weiter unten, in den Sprachdateien selbst.
 if ($instanz !== '') {
-    $manifest['name'] = mb_substr($name, 0, 45);
-    $manifest['description'] = mb_substr(
-        "Die geöffnete Seite auf $name kürzen – ein Klick, fertig. Ohne fremden Dienst dazwischen.", 0, 132);
     $manifest['homepage_url'] = $instanz;
     // Feste Adresse heißt feste Berechtigung: Der Laden zeigt beim
     // Installieren „Zugriff auf 1337.kiwi" statt „auf alle Websites" – der
@@ -80,10 +94,6 @@ if ($instanz !== '') {
     $manifest['host_permissions'] = [$instanz . '/*'];
     $manifest['browser_specific_settings']['gecko']['id'] =
         'flatlink-' . substr(hash('sha256', $instanz), 0, 12) . '@instanz';
-} else {
-    $manifest['name'] = 'flatlink';
-    $manifest['description'] = mb_substr(
-        'Kurzlinks auf deiner eigenen flatlink-Instanz anlegen – ein Klick in der Werkzeugleiste, ohne fremden Dienst.', 0, 132);
 }
 
 // Ohne dieses Feld weist addons.mozilla.org den Upload ab
@@ -129,19 +139,8 @@ function icons_bauen(string $quelle, string $ordner): array
 $zip = new ZipWriter();
 $jetzt = time();
 
-foreach (['popup.html', 'popup.css', 'popup.js', 'options.html', 'options.js'] as $datei) {
+foreach (ext_paketdateien() as $datei) {
     $inhalt = (string)file_get_contents($quelle . '/' . $datei);
-    if ($instanz !== '' && ($datei === 'popup.html' || $datei === 'options.html')) {
-        // „deiner Instanz" ist die richtige Ansprache, solange die Fassung
-        // keine kennt. Hier kennt sie eine – dann gehört ihr Name hin.
-        $inhalt = str_replace(
-            ['Adresse deiner Instanz', 'in deiner Instanz', 'In deiner Instanz', 'deiner Instanz'],
-            ['Adresse', 'bei ' . $name, 'Bei ' . $name, $name],
-            $inhalt
-        );
-        $inhalt = str_replace('<title>flatlink', '<title>' . $name, $inhalt);
-        $inhalt = str_replace('<h1>flatlink</h1>', '<h1>' . $name . '</h1>', $inhalt);
-    }
     if ($datei === 'popup.css' && $farbe !== '') {
         if (preg_match('/^#[0-9a-f]{3,8}$/i', $farbe) !== 1) exit("--farbe erwartet einen Hex-Wert wie #7ABA1C\n");
         $inhalt = str_replace(
@@ -197,6 +196,16 @@ foreach (['popup.html', 'popup.css', 'popup.js', 'options.html', 'options.js'] a
     $zip->add($datei, $inhalt, $jetzt);
 }
 
+// ---- Sprachdateien ------------------------------------------------------
+//
+// Sie tragen jetzt, was früher fest in den HTML-Dateien stand. Die gebrandete
+// Fassung wird deshalb hier gemacht: Produktname, Kurzbeschreibung und die
+// Stellen, an denen die neutrale Fassung „deinem flatlink-Server" sagt.
+
+foreach (ext_locales($quelle, $instanz !== '' ? $name : '') as $sprache => $texte) {
+    $zip->add('_locales/' . $sprache . '/messages.json', ext_locale_json($texte), $jetzt);
+}
+
 $zip->add('manifest.json', (string)json_encode(
     $manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE), $jetzt);
 
@@ -221,4 +230,7 @@ printf("  Zugriff auf: %s\n", $instanz !== ''
     : 'nichts im Voraus (wird beim Einrichten erfragt)');
 printf("  Symbole:     %s\n", $iconQuelle !== '' && is_file($iconQuelle) ? basename($iconQuelle) : 'mitgeliefert');
 printf("  Akzent:      %s\n", $farbe !== '' ? $farbe . ' auf ' . $farbeText : 'Systemfarbe, sonst flatlink-Blau');
+printf("  Sprachen:    %s (Rückfall: %s)\n",
+    implode(', ', array_map('basename', array_map('dirname', glob($quelle . '/_locales/*/messages.json') ?: []))),
+    $manifest['default_locale'] ?? '—');
 printf("  Datenangabe: %s\n", $daten);

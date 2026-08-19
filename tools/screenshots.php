@@ -48,6 +48,17 @@ $monoDatei = (string)($opt['mono'] ?? '');
 $farbe = (string)($opt['farbe'] ?? '');
 $farbeText = (string)($opt['farbetext'] ?? '#fff');
 $logoDatei = (string)($opt['logo'] ?? '');
+// Die Sprache der Bühne. Die Oberfläche im Bild kommt aus _locales/ des
+// Pakets – dieselben Texte, die der Browser einsetzen würde. Ein Laden-Eintrag
+// auf Englisch braucht englische Bilder, sonst verspricht die Beschreibung
+// etwas, was das erste Bildschirmfoto sofort widerlegt.
+$sprache = strtolower((string)($opt['sprache'] ?? 'de'));
+$nachrichtenDatei = $paket . '/_locales/' . $sprache . '/messages.json';
+if (!is_file($nachrichtenDatei)) {
+    exit("Für --sprache=$sprache liegt im Paket keine _locales/$sprache/messages.json.\n");
+}
+$nachrichten = json_decode((string)file_get_contents($nachrichtenDatei), true);
+if (!is_array($nachrichten)) exit("$nachrichtenDatei ist kein gültiges JSON.\n");
 
 if (!is_file($paket . '/popup.html') || !is_file($paket . '/popup.css')) {
     exit("In $paket liegen keine popup.html/popup.css.\n");
@@ -98,14 +109,34 @@ $logo = ($logoDatei !== '' && is_file($logoDatei))
  * Lädt popup.html und macht daran, was sonst popup.js zur Laufzeit macht.
  *
  * @param array<string,mixed> $szene
+ * @param array<string,mixed> $nachrichten Inhalt von _locales/<sprache>/messages.json
  */
-function seite_html(string $paket, string $datei, array $szene): string
+function seite_html(string $paket, string $datei, array $szene, array $nachrichten): string
 {
     $doc = new DOMDocument();
     libxml_use_internal_errors(true);
     $doc->loadHTML('<?xml encoding="utf-8"?>' . (string)file_get_contents($paket . '/' . $datei));
     libxml_clear_errors();
     $x = new DOMXPath($doc);
+
+    // Zuerst die Sprache: Im Browser füllt i18n.js die data-i18n-Elemente,
+    // hier tun wir dasselbe. Muss VOR den Szenenwerten laufen, damit die das
+    // letzte Wort behalten.
+    $text = static function (string $schluessel) use ($nachrichten): string {
+        return (string)($nachrichten[$schluessel]['message'] ?? '');
+    };
+    foreach ([['data-i18n', null], ['data-i18n-placeholder', 'placeholder'],
+              ['data-i18n-alt', 'alt']] as [$attribut, $ziel]) {
+        $treffer = $x->query("//*[@$attribut]");
+        if ($treffer === false) continue;
+        foreach ($treffer as $n) {
+            /** @var DOMElement $n */
+            $wert = $text($n->getAttribute($attribut));
+            if ($wert === '') continue;
+            if ($ziel === null) $n->textContent = $wert;
+            else $n->setAttribute($ziel, $wert);
+        }
+    }
 
     /** @return DOMElement|null */
     $el = static function (string $id) use ($x) {
@@ -232,32 +263,57 @@ function qr_datenuri(string $ziel): string
 $lang = 'https://www.hamburg.de/politik-und-verwaltung/behoerden/'
       . 'behoerde-fuer-stadtentwicklung-und-wohnen/programme/rise-991418';
 $kurz = $basis . '/rise-2026';
-$wo = $gebrandet ? "auf $name" : 'auf deiner eigenen Instanz';
+
+// Die Texte neben dem Bild. Die Oberfläche IM Bild kommt aus _locales/; das
+// hier ist der Werbetext daneben, der nicht im Paket steht und deshalb hier
+// zweisprachig liegt.
+$tr = static fn(string $de, string $en): string => $sprache === 'en' ? $en : $de;
+
+$wo = $gebrandet
+    ? $tr("auf $name", "on $name")
+    : $tr('auf deinem eigenen flatlink-Server', 'on your own flatlink server');
+$dort = $gebrandet
+    ? $tr("bei $name", "at $name")
+    : $tr('auf deinem flatlink-Server', 'on your flatlink server');
 
 $szenen = [
     [
         'datei' => '1-kuerzen',
-        'eyebrow' => 'Browser-Erweiterung',
-        'h1' => 'Ein Klick, ein Kurzlink.',
-        'lead' => "Die Seite, auf der du gerade bist – gekürzt $wo, ohne den Umweg über "
-                . 'die Verwaltung und ohne fremden Dienst dazwischen.',
-        'punkte' => ['Adresse und Titel stehen schon da',
-                     'Wunsch-Name statt Zufallscode',
-                     'Schlagwörter und Ablaufdatum, wenn du sie brauchst'],
+        'eyebrow' => $tr('Browser-Erweiterung', 'Browser extension'),
+        'h1' => $tr('Ein Klick, ein Kurzlink.', 'One click, one short link.'),
+        'lead' => $tr(
+            "Die Seite, auf der du gerade bist – gekürzt $wo, ohne den Umweg über "
+            . 'die Verwaltung und ohne fremden Dienst dazwischen.',
+            "The page you are on – shortened $wo, without the detour through the "
+            . 'admin interface and with no third-party service in between.'),
+        'punkte' => [
+            $tr('Adresse und Titel stehen schon da', 'Address and title are already there'),
+            $tr('Wunsch-Name statt Zufallscode', 'A name you choose instead of a random code'),
+            $tr('Schlagwörter und Ablaufdatum, wenn du sie brauchst',
+                'Tags and an expiry date when you need them'),
+        ],
         'abschnitt' => 'kuerzen',
         'offen' => ['mehr'],
         'text' => ['ziel' => $lang],
-        'wert' => ['titel' => 'Förderprogramm RISE', 'code' => 'rise-2026',
-                   'tags' => 'stadtentwicklung, 2026'],
+        'wert' => ['titel' => $tr('Förderprogramm RISE', 'RISE funding programme'),
+                   'code' => 'rise-2026',
+                   'tags' => $tr('stadtentwicklung, 2026', 'urban-development, 2026')],
     ],
     [
         'datei' => '2-fertig',
-        'eyebrow' => 'Ergebnis',
-        'h1' => 'Kopiert, bevor du den Tab wechselst.',
-        'lead' => 'Der Kurzlink liegt in der Zwischenablage. Von hier geht es weiter in den '
-                . 'QR-Designer oder in die Linkverwaltung – beides ' . ($gebrandet ? "bei $name" : 'in deiner Instanz') . '.',
-        'punkte' => ['Ein Klick kopiert', 'QR-Code zum Abscannen, auch als PNG',
-                     'Weiter in den Designer: Farben, Formen, Logo, Druckdatei'],
+        'eyebrow' => $tr('Ergebnis', 'Result'),
+        'h1' => $tr('Kopiert, bevor du den Tab wechselst.', 'Copied before you switch tabs.'),
+        'lead' => $tr(
+            'Der Kurzlink liegt in der Zwischenablage. Von hier geht es weiter in den '
+            . "QR-Designer oder in die Linkverwaltung – beides $dort.",
+            'The short link is on the clipboard. From here it goes on to the QR '
+            . "designer or to the link overview – both $dort."),
+        'punkte' => [
+            $tr('Ein Klick kopiert', 'One click copies'),
+            $tr('QR-Code zum Abscannen, auch als PNG', 'A QR code to scan, as a PNG too'),
+            $tr('Weiter in den Designer: Farben, Formen, Logo, Druckdatei',
+                'On to the designer: colours, shapes, logo, print file'),
+        ],
         'abschnitt' => 'fertig',
         'zeigen' => ['kopiert', 'qr-block'],
         'text' => ['kurzlink' => preg_replace('#^https?://#', '', $kurz)],
@@ -267,31 +323,55 @@ $szenen = [
     ],
     [
         'datei' => '3-schon-gekuerzt',
-        'eyebrow' => 'Keine Dubletten',
-        'h1' => 'Merkt, was du schon gekürzt hast.',
-        'lead' => 'Beim Öffnen fragt die Erweiterung nach, ob es für diese Adresse längst '
-                . 'einen Kurzlink gibt. Wenn ja, steht er da – zum Kopieren statt zum '
-                . 'zweiten Mal Anlegen.',
-        'punkte' => ['Kein Wildwuchs aus fünf Links auf dieselbe Seite',
-                     'Zählt weiter auf denselben Kurzlink',
-                     'Kein Zwang: neu anlegen geht trotzdem'],
+        'eyebrow' => $tr('Keine Dubletten', 'No duplicates'),
+        'h1' => $tr('Merkt, was du schon gekürzt hast.',
+                    'Remembers what you have already shortened.'),
+        'lead' => $tr(
+            'Beim Öffnen fragt die Erweiterung nach, ob es für diese Adresse längst '
+            . 'einen Kurzlink gibt. Wenn ja, steht er da – zum Kopieren statt zum '
+            . 'zweiten Mal Anlegen.',
+            'When it opens, the extension checks whether this address has a short '
+            . 'link already. If it does, there it is – to copy instead of creating '
+            . 'a second one.'),
+        'punkte' => [
+            $tr('Kein Wildwuchs aus fünf Links auf dieselbe Seite',
+                'No thicket of five links to the same page'),
+            $tr('Zählt weiter auf denselben Kurzlink', 'Keeps counting on the same short link'),
+            $tr('Kein Zwang: neu anlegen geht trotzdem',
+                'No compulsion: creating a new one still works'),
+        ],
         'abschnitt' => 'kuerzen',
         'zeigen' => ['schon'],
         'text' => ['ziel' => $lang, 'schon-link' => preg_replace('#^https?://#', '', $kurz)],
-        'wert' => ['titel' => 'Förderprogramm RISE'],
+        'wert' => ['titel' => $tr('Förderprogramm RISE', 'RISE funding programme')],
     ],
     [
         'datei' => '4-einrichten',
-        'eyebrow' => 'Einrichten',
-        'h1' => $gebrandet ? 'Ein Code, und sie gehört dir.' : 'Ein Code, und sie weiß, wohin.',
+        'eyebrow' => $tr('Einrichten', 'Setting up'),
+        'h1' => $gebrandet
+            ? $tr('Ein Code, und sie gehört dir.', 'One code, and it is yours.')
+            : $tr('Ein Code, und sie weiß, wohin.', 'One code, and it knows where to go.'),
         'lead' => $gebrandet
-            ? "Die Adresse steht in dieser Fassung schon fest. Es fehlt nur der Zugangsschlüssel "
-              . "– und den holt ein Verbindungscode aus deinem Profil bei $name."
-            : 'In deiner Instanz einen Verbindungscode erzeugen, hier einfügen: Adresse und '
-              . 'Zugangsschlüssel stehen darin. Beides geht auch von Hand.',
-        'punkte' => [$gebrandet ? "Spricht ausschließlich mit $name" : 'Spricht nur mit der Instanz, die du einträgst',
-                     'Der Schlüssel bleibt im lokalen Speicher – nicht in der Synchronisierung',
-                     'Jederzeit in deinem Profil zurückziehbar'],
+            ? $tr(
+                'Die Adresse steht in dieser Fassung schon fest. Es fehlt nur der '
+                . "Zugangsschlüssel – und den holt ein Verbindungscode aus deinem Profil bei $name.",
+                'In this build the address is already fixed. All that is missing is the '
+                . "API key – and a pairing code fetches it from your profile at $name.")
+            : $tr(
+                'Auf deinem flatlink-Server einen Verbindungscode erzeugen, hier einfügen: '
+                . 'Adresse und Zugangsschlüssel stehen darin. Beides geht auch von Hand.',
+                'Generate a pairing code on your flatlink server and paste it here: it holds the '
+                . 'address and the API key. Both can also be entered by hand.'),
+        'punkte' => [
+            $gebrandet
+                ? $tr("Spricht ausschließlich mit $name", "Talks to $name and nowhere else")
+                : $tr('Spricht nur mit dem Server, den du einträgst',
+                      'Talks only to the server you enter'),
+            $tr('Der Schlüssel bleibt im lokalen Speicher – nicht in der Synchronisierung',
+                'The key stays in local storage – not in browser sync'),
+            $tr('Jederzeit in deinem Profil zurückziehbar',
+                'Revocable in your profile at any time'),
+        ],
         'abschnitt' => 'setup',
         'optionen' => true,
         'ueberschrift' => $name,
@@ -326,7 +406,7 @@ if (is_file($paket . '/options.html')) {
 }
 
 foreach ($szenen as $s) {
-    $inhalt = seite_html($paket, empty($s['optionen']) ? 'popup.html' : 'options.html', $s);
+    $inhalt = seite_html($paket, empty($s['optionen']) ? 'popup.html' : 'options.html', $s, $nachrichten);
 
     $anschnitt = empty($s['anschnitt']) ? '' :
         '.fenster{max-height:' . (640 - 2 * 44) . 'px;overflow:hidden;'
@@ -338,7 +418,7 @@ foreach ($szenen as $s) {
     }
 
     $html = '<!doctype html>
-<html lang="de"><head><meta charset="utf-8"><title>' . htmlspecialchars($s['h1']) . '</title>
+<html lang="' . htmlspecialchars($sprache) . '"><head><meta charset="utf-8"><title>' . htmlspecialchars($s['h1']) . '</title>
 <style>
 ' . $monoFace . '
 /* --- Die Bühne ------------------------------------------------------- */
@@ -428,7 +508,7 @@ li::before{
   <ul>
 ' . $punkte . '  </ul>
 </div>
-<p class="marke">' . htmlspecialchars($gebrandet ? $host : 'flatlink · quelloffen, AGPL') . '</p>
+<p class="marke">' . htmlspecialchars($gebrandet ? $host : $tr('flatlink · quelloffen, AGPL', 'flatlink · open source, AGPL')) . '</p>
 <div class="tisch">
   <div class="fenster">
     <div class="leiste">

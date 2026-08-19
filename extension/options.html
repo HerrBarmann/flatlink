@@ -1,8 +1,9 @@
 <!doctype html>
-<html lang="de">
+<!-- lang setzt i18n.js auf die Sprache der geladenen Sprachdatei -->
+<html lang="en">
 <head>
 <meta charset="utf-8">
-<title>flatlink – Einstellungen</title>
+<title data-i18n="settingsHeading">Settings</title>
 <link rel="stylesheet" href="popup.css">
 <style>
   body { width: 30rem; }
@@ -10,35 +11,36 @@
 </style>
 </head>
 <body>
-<h1>flatlink</h1>
+<h1 data-i18n="extName"></h1>
 
-<label for="code">Verbindungscode</label>
+<label for="code" data-i18n="labelPairing"></label>
 <input id="code" type="text" placeholder="flc_…" autocomplete="off" spellcheck="false">
-<p class="knopfreihe"><button id="einloesen" class="primary" type="button">Einlösen</button></p>
-<p class="hinweis">Den Code erzeugst du in deiner Instanz unter
-   <span class="pfad">Profil → Browser-Erweiterung</span>. Er enthält Adresse und
-   Zugangsschlüssel – einmal kopieren, hier einfügen, fertig.</p>
+<p class="knopfreihe"><button id="einloesen" class="primary" type="button" data-i18n="redeemButton"></button></p>
+<p class="hinweis"><span data-i18n="pairingHintA"></span>
+   <span class="pfad" data-i18n="pairingHintPath"></span>.
+   <span data-i18n="pairingHintB"></span></p>
 
 <hr style="border:0;border-top:1px solid var(--linie);margin:1.2rem 0">
-<p class="hinweis">Oder beides von Hand:</p>
+<p class="hinweis" data-i18n="orManual"></p>
 
-<label for="instanz">Adresse deiner Instanz</label>
-<input id="instanz" type="text" placeholder="https://kurz.example.org" autocomplete="off" spellcheck="false">
+<label for="instanz" data-i18n="labelInstance"></label>
+<input id="instanz" type="text" data-i18n-placeholder="instancePlaceholder" autocomplete="off" spellcheck="false">
 
-<label for="token">Zugangsschlüssel</label>
+<label for="token" data-i18n="labelToken"></label>
 <input id="token" type="text" placeholder="flk_…" autocomplete="off" spellcheck="false">
-<p class="hinweis">Den legst du in deiner Instanz an: <span class="pfad">Profil → Zugangsschlüssel</span>.
-   Er wird nur einmal angezeigt. Gespeichert wird er im lokalen Speicher dieses Browsers –
-   nicht in der Browser-Synchronisierung, damit er nicht durch fremde Rechenzentren wandert.</p>
+<p class="hinweis"><span data-i18n="tokenHintA"></span>
+   <span class="pfad" data-i18n="tokenHintPath"></span>.
+   <span data-i18n="tokenHintB"></span></p>
 
 <p class="knopfreihe">
-  <button id="pruefen" class="primary" type="button">Prüfen und speichern</button>
-  <button id="loeschen" type="button">Zugang entfernen</button>
+  <button id="pruefen" class="primary" type="button" data-i18n="checkSaveButton"></button>
+  <button id="loeschen" type="button" data-i18n="removeButton"></button>
 </p>
 
 <p class="hinweis" id="stand" hidden></p>
 <p class="fehler" id="fehler" hidden></p>
 
+<script src="i18n.js"></script>
 <script src="options.js"></script>
 </body>
 </html>

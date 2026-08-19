@@ -22,7 +22,7 @@ async function anzeigen() {
     $('instanz').value = d.instanz || '';
     $('token').value = d.token || '';
     if (d.konto) {
-        $('stand').textContent = 'Verbunden als ' + d.konto + '.';
+        $('stand').textContent = t('connectedAs', d.konto);
         $('stand').hidden = false;
     }
 }
@@ -38,12 +38,12 @@ async function pruefen() {
     $('instanz').value = instanz;
 
     try {
-        if (!instanz || !token) throw new Error('Adresse und Zugangsschlüssel werden beide gebraucht.');
+        if (!instanz || !token) throw new Error(t('errBothNeeded'));
 
         // Die Berechtigung für genau diese Adresse anfragen – die Erweiterung
         // verlangt bewusst keinen Zugriff auf „alle Seiten" im Voraus.
         const erlaubt = await chrome.permissions.request({ origins: [instanz + '/*'] });
-        if (!erlaubt) throw new Error('Ohne Zugriff auf diese Adresse kann die Erweiterung nicht mit deiner Instanz sprechen.');
+        if (!erlaubt) throw new Error(t('errNoHostAccess'));
 
         // Zwei Wege zur Schnittstelle: /api/… setzt mod_rewrite voraus (die
         // mitgelieferte .htaccess), /api.php/… geht immer. Erst der schöne
@@ -59,23 +59,23 @@ async function pruefen() {
             });
             pfad = '/api.php';
         }
-        if (antwort.status === 401) throw new Error('Der Zugangsschlüssel gilt nicht. Stimmt er, und gehört er zu dieser Instanz?');
-        if (antwort.status === 404) throw new Error('Unter dieser Adresse antwortet keine flatlink-Schnittstelle. Gemeint ist die Startseite der Instanz – ohne /admin und ohne Pfad dahinter.');
-        if (!antwort.ok) throw new Error('Die Instanz antwortet mit ' + antwort.status + '. Ist die Adresse richtig?');
+        if (antwort.status === 401) throw new Error(t('errKeyWrong'));
+        if (antwort.status === 404) throw new Error(t('errNoApi'));
+        if (!antwort.ok) throw new Error(t('errStatusAddress', antwort.status));
 
         const daten = await antwort.json();
         // Die Schnittstelle nennt das Feld „account"; der Anzeigename ist
         // optional und fehlt bei den meisten Konten.
-        const konto = daten?.display_name || daten?.account || 'unbekannt';
+        const konto = daten?.display_name || daten?.account || t('unknownAccount');
 
         // Der gefundene Weg wird gemerkt, damit das Popup nicht jedes Mal
         // beide durchprobieren muss.
         await chrome.storage.local.set({ instanz, token, konto, pfad });
-        $('stand').textContent = 'Gespeichert. Verbunden als ' + konto + '.';
+        $('stand').textContent = t('savedConnectedAs', konto);
         $('stand').hidden = false;
     } catch (e) {
         $('fehler').textContent = e.message === 'Failed to fetch'
-            ? 'Die Instanz ist unter dieser Adresse nicht erreichbar.'
+            ? t('errUnreachableShort')
             : e.message;
         $('fehler').hidden = false;
     } finally {
@@ -87,13 +87,13 @@ async function loeschen() {
     await chrome.storage.local.remove(['instanz', 'token', 'konto']);
     $('instanz').value = '';
     $('token').value = '';
-    $('stand').textContent = 'Zugang entfernt. Der Schlüssel selbst bleibt in deiner Instanz gültig – dort zurückziehen, wenn er weg soll.';
+    $('stand').textContent = t('accessRemoved');
     $('stand').hidden = false;
     $('fehler').hidden = true;
 }
 
 /**
- * Verbindungscode einlösen.
+ * Verbindungscode auswerten und eintragen.
  *
  * Der Code trägt Adresse und Schlüssel; geprüft wird trotzdem, bevor etwas
  * gespeichert wird – ein abgetippter oder halb kopierter Code soll nicht
@@ -104,17 +104,17 @@ async function einloesen() {
     $('fehler').hidden = true;
     $('stand').hidden = true;
     try {
-        if (!/^flc_/.test(roh)) throw new Error('Das sieht nicht nach einem Verbindungscode aus – er beginnt mit „flc_".');
+        if (!/^flc_/.test(roh)) throw new Error(t('errNotPairingCode'));
         const b64 = roh.slice(4).replace(/-/g, '+').replace(/_/g, '/');
         const daten = JSON.parse(decodeURIComponent(escape(atob(b64))));
-        if (!daten.u || !daten.t) throw new Error('Der Code ist unvollständig. Vielleicht wurde er nicht ganz kopiert?');
+        if (!daten.u || !daten.t) throw new Error(t('errCodeIncomplete'));
         $('instanz').value = daten.u;
         $('token').value = daten.t;
         $('code').value = '';
         await pruefen();
     } catch (e) {
         $('fehler').textContent = e instanceof SyntaxError
-            ? 'Der Code lässt sich nicht lesen. Vielleicht wurde er nicht ganz kopiert?'
+            ? t('errCodeUnreadable')
             : e.message;
         $('fehler').hidden = false;
     }

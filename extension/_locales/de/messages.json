@@ -1,0 +1,258 @@
+{
+  "extName": {
+    "message": "flatlink",
+    "description": "Name der Erweiterung im Laden und in der Werkzeugleiste"
+  },
+  "extDescription": {
+    "message": "Kurzlinks auf deinem eigenen flatlink-Server anlegen – ein Klick in der Werkzeugleiste, ohne fremden Dienst.",
+    "description": "Kurzbeschreibung, höchstens 132 Zeichen"
+  },
+  "commandShorten": {
+    "message": "Diese Seite kürzen",
+    "description": "Beschriftung des Tastenkürzels"
+  },
+  "htmlLang": {
+    "message": "de",
+    "description": "Wert für <html lang> – die Sprache DIESER Datei, nicht die des Browsers"
+  },
+  "setupTitle": {
+    "message": "Erst einrichten"
+  },
+  "setupIntroA": {
+    "message": "Am schnellsten geht es mit einem Verbindungscode: Auf deinem flatlink-Server unter"
+  },
+  "setupIntroPath": {
+    "message": "Profil → Browser-Erweiterung"
+  },
+  "setupIntroB": {
+    "message": "erzeugen, hier einfügen – Adresse und Zugangsschlüssel stehen darin."
+  },
+  "openOptions": {
+    "message": "Einstellungen öffnen"
+  },
+  "shortenTitle": {
+    "message": "Diese Seite kürzen"
+  },
+  "labelName": {
+    "message": "Name"
+  },
+  "labelNameHint": {
+    "message": "(optional, nur für deine Übersicht)"
+  },
+  "labelCode": {
+    "message": "Wunsch-Name"
+  },
+  "labelCodeHint": {
+    "message": "(optional)"
+  },
+  "codePlaceholder": {
+    "message": "wird sonst zufällig vergeben"
+  },
+  "labelDomain": {
+    "message": "Domain"
+  },
+  "labelGroup": {
+    "message": "Gruppe"
+  },
+  "moreSummary": {
+    "message": "Mehr: Schlagworte, Ablaufdatum"
+  },
+  "labelTags": {
+    "message": "Schlagworte"
+  },
+  "labelTagsHint": {
+    "message": "(mit Komma trennen)"
+  },
+  "tagsPlaceholder": {
+    "message": "messe, herbst"
+  },
+  "labelExpires": {
+    "message": "Ablaufdatum"
+  },
+  "labelExpiresHint": {
+    "message": "(leer = kein Ablauf)"
+  },
+  "alreadyLabel": {
+    "message": "Schon gekürzt:"
+  },
+  "copyButton": {
+    "message": "Kopieren"
+  },
+  "shortenButton": {
+    "message": "Kürzen"
+  },
+  "manageLinksLong": {
+    "message": "Meine Links verwalten"
+  },
+  "doneTitle": {
+    "message": "Fertig"
+  },
+  "againButton": {
+    "message": "Noch einen"
+  },
+  "copiedHint": {
+    "message": "In die Zwischenablage gelegt."
+  },
+  "qrAlt": {
+    "message": "QR-Code des Kurzlinks"
+  },
+  "savePng": {
+    "message": "Als PNG speichern"
+  },
+  "designQr": {
+    "message": "QR-Code gestalten"
+  },
+  "myLinks": {
+    "message": "Meine Links"
+  },
+  "cannotShorten": {
+    "message": "Diese Seite lässt sich nicht kürzen."
+  },
+  "domainDefault": {
+    "message": "$domain$ (Standard)",
+    "placeholders": {
+      "domain": {
+        "content": "$1"
+      }
+    }
+  },
+  "groupNone": {
+    "message": "– keine –"
+  },
+  "quotaUsed": {
+    "message": "$used$ von $total$ Links belegt",
+    "placeholders": {
+      "used": {
+        "content": "$1"
+      },
+      "total": {
+        "content": "$2"
+      }
+    }
+  },
+  "copiedShort": {
+    "message": "Kopiert"
+  },
+  "errKeyInvalid": {
+    "message": "Der Zugangsschlüssel gilt nicht (mehr)."
+  },
+  "errNoPermission": {
+    "message": "Diesem Konto fehlt die Berechtigung dafür."
+  },
+  "errTooMany": {
+    "message": "Zu viele Anfragen – bitte kurz warten."
+  },
+  "errStatus": {
+    "message": "Der Server antwortet mit $code$.",
+    "placeholders": {
+      "code": {
+        "content": "$1"
+      }
+    }
+  },
+  "errNoLink": {
+    "message": "Die Antwort enthielt keinen Kurzlink."
+  },
+  "errUnreachable": {
+    "message": "Der Server ist nicht erreichbar. Adresse in den Einstellungen prüfen – und dort die Berechtigung erteilen."
+  },
+  "settingsHeading": {
+    "message": "Einstellungen"
+  },
+  "labelPairing": {
+    "message": "Verbindungscode"
+  },
+  "redeemButton": {
+    "message": "Verbinden"
+  },
+  "pairingHintA": {
+    "message": "Den Code erzeugst du auf deinem flatlink-Server unter"
+  },
+  "pairingHintPath": {
+    "message": "Profil → Browser-Erweiterung"
+  },
+  "pairingHintB": {
+    "message": "Er enthält Adresse und Zugangsschlüssel – einmal kopieren, hier einfügen, fertig."
+  },
+  "orManual": {
+    "message": "Oder beides von Hand:"
+  },
+  "labelInstance": {
+    "message": "Adresse deines flatlink-Servers"
+  },
+  "instancePlaceholder": {
+    "message": "https://kurz.example.org"
+  },
+  "labelToken": {
+    "message": "Zugangsschlüssel"
+  },
+  "tokenHintA": {
+    "message": "Den legst du auf deinem flatlink-Server an:"
+  },
+  "tokenHintPath": {
+    "message": "Profil → Zugangsschlüssel"
+  },
+  "tokenHintB": {
+    "message": "Er wird nur einmal angezeigt. Gespeichert wird er im lokalen Speicher dieses Browsers – nicht in der Browser-Synchronisierung, damit er nicht durch fremde Rechenzentren wandert."
+  },
+  "checkSaveButton": {
+    "message": "Prüfen und speichern"
+  },
+  "removeButton": {
+    "message": "Zugang entfernen"
+  },
+  "connectedAs": {
+    "message": "Verbunden als $account$.",
+    "placeholders": {
+      "account": {
+        "content": "$1"
+      }
+    }
+  },
+  "savedConnectedAs": {
+    "message": "Gespeichert. Verbunden als $account$.",
+    "placeholders": {
+      "account": {
+        "content": "$1"
+      }
+    }
+  },
+  "unknownAccount": {
+    "message": "unbekannt"
+  },
+  "errBothNeeded": {
+    "message": "Adresse und Zugangsschlüssel werden beide gebraucht."
+  },
+  "errNoHostAccess": {
+    "message": "Ohne Zugriff auf diese Adresse kann die Erweiterung nicht mit deinem flatlink-Server sprechen."
+  },
+  "errKeyWrong": {
+    "message": "Der Zugangsschlüssel gilt nicht. Stimmt er, und gehört er zu diesem Server?"
+  },
+  "errNoApi": {
+    "message": "Unter dieser Adresse antwortet keine flatlink-Schnittstelle. Gemeint ist die Startseite des Servers – ohne /admin und ohne Pfad dahinter."
+  },
+  "errStatusAddress": {
+    "message": "Der Server antwortet mit $code$. Ist die Adresse richtig?",
+    "placeholders": {
+      "code": {
+        "content": "$1"
+      }
+    }
+  },
+  "errUnreachableShort": {
+    "message": "Der Server ist unter dieser Adresse nicht erreichbar."
+  },
+  "accessRemoved": {
+    "message": "Zugang entfernt. Der Schlüssel selbst bleibt auf deinem flatlink-Server gültig – dort zurückziehen, wenn er weg soll."
+  },
+  "errNotPairingCode": {
+    "message": "Das sieht nicht nach einem Verbindungscode aus – er beginnt mit „flc_“."
+  },
+  "errCodeIncomplete": {
+    "message": "Der Code ist unvollständig. Vielleicht wurde er nicht ganz kopiert?"
+  },
+  "errCodeUnreadable": {
+    "message": "Der Code lässt sich nicht lesen. Vielleicht wurde er nicht ganz kopiert?"
+  }
+}

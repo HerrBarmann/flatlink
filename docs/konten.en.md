@@ -283,14 +283,9 @@ can be revoked separately without stopping other programs.
 instances whose extension is in the Chrome Web Store, the Firefox Add-ons or
 the Edge Add-ons.
 
-*Archive for self-installation* builds a package already configured for this
-instance: address, name and icons are inside, and on request the access key
-as well – then the extension works the moment it is loaded. Without the tick
-you get an archive without a means of access; the extension then asks for
-one when first opened. For an instance with no store listing this is the
-only way – but it has to be unpacked by hand and loaded in developer mode,
-and it never updates itself. If you are in a store, switch it off in the
-settings.
+An instance without a store listing of its own needs nothing further: the
+generic build is in the stores, asks for the address when first opened, and
+the pairing code fills in address and key in one go.
 
 **Delete account** removes the account and all links that hang only on it,
 including click counters. Links **with a group assignment remain** and only

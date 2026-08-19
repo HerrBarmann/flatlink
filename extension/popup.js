@@ -40,7 +40,7 @@ async function start() {
     // Interne Seiten des Browsers lassen sich nicht sinnvoll kürzen
     if (!/^https?:\/\//i.test(tabUrl)) {
         zeige('kuerzen');
-        $('ziel').textContent = 'Diese Seite lässt sich nicht kürzen.';
+        $('ziel').textContent = t('cannotShorten');
         $('los').disabled = true;
         return;
     }
@@ -92,14 +92,14 @@ async function konto() {
         if (domains.length > 1) {
             const feld = $('domain');
             feld.replaceChildren(...domains.map((x, i) =>
-                option(x, i === 0 ? x + ' (Standard)' : x)));
+                option(x, i === 0 ? t('domainDefault', x) : x)));
             $('domain-block').hidden = false;
         }
 
         const gruppen = (d.assignable_groups || []).filter(Boolean);
         if (gruppen.length > 0) {
             const feld = $('gruppe');
-            feld.replaceChildren(option('', '– keine –'), ...gruppen.map(g => option(g, g)));
+            feld.replaceChildren(option('', t('groupNone')), ...gruppen.map(g => option(g, g)));
             $('gruppe-block').hidden = false;
         }
 
@@ -108,7 +108,7 @@ async function konto() {
         const grenze = parseInt(d.limits?.links, 10);
         const belegt = parseInt(d.limits?.links_used, 10);
         if (Number.isFinite(grenze) && Number.isFinite(belegt) && grenze > 0 && belegt / grenze >= 0.8) {
-            $('rahmen').textContent = `${belegt} von ${grenze} Links belegt`;
+            $('rahmen').textContent = t('quotaUsed', belegt, grenze);
         }
     } catch (e) { /* Ohne diese Angaben geht es auch – nur eben ohne Auswahl */ }
 }
@@ -172,10 +172,10 @@ async function kuerzen() {
             // Die Schnittstelle nennt den Grund im Klartext – den zeigen wir,
             // statt ihn hinter „Fehler" zu verstecken.
             const grund = daten?.error?.message
-                || (antwort.status === 401 ? 'Der Zugangsschlüssel gilt nicht (mehr).'
-                : antwort.status === 403 ? 'Diesem Konto fehlt die Berechtigung dafür.'
-                : antwort.status === 429 ? 'Zu viele Anfragen – bitte kurz warten.'
-                : 'Die Instanz antwortet mit ' + antwort.status + '.');
+                || (antwort.status === 401 ? t('errKeyInvalid')
+                : antwort.status === 403 ? t('errNoPermission')
+                : antwort.status === 429 ? t('errTooMany')
+                : t('errStatus', antwort.status));
             throw new Error(grund);
         }
 
@@ -184,7 +184,7 @@ async function kuerzen() {
         // ein Fehler – kopiert würde etwas, das nur so aussieht wie das
         // Ergebnis.
         const kurz = daten?.short_url;
-        if (!kurz) throw new Error('Die Antwort enthielt keinen Kurzlink.');
+        if (!kurz) throw new Error(t('errNoLink'));
 
         $('kurzlink').textContent = kurz;
         $('kurzlink').href = kurz;
@@ -212,7 +212,7 @@ async function kuerzen() {
         // Ein abgelehnter fetch heißt meist: Adresse falsch, Instanz nicht
         // erreichbar, oder die Host-Berechtigung fehlt.
         $('fehler').textContent = e.message === 'Failed to fetch'
-            ? 'Die Instanz ist nicht erreichbar. Adresse in den Einstellungen prüfen – und dort die Berechtigung erteilen.'
+            ? t('errUnreachable')
             : e.message;
         $('fehler').hidden = false;
     } finally {
@@ -242,7 +242,7 @@ $('kopieren').addEventListener('click', kopieren);
 $('neu').addEventListener('click', zuruecksetzen);
 $('schon-kopieren').addEventListener('click', async () => {
     await navigator.clipboard.writeText($('schon-link').textContent);
-    $('schon-kopieren').textContent = 'Kopiert';
+    $('schon-kopieren').textContent = t('copiedShort');
 });
 $('zu-optionen').addEventListener('click', () => chrome.runtime.openOptionsPage());
 // Eingabetaste in einem der Felder kürzt ebenfalls

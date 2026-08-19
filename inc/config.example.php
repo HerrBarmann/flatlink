@@ -225,11 +225,6 @@ return [
         'firefox' => '',  // https://addons.mozilla.org/firefox/addon/...
         'edge' => '',     // https://microsoftedge.microsoft.com/addons/detail/...
     ],
-    // Das fertig eingerichtete Archiv zum Selbstladen anbieten? Für eine
-    // Instanz ohne Store-Eintrag der einzige Weg. Wer im Laden ist, setzt
-    // das auf false – dann bleibt der Verbindungscode als Einrichtung.
-    'ext_download' => true,
-
     'domains' => [],
 
     // Zwei-Faktor-Anmeldung verlangen: 'off' | 'admins' | 'all'.

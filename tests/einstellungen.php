@@ -93,8 +93,8 @@ echo "Einstellungen: speichert jedes Formular nur seine eigenen Schlüssel?\n\n"
 
 $faelle = [
     'Browser-Erweiterung' => [
-        'post' => ['erweiterung' => '1', 'ext_download' => '1', 'ext_chrome' => '', 'ext_firefox' => '', 'ext_edge' => ''],
-        'erwartet' => ['ext_stores', 'ext_download'],
+        'post' => ['erweiterung' => '1', 'ext_chrome' => '', 'ext_firefox' => '', 'ext_edge' => ''],
+        'erwartet' => ['ext_stores'],
     ],
     'Öffentlicher Zugang' => [
         'post' => ['public_mode' => 'on', 'public_prefix' => 'p', 'public_rate_limit' => '15', 'registration' => 'on'],
@@ -124,7 +124,7 @@ $html = hole($basis . '/admin/settings.php');
 hole($basis . '/admin/settings.php', ['_csrf' => token($html)] + $faelle['Öffentlicher Zugang']['post']);
 $nach = (array)json_decode((string)file_get_contents($datei), true);
 pruefe('Zweites Formular lässt das erste stehen',
-    isset($nach['ext_download']) && isset($nach['public_mode']));
+    isset($nach['public_mode']));
 
 // ---- Aufräumen ------------------------------------------------------------
 

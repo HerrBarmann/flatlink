@@ -176,13 +176,47 @@ function session_geraet(): string
     return trim($browser . ($browser !== '' && $system !== '' ? ' · ' : '') . $system);
 }
 
+/**
+ * Tote Einträge aus der Sitzungsliste werfen.
+ *
+ * Eine PHP-Sitzung verschwindet serverseitig, sobald sie länger als
+ * `session.gc_maxlifetime` unberührt bleibt – auf vielen Servern nach 24
+ * Minuten. Der Eintrag im Konto überlebt sie aber und steht weiter als
+ * „angemeldetes Gerät" in der Liste, obwohl niemand mehr damit hereinkommt.
+ * So füllt sich die Liste ausgerechnet bei jemandem, der immer dieselben
+ * zwei Browser benutzt: Jede neue Anmeldung legt einen Eintrag an, keiner
+ * geht je wieder weg.
+ *
+ * Die Frist liegt bewusst weit über `gc_maxlifetime`. PHP räumt
+ * zufallsgesteuert auf (`session.gc_probability`), eine Sitzung kann ihre
+ * Frist also deutlich überleben. Fiele hier ein Eintrag, dessen Sitzung noch
+ * lebt, flöge derjenige beim nächsten Aufruf aus dem Konto – ein
+ * stehengebliebener Eintrag ist der harmlosere Fehler.
+ *
+ * @param array<string,array<string,mixed>> $s
+ * @return array<string,array<string,mixed>>
+ */
+function sessions_prune(array $s): array
+{
+    $frist = max(2 * (int)ini_get('session.gc_maxlifetime'), 86400);
+    $grenze = time() - $frist;
+    foreach ($s as $fp => $e) {
+        // Ohne Zeitstempel: stehenlassen. Das sind Einträge aus der Zeit vor
+        // diesem Feld, und ein Rauswurf wäre hier ein Rauswurf aus dem Konto.
+        $roh = (string)($e['zuletzt'] ?? '');
+        if ($roh === '') continue;
+        if ((strtotime($roh) ?: 0) < $grenze) unset($s[$fp]);
+    }
+    return $s;
+}
+
 /** Die laufende Sitzung am Konto vermerken (bei jeder Anmeldung) */
 function session_register(string $username): void
 {
     $fp = session_fingerprint();
     users_update(function (array $users) use ($username, $fp) {
         if (!isset($users[$username])) return null;
-        $s = (array)($users[$username]['sessions'] ?? []);
+        $s = sessions_prune((array)($users[$username]['sessions'] ?? []));
         $s[$fp] = ['seit' => date('c'), 'zuletzt' => date('c'), 'geraet' => session_geraet()];
         // Höchstens zehn: mehr parallele Anmeldungen hat niemand, und die
         // Liste im Profil soll eine Liste bleiben, kein Archiv
@@ -222,6 +256,7 @@ function session_check(string $username, array $u): bool
         users_update(function (array $users) use ($username, $fp) {
             if (!isset($users[$username]['sessions'][$fp])) return null;
             $users[$username]['sessions'][$fp]['zuletzt'] = date('c');
+            $users[$username]['sessions'] = sessions_prune($users[$username]['sessions']);
             return $users;
         }, $username);
     }

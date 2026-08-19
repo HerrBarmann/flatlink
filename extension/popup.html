@@ -1,74 +1,80 @@
 <!doctype html>
-<html lang="de">
+<!-- lang setzt i18n.js auf die Sprache der geladenen Sprachdatei -->
+<html lang="en">
 <head>
 <meta charset="utf-8">
-<title>flatlink</title>
+<title data-i18n="extName">flatlink</title>
 <link rel="stylesheet" href="popup.css">
 </head>
 <body>
 <main id="app">
   <!-- Noch nicht eingerichtet: Adresse und Schlüssel fehlen -->
   <section id="setup" hidden>
-    <h1>Erst einrichten</h1>
-    <p>Am schnellsten geht es mit einem <strong>Verbindungscode</strong>: In deiner
-       Instanz unter <em>Profil → Browser-Erweiterung</em> erzeugen, hier einfügen –
-       Adresse und Zugangsschlüssel stehen darin.</p>
-    <p><button id="zu-optionen" class="primary" type="button">Einstellungen öffnen</button></p>
+    <h1 data-i18n="setupTitle"></h1>
+    <p><span data-i18n="setupIntroA"></span>
+       <em data-i18n="setupIntroPath"></em>
+       <span data-i18n="setupIntroB"></span></p>
+    <p><button id="zu-optionen" class="primary" type="button" data-i18n="openOptions"></button></p>
   </section>
 
   <!-- Der Normalfall -->
   <section id="kuerzen" hidden>
-    <h1>Diese Seite kürzen</h1>
+    <h1 data-i18n="shortenTitle"></h1>
     <p class="ziel" id="ziel" title=""></p>
 
-    <label for="titel">Name <span class="leise">(optional, nur für deine Übersicht)</span></label>
+    <label for="titel"><span data-i18n="labelName"></span>
+      <span class="leise" data-i18n="labelNameHint"></span></label>
     <input id="titel" type="text" maxlength="120" autocomplete="off">
 
-    <label for="code">Wunsch-Name <span class="leise">(optional)</span></label>
-    <input id="code" type="text" maxlength="64" autocomplete="off" placeholder="wird sonst zufällig vergeben">
+    <label for="code"><span data-i18n="labelCode"></span>
+      <span class="leise" data-i18n="labelCodeHint"></span></label>
+    <input id="code" type="text" maxlength="64" autocomplete="off" data-i18n-placeholder="codePlaceholder">
 
     <!-- Erscheint nur, wenn die Instanz mehrere Domains führt -->
     <div id="domain-block" hidden>
-      <label for="domain">Domain</label>
+      <label for="domain" data-i18n="labelDomain"></label>
       <select id="domain"></select>
     </div>
 
     <!-- Erscheint nur, wenn das Konto Gruppen zuordnen darf -->
     <div id="gruppe-block" hidden>
-      <label for="gruppe">Gruppe</label>
+      <label for="gruppe" data-i18n="labelGroup"></label>
       <select id="gruppe"></select>
     </div>
 
     <details id="mehr">
-      <summary>Mehr: Schlagworte, Ablaufdatum</summary>
-      <label for="tags">Schlagworte <span class="leise">(mit Komma trennen)</span></label>
-      <input id="tags" type="text" maxlength="220" autocomplete="off" placeholder="messe, herbst">
-      <label for="expires">Ablaufdatum <span class="leise">(leer = kein Ablauf)</span></label>
+      <summary data-i18n="moreSummary"></summary>
+      <label for="tags"><span data-i18n="labelTags"></span>
+        <span class="leise" data-i18n="labelTagsHint"></span></label>
+      <input id="tags" type="text" maxlength="220" autocomplete="off" data-i18n-placeholder="tagsPlaceholder">
+      <label for="expires"><span data-i18n="labelExpires"></span>
+        <span class="leise" data-i18n="labelExpiresHint"></span></label>
       <input id="expires" type="date">
     </details>
 
     <!-- „Diese Seite hast du schon gekürzt" -->
     <div id="schon" class="hinweis-kasten" hidden>
-      <span>Schon gekürzt:</span>
+      <span data-i18n="alreadyLabel"></span>
       <a id="schon-link" href="#" target="_blank" rel="noopener"></a>
-      <button id="schon-kopieren" type="button">Kopieren</button>
+      <button id="schon-kopieren" type="button" data-i18n="copyButton"></button>
     </div>
 
-    <p><button id="los" class="primary" type="button">Kürzen</button>
+    <p><button id="los" class="primary" type="button" data-i18n="shortenButton"></button>
        <span class="leise" id="rahmen"></span></p>
     <p class="fehler" id="fehler" hidden></p>
-    <p class="wege"><a id="zur-verwaltung-2" href="#" target="_blank" rel="noopener">Meine Links verwalten</a></p>
+    <p class="wege"><a id="zur-verwaltung-2" href="#" target="_blank" rel="noopener"
+       data-i18n="manageLinksLong"></a></p>
   </section>
 
   <!-- Nach dem Anlegen -->
   <section id="fertig" hidden>
-    <h1>Fertig</h1>
+    <h1 data-i18n="doneTitle"></h1>
     <p class="ergebnis"><a id="kurzlink" href="#" target="_blank" rel="noopener"></a></p>
     <p class="knopfreihe">
-      <button id="kopieren" class="primary" type="button">Kopieren</button>
-      <button id="neu" type="button">Noch einen</button>
+      <button id="kopieren" class="primary" type="button" data-i18n="copyButton"></button>
+      <button id="neu" type="button" data-i18n="againButton"></button>
     </p>
-    <p class="hinweis" id="kopiert" hidden>In die Zwischenablage gelegt.</p>
+    <p class="hinweis" id="kopiert" hidden data-i18n="copiedHint"></p>
 
     <!-- Der Code zum Abscannen mit dem Handy – der häufigste Weg, einen Link
          vom Rechner mitzunehmen. Bewusst schmucklos: Farben, Formen, Logo und
@@ -76,17 +82,18 @@
          Das Bild kommt von qr.php und braucht keinen Zugangsschlüssel; steht
          in der Instanz eine Absenderzeile, trägt der Code sie automatisch. -->
     <figure class="qr" id="qr-block" hidden>
-      <img id="qr-bild" alt="QR-Code des Kurzlinks" width="150" height="150">
-      <figcaption><a id="qr-png" href="#" target="_blank" rel="noopener">Als PNG speichern</a></figcaption>
+      <img id="qr-bild" data-i18n-alt="qrAlt" alt="" width="150" height="150">
+      <figcaption><a id="qr-png" href="#" target="_blank" rel="noopener" data-i18n="savePng"></a></figcaption>
     </figure>
 
     <p class="wege">
-      <a id="zum-designer" href="#" target="_blank" rel="noopener">QR-Code gestalten</a>
+      <a id="zum-designer" href="#" target="_blank" rel="noopener" data-i18n="designQr"></a>
       <span aria-hidden="true">·</span>
-      <a id="zur-verwaltung" href="#" target="_blank" rel="noopener">Meine Links</a>
+      <a id="zur-verwaltung" href="#" target="_blank" rel="noopener" data-i18n="myLinks"></a>
     </p>
   </section>
 </main>
+<script src="i18n.js"></script>
 <script src="popup.js"></script>
 </body>
 </html>

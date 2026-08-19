@@ -10,7 +10,7 @@ require_once __DIR__ . '/../inc/domains.php';
 require_once __DIR__ . '/../inc/zip.php';
 require_once __DIR__ . '/../inc/backup.php';
 require_once __DIR__ . '/../inc/probe.php';
-require_once __DIR__ . '/../inc/extbuild.php';
+require_once __DIR__ . '/../inc/extension.php';
 
 $user = auth_require_admin();
 $s = settings();
@@ -106,7 +106,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         if ($fehler === null) {
             $neu['ext_stores'] = $laeden;
-            $neu['ext_download'] = ($_POST['ext_download'] ?? '') === '1';
             audit(t('Einstellungen zur Browser-Erweiterung geändert'));
         }
     }
@@ -275,7 +274,7 @@ $host = preg_replace('#^https?://#', '', base_url());
 
 <div class="card">
     <h2><?= t('Browser-Erweiterung') ?></h2>
-    <p class="muted small"><?= t('Wie Nutzende im Profil zu ihr kommen. Steht eine Adresse in einem Laden, erscheint dort ein Knopf dahin; das Archiv zum Selbstladen lässt sich daneben abschalten. Der Verbindungscode bleibt in jedem Fall – er richtet eine installierte Erweiterung mit einem Einfügen ein.') ?></p>
+    <p class="muted small"><?= t('Wie Nutzende im Profil zu ihr kommen. Steht eine Adresse in einem Laden, erscheint dort ein Knopf dahin. Der Verbindungscode erscheint in jedem Fall – er richtet eine installierte Erweiterung mit einem Einfügen ein, auch die neutrale Fassung aus dem Laden.') ?></p>
 
     <form method="post" action="">
         <?= csrf_field() ?>
@@ -292,14 +291,6 @@ $host = preg_replace('#^https?://#', '', base_url());
                value="<?= e((string)($s['ext_stores'][$laden] ?? '')) ?>">
         <?php endforeach; ?>
         <p class="muted small"><?= t('Angenommen wird nur %s und nur die Adresse des jeweiligen Ladens – ein Knopf „Installieren“ ist eine Empfehlung und soll nicht irgendwohin zeigen können.', '<code>https</code>') ?></p>
-
-        <label class="radio" style="margin-top:.8rem">
-            <input type="checkbox" name="ext_download" value="1"<?= !empty($s['ext_download']) ? ' checked' : '' ?><?= ext_available() ? '' : ' disabled' ?>>
-            <span><?= t('Archiv zum Selbstladen anbieten') ?><br>
-            <span class="muted small"><?= ext_available()
-                ? t('Für eine Instanz ohne Eintrag in den Läden der einzige Weg: fertig eingerichtet, aber von Hand zu entpacken und im Entwicklermodus zu laden – und es aktualisiert sich nie. Wer im Laden steht, schaltet es besser ab.')
-                : t('Nicht möglich: Der Ordner %s liegt nicht auf dieser Instanz.', '<code>extension/</code>') ?></span></span>
-        </label>
         <p><button class="btn" type="submit"><?= t('Speichern') ?></button></p>
     </form>
 </div>
