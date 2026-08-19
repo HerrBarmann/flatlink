@@ -1243,4 +1243,19 @@ your password immediately and contact us.
     'freigegeben für %s' => 'shared with %s',
     'Freigabe des Logos „%s" geändert' => 'Sharing of logo "%s" changed',
     'von %s' => 'by %s',
+
+    // Nachgetragen: Texte, die bisher ohne englische Fassung waren
+    'QR-Code-Generator' => 'QR code generator',
+    'optional – danach antwortet der Link wie ein abgelaufener'
+        => 'optional – after that the link answers like an expired one',
+    'Freigabe des Logos „%s“ geändert' => 'Sharing of logo "%s" changed',
+    'Für den Zugriff über die Schnittstelle fehlt deinem Konto die Berechtigung.'
+        => 'Your account lacks the permission to use the API.',
+    'E-Mail' => 'Mail',
+    'Was ein Konto selbst darf' => 'What an account may do itself',
+    'Betrifft nur die eigenen Links und Seiten. Auf einer Instanz mit Tarifen ist das der Tarif.'
+        => 'Applies only to your own links and pages. On an instance with plans, this is the plan.',
+    'Was jemand für andere darf' => 'What someone may do for others',
+    'Reicht über das eigene Konto hinaus – das ist eine Rolle, kein Tarif. Diese beiden zusammen ergeben eine Redaktion: alles, was Links betrifft, aber keine Konten, Domains oder Einstellungen.'
+        => 'Reaches beyond your own account – that is a role, not a plan. The two together make an editorial team: everything to do with links, but no accounts, domains or settings.',
 ];
