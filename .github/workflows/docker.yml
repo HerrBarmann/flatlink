@@ -72,7 +72,13 @@ jobs:
         if: github.event_name != 'pull_request'
         run: |
           docker build -t flatlink-probe --load .
-          docker run -d --name probe -p 8080:80 \
+          # Den Port aus dem Image lesen, statt ihn hier zu wiederholen –
+          # sonst bricht dieser Schritt bei der nächsten Portänderung, und
+          # zwar erst nachdem das Image längst veröffentlicht ist.
+          PORT=$(docker image inspect flatlink-probe \
+            --format '{{range $p, $_ := .Config.ExposedPorts}}{{$p}}{{end}}' | cut -d/ -f1)
+          echo "Image lauscht auf $PORT"
+          docker run -d --name probe -p 8080:"$PORT" \
             -e FLATLINK_BASE_URL=http://localhost:8080 flatlink-probe
           for i in $(seq 1 20); do
             if curl -fsS http://localhost:8080/api/health | grep -q pass; then
