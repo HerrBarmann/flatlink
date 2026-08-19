@@ -429,6 +429,15 @@ function sso_attempt(): ?string
     $deny = access_denied_reason($id['user'], $id['groups'], $c);
     if ($deny !== null) return $deny;
 
+    // Wie bei ldap_login(): vor user_provision(), damit ein gesperrtes
+    // Konto keinen Anmeldezeitpunkt für eine Anmeldung bekommt, die es
+    // nicht gibt – und die Person eine Auskunft statt eines leeren
+    // Formulars.
+    if (user_locked(user_get($id['user']))) {
+        ldap_log('Anmeldung in gesperrtes Konto abgewiesen (SSO)', $id['user']);
+        return t('Dieses Konto ist gesperrt. Bitte wende dich an die Verwaltung.');
+    }
+
     $existing = user_get($id['user']);
     $fremd = $existing !== null && ($existing['auth'] ?? 'local') !== 'sso';
     if ($existing === null && !$c['auto_create'] || $fremd) {
@@ -775,18 +784,65 @@ function ldap_alle_kennungen(int $limit = 0): array
         // Jeder Eintrag, der dieses Attribut überhaupt trägt. Enger zu filtern
         // wäre gefährlich: Was der Filter nicht findet, gilt hinterher als
         // ausgeschieden.
-        $res = @ldap_search($conn, (string)$c['base_dn'], '(' . $attr . '=*)', [$attr], 0, $limit);
-        if ($res === false) {
-            ldap_log('Suche für den Abgleich fehlgeschlagen', '', $conn);
-            return ['Die Suche im Verzeichnis schlug fehl.', []];
-        }
-        $eintraege = @ldap_get_entries($conn, $res);
-        if (!is_array($eintraege)) return ['Das Verzeichnis antwortete unlesbar.', []];
-
+        //
+        // Geblättert, nicht am Stück: Ein Verzeichnis liefert nicht beliebig
+        // viele Einträge auf einmal. Active Directory deckelt über
+        // `MaxPageSize` bei 1000, OpenLDAP über `sizelimit` meist bei 500 –
+        // und zwar nicht mit einem Fehler, sondern mit einer TEILMENGE plus
+        // Hinweis. Wer den Hinweis nicht liest, hält die Teilmenge für das
+        // ganze Verzeichnis und sperrt alles, was zufällig hinter der Grenze
+        // steht. Bei 1200 Konten und einer Grenze von 1000 wären das 200
+        // Beschäftigte – und mit 16,7 % bliebe es sogar unter der
+        // Schmerzgrenze des Abgleichs.
         $out = [];
-        for ($i = 0; $i < (int)($eintraege['count'] ?? 0); $i++) {
-            $wert = $eintraege[$i][strtolower($attr)][0] ?? null;
-            if (is_string($wert) && $wert !== '') $out[] = mb_strtolower($wert);
+        $cookie = '';
+        $seite = 500;
+        $runden = 0;
+        do {
+            $steuerung = [[
+                'oid' => LDAP_CONTROL_PAGEDRESULTS,
+                'iscritical' => false,
+                'value' => ['size' => $seite, 'cookie' => $cookie],
+            ]];
+            $res = @ldap_search($conn, (string)$c['base_dn'], '(' . $attr . '=*)',
+                [$attr], 0, $limit, (int)$c['timeout'], LDAP_DEREF_NEVER, $steuerung);
+            if ($res === false) {
+                ldap_log('Suche für den Abgleich fehlgeschlagen', '', $conn);
+                return ['Die Suche im Verzeichnis schlug fehl.', []];
+            }
+            // Fehler 4 heißt: Der Server hat gekürzt. Für einen Abgleich, der
+            // aus Abwesenheit auf Ausscheiden schließt, ist eine gekürzte
+            // Liste genauso unbrauchbar wie gar keine – und deshalb bricht er
+            // hier mit derselben Begründung ab.
+            $nr = ldap_errno($conn);
+            if ($nr === 4) {
+                ldap_log('Verzeichnis kürzte die Antwort (sizelimit)', '', $conn);
+                return ['Das Verzeichnis lieferte nur einen Teil seiner Einträge '
+                      . '(Grenze des Servers erreicht).', []];
+            }
+
+            $eintraege = @ldap_get_entries($conn, $res);
+            if (!is_array($eintraege)) return ['Das Verzeichnis antwortete unlesbar.', []];
+            for ($i = 0; $i < (int)($eintraege['count'] ?? 0); $i++) {
+                $wert = $eintraege[$i][strtolower($attr)][0] ?? null;
+                if (is_string($wert) && $wert !== '') $out[] = mb_strtolower($wert);
+            }
+
+            // Das Cookie sagt, ob noch eine Seite folgt. Fehlt die Unterstützung
+            // im Server, kommt keines zurück und die Schleife endet nach dem
+            // ersten Durchgang – dann greift oben die Prüfung auf Fehler 4.
+            $cookie = '';
+            if (@ldap_parse_result($conn, $res, $fehlercode, $matched, $meldung,
+                                   $verweise, $antwort)) {
+                $cookie = (string)($antwort[LDAP_CONTROL_PAGEDRESULTS]['value']['cookie'] ?? '');
+            }
+        } while ($cookie !== '' && ++$runden < 200);
+
+        if ($cookie !== '') {
+            // 200 Seiten à 500 sind 100.000 Einträge. Wer mehr hat, bekommt
+            // lieber einen Abbruch als eine halbe Liste.
+            return ['Das Verzeichnis ist größer als erwartet – der Abgleich '
+                  . 'brach nach 200 Seiten ab.', []];
         }
         return [null, array_values(array_unique($out))];
     } finally {
@@ -835,6 +891,17 @@ function ldap_login(string $username, string $password): ?string
 
     $deny = access_denied_reason($id['user'], $id['groups'], $c);
     if ($deny !== null) return $deny;
+
+    // Gesperrt: Hier abbiegen, nicht erst in sso_start_session(). Sonst liefe
+    // vorher user_provision() durch und schriebe `last_login` für eine
+    // Anmeldung, die nicht stattfindet – und die Person bekäme wortlos wieder
+    // das Anmeldeformular. Klartext ist hier richtig: Wer bis hierher kommt,
+    // hat sich am Verzeichnis bereits ausgewiesen, die Auskunft verrät ihm
+    // also nichts Neues und erspart einen Anruf beim Support.
+    if (user_locked(user_get($id['user']))) {
+        ldap_log('Anmeldung in gesperrtes Konto abgewiesen', $id['user']);
+        return t('Dieses Konto ist gesperrt. Bitte wende dich an die Verwaltung.');
+    }
 
     $existing = user_get($id['user']) ?? null;
     $fremd = $existing !== null && ($existing['auth'] ?? 'local') !== 'ldap';

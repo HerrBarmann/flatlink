@@ -345,21 +345,38 @@ function user_lock_note(?array $u): string
  * bleiben liegen und greifen einfach nicht mehr, damit ein Entsperren sie
  * nicht alle neu verteilen muss.
  */
-function user_set_locked(string $name, bool $gesperrt, string $grund = ''): bool
+function user_set_locked(string $name, bool $gesperrt, string $grund = '', string $von = 'hand'): ?string
 {
+    // $von: 'hand' oder 'sync' – siehe unten, warum das ein eigenes Feld ist.
     $vorher = user_get($name);
-    if ($vorher === null) return false;
-    users_update(function (array $users) use ($name, $gesperrt, $grund) {
+    if ($vorher === null) return 'Dieses Konto gibt es nicht.';
+    // Den letzten handlungsfähigen Administrator sperrt niemand – auch keine
+    // Automatik. `user_set_role()` und `user_delete()` kennen diesen Schutz
+    // seit je; hier fehlte er, weil eine Sperre die Rolle nicht anfasst.
+    if ($gesperrt && !user_locked($vorher)
+        && ($vorher['role'] ?? '') === 'admin' && admin_count_offen() <= 1) {
+        return 'Das ist der letzte Administrator, der noch hereinkommt – '
+             . 'er lässt sich nicht sperren.';
+    }
+    users_update(function (array $users) use ($name, $gesperrt, $grund, $von) {
         if (!isset($users[$name])) return null;
         if ($gesperrt) {
-            $users[$name]['locked'] = ['at' => date('c'), 'reason' => mb_substr($grund, 0, 200)];
+            $users[$name]['locked'] = [
+                'at' => date('c'),
+                'reason' => mb_substr($grund, 0, 200),
+                // Wer gesperrt hat, als Feld statt als Textmarke im Grund:
+                // Der Abgleich hebt später nur seine eigenen Sperren auf, und
+                // das soll nicht an einem Wortlaut hängen, den jemand von Hand
+                // ebenso tippen kann.
+                'by' => $von === 'sync' ? 'sync' : 'hand',
+            ];
         } else {
             unset($users[$name]['locked']);
         }
         return $users;
     }, $name);
     if ($gesperrt) sessions_revoke($name);
-    return true;
+    return null;
 }
 
 function auth_user(): ?array
@@ -736,6 +753,28 @@ function verified_ip_gc(): void
 function admin_count(): int
 {
     return (int)db()->query("SELECT COUNT(*) FROM users WHERE role = 'admin'")->fetchColumn();
+}
+
+/**
+ * Wie viele Administratoren können tatsächlich noch herein?
+ *
+ * `admin_count()` zählt die Rolle, nicht die Handlungsfähigkeit – und eine
+ * Sperre lässt die Rolle unangetastet. Wer nur die Rolle zählt, hält eine
+ * Instanz für versorgt, in der jeder Administrator gesperrt ist.
+ *
+ * Das ist kein gedachter Fall: Der Verzeichnisabgleich sperrt jedes LDAP-Konto,
+ * das im Verzeichnis fehlt. Sind die Administratoren einer Hochschule
+ * LDAP-Konten – der Normalfall –, kann ein einziger Lauf sie alle gleichzeitig
+ * aussperren. Herausgeholfen hätte danach nur noch der Dateizugriff, den es
+ * auf Shared Hosting nicht gibt.
+ */
+function admin_count_offen(): int
+{
+    $n = 0;
+    foreach (users_all() as $u) {
+        if (($u['role'] ?? '') === 'admin' && !user_locked($u)) $n++;
+    }
+    return $n;
 }
 
 /**

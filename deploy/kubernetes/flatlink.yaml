@@ -89,7 +89,7 @@ spec:
           # major.minor – Fehlerbehebungen kommen automatisch, ein Sprung auf
           # 3.6 nicht. Wer reproduzierbar ausrollen will, pinnt die volle
           # Fassung (…:3.5.1); die Action baut alle drei Formen.
-          image: ghcr.io/herrbarmann/flatlink:3.5
+          image: ghcr.io/herrbarmann/flatlink:3.6
           imagePullPolicy: IfNotPresent
           ports:
             - name: http

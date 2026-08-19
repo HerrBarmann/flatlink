@@ -199,12 +199,43 @@ if (!token_darf($eintrag, $method)) {
 // die mit ihm selbst angelegt wurden. Die Kennung steht an jedem Link im
 // Feld `via`; alles Ältere und alles aus der Oberfläche trägt keines und
 // bleibt damit außen vor – genau das ist der Zweck.
-$nurEigene = token_nur_eigene($eintrag) ? (string)$eintrag['id'] : null;
+api_sicht_setzen(token_nur_eigene($eintrag) ? (string)$eintrag['id'] : null);
+
+/**
+ * Die Sicht des benutzten Schlüssels festlegen – genau einmal, direkt nach
+ * der Anmeldung.
+ *
+ * Zwei Funktionen statt einer globalen Variablen, und das aus einem Grund:
+ * Hier hängt eine Autorisierungsentscheidung dran, und die darf nicht
+ * versehentlich nach „offen" umschlagen. Eine globale Variable, die jemand
+ * umbenennt, verschiebt oder in einer neuen Datei nicht mehr setzt, wäre
+ * `null` – und `null` hieße „keine Einschränkung". Der Schutz verschwände
+ * still, ohne Fehler und ohne dass ein Test anschlägt.
+ *
+ * Deshalb merkt sich die Funktion, ob sie überhaupt aufgerufen wurde, und
+ * verweigert im Zweifel.
+ */
+function api_sicht_setzen(?string $tokenId): void
+{
+    api_sicht($tokenId, true);
+}
+
+/** @internal Der Speicher hinter api_sicht_setzen()/api_sichtbar() */
+function api_sicht(?string $setzen = null, bool $schreiben = false): array
+{
+    static $gesetzt = false;
+    static $wert = null;
+    if ($schreiben) { $wert = $setzen; $gesetzt = true; }
+    return [$gesetzt, $wert];
+}
 
 /** Gehört dieser Link in die Sicht des benutzten Schlüssels? */
 function api_sichtbar(array $l): bool
 {
-    global $nurEigene;
+    [$gesetzt, $nurEigene] = api_sicht();
+    // Nie gesetzt heißt: Etwas ist umgebaut worden und dieser Pfad läuft
+    // ohne Anmeldung. Dann lieber nichts zeigen als alles.
+    if (!$gesetzt) return false;
     return $nurEigene === null || (string)($l['via'] ?? '') === $nurEigene;
 }
 
@@ -356,6 +387,7 @@ if ($ressource === 'links') {
             // sonst fände er den eben angelegten Link im nächsten Aufruf
             // nicht wieder. Nur in diesem Fall, damit an den übrigen Links
             // kein Feld steht, das niemand liest.
+            [, $nurEigene] = api_sicht();
             if ($nurEigene !== null) {
                 link_write($ergebnis, function (?array $l) use ($nurEigene) {
                     if ($l === null) return false;

@@ -37,6 +37,14 @@ declare(strict_types=1);
  * Sperre bleibt, wo sie ist.
  */
 
+// Eingebunden von tools/flatlink, nicht eigenständig – aber der Riegel steht
+// trotzdem hier. Von allen Dateien im Projekt ist das diejenige, die Konten
+// sperrt; bei ihr ist Gleichförmigkeit mehr wert als anderswo.
+if (PHP_SAPI !== 'cli') {
+    http_response_code(403);
+    exit("Nur auf der Kommandozeile.\n");
+}
+
 /** Woran der Abgleich seine eigenen Sperren wiedererkennt */
 const ABGLEICH_GRUND = 'Verzeichnisabgleich: Kennung nicht mehr vorhanden';
 
@@ -84,21 +92,45 @@ if ($zentral === []) {
 
 $fehlend = [];
 $zurueck = [];
+$adminsUebersprungen = [];
+$auchAdmins = hat($argv, 'auch-admins');
 foreach ($zentral as $name => $u) {
     $da = isset($imVerzeichnis[mb_strtolower($name)]);
     if (!$da && !user_locked($u)) {
+        // Administratoren bleiben unangetastet, solange niemand ausdrücklich
+        // etwas anderes sagt. Sind die Admins einer Hochschule LDAP-Konten –
+        // der Normalfall –, könnte ein einziger Lauf sie alle gleichzeitig
+        // aussperren, und herausgeholfen hätte danach nur der Dateizugriff.
+        // Das passt nicht zu einer Automatik, deren ganze Haltung „im Zweifel
+        // nichts tun" ist.
+        if (($u['role'] ?? '') === 'admin' && !$auchAdmins) {
+            $adminsUebersprungen[$name] = $u;
+            continue;
+        }
         $fehlend[$name] = $u;
-    } elseif ($da && user_locked($u)
-              && (string)($u['locked']['reason'] ?? '') === ABGLEICH_GRUND) {
+    } elseif ($da && user_locked($u) && ($u['locked']['by'] ?? '') === 'sync') {
         // Wieder aufgetaucht – aber nur aufmachen, was dieser Abgleich selbst
         // zugemacht hat. Eine von Hand verhängte Sperre geht ihn nichts an.
+        // Erkannt am Feld `by`, nicht am Text des Grundes: Wer von Hand mit
+        // demselben Wortlaut sperrt, soll seine Sperre behalten.
         $zurueck[$name] = $u;
     }
 }
 
 // ---- 3. Schmerzgrenze ----------------------------------------------------
 
-$anteil = count($zentral) > 0 ? count($fehlend) / count($zentral) * 100 : 0.0;
+if ($adminsUebersprungen !== []) {
+    sage('');
+    sage('  Übersprungen, weil Administrator (mit --auch-admins einbeziehen):');
+    foreach ($adminsUebersprungen as $name => $u) sage("    $name");
+}
+
+// Für die Schmerzgrenze zählen die übersprungenen Administratoren mit: Sie
+// fehlen im Verzeichnis, und wenn ihr Fehlen auf ein Serverproblem hindeutet,
+// soll das den Abbruch auslösen und nicht durch das Überspringen verdeckt
+// werden.
+$anteil = count($zentral) > 0
+    ? (count($fehlend) + count($adminsUebersprungen)) / count($zentral) * 100 : 0.0;
 sage(sprintf('  Nicht mehr im Verzeichnis: %d (%.1f %%)', count($fehlend), $anteil));
 if ($zurueck !== []) sage('  Wieder aufgetaucht: ' . count($zurueck));
 sage('');
@@ -117,7 +149,10 @@ if ($anteil > $grenze) {
 foreach ($fehlend as $name => $u) {
     $n = link_count($name);
     sage(sprintf('  %-28s sperren   (%d Link%s bleiben)', $name, $n, $n === 1 ? '' : 's'));
-    if ($anwenden) user_set_locked($name, true, ABGLEICH_GRUND);
+    if ($anwenden) {
+        $err = user_set_locked($name, true, ABGLEICH_GRUND, 'sync');
+        if ($err !== null) sage("    übersprungen: $err");
+    }
 }
 foreach ($zurueck as $name => $u) {
     sage(sprintf('  %-28s freigeben (war maschinell gesperrt)', $name));

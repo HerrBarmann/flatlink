@@ -205,7 +205,8 @@ case 'konto:admin':
 case 'konto:sperren':
     $name = $rest[0] ?? raus('Aufruf: konto:sperren <name> [--grund=…]');
     if (user_get($name) === null) raus("Das Konto $name gibt es nicht.");
-    user_set_locked($name, true, opt($argv, 'grund') ?: 'von Hand gesperrt');
+    $err = user_set_locked($name, true, opt($argv, 'grund') ?: 'von Hand gesperrt');
+    if ($err !== null) raus('  ' . $err);
     sage("  $name ist gesperrt. Links, Statistik und QR-Codes bleiben unangetastet.");
     exit(0);
 

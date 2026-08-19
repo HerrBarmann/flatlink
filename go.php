@@ -115,7 +115,7 @@ if (!empty($link['pass'])) {
             }
             [$ziel, $weiche] = route_target($link);
             if ($zaehlbar) clicks_bump($code, null, $weiche);
-elseif ($limitiert) clicks_roh_bump($code);
+            elseif ($limitiert) clicks_roh_bump($code);
             header('Location: ' . $ziel, true, 302);
             exit;
         } else {

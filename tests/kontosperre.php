@@ -74,14 +74,38 @@ try {
     $pruefe('nach dem Freigeben ist es wieder offen', !user_locked(user_get($konto)));
     $pruefe('das Feld ist restlos weg', !array_key_exists('locked', user_get($konto)));
 
-    // 5. Der Abgleich erkennt nur seine eigenen Sperren
-    $abgleich = 'Verzeichnisabgleich: Kennung nicht mehr vorhanden';
-    user_set_locked($konto, true, $abgleich);
-    $pruefe('maschinelle Sperre ist am Grund erkennbar',
-        (string)(user_get($konto)['locked']['reason'] ?? '') === $abgleich);
-    user_set_locked($konto, true, 'von Hand gesperrt');
-    $pruefe('eine Sperre von Hand trägt einen anderen Grund',
-        (string)(user_get($konto)['locked']['reason'] ?? '') !== $abgleich);
+    // 5. Der Abgleich erkennt seine eigenen Sperren an einem FELD, nicht am
+    //    Wortlaut des Grundes – sonst könnte ihn jemand von Hand nachbauen.
+    user_set_locked($konto, false);
+    user_set_locked($konto, true, 'Kennung fehlt', 'sync');
+    $pruefe('maschinelle Sperre trägt by = sync',
+        (string)(user_get($konto)['locked']['by'] ?? '') === 'sync');
+    user_set_locked($konto, false);
+    user_set_locked($konto, true, 'Kennung fehlt');   // gleicher Text, von Hand
+    $pruefe('gleicher Grund von Hand trägt trotzdem by = hand',
+        (string)(user_get($konto)['locked']['by'] ?? '') === 'hand');
+
+    // 6. Der letzte handlungsfähige Administrator lässt sich nicht sperren
+    user_set_locked($konto, false);
+    users_update(function (array $u) use ($konto) {
+        if (!isset($u[$konto])) return null;
+        $u[$konto]['role'] = 'admin';
+        return $u;
+    }, $konto);
+    // Alle anderen Administratoren wegdenken: Wenn dieses Konto der einzige
+    // offene ist, muss die Sperre verweigert werden.
+    $andere = 0;
+    foreach (users_all() as $n2 => $u2) {
+        if ($n2 !== $konto && ($u2['role'] ?? '') === 'admin' && !user_locked($u2)) $andere++;
+    }
+    if ($andere === 0) {
+        $pruefe('der letzte offene Administrator lässt sich nicht sperren',
+            user_set_locked($konto, true, 'Versuch') !== null);
+    } else {
+        $pruefe('Schutz nicht prüfbar (es gibt weitere Administratoren) – übersprungen', true);
+    }
+    $pruefe('admin_count_offen zählt gesperrte nicht mit',
+        admin_count_offen() <= admin_count());
 } finally {
     $pdo = db();
     $pdo->exec('DELETE FROM links WHERE owner = ' . $pdo->quote($konto));

@@ -312,6 +312,15 @@ Four safeguards are built in, and they are the actual point:
   usually means the search base is wrong, not that the staff was dismissed.
   `--grenze=` raises the bar when it really is that many.
 * **It leaves local accounts alone**, and it only lifts locks it set itself.
+* **It never locks administrators**, it lists them for review instead. Where a
+  university's administrators are LDAP accounts – the normal case – a single
+  run could shut all of them out at once, and the only way back would be file
+  access, which shared hosting does not offer. `--auch-admins` includes them
+  for anyone who really wants that.
+* **It pages through the directory** and stops when the server truncated its
+  answer. Active Directory returns at most 1000 entries by default, OpenLDAP
+  usually 500 – and not as an error but as a subset. Mistaking that for the
+  whole directory locks everyone beyond the cut.
 
 A cron entry is enough for the regular run:
 

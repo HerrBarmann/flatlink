@@ -1266,4 +1266,5 @@ your password immediately and contact us.
     'Konto freigegeben: %s' => 'Account unlocked: %s',
     'Konto „%s“ sperren? Anmeldung und Zugangsschlüssel greifen sofort nicht mehr. Links, Statistik und QR-Codes bleiben.' => 'Lock account "%s"? Sign-in and API keys stop working immediately. Links, statistics and QR codes are kept.',
     'Dieses Konto ist gesperrt.' => 'This account is locked.',
+    'Dieses Konto ist gesperrt. Bitte wende dich an die Verwaltung.' => 'This account is locked. Please contact your administrator.',
 ];

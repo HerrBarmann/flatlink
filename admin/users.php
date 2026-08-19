@@ -65,11 +65,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif (user_get($name) === null) {
             flash(t('Dieses Konto gibt es nicht.'), 'err');
         } else {
-            user_set_locked($name, $zu, t('von der Verwaltung gesperrt'));
-            flash($zu
-                ? t('%s ist gesperrt. Links und Statistik bleiben erhalten.', $name)
-                : t('%s ist wieder freigegeben.', $name), 'ok');
-            audit($zu ? t('Konto gesperrt: %s', $name) : t('Konto freigegeben: %s', $name), $name);
+            $err = user_set_locked($name, $zu, t('von der Verwaltung gesperrt'));
+            if ($err !== null) {
+                flash(t($err), 'err');
+            } else {
+                flash($zu
+                    ? t('%s ist gesperrt. Links und Statistik bleiben erhalten.', $name)
+                    : t('%s ist wieder freigegeben.', $name), 'ok');
+                audit($zu ? t('Konto gesperrt: %s', $name) : t('Konto freigegeben: %s', $name), $name);
+            }
         }
     } elseif ($action === 'reset2fa') {
         // Der Weg zurück, wenn jemand sein Gerät verloren hat. Ein Passkey

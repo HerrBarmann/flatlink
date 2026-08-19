@@ -327,6 +327,16 @@ Vier Sicherungen sind eingebaut, und sie sind der eigentliche Punkt:
   Mit `--grenze=` lässt sich das anheben, wenn es doch stimmt.
 * **Lokale Konten fasst er nicht an**, und aufheben tut er nur Sperren, die er
   selbst gesetzt hat.
+* **Administratoren sperrt er nie**, sondern listet sie zur Prüfung auf. Sind
+  die Administratoren einer Hochschule LDAP-Konten – der Normalfall –, könnte
+  ein einziger Lauf sie alle gleichzeitig aussperren; herausgeholfen hätte
+  danach nur der Dateizugriff, den es auf Shared Hosting nicht gibt. Wer es
+  trotzdem will, hängt `--auch-admins` an.
+* **Er blättert durch das Verzeichnis** und bricht ab, wenn der Server seine
+  Antwort gekürzt hat. Active Directory liefert von Haus aus höchstens 1000
+  Einträge, OpenLDAP meist 500 – und zwar nicht mit einem Fehler, sondern mit
+  einer Teilmenge. Wer die für das ganze Verzeichnis hält, sperrt alles
+  dahinter.
 
 Für den regelmäßigen Lauf genügt ein Eintrag in der Aufgabenplanung:
 
