@@ -152,27 +152,30 @@ hat den Server oft nicht selbst aufgesetzt.
 
 ## In die Läden bringen
 
-Wer die Erweiterung im Chrome Web Store oder bei addons.mozilla.org anbieten
-will – als generische Fassung oder gebrandet für den eigenen Server –, baut
-sich die Pakete mit [`tools/store-build.php`](../tools/store-build.php):
+Das Paket ist dieser Ordner, gezippt — kein Bauschritt, kein Werkzeug:
 
 ```bash
-php tools/store-build.php --out=./dist
-php tools/store-build.php --out=./dist --instanz=https://kurz.example.org \
-  --name="Kurzlinks" --icon=/pfad/zu/icon-512.png
+cd extension
+zip -r -X ../flatlink.zip . -x "README.md" "icons/quelle*" ".DS_Store" "**/.DS_Store"
 ```
 
-Die Fassungsnummer steht in `extension/manifest.json` und wandert von dort
-ins Paket; `--version=` übersteuert sie einmalig. Vor dem Hochladen lohnt
-Mozillas eigene Prüfung – sie findet, was die Läden später bemängeln:
+Ausgeschlossen werden nur diese Datei und die beiden SVG-Vorlagen der
+Symbole. Alles andere geht unverändert in den Laden — was hier steht, steht
+auch im Paket.
 
-```bash
-cd extension && npx web-ext lint
-```
+Das ist Absicht: Mozilla verlangt eine Quellcode-Einreichung samt manueller
+Prüfung, sobald ein Werkzeug im Spiel ist, das Dateien erzeugt. Ohne Werkzeug
+entfällt beides.
 
-Bildschirmfotos für die Ladenseiten baut
+Wer eine Fassung für **eine bestimmte Instanz** möchte — mit fester Adresse,
+eigenem Namen, eigenen Symbolen und Farben —, nimmt
+[`tools/store-build.php`](../tools/store-build.php). Das Skript setzt sie aus
+diesem Ordner zusammen; für den Laden ist dann allerdings der Quelltext
+mitzuliefern.
+
+Bildschirmfotos für die Ladeneinträge baut
 [`tools/screenshots.php`](../tools/screenshots.php) aus einem entpackten
-Paket: 1280×800, wie Chrome es verlangt.
+Paket: 1280×800, wie Chrome es verlangt, wahlweise auf Deutsch oder Englisch.
 
 ## Version
 
