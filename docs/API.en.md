@@ -250,9 +250,43 @@ curl -o code.svg "https://example.org/qr.php?c=abc123&format=svg"
 
 `format` can be `svg`, `png`, `pdf` or `eps`; plus the designer's styling
 parameters (`style`, `eye`, `fg`, `bg`, `size`, `margin` …) – the complete
-list with values is in the [QR manual](qr-generator.en.md). Unknown codes
-return 404, the rate limit is `qr_rate_limit` (default 600 per hour per
-address, tighter for the heavy print formats).
+list is right below. Unknown codes return 404, the rate limit is
+`qr_rate_limit` (default 600 per hour per address, tighter for the heavy
+print formats).
+
+### Designing the QR code
+
+Everything the designer can do is available as a parameter to `qr.php` – it
+is the same generator, not a second implementation of one.
+
+| Parameter | Values | Default |
+| --- | --- | --- |
+| `format` | `svg`, `png`, `pdf`, `eps` | `svg` |
+| `size` | edge length in pixels (PDF rasterises at 2048 minimum) | 512 |
+| `margin` | quiet zone in modules, 0–10 | 4 |
+| `ecc` | error correction `L`, `M`, `Q`, `H` | `M` |
+| `style` | `square`, `rounded`, `smooth`, `dot`, `diamond`, `bars-v`, `bars-h` | `square` |
+| `eye` | `square`, `rounded`, `circle`, `leaf` | `square` |
+| `eyecore` | same values; empty = like the ring | empty |
+| `fg`, `bg` | `#rrggbb`; `bg=none` makes the background transparent | `#16181D`, `#ffffff` |
+| `eyefg`, `eyecorefg` | eye colours; empty = like the modules | empty |
+| `grad`, `fg2`, `ga` | gradient `linear`/`radial`, second colour, angle | off |
+| `logo`, `ls`, `lpad` | logo from the library, size in percent, padding | – |
+| `ftext` | frame text, at most 24 characters | empty |
+| `mm` | target width in millimetres for PDF and EPS | – |
+| `download` | set = as a file instead of in the browser | off |
+
+Two things deliberately **cannot** be set by parameter:
+
+- The **attribution line** under the code (`qr_brand_text`) depends on the
+  `qr_unbranded` permission of the link's **owner**, not of the caller.
+  Otherwise anyone could strip it off with a parameter.
+- The **logo library**: `logo` only accepts ids the instance knows – no
+  foreign addresses.
+
+The rate limit is `qr_rate_limit` (default 600 per hour per address), plus
+`qr_rate_limit_print` (60) for the heavy print formats. Signed-in accounts
+are exempt from both.
 
 ## Errors
 

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "flatlink",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Die geöffnete Seite auf der eigenen flatlink-Instanz kürzen – ohne Umweg über einen fremden Dienst.",
   "homepage_url": "https://github.com/HerrBarmann/flatlink",
   "action": {
@@ -41,6 +41,14 @@
           "none"
         ]
       }
+    }
+  },
+  "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Alt+Shift+K"
+      },
+      "description": "Diese Seite kürzen"
     }
   }
 }

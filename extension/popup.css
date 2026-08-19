@@ -156,3 +156,22 @@ select {
 .hinweis-kasten button { padding: 0.2rem 0.5rem; font-size: 0.8rem; }
 
 #rahmen { margin-left: 0.6rem; font-size: 0.78rem; }
+
+/* Der Code zum Abscannen: klein, mittig, ohne Rahmenwerk. Weiß hinterlegt,
+   damit er auch im dunklen Erscheinungsbild lesbar bleibt – ein QR-Code mit
+   dunklem Grund ist für viele Lesegeräte keiner mehr. */
+.qr {
+    margin: .75rem 0 0;
+    text-align: center;
+}
+.qr img {
+    width: 150px;
+    height: 150px;
+    background: #fff;
+    padding: 6px;
+    border-radius: 6px;
+}
+.qr figcaption {
+    margin-top: .35rem;
+    font-size: .8rem;
+}

@@ -257,10 +257,44 @@ curl -o code.svg "https://example.org/qr.php?c=abc123&format=svg"
 
 `format` kann `svg`, `png`, `pdf` oder `eps` sein; dazu kommen die
 Gestaltungsparameter des Designers (`style`, `eye`, `fg`, `bg`, `size`,
-`margin` …) – die vollständige Liste samt Werten steht im
-[QR-Handbuch](qr-generator.md). Unbekannte Codes antworten mit 404, das
-Rate-Limit ist `qr_rate_limit` (Vorgabe 600 je Stunde und Adresse, die
-schweren Druckformate enger).
+`margin` …) – die vollständige Liste steht gleich unten. Unbekannte Codes
+antworten mit 404, das Rate-Limit ist `qr_rate_limit` (Vorgabe 600 je Stunde
+und Adresse, die schweren Druckformate enger).
+
+### Gestaltung des QR-Codes
+
+Alles, was der Designer kann, steht auch als Parameter an `qr.php` – er ist
+derselbe Generator, nicht eine zweite Fassung davon.
+
+| Parameter | Werte | Vorgabe |
+| --- | --- | --- |
+| `format` | `svg`, `png`, `pdf`, `eps` | `svg` |
+| `size` | Kantenlänge in Pixeln (PDF rastert mindestens 2048) | 512 |
+| `margin` | Ruhezone in Modulen, 0–10 | 4 |
+| `ecc` | Fehlerkorrektur `L`, `M`, `Q`, `H` | `M` |
+| `style` | `square`, `rounded`, `smooth`, `dot`, `diamond`, `bars-v`, `bars-h` | `square` |
+| `eye` | `square`, `rounded`, `circle`, `leaf` | `square` |
+| `eyecore` | dieselben Werte; leer = wie der Ring | leer |
+| `fg`, `bg` | `#rrggbb`; `bg=none` macht den Grund durchsichtig | `#16181D`, `#ffffff` |
+| `eyefg`, `eyecorefg` | Augenfarben; leer = wie die Module | leer |
+| `grad`, `fg2`, `ga` | Verlauf `linear`/`radial`, Zweitfarbe, Winkel | aus |
+| `logo`, `ls`, `lpad` | Logo aus der Bibliothek, Größe in Prozent, Abstand | – |
+| `ftext` | Rahmentext, höchstens 24 Zeichen | leer |
+| `mm` | Zielbreite in Millimetern für PDF und EPS | – |
+| `download` | gesetzt = als Datei statt im Browser | aus |
+
+Zwei Dinge lassen sich **nicht** über Parameter steuern, und das ist
+Absicht:
+
+- Die **Absenderzeile** unter dem Code (`qr_brand_text`) hängt am Recht
+  `qr_unbranded` des **Besitzers** des Links, nicht am Aufrufer. Sonst
+  könnte sie jeder mit einem Parameter abstreifen.
+- Die **Logo-Bibliothek**: `logo` nimmt nur Kennungen, die der Instanz
+  bekannt sind – keine fremden Adressen.
+
+Das Rate-Limit ist `qr_rate_limit` (Vorgabe 600 je Stunde und Adresse), für
+die schweren Druckformate zusätzlich `qr_rate_limit_print` (60). Angemeldete
+Konten sind von beidem ausgenommen.
 
 ## Fehler
 

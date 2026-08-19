@@ -176,6 +176,17 @@ async function kuerzen() {
 
         $('kurzlink').textContent = kurz;
         $('kurzlink').href = kurz;
+
+        // Der Code zum Abscannen. qr.php ist öffentlich – ein Bild braucht
+        // keinen Schlüssel, weil der Code zum Link gehört und nicht zum
+        // Konto. Deshalb genügt hier ein <img>; kein fetch, keine
+        // Host-Berechtigung, kein Zwischenspeichern.
+        const qr = (fmt, extra) => einst.instanz + '/qr.php?c='
+            + encodeURIComponent(daten.code || kurz.split('/').pop())
+            + '&format=' + fmt + extra;
+        $('qr-bild').src = qr('svg', '&size=300');
+        $('qr-png').href = qr('png', '&size=1024&download=1');
+        $('qr-block').hidden = false;
         // Weiter geht es in der Instanz: Der QR-Designer dort kann Farben,
         // Formen, Logo, Rahmen und Druckdateien – hier wäre davon nur ein
         // Schatten unterzubringen.
@@ -203,6 +214,8 @@ async function kopieren() {
 }
 
 function zuruecksetzen() {
+    $('qr-block').hidden = true;
+    $('qr-bild').removeAttribute('src');
     $('code').value = '';
     $('tags').value = '';
     $('expires').value = '';

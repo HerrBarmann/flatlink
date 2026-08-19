@@ -69,9 +69,17 @@
       <button id="neu" type="button">Noch einen</button>
     </p>
     <p class="hinweis" id="kopiert" hidden>In die Zwischenablage gelegt.</p>
-    <!-- Der QR-Designer der Instanz kann Farben, Formen, Logo, Rahmen und
-         Druckdateien. Ein Knopf, der ein 512-Pixel-PNG zeigt, wäre daneben
-         kein Angebot, sondern eine Ablenkung. -->
+
+    <!-- Der Code zum Abscannen mit dem Handy – der häufigste Weg, einen Link
+         vom Rechner mitzunehmen. Bewusst schmucklos: Farben, Formen, Logo und
+         Druckdateien kann der Designer der Instanz, und das bleibt sein Platz.
+         Das Bild kommt von qr.php und braucht keinen Zugangsschlüssel; steht
+         in der Instanz eine Absenderzeile, trägt der Code sie automatisch. -->
+    <figure class="qr" id="qr-block" hidden>
+      <img id="qr-bild" alt="QR-Code des Kurzlinks" width="150" height="150">
+      <figcaption><a id="qr-png" href="#" target="_blank" rel="noopener">Als PNG speichern</a></figcaption>
+    </figure>
+
     <p class="wege">
       <a id="zum-designer" href="#" target="_blank" rel="noopener">QR-Code gestalten</a>
       <span aria-hidden="true">·</span>

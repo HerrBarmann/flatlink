@@ -44,7 +44,9 @@ $iconQuelle = (string)($opt['icon'] ?? '');
 // flatlink-Blau, auch wenn außen ein anderes Logo klebt.
 $farbe = (string)($opt['farbe'] ?? '');
 $farbeText = (string)($opt['farbetext'] ?? '#fff');
-$version = (string)($opt['version'] ?? '1.0.0');
+// Ohne Angabe gilt die Fassung aus dem Manifest – eine feste Vorgabe hier
+// baut sonst irgendwann ein Paket mit veralteter Nummer.
+$version = (string)($opt['version'] ?? '');
 // Mozillas Pflichtangabe zur Datenerhebung. „none" heißt: Diese Erweiterung
 // sammelt keine Daten – sie überträgt die Adresse, die der Nutzer kürzen
 // will, an dessen eigene Instanz, so wie ein FTP-Programm Dateien überträgt.
@@ -63,6 +65,7 @@ if (!is_dir($ziel) && !@mkdir($ziel, 0700, true)) {
 // ---- Manifest ------------------------------------------------------------
 
 $manifest = json_decode((string)file_get_contents($quelle . '/manifest.json'), true);
+if ($version === '') $version = (string)($manifest['version'] ?? '1.0.0');
 $manifest['version'] = $version;
 
 if ($instanz !== '') {

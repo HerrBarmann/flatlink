@@ -89,7 +89,8 @@ Firefox-Fassung, die unsignierte Add-ons erlaubt (ESR, Developer Edition).
 | Gruppe | Auswahl, wenn das Konto Arbeitsgruppen hat – sonst verborgen |
 | Mehr | Schlagwörter und Ablaufdatum, in einer Klappe |
 | Schon gekürzt | Gibt es für diese Adresse bereits einen Kurzlink, steht er da – mit Kopieren-Knopf, statt einen zweiten anzulegen |
-| Ergebnis | Kurzlink kopieren, oder weiter in die Instanz: QR-Designer und Linkverwaltung, beide direkt beim frisch angelegten Link |
+| Ergebnis | Kurzlink kopieren, QR-Code zum Abscannen (auch als PNG zu sichern), oder weiter in die Instanz: QR-Designer und Linkverwaltung, beide direkt beim frisch angelegten Link |
+| Tastenkürzel | `Alt+Shift+K` öffnet das Popup – im Browser frei änderbar |
 | Rahmen | Hinweis, sobald das Link-Limit zu 80 % belegt ist |
 
 Nicht dabei, und zwar mit Absicht: **UTM-Parameter** (fünf Felder – wer
@@ -110,13 +111,19 @@ Was sie **nicht** tut: keine Seiteninhalte lesen, kein Skript in Seiten
 einspritzen, keine Hintergrundprozesse, keine Verbindung zu irgendeiner
 anderen Adresse als deiner Instanz.
 
-**Kein QR-Code im Popup.** Der QR-Designer der Instanz kann Farben, Formen,
-Logo, Rahmen mit Text und Druckdateien (PDF, EPS, CMYK). Ein Knopf, der ein
-512-Pixel-PNG einblendet, wäre daneben kein Angebot, sondern eine Ablenkung –
-also führt ein Link direkt dorthin, mit dem eben angelegten Code.
+**Der QR-Code im Popup ist bewusst schmucklos.** Er beantwortet eine Frage,
+die im Browser oft ansteht: den Link vom Bildschirm aufs Handy bekommen.
+Dafür genügt der Code, wie die Instanz ihn ausgibt – samt Absenderzeile,
+falls dort eine eingestellt ist. Alles Weitere – Farben, Formen, Logo,
+Rahmen mit Text und Druckdateien in PDF, EPS und CMYK – kann der Designer
+der Instanz, und dorthin führt ein Link mit dem eben angelegten Code.
+
+Das Bild kommt von `qr.php` und braucht **keinen Zugangsschlüssel**: Ein
+QR-Code gehört zum Link, nicht zum Konto. Die Erweiterung hängt dafür also
+kein `<img>` an fremde Adressen und holt nichts über die Schnittstelle.
 
 Der Quelltext sind vier kleine Dateien: [`popup.js`](popup.js),
-[`options.js`](options.js) und die beiden HTML-Seiten. Zusammen unter 200
+[`options.js`](options.js) und die beiden HTML-Seiten. Zusammen gut 500
 Zeilen – nachlesbar an einem Nachmittag.
 
 ## Fehler und ihre Ursachen
