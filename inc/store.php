@@ -82,6 +82,53 @@ function link_write(string $code, callable $fn): bool
 }
 
 /**
+ * Viele Datensätze in EINER Transaktion ändern.
+ *
+ * `link_write()` nimmt je Aufruf ein eigenes Schreib-Lock – für einen Link
+ * genau richtig, für eine Massenoperation nicht: Ein Schlagwort auf
+ * zehntausend Links wären zehntausend Transaktionen in einer einzigen
+ * Anfrage. Läuft die dann in eine Zeitgrenze, ist der Bestand halb
+ * umbenannt, und es gibt keinen Weg zurück.
+ *
+ * Hier wird stattdessen einmal geöffnet, alles geschrieben, einmal
+ * bestätigt. Das ist nicht nur schneller, sondern atomar: Entweder tragen
+ * am Ende alle Links den neuen Namen oder keiner. Bricht etwas ab, macht
+ * SQLite den ganzen Vorgang rückgängig.
+ *
+ * $fn bekommt jeden Datensatz und gibt den neuen zurück; `false` lässt ihn
+ * unangetastet, `null` löscht ihn.
+ *
+ * @param string[] $codes
+ * @return int Zahl der tatsächlich geänderten Datensätze
+ */
+function links_write_many(array $codes, callable $fn): int
+{
+    if ($codes === []) return 0;
+    $pdo = db();
+    $pdo->exec('BEGIN IMMEDIATE');
+    try {
+        $lesen = $pdo->prepare('SELECT data FROM links WHERE code = ?');
+        $loeschen = $pdo->prepare('DELETE FROM links WHERE code = ?');
+        $n = 0;
+        foreach ($codes as $code) {
+            $lesen->execute([(string)$code]);
+            $zeile = $lesen->fetch();
+            $alt = $zeile === false ? null : json_decode((string)$zeile['data'], true);
+            $neu = $fn(is_array($alt) ? $alt : null, (string)$code);
+            if ($neu === false) continue;
+            if ($neu === null) $loeschen->execute([(string)$code]);
+            else db_link_put($pdo, (string)$code, $neu);
+            $n++;
+        }
+        $pdo->exec('COMMIT');
+        return $n;
+    } catch (Throwable $e) {
+        $pdo->exec('ROLLBACK');
+        throw $e;
+    }
+}
+
+/**
  * Alle Links eines Kontos – ohne die übrige Sammlung anzufassen.
  *
  * Die Codes kommen aus dem Index, die Datensätze aus den Ablagen; gelesen

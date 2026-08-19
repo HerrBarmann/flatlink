@@ -107,8 +107,10 @@ function bio_write(string $code, array $items, string $text, bool $index, ?array
             if (array_key_exists('legal', $stil)) {
                 $recht = [];
                 foreach (['imprint', 'privacy'] as $k) {
-                    $v = trim((string)($stil['legal'][$k] ?? ''));
-                    if ($v !== '' && mb_strlen($v) <= 300) $recht[$k] = $v;
+                    // Schon hier prüfen, nicht erst beim Ausgeben: Was im
+                    // Datensatz steht, soll verwendbar sein.
+                    $v = bio_legal_pruefen((string)($stil['legal'][$k] ?? ''));
+                    if ($v !== null) $recht[$k] = $v;
                 }
                 if ($recht === []) unset($l['bio_legal']); else $l['bio_legal'] = $recht;
             }
@@ -207,6 +209,34 @@ function bio_logo_size(string $id): array
  *
  * @return array<string,string> Beschriftung => Adresse
  */
+/**
+ * Taugt diese Angabe als Rechtslink?
+ *
+ * Erlaubt ist zweierlei: eine absolute http(s)-Adresse, die durch dieselbe
+ * Prüfung geht wie ein Linkziel — oder ein harmloser relativer Pfad auf eine
+ * Seite dieser Instanz (`impressum.html`). Alles andere fällt durch, allen
+ * voran `javascript:`.
+ *
+ * Die Funktion gibt es, weil die Prüfung an ZWEI Stellen gebraucht wird: beim
+ * Speichern und beim Ausgeben. Sie stand einmal nur beim Ausgeben, und das
+ * hielt genau so lange, wie jeder Ausgabepfad durch diese eine Stelle lief —
+ * ein Export, eine API-Antwort oder eine zweite Vorlage hätten den Schutz
+ * nicht gehabt. Jetzt ist schon der gespeicherte Datensatz sauber.
+ *
+ * @param string $ziel roh, wie eingegeben
+ * @return string|null die verwendbare Adresse, oder null wenn untauglich
+ */
+function bio_legal_pruefen(string $ziel): ?string
+{
+    $ziel = trim($ziel);
+    if ($ziel === '' || mb_strlen($ziel) > 300) return null;
+    if (preg_match('#^https?://#i', $ziel) === 1) {
+        return valid_url($ziel) ? $ziel : null;
+    }
+    if (preg_match('#^[a-z0-9_./-]+$#i', $ziel) !== 1 || str_contains($ziel, '..')) return null;
+    return $ziel;
+}
+
 function bio_legal_links(array $l): array
 {
     $eigen = (array)($l['bio_legal'] ?? []);
@@ -215,15 +245,11 @@ function bio_legal_links(array $l): array
         : (array)cfg('bio_legal_defaults');
     $out = [];
     foreach (['imprint' => t('Impressum'), 'privacy' => t('Datenschutz')] as $k => $label) {
-        $ziel = trim((string)($quelle[$k] ?? ''));
-        if ($ziel === '') continue;
-        // Relativ heißt: eine Seite dieser Instanz (impressum.html). Absolut
-        // muss http(s) sein – javascript:-Adressen haben hier nichts verloren.
-        if (preg_match('#^https?://#i', $ziel) === 1) {
-            if (!valid_url($ziel)) continue;
-        } elseif (preg_match('#^[a-z0-9_./-]+$#i', $ziel) !== 1 || str_contains($ziel, '..')) {
-            continue;
-        } else {
+        $ziel = bio_legal_pruefen((string)($quelle[$k] ?? ''));
+        if ($ziel === null) continue;
+        // Relativ heißt: eine Seite dieser Instanz (impressum.html) – die
+        // bekommt hier ihren vollen Pfad. Absolute Adressen stehen schon.
+        if (preg_match('#^https?://#i', $ziel) !== 1) {
             $ziel = base_url() . '/' . ltrim($ziel, '/');
         }
         $out[$label] = $ziel;

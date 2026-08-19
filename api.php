@@ -438,29 +438,31 @@ if ($ressource === 'tags') {
             $neu = tags_normalize((string)($in['name'] ?? ''))[0] ?? '';
             if ($neu === '') api_fail(422, 'rejected', t('Ein neuer Name fehlt (Feld „name").'));
             if ($neu !== $tag) {
-                foreach ($betroffen as $c) {
-                    link_write((string)$c, function (?array $l) use ($tag, $neu) {
-                        if ($l === null) return false;
-                        // Ersetzen statt anhängen: Trägt der Link den neuen
-                        // Namen schon, verschmelzen die beiden zu einem.
-                        $tags = array_map(fn($t) => $t === $tag ? $neu : $t, (array)($l['tags'] ?? []));
-                        $l['tags'] = tags_normalize($tags);
-                        return $l;
-                    });
-                }
+                // Eine Transaktion für alle: Bricht etwas ab, bleibt der
+                // Bestand unangetastet statt halb umbenannt. Ohne Zeitgrenze,
+                // weil die Kosten in dieser einen Anfrage stecken und das
+                // Stundenkontingent hier nichts bremst.
+                @set_time_limit(0);
+                links_write_many($betroffen, function (?array $l) use ($tag, $neu) {
+                    if ($l === null) return false;
+                    // Ersetzen statt anhängen: Trägt der Link den neuen
+                    // Namen schon, verschmelzen die beiden zu einem.
+                    $tags = array_map(fn($t) => $t === $tag ? $neu : $t, (array)($l['tags'] ?? []));
+                    $l['tags'] = tags_normalize($tags);
+                    return $l;
+                });
             }
             api_out(200, ['tag' => $neu, 'renamed_from' => $tag, 'links' => count($betroffen)]);
         }
 
         if ($method === 'DELETE') {
-            foreach ($betroffen as $c) {
-                link_write((string)$c, function (?array $l) use ($tag) {
-                    if ($l === null) return false;
-                    $tags = array_values(array_diff((array)($l['tags'] ?? []), [$tag]));
-                    if ($tags === []) unset($l['tags']); else $l['tags'] = $tags;
-                    return $l;
-                });
-            }
+            @set_time_limit(0);
+            links_write_many($betroffen, function (?array $l) use ($tag) {
+                if ($l === null) return false;
+                $tags = array_values(array_diff((array)($l['tags'] ?? []), [$tag]));
+                if ($tags === []) unset($l['tags']); else $l['tags'] = $tags;
+                return $l;
+            });
             api_out(200, ['deleted' => $tag, 'links' => count($betroffen)]);
         }
 

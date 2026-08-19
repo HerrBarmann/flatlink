@@ -106,7 +106,11 @@ spec:
                 optional: true
           securityContext:
             allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: false   # Apache schreibt seine PID-Datei
+            # Apache schreibt PID- und Log-Dateien; beides bekommt unten ein
+            # emptyDir, damit das Wurzeldateisystem schreibgeschuetzt bleiben
+            # kann. Damit ist der Pod-Standard "restricted" nicht nur
+            # erfuellt, sondern ausgereizt.
+            readOnlyRootFilesystem: true
             capabilities:
               drop: ["ALL"]
           # Derselbe Endpunkt, den auch eine Überwachung von außen abfragt.
@@ -128,10 +132,22 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /var/lib/flatlink
+            # Die beiden Verzeichnisse, die Apache zum Schreiben braucht.
+            # Beides ist fluechtig und soll es sein: Die PID-Datei gilt nur
+            # fuer diesen Prozess, die Zugriffsprotokolle gehen ohnehin nach
+            # stdout an die Cluster-Protokollierung.
+            - name: apache-run
+              mountPath: /var/run/apache2
+            - name: apache-log
+              mountPath: /var/log/apache2
       volumes:
         - name: data
           persistentVolumeClaim:
             claimName: flatlink-data
+        - name: apache-run
+          emptyDir: {}
+        - name: apache-log
+          emptyDir: {}
 ---
 # Bei genau einem Pod ist nicht der Durchsatz das Thema, sondern die
 # Verfügbarkeit: Ein Node-Drain nähme die Instanz einfach mit. Das Budget
@@ -184,3 +200,58 @@ spec:
                 name: flatlink
                 port:
                   name: http
+---
+# Ausgehender Verkehr, eingegrenzt auf das, was die Instanz wirklich braucht.
+#
+# Bewusst NUR Egress: Sobald eine NetworkPolicy einen Pod auswählt, gilt für
+# die genannten policyTypes ein Grundsatz-Verbot. Stünde hier auch Ingress,
+# müsste jeder Cluster seinen Ingress-Controller nachtragen – und wer das
+# vergisst, hat einen Dienst, der von außen nicht mehr erreichbar ist, ohne
+# dass die Anwendung etwas davon merkt. Eingehend bleibt deshalb unberührt.
+#
+# Wohin die Instanz überhaupt hinausruft:
+#   * DNS – für alles Weitere
+#   * HTTPS – Google Safe Browsing (falls eingeschaltet), Webhooks und der
+#     Selbsttest, der prüft, ob das Datenverzeichnis von außen erreichbar ist
+#   * SMTP – Registrierung, Passwort-Zurücksetzen, Benachrichtigungen
+#   * LDAP – nur, wenn die Anmeldung über ein Verzeichnis läuft
+#
+# Webhooks können grundsätzlich überall hinzeigen; deshalb ist HTTPS hier
+# nicht auf einzelne Adressen eingeengt. Wer das enger braucht, ersetzt den
+# HTTPS-Block durch konkrete `ipBlock`-Einträge – dann funktionieren
+# Webhooks nur noch zu den dort genannten Zielen.
+#
+# Diese Ressource ist optional. Ein Cluster ohne NetworkPolicy-fähiges
+# Netzwerk-Plugin ignoriert sie stillschweigend.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: flatlink-egress
+  namespace: flatlink
+spec:
+  podSelector:
+    matchLabels:
+      app: flatlink
+  policyTypes: ["Egress"]
+  egress:
+    # Namensauflösung. Der Selektor trifft den üblichen Ort von CoreDNS;
+    # liegt der Cluster-DNS woanders, gehört hier dessen Namespace hin.
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - { protocol: UDP, port: 53 }
+        - { protocol: TCP, port: 53 }
+    # Safe Browsing, Webhooks, Selbsttest
+    - ports:
+        - { protocol: TCP, port: 443 }
+    # Mailversand – die drei üblichen Zugänge
+    - ports:
+        - { protocol: TCP, port: 587 }
+        - { protocol: TCP, port: 465 }
+        - { protocol: TCP, port: 25 }
+    # Verzeichnisanmeldung; streichen, wer sie nicht nutzt
+    - ports:
+        - { protocol: TCP, port: 636 }
+        - { protocol: TCP, port: 389 }
