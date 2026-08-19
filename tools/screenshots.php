@@ -83,6 +83,11 @@ if ($monoDatei !== '' && is_file($monoDatei)) {
         . base64_encode((string)file_get_contents($monoDatei)) . ") format('truetype')}\n";
     $monoStack = "'Buehne Mono', " . $monoStack;
 }
+// Ohne --logo gilt das Symbol aus dem Paket selbst: Im Bild soll dasselbe
+// Zeichen stehen, das der Laden zeigt und das später in der Werkzeugleiste
+// klebt – nicht zwei Ersatzbuchstaben.
+$logoDatei = ($logoDatei === '' && is_file($paket . '/icons/128.png'))
+    ? $paket . '/icons/128.png' : $logoDatei;
 $logo = ($logoDatei !== '' && is_file($logoDatei))
     ? 'data:image/png;base64,' . base64_encode((string)file_get_contents($logoDatei))
     : '';
@@ -132,6 +137,13 @@ function seite_html(string $paket, string $datei, array $szene): string
     foreach ((array)($szene['wert'] ?? []) as $id => $wert) {
         $n = $el((string)$id);
         if ($n !== null) $n->setAttribute('value', (string)$wert);
+    }
+    // Beliebige Attribute – gebraucht für die Bildquelle des QR-Codes, der
+    // im echten Ablauf von qr.php kommt.
+    foreach ((array)($szene['attribut'] ?? []) as $id => $paare) {
+        $n = $el((string)$id);
+        if ($n === null) continue;
+        foreach ((array)$paare as $name => $wert) $n->setAttribute((string)$name, (string)$wert);
     }
     // Aufgeklappte Details, damit das Bild zeigt, dass es sie gibt
     foreach ((array)($szene['offen'] ?? []) as $id) {
@@ -199,6 +211,20 @@ function css_binden(string $css, string $an): string
     return $out;
 }
 
+/**
+ * Ein echter QR-Code als data:-URI – mit dem Encoder der Instanz, nicht
+ * nachgezeichnet. Abgescannt führt er dorthin, wohin der Kurzlink daneben
+ * führt; das Bild behauptet also nichts, was das Paket nicht kann.
+ */
+function qr_datenuri(string $ziel): string
+{
+    require_once dirname(__DIR__) . '/inc/qrlib.php';
+    $svg = (new QrRenderer(QrCode::encode($ziel, 1), [
+        'size' => 300, 'margin' => 2, 'style' => 'square', 'eye' => 'square',
+    ]))->svg();
+    return 'data:image/svg+xml;base64,' . base64_encode($svg);
+}
+
 // ---- Szenen --------------------------------------------------------------
 // Ein echter Fall, keine Blindtexte: eine lange Behörden-Adresse, wie sie
 // wirklich zum Kürzen taugt.
@@ -230,11 +256,14 @@ $szenen = [
         'h1' => 'Kopiert, bevor du den Tab wechselst.',
         'lead' => 'Der Kurzlink liegt in der Zwischenablage. Von hier geht es weiter in den '
                 . 'QR-Designer oder in die Linkverwaltung – beides ' . ($gebrandet ? "bei $name" : 'in deiner Instanz') . '.',
-        'punkte' => ['Ein Klick kopiert', '„Noch einen" für die nächste Seite',
-                     'QR-Code mit Farben, Formen, Logo und Druckdatei'],
+        'punkte' => ['Ein Klick kopiert', 'QR-Code zum Abscannen, auch als PNG',
+                     'Weiter in den Designer: Farben, Formen, Logo, Druckdatei'],
         'abschnitt' => 'fertig',
-        'zeigen' => ['kopiert'],
+        'zeigen' => ['kopiert', 'qr-block'],
         'text' => ['kurzlink' => preg_replace('#^https?://#', '', $kurz)],
+        // Der Code im Bild ist ein echter, mit demselben Encoder erzeugt, den
+        // die Instanz benutzt – abgescannt führt er auf den gezeigten Kurzlink.
+        'attribut' => ['qr-bild' => ['src' => qr_datenuri($kurz)]],
     ],
     [
         'datei' => '3-schon-gekuerzt',

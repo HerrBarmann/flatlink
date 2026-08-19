@@ -318,7 +318,7 @@ Bühne mit Fensterrahmen und Erklärtext. Was auf dem Bild steht, steht so
 auch im Paket.
 
 ```bash
-unzip -q dist/1337-kiwi-1.3.0.zip -d /tmp/paket
+unzip -q dist/1337-kiwi-1.3.0.zip -d /tmp/paket   # oder flatlink-1.3.0.zip
 php tools/screenshots.php --paket=/tmp/paket --out=/tmp/bilder \
   --name="1337.kiwi" --instanz=https://1337.kiwi \
   --logo=/pfad/zu/icon-512.png --mono=/pfad/zu/mono.ttf \
