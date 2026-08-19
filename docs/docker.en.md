@@ -156,6 +156,33 @@ vulnerable. This is not a stopgap but the design: flatlink is meant for
 instances that fit on a web host. If you need to scale out, you need
 something else.
 
+### What one pod carries
+
+Being limited to one pod sounds like a ceiling, but in practice it is not.
+Measured on a container with **one** CPU and 512 MB:
+
+| | |
+| --- | --- |
+| Redirects | **2,300 per second** – that is the write path; every request counts a click |
+| With 20,000 links stored | unchanged at 2,400 per second |
+| Read only (`/api/health`) | 2,900 per second |
+| Restart | reachable again after **1.5 seconds** |
+
+2,300 per second is over eight million redirects an hour. A service with a
+million clicks a month averages 0.4 per second. The instance is not the
+bottleneck, and will not be for a long while.
+
+If you do hit the ceiling, give the pod more CPU – that works, because
+Apache runs several processes. Scaling out is not possible: it would mean a
+second writer on the same SQLite file. That would require a different
+storage layer, and it would cost this project its promise – no database
+server, and a backup is a folder.
+
+Since the question is therefore not throughput but **availability**, the
+manifests include a `PodDisruptionBudget`: without it a node drain would
+simply take the instance with it; with it, the cluster waits for the
+replacement.
+
 **No root.** The image listens on port 8080 and runs as `www-data` in group
 0. That satisfies the `restricted` pod security standard (`runAsNonRoot`,
    `allowPrivilegeEscalation: false`, all capabilities dropped) and it also

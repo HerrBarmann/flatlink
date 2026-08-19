@@ -160,6 +160,32 @@ SQLite verwundbar. Das ist keine Übergangslösung, sondern die Bauweise:
 flatlink ist für Instanzen gedacht, die auf einen Webspace passen. Wer
 waagerecht skalieren muss, braucht etwas anderes.
 
+### Was ein Pod trägt
+
+Die Beschränkung auf einen Pod klingt nach einer Grenze, ist aber praktisch
+keine. Gemessen an einem Container mit **einer** CPU und 512 MB:
+
+| | |
+| --- | --- |
+| Weiterleitungen | **2300 je Sekunde** – das ist der Schreibpfad, jeder Aufruf zählt einen Klick |
+| mit 20.000 Links im Bestand | unverändert 2400 je Sekunde |
+| Nur lesen (`/api/health`) | 2900 je Sekunde |
+| Neustart | nach **1,5 Sekunden** wieder erreichbar |
+
+2300 je Sekunde sind über acht Millionen Weiterleitungen in der Stunde. Ein
+Dienst mit einer Million Klicks im Monat liegt im Schnitt bei 0,4 je
+Sekunde. Der Engpass ist also lange nicht die Instanz.
+
+Wer trotzdem an die Grenze stößt, gibt dem Pod mehr CPU – das wirkt, weil
+Apache mehrere Prozesse fährt. Waagerecht verteilen lässt sich flatlink
+nicht: Das wäre ein zweiter Schreiber auf derselben SQLite-Datei. Dafür
+bräuchte es ein anderes Ablage-Verfahren, und das würde das Versprechen
+dieses Projekts kosten – kein Datenbankserver, Sicherung ist ein Ordner.
+
+Weil es also nicht um Durchsatz geht, sondern um **Verfügbarkeit**, liegt
+den Manifesten ein `PodDisruptionBudget` bei: Ohne das nähme ein Node-Drain
+die Instanz einfach mit; mit ihm wartet der Cluster auf den Ersatz.
+
 **Ohne root.** Das Image lauscht auf Port 8080 und läuft als `www-data` in
 Gruppe 0. Damit erfüllt es den Pod-Security-Standard `restricted`
 (`runAsNonRoot`, `allowPrivilegeEscalation: false`, alle Capabilities
