@@ -1,0 +1,557 @@
+# Maschinenlesbare Beschreibung der flatlink-Schnittstelle.
+#
+# Sie steht neben der Prosa-Fassung in API.md, nicht an ihrer Stelle: Hier
+# stehen Formen und Felder, dort die Begründungen. Wer einen Client erzeugen,
+# die Sammlung in Postman oder Insomnia laden oder flatlink in einen
+# Werkzeugkatalog eintragen will, braucht diese Datei.
+#
+# Gepflegt wird sie von Hand — was zum Projekt passt, in dem es keinen
+# Build-Schritt gibt. Nach jeder Änderung an api.php gehört ein Blick hierher.
+openapi: 3.1.0
+
+info:
+  title: flatlink
+  version: 3.5.3
+  summary: Kurzlinks und QR-Codes, selbst gehostet
+  description: |
+    Kurzlinks anlegen, ändern, löschen und Klickzahlen abrufen.
+
+    Die Schnittstelle kann **nichts, was das Konto nicht auch über die
+    Oberfläche könnte**. Rechte, Limits, Namensräume und Gruppen gelten
+    unverändert; ein Schlüssel ist ein zweiter Weg zur Anmeldung, keine
+    zweite Berechtigung. Er kann allerdings *weniger* — siehe `scope`.
+
+    Was es bewusst **nicht** gibt: einen Endpunkt für einzelne Klicks. Es
+    wird kein Besuch gespeichert, also lässt sich auch keiner abrufen. Die
+    Statistik besteht aus Tageszählern und Summen.
+  license:
+    name: AGPL-3.0-or-later
+    url: https://www.gnu.org/licenses/agpl-3.0.html
+  contact:
+    name: flatlink
+    url: https://github.com/HerrBarmann/flatlink
+
+externalDocs:
+  description: Ausführliche Beschreibung mit Begründungen
+  url: https://github.com/HerrBarmann/flatlink/blob/main/docs/API.md
+
+servers:
+  - url: https://{host}/api
+    description: Mit der Umschreibung aus der mitgelieferten .htaccess
+    variables:
+      host: { default: kurz.example.org }
+  - url: https://{host}/api.php
+    description: Ohne Umschreibung, wenn der Server PATH_INFO liefert
+    variables:
+      host: { default: kurz.example.org }
+
+security:
+  - bearer: []
+  - apiKey: []
+
+tags:
+  - name: Konto
+    description: Wer ruft auf, und was darf er
+  - name: Links
+    description: Kurzlinks anlegen, ändern, löschen und auswerten
+  - name: Schlagwörter
+    description: Schlagwörter über den ganzen erreichbaren Bestand pflegen
+  - name: Betrieb
+    description: Überwachung – der einzige Bereich ohne Schlüssel
+
+paths:
+  /health:
+    get:
+      operationId: getHealth
+      tags: [Betrieb]
+      summary: Antwortet die Instanz?
+      description: |
+        Der einzige Endpunkt **ohne Schlüssel** — gedacht für die Überwachung,
+        die keinen hinterlegen soll. Verrät bewusst weder Fassung noch Zahlen.
+      security: []
+      # Kein 4xx: Der Endpunkt kennt keine Anmeldung, also auch keine
+      # abgelehnte. Entweder die Instanz antwortet (200) oder ihre Ablage
+      # ist nicht lesbar (503).
+      responses:
+        '200':
+          description: Instanz erreichbar, Ablage lesbar
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: { status: { type: string, const: pass } }
+        '503':
+          description: Ablage nicht lesbar
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: { status: { type: string, const: fail } }
+
+  /me:
+    get:
+      operationId: getMe
+      tags: [Konto]
+      summary: Konto, Rechte, Limits und der benutzte Schlüssel
+      responses:
+        '200':
+          description: Angaben zum Konto
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Konto' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /links:
+    get:
+      operationId: listLinks
+      tags: [Links]
+      summary: Links auflisten
+      parameters:
+        - { name: q, in: query, schema: { type: string },
+            description: 'sucht in Code, Ziel und Name' }
+        - { name: group, in: query, schema: { type: string } }
+        - { name: tag, in: query, schema: { type: string } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 200, default: 50 } }
+        - { name: offset, in: query, schema: { type: integer, minimum: 0, default: 0 } }
+      responses:
+        '200':
+          description: Seite der Trefferliste
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [total, limit, offset, links]
+                properties:
+                  total: { type: integer }
+                  limit: { type: integer }
+                  offset: { type: integer }
+                  links: { type: array, items: { $ref: '#/components/schemas/Link' } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+    post:
+      operationId: createLink
+      tags: [Links]
+      summary: Link anlegen
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LinkNeu' }
+          application/x-www-form-urlencoded:
+            schema: { $ref: '#/components/schemas/LinkNeu' }
+      responses:
+        '201':
+          description: Angelegt
+          headers:
+            Location:
+              description: Adresse des neuen Datensatzes
+              schema: { type: string, format: uri }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Link' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409':
+          description: Wunsch-Code ist vergeben
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Fehler' }
+        '422': { $ref: '#/components/responses/Rejected' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /links/{code}:
+    parameters:
+      - { name: code, in: path, required: true, schema: { type: string } }
+    get:
+      operationId: getLink
+      tags: [Links]
+      summary: Einzelnen Link lesen
+      responses:
+        '200':
+          description: Der Link
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Link' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+    patch:
+      operationId: updateLink
+      tags: [Links]
+      summary: Link ändern
+      description: |
+        Ändert **nur die mitgeschickten Felder**. Ein Aufruf, der bloß das Ziel
+        umbiegt, lässt den Namen in Ruhe — anders als ein Formular, das immer
+        alle Felder sendet. Zum Entfernen eines Namens `"title": ""` senden.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LinkAenderung' }
+      responses:
+        '200':
+          description: Geändert
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Link' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/Rejected' }
+    put:
+      operationId: replaceLink
+      tags: [Links]
+      summary: Wie PATCH
+      description: Gleichbedeutend mit `PATCH` — für Clients, die kein PATCH senden.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LinkAenderung' }
+      responses:
+        '200':
+          description: Geändert
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Link' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      operationId: deleteLink
+      tags: [Links]
+      summary: Link samt Klickzähler löschen
+      responses:
+        '200':
+          description: Gelöscht
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: { deleted: { type: string } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /links/{code}/stats:
+    parameters:
+      - { name: code, in: path, required: true, schema: { type: string } }
+    get:
+      operationId: getLinkStats
+      tags: [Links]
+      summary: Klickzahlen
+      description: |
+        `days` reicht nur so weit zurück, wie das Konto Statistik sehen darf.
+        `last` ist **tagesgenau**, nicht sekundengenau — feiner existiert
+        nichts. `refs`, `devices` und `languages` sind Summen über alle
+        Aufrufe, keine Zeitreihen; sie fehlen, wenn die Instanz
+        `'click_dims' => false` gesetzt hat.
+      responses:
+        '200':
+          description: Zahlen zu diesem Link
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Statistik' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /tags:
+    get:
+      operationId: listTags
+      tags: [Schlagwörter]
+      summary: Alle vergebenen Schlagwörter mit Anzahl
+      responses:
+        '200':
+          description: Liste
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total: { type: integer }
+                  tags:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        tag: { type: string }
+                        links: { type: integer }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /tags/{tag}:
+    parameters:
+      - { name: tag, in: path, required: true, schema: { type: string } }
+    patch:
+      operationId: renameTag
+      tags: [Schlagwörter]
+      summary: Schlagwort über alle Links umbenennen
+      description: |
+        Läuft in **einer** Transaktion: Entweder tragen am Ende alle Links den
+        neuen Namen oder keiner. Trägt ein Link beide Namen, verschmelzen sie.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties: { name: { type: string, maxLength: 24 } }
+      responses:
+        '200':
+          description: Umbenannt
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tag: { type: string }
+                  renamed_from: { type: string }
+                  links: { type: integer }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/Rejected' }
+    put:
+      operationId: replaceTag
+      tags: [Schlagwörter]
+      summary: Wie PATCH
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties: { name: { type: string, maxLength: 24 } }
+      responses:
+        '200':
+          description: Umbenannt
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tag: { type: string }
+                  renamed_from: { type: string }
+                  links: { type: integer }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/Rejected' }
+    delete:
+      operationId: deleteTag
+      tags: [Schlagwörter]
+      summary: Schlagwort von allen Links entfernen
+      responses:
+        '200':
+          description: Entfernt
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  deleted: { type: string }
+                  links: { type: integer }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+components:
+  securitySchemes:
+    bearer:
+      type: http
+      scheme: bearer
+      description: |
+        `Authorization: Bearer flk_…` — der übliche Weg.
+    apiKey:
+      type: apiKey
+      in: header
+      name: X-Api-Key
+      description: |
+        Ausweichweg für Server, die den `Authorization`-Kopf verschlucken,
+        wie es auf manchem Shared Hosting vorkommt.
+
+  responses:
+    Unauthorized:
+      description: Schlüssel fehlt, ist unbekannt oder zurückgezogen
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Fehler' }
+    Forbidden:
+      description: |
+        Konto hat `api_access` nicht (`no_permission`) oder der Schlüssel
+        darf dieses Verfahren nicht (`scope_exceeded`).
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Fehler' }
+    NotFound:
+      description: |
+        Gibt es nicht — **oder** gehört einem anderen Konto. Bewusst dieselbe
+        Antwort: Sonst ließe sich herausfinden, welche Kurzcodes vergeben sind.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Fehler' }
+    Rejected:
+      description: Eingabe verstößt gegen eine Regel
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Fehler' }
+    RateLimited:
+      description: Stundengrenze erreicht
+      headers:
+        Retry-After:
+          schema: { type: integer }
+          description: Sekunden bis zur nächsten vollen Stunde
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Fehler' }
+
+  schemas:
+    Fehler:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              enum: [no_key, bad_key, no_account, no_permission, scope_exceeded,
+                     forbidden, not_found, method_not_allowed, not_created,
+                     rejected, invalid_json, rate_limited, too_many_attempts]
+            message: { type: string }
+
+    Konto:
+      type: object
+      properties:
+        account: { type: string }
+        display_name: { type: [string, 'null'] }
+        role: { type: string, enum: [user, admin] }
+        groups: { type: array, items: { type: string } }
+        permissions: { type: array, items: { type: string } }
+        limits:
+          type: object
+          properties:
+            links: { type: string, description: Zahl oder „unbegrenzt" }
+            links_used: { type: integer }
+            stats_days: { type: string }
+            logos: { type: string }
+        assignable_groups: { type: array, items: { type: string } }
+        domains: { type: array, items: { type: string } }
+        rate_limit_per_hour: { type: integer }
+        key:
+          type: object
+          description: Der Schlüssel, mit dem dieser Aufruf kam
+          properties:
+            id: { type: string }
+            label: { type: string }
+            scope:
+              type: string
+              enum: [full, write, read]
+              description: |
+                `full` alles · `write` alles außer Löschen · `read` nur GET.
+                Nie mehr, als das Konto darf.
+            own_links_only:
+              type: boolean
+              description: Sieht nur Links, die mit diesem Schlüssel angelegt wurden
+
+    Link:
+      type: object
+      properties:
+        code: { type: string }
+        short_url: { type: string, format: uri }
+        url: { type: [string, 'null'], format: uri }
+        title: { type: [string, 'null'] }
+        tags: { type: array, items: { type: string } }
+        domain: { type: string }
+        utm:
+          type: object
+          description: |
+            Aus `url` abgeleitet, **nicht** getrennt gespeichert.
+          additionalProperties: { type: string }
+        type: { type: string, enum: [random, custom] }
+        group: { type: [string, 'null'] }
+        owner: { type: [string, 'null'] }
+        expires: { type: [string, 'null'], format: date }
+        expired: { type: boolean }
+        starts: { type: [string, 'null'], format: date }
+        pending: { type: boolean, description: Startdatum noch nicht erreicht }
+        max_visits: { type: [integer, 'null'] }
+        lang: { type: [string, 'null'], minLength: 2, maxLength: 2 }
+        history: { type: array, items: { type: object } }
+        rules: { type: array, items: { $ref: '#/components/schemas/Weiche' } }
+        password_protected: { type: boolean }
+        disabled: { type: boolean }
+        created: { type: [string, 'null'], format: date-time }
+        updated: { type: [string, 'null'], format: date-time }
+        clicks: { type: integer }
+
+    Weiche:
+      type: object
+      description: |
+        Bei jeder Anfrage ausgewertet, nichts davon wird gespeichert. Die
+        erste passende gewinnt, sonst gilt `url`. Höchstens acht je Link,
+        braucht das Recht `link_rules`.
+      properties:
+        wenn: { type: string, enum: [device, lang, country, split] }
+        ist: { type: string }
+        url: { type: string, format: uri }
+
+    LinkNeu:
+      type: object
+      required: [url]
+      properties:
+        url: { type: string, description: 'http/https; fehlt das Schema, wird https:// ergänzt' }
+        code: { type: string, description: 'Wunsch-Code, braucht custom_code' }
+        prefix: { type: string, description: 'Namensraum, falls die Instanz welche führt' }
+        title: { type: string, maxLength: 120 }
+        tags:
+          oneOf:
+            - { type: array, items: { type: string } }
+            - { type: string, description: kommagetrennt }
+          description: höchstens acht, je 24 Zeichen, kleingeschrieben gespeichert
+        domain: { type: string }
+        group: { type: string }
+        expires: { type: string, format: date }
+        starts: { type: string, format: date }
+        max_visits: { type: integer, minimum: 1 }
+        lang: { type: string, minLength: 2, maxLength: 2 }
+        password: { type: string }
+        utm:
+          type: object
+          properties:
+            utm_source: { type: string }
+            utm_medium: { type: string }
+            utm_campaign: { type: string }
+            utm_term: { type: string }
+            utm_content: { type: string }
+
+    LinkAenderung:
+      allOf:
+        - $ref: '#/components/schemas/LinkNeu'
+        - type: object
+          required: []
+          properties:
+            disabled: { type: boolean }
+            rules:
+              type: array
+              maxItems: 8
+              items: { $ref: '#/components/schemas/Weiche' }
+              description: Leere Liste entfernt alle Weichen
+
+    Statistik:
+      type: object
+      properties:
+        code: { type: string }
+        total: { type: integer }
+        last: { type: [string, 'null'], format: date }
+        days:
+          type: object
+          additionalProperties: { type: integer }
+        refs:
+          type: object
+          description: '`-` steht für Aufrufe ohne erkennbare Herkunft'
+          additionalProperties: { type: integer }
+        devices:
+          type: object
+          additionalProperties: { type: integer }
+        languages:
+          type: object
+          additionalProperties: { type: integer }

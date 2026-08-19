@@ -11,6 +11,11 @@ the same code the admin interface uses
 
 ---
 
+**Machine-readable:** the same API as OpenAPI 3.1 in
+[`openapi.yaml`](openapi.yaml) – for generated clients, Postman, Insomnia or an
+entry in a tool catalogue. What you read here are the reasons; the shapes are
+over there.
+
 ## Prerequisites
 
 The account needs the **`api_access`** permission. Like all permissions it

@@ -32,6 +32,20 @@ ausprobieren will, ist mit den drei Zeilen im
 
 ---
 
+## Eine Instanz, kein Verbund
+
+Bevor es losgeht: flatlink läuft als **eine** Instanz. Links und Konten liegen
+in einer SQLite-Datei, und SQLite verträgt einen Schreiber zur Zeit. Zwei
+Pods, zwei Server hinter einem Verteiler oder ein Aktiv-Aktiv-Aufbau
+funktionieren nicht – nicht schlecht, sondern gar nicht.
+
+Das ist kein Kapazitätsthema: Eine CPU schafft 2306 Weiterleitungen je
+Sekunde. Es ist ein Betriebsthema. Wer einen Standard mit mehreren Repliken
+oder unterbrechungsfreie Updates verlangt, sollte hier aufhören zu lesen.
+
+Für Ausfallsicherheit bleibt der klassische Weg: eine Maschine, regelmäßige
+Sicherungen, ein Wiederanlauf. Der Neustart dauert rund anderthalb Sekunden.
+
 ## 1. Vorüberlegungen
 
 Zwei Entscheidungen bestimmen fast alles Weitere.

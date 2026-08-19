@@ -12,6 +12,11 @@ der Verwaltungsoberfläche ([`inc/linkrules.php`](../inc/linkrules.php)).
 
 ---
 
+**Maschinenlesbar:** Dieselbe Schnittstelle als OpenAPI 3.1 in
+[`openapi.yaml`](openapi.yaml) – für erzeugte Clients, Postman, Insomnia oder
+einen Eintrag in einem Werkzeugkatalog. Was hier steht, sind die Begründungen;
+dort stehen die Formen.
+
 ## Voraussetzungen
 
 Das Konto braucht das Recht **`api_access`**. Es hängt wie alle Rechte an

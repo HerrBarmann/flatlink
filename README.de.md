@@ -406,6 +406,33 @@ Design und den Inhalten, die ein öffentliches Angebot braucht. Wer flatlink
 installiert, bekommt **kein Imitat davon**: ein neutrales Theme, das eigene
 Kürzel, die eigene Domain.
 
+### Und für wen nicht
+
+Eine Architektur-Entscheidung schließt manche Einsätze aus, und das steht
+besser hier als nach der Installation: **flatlink läuft als eine Instanz.**
+Links und Konten liegen in einer SQLite-Datei, und SQLite verträgt einen
+Schreiber zur Zeit. Genau das macht die Abhängigkeitsfreiheit aus – kein
+Datenbank-Server, keine Migrationen, eine Sicherung ist ein Kopiervorgang –
+und dafür kostet eine Weiterleitung Mikrosekunden. Es heißt aber:
+
+- **Keine waagerechte Verteilung.** Das Kubernetes-Manifest sagt deshalb
+  `replicas: 1` und Strategie `Recreate`. Zwei Pods wären zwei Schreiber.
+- **Kein Mehr-Regionen-Betrieb, keine unterbrechungsfreien Updates.** Während
+  eines Neustarts – rund anderthalb Sekunden – ist der Dienst weg.
+- **Keine Postgres- oder MySQL-Option.** Nicht „noch nicht": Sie hieße
+  Datenbank-Server, und das ist die Abhängigkeit, die dieses Projekt
+  vermeidet.
+
+Was das **nicht** ist: ein Kapazitätsproblem. Eine CPU schafft **2306
+Weiterleitungen je Sekunde**, dazu 831 Link-Anlagen je Sekunde über 20
+Verbindungen; an zwanzigtausend Links ändert sich daran nichts. Jede
+Hochschule, jede Agentur, jedes Unternehmen stößt lange vorher an die eigene
+Anbindung.
+
+Die Frage ist also nicht „reicht das", sondern „verlangt unser Betriebsstandard
+mehr als eine Instanz". Wenn ja, ist das hier die falsche Software – und das
+sollte vor dem ersten `git clone` klar sein.
+
 ## Handbuch
 
 Die README ist der Überblick; die Tiefe steht in eigenen Dokumenten. Die
@@ -418,6 +445,7 @@ vier Handbücher gibt es auch auf Englisch (`.en.md` daneben):
 | [Konten und Anmeldung](docs/konten.md) | Passkeys und Einmalkennwörter, LDAP, Shibboleth/SAML/OIDC, Auskunft und Löschung |
 | [Gruppen, Rechte und Domains](docs/gruppen.md) | Rechte- und Arbeitsgruppen, Limits, Namensräume, mehrere Domains je Instanz |
 | [Schnittstelle](docs/API.md) | die Programmierschnittstelle |
+| [openapi.yaml](docs/openapi.yaml) | dieselbe als OpenAPI 3.1, für erzeugte Clients |
 | [Browser-Erweiterung](extension/README.md) | „diese Seite kürzen“ für Chrome und Firefox, gegen die eigene Instanz |
 | [Deployment](docs/DEPLOYMENT.md) | Installation für den Dauerbetrieb, von Dateirechten bis Shibboleth |
 | [Docker und Kubernetes](docs/docker.md) | Image, Umgebungsvariablen, Volume, Zustandsprüfung, fertige Manifeste |

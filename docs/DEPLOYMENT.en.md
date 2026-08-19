@@ -6,6 +6,20 @@ walks through Shibboleth metadata, LDAP debugging and hardening step by
 step; this page covers the same ground far enough to run an instance
 confidently.
 
+## One instance, not a cluster
+
+Before you start: flatlink runs as **one** instance. Links and accounts live
+in a single SQLite file, and SQLite takes one writer at a time. Two pods, two
+servers behind a load balancer or an active-active setup do not work – not
+poorly, but not at all.
+
+This is not a capacity question: one CPU serves 2306 redirects per second. It
+is an operations question. If your standard demands several replicas or
+zero-downtime updates, stop reading here.
+
+For resilience the classic route remains: one machine, regular backups, a
+restart. Coming back up takes about a second and a half.
+
 ## 1. Two decisions first
 
 **Public or internal?** A public instance where anyone can register needs

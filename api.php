@@ -229,6 +229,7 @@ function api_link(string $code, array $l): array
         'expired' => link_expired($l),
         'starts' => $l['starts'] ?? null,
         'max_visits' => (int)($l['max_visits'] ?? 0) > 0 ? (int)$l['max_visits'] : null,
+        'lang' => (string)($l['lang'] ?? '') ?: null,
         'history' => array_values((array)($l['history'] ?? [])),
         'rules' => array_values((array)($l['rules'] ?? [])),
         'pending' => link_pending($l),
@@ -277,7 +278,14 @@ if ($ressource === 'me' && count($teile) === 1) {
         'assignable_groups' => link_rules_assignable($user),
         'domains' => domains_for($user['name']),
         'rate_limit_per_hour' => $limit,
-        'key' => ['id' => $eintrag['id'], 'label' => $eintrag['label'] ?? ''],
+        // Womit der Aufrufer gerade unterwegs ist – damit ein Client seinen
+        // eigenen Umfang kennt, statt ihn durch einen 403 herauszufinden.
+        'key' => [
+            'id' => $eintrag['id'],
+            'label' => $eintrag['label'] ?? '',
+            'scope' => (string)($eintrag['scope'] ?? TOKEN_VOLL),
+            'own_links_only' => token_nur_eigene($eintrag),
+        ],
     ]);
 }
 
@@ -323,6 +331,7 @@ if ($ressource === 'links') {
                 'expires' => (string)($in['expires'] ?? ''),
                 'starts' => (string)($in['starts'] ?? ''),
                 'max_visits' => (string)($in['max_visits'] ?? ''),
+                'lang' => (string)($in['lang'] ?? ''),
                 'title' => (string)($in['title'] ?? ''),
                 'tags' => $in['tags'] ?? '',
                 'domain' => (string)($in['domain'] ?? ''),

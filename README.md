@@ -401,6 +401,31 @@ side effect of the project, with its own design and the content a public
 offering needs. Installing flatlink does **not** give you an imitation of
 it: a neutral theme, your own codes, your own domain.
 
+### And who it is not for
+
+One architectural decision rules some deployments out, and it is better said
+here than after the installation: **flatlink runs as a single instance.**
+Links and accounts live in one SQLite file, and SQLite takes one writer at a
+time. That is what makes the whole thing dependency-free — no database
+server, no migrations, a backup is a file copy — and it is why redirects cost
+microseconds. But it means:
+
+- **No horizontal scaling.** The Kubernetes manifest says `replicas: 1` and
+  strategy `Recreate` for that reason. Two pods would mean two writers.
+- **No multi-region, no zero-downtime rolling updates.** During a restart —
+  about one and a half seconds — the service is unavailable.
+- **No Postgres or MySQL option.** Not "not yet": adding one would mean a
+  database server, and that is the dependency the project is built to avoid.
+
+What this is *not* is a capacity problem. One CPU serves **2306 redirects per
+second**, and 831 link creations per second across 20 connections; twenty
+thousand links change nothing about that. Any university, any agency, any
+company runs into their own bandwidth long before they run into this.
+
+So the question is not "is it fast enough" but "does our operating standard
+demand more than one replica". If it does, this is the wrong software, and
+that should be clear before the first `git clone`.
+
 ## Manual
 
 The README is the overview; the depth lives in dedicated documents:
@@ -413,6 +438,7 @@ The README is the overview; the depth lives in dedicated documents:
 | [Groups, permissions and domains](docs/gruppen.en.md) | Permission and working groups, limits, namespaces, multiple domains per instance |
 | [Browser extension](extension/README.md) | "shorten this page" for Chrome and Firefox, pointed at your own instance |
 | [API](docs/API.en.md) | the API |
+| [openapi.yaml](docs/openapi.yaml) | the same as OpenAPI 3.1, for generated clients |
 | [Deployment](docs/DEPLOYMENT.en.md) | production setup, condensed – the [German guide](docs/DEPLOYMENT.md) is the step-by-step reference |
 | [Docker and Kubernetes](docs/docker.en.md) | image, environment variables, volume, health endpoint, ready-made manifests |
 | [Customisation](docs/CUSTOMIZATION.en.md) | your own look without changing the core |
