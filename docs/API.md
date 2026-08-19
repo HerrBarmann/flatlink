@@ -341,6 +341,7 @@ Konten sind von beidem ausgenommen.
 | 401 | `no_key`, `bad_key`, `no_account` | Schlüssel fehlt, ist unbekannt oder zurückgezogen |
 | 403 | `no_permission` | Konto hat `api_access` nicht |
 | 403 | `scope_exceeded` | Schlüssel darf dieses Verfahren nicht (siehe Umfang) |
+| 403 | `account_locked` | Konto ist gesperrt – der Schlüssel bleibt gültig und greift wieder, sobald die Sperre fällt |
 | 404 | `not_found` | Link oder Endpunkt gibt es nicht |
 | 405 | `method_not_allowed` | Methode hier nicht vorgesehen |
 | 409 | `not_created` | Code bereits vergeben |

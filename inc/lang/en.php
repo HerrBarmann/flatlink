@@ -1258,4 +1258,12 @@ your password immediately and contact us.
     'Der Schlüssel sieht und ändert nichts vom übrigen Bestand des Kontos – auch nicht das, was du selbst hier anlegst. Passend für ein Kassensystem oder einen Auftrag, der laufend Codes erzeugt.' => 'The key neither sees nor changes anything else the account holds – not even what you create here yourself. Suited to a point-of-sale system or a job that keeps producing codes.',
     'Dieser Zugangsschlüssel darf nur lesen.' => 'This API key may only read.',
     'Dieser Zugangsschlüssel darf nicht löschen.' => 'This API key may not delete.',
+    'Das eigene Konto lässt sich hier nicht sperren – sonst kommst du selbst nicht mehr herein.' => 'You cannot lock your own account here – you would shut yourself out.',
+    'von der Verwaltung gesperrt' => 'locked by an administrator',
+    '%s ist gesperrt. Links und Statistik bleiben erhalten.' => '%s is locked. Links and statistics are kept.',
+    '%s ist wieder freigegeben.' => '%s has been unlocked.',
+    'Konto gesperrt: %s' => 'Account locked: %s',
+    'Konto freigegeben: %s' => 'Account unlocked: %s',
+    'Konto „%s“ sperren? Anmeldung und Zugangsschlüssel greifen sofort nicht mehr. Links, Statistik und QR-Codes bleiben.' => 'Lock account "%s"? Sign-in and API keys stop working immediately. Links, statistics and QR codes are kept.',
+    'Dieses Konto ist gesperrt.' => 'This account is locked.',
 ];

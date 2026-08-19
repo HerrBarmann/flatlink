@@ -427,6 +427,9 @@ td a { font-family: var(--mono); }
     white-space: nowrap;
 }
 .tag-on { border-color: var(--accent); color: var(--accent-deep); background: var(--accent-tint); }
+/* Gesperrt: sichtbar, aber nicht alarmrot – eine Sperre ist ein Zustand,
+   kein Fehler, und sie ist umkehrbar. */
+.tag-off { border-style: dashed; color: var(--muted); }
 /* Schlagworte sind anklickbar – als Filter unter dem Link und als Wolke über
    der Liste. Der Unterstrich bliebe sonst der einzige Hinweis darauf. */
 .tag-row { display: flex; flex-wrap: wrap; gap: 0.25rem; margin: 0.25rem 0 0; }

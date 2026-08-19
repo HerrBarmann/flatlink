@@ -58,6 +58,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             flash($err ?? t('Rolle von %s: %s.', $name, $role), $err === null ? 'ok' : 'err');
             if ($err === null) audit(t('Rolle von %s: %s.', $name, $role), $name);
         }
+    } elseif ($action === 'lock') {
+        $zu = ($_POST['locked'] ?? '') === '1';
+        if ($name === $user['name']) {
+            flash(t('Das eigene Konto lässt sich hier nicht sperren – sonst kommst du selbst nicht mehr herein.'), 'err');
+        } elseif (user_get($name) === null) {
+            flash(t('Dieses Konto gibt es nicht.'), 'err');
+        } else {
+            user_set_locked($name, $zu, t('von der Verwaltung gesperrt'));
+            flash($zu
+                ? t('%s ist gesperrt. Links und Statistik bleiben erhalten.', $name)
+                : t('%s ist wieder freigegeben.', $name), 'ok');
+            audit($zu ? t('Konto gesperrt: %s', $name) : t('Konto freigegeben: %s', $name), $name);
+        }
     } elseif ($action === 'reset2fa') {
         // Der Weg zurück, wenn jemand sein Gerät verloren hat. Ein Passkey
         // lässt sich nicht abschreiben und in den Safe legen – anders als die
@@ -337,6 +350,7 @@ show_flash();
                 <span class="user-meta">
                     <span class="tag"><?= e(match ($src) { 'ldap' => 'LDAP', 'sso' => 'SSO', default => t('lokal') }) ?></span>
                     <?php if ($u['role'] === 'admin'): ?><span class="tag tag-on">Admin</span><?php endif; ?>
+                    <?php if (user_locked($u)): ?><span class="tag tag-off" title="<?= e(user_lock_note($u)) ?>"><?= t('gesperrt') ?></span><?php endif; ?>
                     <?php
                     $zf = [];
                     if (passkeys_active((string)$name)) $zf[] = count(passkeys_of((string)$name)) . '× Passkey';
@@ -421,6 +435,13 @@ show_flash();
                         <button class="btn btn-small" type="submit"><?= t('Zweite Stufe zurücksetzen') ?></button>
                     </form>
                     <?php endif; ?>
+                    <form method="post" action="" class="inline"<?= user_locked($u) ? '' : ' data-confirm="' . e(t('Konto „%s“ sperren? Anmeldung und Zugangsschlüssel greifen sofort nicht mehr. Links, Statistik und QR-Codes bleiben.', (string)$name)) . '"' ?>>
+                        <?= csrf_field() ?>
+                        <input type="hidden" name="action" value="lock">
+                        <input type="hidden" name="username" value="<?= e((string)$name) ?>">
+                        <input type="hidden" name="locked" value="<?= user_locked($u) ? '0' : '1' ?>">
+                        <button class="btn btn-small" type="submit"><?= user_locked($u) ? t('Freigeben') : t('Sperren') ?></button>
+                    </form>
                     <?php
                     // Was an Links dranhängt, gehört vor die Entscheidung – nicht
                     // in die Meldung danach.

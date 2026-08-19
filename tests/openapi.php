@@ -83,7 +83,12 @@ $tag = trim((string)@shell_exec('git -C ' . escapeshellarg(dirname(__DIR__)) . '
 $tag = ltrim($tag, 'v');
 $pruefe('eine Fassung ist genannt', $genannt !== '', $genannt);
 if ($tag !== '') {
-    $pruefe("Fassung $genannt passt zur neuesten Marke $tag", $genannt === $tag);
+    // Voraus sein darf sie: Zwischen „Änderung fertig" und „Marke gesetzt"
+    // liegt immer ein Moment, und in dem soll der Test nicht rot sein.
+    // Hinterherhinken darf sie nicht – dann beschreibt sie einen Stand, den
+    // niemand mehr bekommt.
+    $pruefe("Fassung $genannt hinkt der Marke $tag nicht hinterher",
+        version_compare($genannt, $tag, '>='));
 }
 
 echo $fehler === 0

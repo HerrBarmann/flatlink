@@ -173,6 +173,12 @@ if ($konto === null) {
     bucket_rate_ok('apiauth', 60);
     api_fail(401, 'no_account', t('Das Konto zu diesem Schlüssel gibt es nicht mehr.'));
 }
+// Ein gesperrtes Konto kommt auch über die Schnittstelle nicht herein. Der
+// Schlüssel bleibt liegen und greift wieder, sobald die Sperre fällt – das
+// erspart es, nach jedem Entsperren alle Schlüssel neu zu verteilen.
+if (user_locked($konto)) {
+    api_fail(403, 'account_locked', t('Dieses Konto ist gesperrt.'));
+}
 $user = ['name' => $name, 'role' => (string)($konto['role'] ?? 'user')];
 
 if (!user_can($name, 'api_access')) {

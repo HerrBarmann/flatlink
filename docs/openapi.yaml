@@ -11,7 +11,7 @@ openapi: 3.1.0
 
 info:
   title: flatlink
-  version: 3.5.3
+  version: 3.6.0
   summary: Kurzlinks und QR-Codes, selbst gehostet
   description: |
     Kurzlinks anlegen, ändern, löschen und Klickzahlen abrufen.
@@ -375,8 +375,9 @@ components:
           schema: { $ref: '#/components/schemas/Fehler' }
     Forbidden:
       description: |
-        Konto hat `api_access` nicht (`no_permission`) oder der Schlüssel
-        darf dieses Verfahren nicht (`scope_exceeded`).
+        Konto hat `api_access` nicht (`no_permission`), der Schlüssel darf
+        dieses Verfahren nicht (`scope_exceeded`), oder das Konto ist gesperrt
+        (`account_locked`).
       content:
         application/json:
           schema: { $ref: '#/components/schemas/Fehler' }
@@ -413,9 +414,10 @@ components:
           properties:
             code:
               type: string
-              enum: [no_key, bad_key, no_account, no_permission, scope_exceeded,
-                     forbidden, not_found, method_not_allowed, not_created,
-                     rejected, invalid_json, rate_limited, too_many_attempts]
+              enum: [no_key, bad_key, no_account, account_locked, no_permission,
+                     scope_exceeded, forbidden, not_found, method_not_allowed,
+                     not_created, rejected, invalid_json, rate_limited,
+                     too_many_attempts]
             message: { type: string }
 
     Konto:

@@ -498,6 +498,27 @@ EU, to provide such pages themselves – they depend on operator, country and
 use, and cannot sensibly be shipped. Create your own pages and link them in
 `page_footer()` in [`inc/helpers.php`](inc/helpers.php).
 
+## Command line
+
+```
+php tools/flatlink hilfe
+```
+
+Accounts, API keys and links from the shell – for setting up in a container,
+for automation, and for the day nobody can sign in any more:
+
+```
+php tools/flatlink konto:anlegen alice --admin     # create an admin
+php tools/flatlink konto:passwort alice            # new password
+php tools/flatlink konto:sperren alice             # lock, keeping the links
+php tools/flatlink schluessel:anlegen alice --umfang=read
+php tools/flatlink ldap:abgleich                   # dry run
+php tools/flatlink zustand                         # quick self-check
+```
+
+There is no separate login: whoever can run this can read `inc/config.php`
+anyway. `.htaccess` keeps `tools/` away from the web.
+
 ## Tests
 
 No test library, no configuration – two PHP files run against the built-in

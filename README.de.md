@@ -509,6 +509,28 @@ von Betreiber, Land und Nutzung ab und lassen sich nicht sinnvoll
 mitliefern. Eigene Seiten anlegen und in `page_footer()` in
 [`inc/helpers.php`](inc/helpers.php) verlinken.
 
+## Kommandozeile
+
+```
+php tools/flatlink hilfe
+```
+
+Konten, Zugangsschlüssel und Links von der Shell – für die Einrichtung im
+Container, für Automatisierung und für den Tag, an dem niemand mehr
+hereinkommt:
+
+```
+php tools/flatlink konto:anlegen alice --admin     # Administrator anlegen
+php tools/flatlink konto:passwort alice            # neues Passwort
+php tools/flatlink konto:sperren alice             # sperren, Links bleiben
+php tools/flatlink schluessel:anlegen alice --umfang=read
+php tools/flatlink ldap:abgleich                   # Probelauf
+php tools/flatlink zustand                         # kurzer Selbsttest
+```
+
+Eine eigene Anmeldung gibt es nicht: Wer das ausführen kann, liest ohnehin
+`inc/config.php`. `.htaccess` hält `tools/` vom Web fern.
+
 ## Tests
 
 Keine Test-Bibliothek, keine Konfiguration – zwei PHP-Dateien, die man mit

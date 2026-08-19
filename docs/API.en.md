@@ -331,6 +331,7 @@ are exempt from both.
 | 401 | `no_key`, `bad_key`, `no_account` | key missing, unknown or revoked |
 | 403 | `no_permission` | account lacks `api_access` |
 | 403 | `scope_exceeded` | key may not use this method (see scope) |
+| 403 | `account_locked` | account is locked – the key stays valid and works again once the lock is lifted |
 | 404 | `not_found` | link or endpoint does not exist |
 | 405 | `method_not_allowed` | method not available here |
 | 409 | `not_created` | code already taken |

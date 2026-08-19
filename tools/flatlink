@@ -1,0 +1,297 @@
+#!/usr/bin/env php
+<?php
+declare(strict_types=1);
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// flatlink · Zusatzbedingung zur Namensnennung nach §7(b) AGPL: siehe LICENSE
+/**
+ * flatlink von der Kommandozeile.
+ *
+ * Drei Gründe, warum es das gibt:
+ *
+ *   1. **Ersteinrichtung ohne Browser** – im Container, im Ansible-Lauf, auf
+ *      einem Server, der noch keinen Hostnamen hat.
+ *   2. **Der Notfall** – niemand kommt mehr ins Konto, die zweite Stufe ist
+ *      auf einem verlorenen Telefon, das Passwort weg. Wer Zugriff auf die
+ *      Dateien hat, kommt hier weiter, ohne in der Datenbank zu wühlen.
+ *   3. **Automatisierung** – allen voran der Verzeichnisabgleich, der ohne
+ *      einen Menschen laufen soll.
+ *
+ * Wer dieses Skript ausführen kann, kann ohnehin alles: Es liegt neben der
+ * Konfiguration mit den Zugangsdaten und schreibt direkt in die Ablage. Es
+ * gibt deshalb keine eigene Anmeldung – der Schutz ist der Dateizugriff, und
+ * `.htaccess` sperrt `tools/` gegen das Web.
+ *
+ * Aufruf:  php tools/flatlink <befehl> [argumente]
+ *          php tools/flatlink hilfe
+ */
+
+if (PHP_SAPI !== 'cli') {
+    http_response_code(403);
+    exit("Nur auf der Kommandozeile.\n");
+}
+
+$wurzel = dirname(__DIR__);
+if (!is_file($wurzel . '/inc/config.php')) {
+    fwrite(STDERR, "inc/config.php fehlt – bitte aus inc/config.example.php anlegen.\n");
+    exit(1);
+}
+require_once $wurzel . '/inc/auth.php';
+require_once $wurzel . '/inc/store.php';
+require_once $wurzel . '/inc/groups.php';
+require_once $wurzel . '/inc/token.php';
+require_once $wurzel . '/inc/linkrules.php';
+require_once $wurzel . '/inc/sso.php';
+
+// ---- Kleinkram -----------------------------------------------------------
+
+function sage(string $s = ''): void { fwrite(STDOUT, $s . "\n"); }
+function meckere(string $s): void { fwrite(STDERR, $s . "\n"); }
+function raus(string $s, int $code = 1): never { meckere($s); exit($code); }
+
+/** Wert eines --schalters, oder null */
+function opt(array $argv, string $name): ?string
+{
+    foreach ($argv as $a) {
+        if ($a === "--$name") return '';
+        if (str_starts_with($a, "--$name=")) return substr($a, strlen($name) + 3);
+    }
+    return null;
+}
+function hat(array $argv, string $name): bool { return opt($argv, $name) !== null; }
+
+/** Stellen, die keine Schalter sind */
+function args(array $argv): array
+{
+    return array_values(array_filter(array_slice($argv, 2), fn($a) => !str_starts_with($a, '--')));
+}
+
+function tabelle(array $zeilen, array $kopf): void
+{
+    if ($zeilen === []) { sage('  (nichts)'); return; }
+    $breiten = [];
+    foreach (array_merge([$kopf], $zeilen) as $z) {
+        foreach (array_values($z) as $i => $w) {
+            $breiten[$i] = max($breiten[$i] ?? 0, mb_strlen((string)$w));
+        }
+    }
+    $zeile = function (array $z) use ($breiten): string {
+        $out = '  ';
+        foreach (array_values($z) as $i => $w) {
+            $out .= str_pad((string)$w, $breiten[$i] + 2);
+        }
+        return rtrim($out);
+    };
+    sage($zeile($kopf));
+    sage('  ' . str_repeat('-', array_sum($breiten) + 2 * count($breiten) - 2));
+    foreach ($zeilen as $z) sage($zeile($z));
+}
+
+// ---- Befehle -------------------------------------------------------------
+
+$befehl = $argv[1] ?? 'hilfe';
+$rest = args($argv);
+
+switch ($befehl) {
+
+case 'hilfe':
+case '--help':
+case '-h':
+    sage('flatlink – Kommandozeile');
+    sage('');
+    sage('  php tools/flatlink <befehl> [argumente]');
+    sage('');
+    sage('Konten');
+    sage('  konto:liste                        alle Konten');
+    sage('  konto:anlegen <name> [--admin]     Konto anlegen, Passwort wird erzeugt');
+    sage('  konto:passwort <name>              neues Passwort erzeugen');
+    sage('  konto:admin <name> [--zurueck]     zum Administrator machen (Notfall)');
+    sage('  konto:sperren <name> [--grund=…]   sperren; Links bleiben');
+    sage('  konto:freigeben <name>             Sperre aufheben');
+    sage('');
+    sage('Zugangsschlüssel');
+    sage('  schluessel:liste <konto>           Schlüssel eines Kontos');
+    sage('  schluessel:anlegen <konto> [--bezeichnung=…] [--umfang=full|write|read]');
+    sage('                     [--nur-eigene]  neuen Schlüssel erzeugen');
+    sage('  schluessel:zurueckziehen <konto> <id>');
+    sage('');
+    sage('Links');
+    sage('  link:liste [konto] [--limit=20]    Links auflisten');
+    sage('  link:anlegen <ziel> [--konto=…] [--code=…]');
+    sage('  link:loeschen <code>');
+    sage('');
+    sage('Verzeichnis');
+    sage('  ldap:abgleich [--anwenden]         Konten sperren, die im Verzeichnis fehlen');
+    sage('                [--grenze=20]        Abbruch, wenn mehr Prozent fehlen');
+    sage('');
+    sage('Betrieb');
+    sage('  zustand                            kurzer Selbsttest');
+    sage('');
+    sage('Ohne --anwenden zeigt ldap:abgleich nur, was er täte.');
+    exit(0);
+
+case 'zustand':
+    $probleme = 0;
+    try {
+        db()->query('SELECT 1');
+        sage('  Datenbank:      erreichbar');
+    } catch (Throwable $e) {
+        sage('  Datenbank:      FEHLER – ' . $e->getMessage()); $probleme++;
+    }
+    $d = data_path();
+    sage('  Datenverzeichnis: ' . $d . (is_writable($d) ? ' (beschreibbar)' : ' – NICHT BESCHREIBBAR'));
+    if (!is_writable($d)) $probleme++;
+    sage('  Konten:         ' . count(users_all()));
+    sage('  Links:          ' . (int)db()->query('SELECT count(*) FROM links')->fetchColumn());
+    // base_url(true) rät nicht aus $_SERVER – in der Kommandozeile gibt es
+    // keinen Hostnamen, und ein geratener wäre schlimmer als gar keiner.
+    sage('  Basisadresse:   ' . (base_url(true) ?: "(nicht gesetzt – 'base_url' in inc/config.php)"));
+    sage('  LDAP:           ' . (ldap_enabled() ? 'eingeschaltet' : 'aus'));
+    exit($probleme === 0 ? 0 : 1);
+
+case 'konto:liste':
+    $z = [];
+    foreach (users_all() as $name => $u) {
+        $z[] = [$name, $u['role'] ?? 'user', $u['auth'] ?? 'local',
+                user_locked($u) ? 'gesperrt' : '', link_count($name)];
+    }
+    tabelle($z, ['Konto', 'Rolle', 'Anmeldung', 'Status', 'Links']);
+    exit(0);
+
+case 'konto:anlegen':
+    $name = $rest[0] ?? raus('Aufruf: konto:anlegen <name> [--admin]');
+    if (user_get($name) !== null) raus("Das Konto $name gibt es schon.");
+    $pass = bin2hex(random_bytes(9));
+    users_update(function (array $u) use ($name, $pass, $argv) {
+        $u[$name] = [
+            'role' => hat($argv, 'admin') ? 'admin' : 'user',
+            'pass' => password_hash($pass, PASSWORD_DEFAULT),
+            'auth' => 'local',
+            'created' => date('c'),
+        ];
+        return $u;
+    }, $name);
+    sage("  Konto angelegt: $name");
+    sage("  Passwort:       $pass");
+    sage('  Es wird hier einmal gezeigt und nirgends gespeichert.');
+    exit(0);
+
+case 'konto:passwort':
+    $name = $rest[0] ?? raus('Aufruf: konto:passwort <name>');
+    if (user_get($name) === null) raus("Das Konto $name gibt es nicht.");
+    $pass = bin2hex(random_bytes(9));
+    users_update(function (array $u) use ($name, $pass) {
+        if (!isset($u[$name])) return null;
+        $u[$name]['pass'] = password_hash($pass, PASSWORD_DEFAULT);
+        $u[$name]['auth'] = 'local';
+        return $u;
+    }, $name);
+    sessions_revoke($name);
+    sage("  Neues Passwort für $name: $pass");
+    sage('  Alle Sitzungen dieses Kontos wurden beendet.');
+    exit(0);
+
+case 'konto:admin':
+    $name = $rest[0] ?? raus('Aufruf: konto:admin <name> [--zurueck]');
+    if (user_get($name) === null) raus("Das Konto $name gibt es nicht.");
+    $rolle = hat($argv, 'zurueck') ? 'user' : 'admin';
+    users_update(function (array $u) use ($name, $rolle) {
+        if (!isset($u[$name])) return null;
+        $u[$name]['role'] = $rolle;
+        return $u;
+    }, $name);
+    sage("  $name ist jetzt: $rolle");
+    exit(0);
+
+case 'konto:sperren':
+    $name = $rest[0] ?? raus('Aufruf: konto:sperren <name> [--grund=…]');
+    if (user_get($name) === null) raus("Das Konto $name gibt es nicht.");
+    user_set_locked($name, true, opt($argv, 'grund') ?: 'von Hand gesperrt');
+    sage("  $name ist gesperrt. Links, Statistik und QR-Codes bleiben unangetastet.");
+    exit(0);
+
+case 'konto:freigeben':
+    $name = $rest[0] ?? raus('Aufruf: konto:freigeben <name>');
+    if (user_get($name) === null) raus("Das Konto $name gibt es nicht.");
+    user_set_locked($name, false);
+    sage("  $name ist wieder freigegeben.");
+    exit(0);
+
+case 'schluessel:liste':
+    $konto = $rest[0] ?? raus('Aufruf: schluessel:liste <konto>');
+    $z = [];
+    foreach (tokens_of($konto) as $t) {
+        $z[] = [$t['id'], ($t['label'] ?? '') ?: '(ohne)',
+                (string)($t['scope'] ?? 'full'), !empty($t['own_only']) ? 'nur eigene' : '',
+                substr((string)($t['created'] ?? ''), 0, 10)];
+    }
+    tabelle($z, ['Kennung', 'Bezeichnung', 'Umfang', 'Bindung', 'Angelegt']);
+    exit(0);
+
+case 'schluessel:anlegen':
+    $konto = $rest[0] ?? raus('Aufruf: schluessel:anlegen <konto> [--umfang=…] [--nur-eigene]');
+    if (user_get($konto) === null) raus("Das Konto $konto gibt es nicht.");
+    $umfang = opt($argv, 'umfang') ?: TOKEN_VOLL;
+    if (!isset(token_umfaenge()[$umfang])) {
+        raus('Umfang muss full, write oder read sein.');
+    }
+    $neu = token_create($konto, opt($argv, 'bezeichnung') ?: 'Kommandozeile',
+        $umfang, hat($argv, 'nur-eigene'));
+    sage('  Schlüssel: ' . $neu['token']);
+    sage('  Kennung:   ' . $neu['id']);
+    sage('  Er wird hier einmal gezeigt und ist danach nicht mehr abrufbar.');
+    exit(0);
+
+case 'schluessel:zurueckziehen':
+    $konto = $rest[0] ?? raus('Aufruf: schluessel:zurueckziehen <konto> <id>');
+    $id = $rest[1] ?? raus('Aufruf: schluessel:zurueckziehen <konto> <id>');
+    exit(token_revoke($konto, $id)
+        ? (sage("  Schlüssel $id zurückgezogen.") ?? 0)
+        : (meckere('Diesen Schlüssel gibt es nicht.') ?? 1));
+
+case 'link:liste':
+    $konto = $rest[0] ?? null;
+    $limit = (int)(opt($argv, 'limit') ?: 20);
+    $links = $konto !== null ? links_of_owner($konto) : links_all();
+    $z = [];
+    foreach (array_slice($links, 0, $limit, true) as $code => $l) {
+        $z[] = [$code, mb_substr((string)($l['url'] ?? ''), 0, 52),
+                (string)($l['owner'] ?? ''), (int)(clicks_get((string)$code)['n'] ?? 0)];
+    }
+    tabelle($z, ['Code', 'Ziel', 'Konto', 'Klicks']);
+    if (count($links) > $limit) sage('  … ' . (count($links) - $limit) . ' weitere');
+    exit(0);
+
+case 'link:anlegen':
+    $ziel = $rest[0] ?? raus('Aufruf: link:anlegen <ziel> [--konto=…] [--code=…]');
+    $konto = opt($argv, 'konto') ?: '';
+    if ($konto !== '' && user_get($konto) === null) raus("Das Konto $konto gibt es nicht.");
+    $user = ['name' => $konto, 'role' => $konto !== '' ? (user_get($konto)['role'] ?? 'user') : 'user'];
+    [$err, $full, $opts] = link_rules_create($user, ['url' => $ziel, 'code' => opt($argv, 'code') ?: '']);
+    if ($err !== null) raus($err);
+    [$ok, $ergebnis] = link_create($opts['url'], $full, $konto,
+        $full === null ? 'random' : 'custom', $opts);
+    if (!$ok) raus((string)$ergebnis);
+    // Ohne konfigurierte Basisadresse baut short_url() sie aus $_SERVER
+    // zusammen – auf der Kommandozeile käme dabei „localhosttools" heraus.
+    // Dann lieber nur den Code nennen als eine Adresse, die es nicht gibt.
+    $basis = base_url(true);
+    sage('  ' . ($basis !== '' ? short_url((string)$ergebnis, '') : (string)$ergebnis));
+    if ($basis === '') {
+        sage("  (Nur der Code – 'base_url' ist in inc/config.php nicht gesetzt.)");
+    }
+    exit(0);
+
+case 'link:loeschen':
+    $code = $rest[0] ?? raus('Aufruf: link:loeschen <code>');
+    if (link_get($code) === null) raus("Den Kurzlink $code gibt es nicht.");
+    link_write($code, fn() => null);
+    sage("  $code gelöscht.");
+    exit(0);
+
+case 'ldap:abgleich':
+    require __DIR__ . '/ldap-abgleich.php';
+    exit(0);
+
+default:
+    raus("Unbekannter Befehl: $befehl\nphp tools/flatlink hilfe zeigt alle.");
+}

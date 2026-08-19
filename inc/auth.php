@@ -309,12 +309,72 @@ function auth_pending_complete(): void
 }
 
 /** @return ?array{name:string,role:string,auth:string,display:string} */
+/**
+ * Ist dieses Konto gesperrt?
+ *
+ * Gesperrt heißt: Anmeldung schlägt fehl, laufende Sitzungen enden beim
+ * nächsten Aufruf, Zugangsschlüssel greifen nicht mehr. Was NICHT passiert:
+ * Es wird nichts gelöscht. Links, Gruppenzugehörigkeit, Statistik und QR-Codes
+ * bleiben, wie sie waren – gedruckte Codes eines ausgeschiedenen Mitarbeiters
+ * sollen nicht ins Leere zeigen, nur weil sein Konto zugeht.
+ *
+ * Das ist der Unterschied zum Löschen, und er ist der Grund, warum es beides
+ * gibt: Sperren ist umkehrbar, Löschen nicht.
+ */
+function user_locked(?array $u): bool
+{
+    return $u !== null && ($u['locked'] ?? null) !== null;
+}
+
+/** Warum und seit wann – für die Anzeige, nicht für die Entscheidung */
+function user_lock_note(?array $u): string
+{
+    $l = $u['locked'] ?? null;
+    if (!is_array($l)) return '';
+    $wann = isset($l['at']) ? date('d.m.Y', strtotime((string)$l['at']) ?: time()) : '';
+    $grund = trim((string)($l['reason'] ?? ''));
+    return trim($grund . ($wann !== '' ? " ($wann)" : ''));
+}
+
+/**
+ * Konto sperren oder entsperren.
+ *
+ * $grund landet im Datensatz und in der Anzeige – bei einem maschinellen
+ * Abgleich ist er die einzige Spur, warum jemand plötzlich nicht mehr
+ * hereinkommt. Beim Sperren fliegen die Sitzungen; die Zugangsschlüssel
+ * bleiben liegen und greifen einfach nicht mehr, damit ein Entsperren sie
+ * nicht alle neu verteilen muss.
+ */
+function user_set_locked(string $name, bool $gesperrt, string $grund = ''): bool
+{
+    $vorher = user_get($name);
+    if ($vorher === null) return false;
+    users_update(function (array $users) use ($name, $gesperrt, $grund) {
+        if (!isset($users[$name])) return null;
+        if ($gesperrt) {
+            $users[$name]['locked'] = ['at' => date('c'), 'reason' => mb_substr($grund, 0, 200)];
+        } else {
+            unset($users[$name]['locked']);
+        }
+        return $users;
+    }, $name);
+    if ($gesperrt) sessions_revoke($name);
+    return true;
+}
+
 function auth_user(): ?array
 {
     $name = $_SESSION['user'] ?? null;
     if (!is_string($name)) return null;
     $u = user_get($name);
     if ($u === null) return null;
+    // Gesperrt: Die laufende Sitzung endet hier, nicht erst beim nächsten
+    // Anmeldeversuch. Sonst arbeitete jemand nach der Sperre weiter, bis er
+    // sich zufällig abmeldet.
+    if (user_locked($u)) {
+        auth_logout();
+        return null;
+    }
     // Widerrufene Sitzung: hier endet sie – beim nächsten Aufruf jeder
     // geschützten Seite, egal wo sie herkam
     if (!session_check($name, $u)) {
@@ -444,6 +504,10 @@ function auth_login(string $username, string $password, ?bool &$needs2fa = null)
     // und dürfen sich hier auch nicht anmelden – sonst wäre die zentrale
     // Anmeldung über ein lokal gesetztes Passwort umgehbar.
     if ($u !== null && ($u['auth'] ?? 'local') !== 'local') $u = null;
+    // Gesperrt zählt wie „gibt es nicht": Die Prüfung läuft trotzdem gegen
+    // den Dummy-Hash weiter, damit die Antwortzeit nicht verrät, ob ein
+    // Konto existiert und nur gesperrt ist.
+    if (user_locked($u)) $u = null;
     // Immer verifizieren, damit Timing keinen Nutzernamen verrät. Der
     // Vergleichs-Hash ist eine Konstante – ihn bei jedem Fehlversuch neu zu
     // berechnen wäre ein billiger Weg, die CPU des Servers auszulasten.

@@ -301,6 +301,39 @@ Eine Instanz ohne eigenen Store-Eintrag braucht nichts weiter: Die neutrale
 Fassung steht in den Läden, fragt beim ersten Öffnen nach der Adresse, und
 der Verbindungscode trägt Adresse und Schlüssel in einem Zug ein.
 
+**Konto sperren** hält jemanden draußen, ohne etwas wegzuwerfen: Anmeldung,
+Zugangsschlüssel und laufende Sitzungen greifen sofort nicht mehr, aber Links,
+Statistik und gedruckte QR-Codes bleiben unangetastet. Das ist der Unterschied
+zum Löschen, und er ist der Grund, warum es beides gibt – eine Sperre lässt
+sich aufheben, ein gelöschtes Konto nicht wiederholen. Für jemanden, der das
+Haus verlässt, ist Sperren fast immer das Richtige: Die Kurzlinks auf seinen
+Aushängen sollen weiter funktionieren.
+
+### Verzeichnisabgleich
+
+Läuft die Anmeldung über LDAP, regelt das Verzeichnis den *Zugang*, nicht den
+*Bestand*: Wer ausscheidet, kommt nicht mehr herein – sein Konto und seine
+Zugangsschlüssel bleiben trotzdem. `php tools/flatlink ldap:abgleich` schließt
+diese Lücke. Er holt alle Kennungen aus dem Verzeichnis und sperrt die Konten,
+die dort nicht mehr stehen.
+
+Vier Sicherungen sind eingebaut, und sie sind der eigentliche Punkt:
+
+* **Ohne `--anwenden` passiert nichts.** Der Probelauf zeigt nur, was er täte.
+* **Antwortet das Verzeichnis nicht, bricht er ab.** Eine Zeitüberschreitung
+  ist kein Grund, ein Haus auszusperren.
+* **Fehlen mehr als 20 Prozent der Konten, bricht er ebenfalls ab.** Dann ist
+  wahrscheinlich der Suchzweig falsch und nicht die Belegschaft entlassen.
+  Mit `--grenze=` lässt sich das anheben, wenn es doch stimmt.
+* **Lokale Konten fasst er nicht an**, und aufheben tut er nur Sperren, die er
+  selbst gesetzt hat.
+
+Für den regelmäßigen Lauf genügt ein Eintrag in der Aufgabenplanung:
+
+```
+17 3 * * * cd /var/www/flatlink && php tools/flatlink ldap:abgleich --anwenden
+```
+
 **Konto löschen** entfernt das Konto und alle Links, die nur daran hängen,
 samt Klickzählern. Links **mit Gruppenzuordnung bleiben** und verlieren nur
 ihren Besitzer – sie gehören der Gruppe, andere arbeiten damit weiter, und

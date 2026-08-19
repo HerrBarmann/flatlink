@@ -287,6 +287,38 @@ An instance without a store listing of its own needs nothing further: the
 generic build is in the stores, asks for the address when first opened, and
 the pairing code fills in address and key in one go.
 
+**Locking an account** keeps someone out without throwing anything away:
+sign-in, API keys and running sessions stop working at once, while links,
+statistics and printed QR codes stay untouched. That is the difference from
+deleting, and the reason both exist – a lock can be lifted, a deleted account
+cannot be undone. For someone leaving the organisation, locking is almost
+always the right call: the short links on their notices should keep working.
+
+### Directory sync
+
+Where sign-in runs through LDAP, the directory governs *access*, not
+*inventory*: whoever leaves can no longer sign in – but their account and
+their API keys remain. `php tools/flatlink ldap:abgleich` closes that gap. It
+fetches every login name from the directory and locks the accounts that are no
+longer there.
+
+Four safeguards are built in, and they are the actual point:
+
+* **Without `--anwenden` nothing happens.** The dry run only shows what it
+  would do.
+* **If the directory does not answer, it stops.** A timeout is no reason to
+  shut a building out.
+* **If more than 20 per cent of accounts are missing, it stops as well.** That
+  usually means the search base is wrong, not that the staff was dismissed.
+  `--grenze=` raises the bar when it really is that many.
+* **It leaves local accounts alone**, and it only lifts locks it set itself.
+
+A cron entry is enough for the regular run:
+
+```
+17 3 * * * cd /var/www/flatlink && php tools/flatlink ldap:abgleich --anwenden
+```
+
 **Delete account** removes the account and all links that hang only on it,
 including click counters. Links **with a group assignment remain** and only
 lose their owner – they belong to the group, others keep working with them,

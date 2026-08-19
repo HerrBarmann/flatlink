@@ -346,6 +346,13 @@ function user_provision(string $username, string $source, ?string $email, array 
 /** Sitzung für ein extern authentifiziertes Konto eröffnen */
 function sso_start_session(string $username): void
 {
+    // Auch wer über LDAP oder SSO kommt, kommt nicht in ein gesperrtes Konto.
+    // Ohne diese Prüfung liefe die Sperre genau bei den Konten ins Leere, für
+    // die der Abgleich sie überhaupt setzt.
+    if (user_locked(user_get($username))) {
+        ldap_log('Anmeldung in gesperrtes Konto abgewiesen', $username);
+        return;
+    }
     auth_boot();
     session_regenerate_id(true);
     $_SESSION['user'] = $username;
@@ -716,6 +723,72 @@ function ldap_directory_search(string $suche, int $limit = 25): array
         }
         usort($treffer, fn($a, $b) => strnatcasecmp($a['name'] ?: $a['uid'], $b['name'] ?: $b['uid']));
         return [null, $treffer];
+    } finally {
+        @ldap_unbind($conn);
+    }
+}
+
+/**
+ * Alle Kennungen aus dem Verzeichnis holen.
+ *
+ * Für den Abgleich, der Konten sperrt, deren Person das Haus verlassen hat.
+ * Bewusst EINE Abfrage über den ganzen Baum statt einer je Konto: Bei
+ * tausend Konten wären das tausend Anfragen an ein Verzeichnis, das
+ * womöglich mit einer Ratenbegrenzung antwortet – und tausend Gelegenheiten,
+ * dass eine davon in eine Zeitüberschreitung läuft und ein Konto zu Unrecht
+ * als verschwunden gilt.
+ *
+ * Die Rückgabe unterscheidet ausdrücklich zwischen „das Verzeichnis sagt,
+ * hier sind alle" und „ich konnte nicht fragen". Der Unterschied ist der
+ * wichtigste in der ganzen Funktion: Wer ihn verwischt, sperrt beim ersten
+ * Netzwerkfehler das gesamte Haus aus.
+ *
+ * @param int $limit Obergrenze; 0 = so viel, wie der Server hergibt
+ * @return array{0:?string,1:string[]} [Fehlermeldung oder null, Kennungen kleingeschrieben]
+ */
+function ldap_alle_kennungen(int $limit = 0): array
+{
+    if (!ldap_enabled()) {
+        return [extension_loaded('ldap')
+            ? 'Die Anmeldung über LDAP ist nicht eingeschaltet.'
+            : 'Die PHP-Erweiterung ldap fehlt.', []];
+    }
+    $c = ldap_cfg();
+    $conn = @ldap_connect((string)$c['uri']);
+    if ($conn === false) return ['Verbindung nicht möglich – stimmt die Adresse?', []];
+    ldap_set_option($conn, LDAP_OPT_PROTOCOL_VERSION, 3);
+    ldap_set_option($conn, LDAP_OPT_REFERRALS, 0);
+    ldap_set_option($conn, LDAP_OPT_NETWORK_TIMEOUT, (int)$c['timeout']);
+
+    try {
+        if ($c['start_tls'] && !@ldap_start_tls($conn)) {
+            ldap_log('START_TLS abgelehnt (Abgleich)', '', $conn);
+            return ['Verschlüsselung (START_TLS) abgelehnt.', []];
+        }
+        if (!@ldap_bind($conn, $c['bind_dn'] !== '' ? (string)$c['bind_dn'] : null,
+                        $c['bind_dn'] !== '' ? (string)$c['bind_pass'] : null)) {
+            ldap_log('Bind für den Abgleich fehlgeschlagen', '', $conn);
+            return ['Anmeldung am Verzeichnis fehlgeschlagen – Dienstkonto prüfen.', []];
+        }
+
+        $attr = ldap_uid_attr($c);
+        // Jeder Eintrag, der dieses Attribut überhaupt trägt. Enger zu filtern
+        // wäre gefährlich: Was der Filter nicht findet, gilt hinterher als
+        // ausgeschieden.
+        $res = @ldap_search($conn, (string)$c['base_dn'], '(' . $attr . '=*)', [$attr], 0, $limit);
+        if ($res === false) {
+            ldap_log('Suche für den Abgleich fehlgeschlagen', '', $conn);
+            return ['Die Suche im Verzeichnis schlug fehl.', []];
+        }
+        $eintraege = @ldap_get_entries($conn, $res);
+        if (!is_array($eintraege)) return ['Das Verzeichnis antwortete unlesbar.', []];
+
+        $out = [];
+        for ($i = 0; $i < (int)($eintraege['count'] ?? 0); $i++) {
+            $wert = $eintraege[$i][strtolower($attr)][0] ?? null;
+            if (is_string($wert) && $wert !== '') $out[] = mb_strtolower($wert);
+        }
+        return [null, array_values(array_unique($out))];
     } finally {
         @ldap_unbind($conn);
     }
