@@ -81,13 +81,26 @@
 
     /* Auf jede Änderung im Panel hören und cb aufrufen. Auch die Vorlagen-
      * Knöpfe (Farben, Verläufe, Rahmentext) und der Umschalter des
-     * Vorschau-Untergrunds laufen hier durch. */
+     * Vorschau-Untergrunds laufen hier durch.
+     *
+     * cb läuft ENTPRELLT (150 ms nach der letzten Änderung): Ein Zug am
+     * Farbwähler feuert `input` dutzendfach je Sekunde, und jede dieser
+     * Änderungen eine eigene Server-Anfrage werden zu lassen hieße, die
+     * Vorschau hinter einer Warteschlange herrennen zu lassen. sync() –
+     * das lokale Nachführen des Panels – bleibt sofort, das fühlt sich
+     * direkt an; nur die teure Folge (Vorschau, Prüfung) sammelt sich. */
     function bind(cb) {
+        var timer = null;
+        var ruhig = function () {
+            sync();
+            if (timer) clearTimeout(timer);
+            timer = setTimeout(cb, 150);
+        };
         FELDER.forEach(function (id) {
             var el = $(id);
             if (!el) return;
-            el.addEventListener('input', function () { sync(); cb(); });
-            el.addEventListener('change', function () { sync(); cb(); });
+            el.addEventListener('input', ruhig);
+            el.addEventListener('change', ruhig);
         });
         document.addEventListener('click', function (e) {
             var p = e.target.closest('[data-preset]');
@@ -95,7 +108,7 @@
                 var teile = p.getAttribute('data-preset').split('|');
                 $('opt-fg').value = teile[0];
                 $('opt-bg').value = teile[1];
-                sync(); cb();
+                ruhig();
                 return;
             }
             var g = e.target.closest('[data-grad]');
@@ -105,7 +118,7 @@
                 if ($('opt-ga')) $('opt-ga').value = tl[1];
                 if ($('opt-fg')) $('opt-fg').value = tl[2];
                 if ($('opt-fg2')) $('opt-fg2').value = tl[3];
-                sync(); cb();
+                ruhig();
                 return;
             }
             // Heller oder dunkler Untergrund für die Vorschau – rein optisch
@@ -117,7 +130,7 @@
             }
             if (e.target.id === 'ftext-preset' && $('opt-ftext')) {
                 $('opt-ftext').value = t('Scan mich!');
-                sync(); cb();
+                ruhig();
             }
         });
         sync();

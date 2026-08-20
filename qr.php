@@ -249,7 +249,13 @@ if (strlen($payload) > QrCode::maxBytes($eccLevel)) {
 // setzen, der keines hat. Angemeldete Konten sind ausgenommen; sie hängen
 // ohnehin an ihren eigenen Limits.
 if (isset($_COOKIE['kurzsid'])) auth_boot();
-if (auth_user() === null) {
+$angemeldet = auth_user() !== null;
+// Die Sitzung sofort wieder freigeben: Diese Seite LIEST nur, wer da ist –
+// und der Designer feuert Vorschau und Lesbarkeitsprüfung parallel. Ohne
+// die Freigabe stünden beide hintereinander am Sitzungs-Lock an, und jede
+// schnelle Änderungsfolge fühlte sich zäh an.
+if (session_status() === PHP_SESSION_ACTIVE) session_write_close();
+if (!$angemeldet) {
     // Was „schwer" ist: die Vektorformate und große PNGs. Die
     // Lesbarkeitsprüfung (check=1) zählt ausdrücklich nicht dazu – sie
     // rechnet Modulgrößen aus und gibt JSON zurück, obwohl sie mit

@@ -35,9 +35,22 @@
         if (el) el.href = basis + '?' + params(extra);
     }
 
+    var letzteVorschau = '';
     function refresh() {
         var vorschau = $('qr-preview');
-        if (vorschau) vorschau.src = basis + '?' + params({ size: 320 });
+        var url = basis + '?' + params({ size: 320 });
+        // Nichts geändert (etwa `change` nach `input` desselben Werts)?
+        // Dann auch keine neue Runde.
+        if (url === letzteVorschau) return;
+        letzteVorschau = url;
+        if (vorschau) {
+            // Erst laden, dann tauschen: Ein direktes src-Setzen ließe das
+            // alte Bild verschwinden, bevor das neue da ist – genau das
+            // Flackern, das sich wie Langsamkeit anfühlt.
+            var lader = new Image();
+            lader.onload = function () { if (letzteVorschau === url) vorschau.src = url; };
+            lader.src = url;
+        }
         setzeHref('dl-svg', { format: 'svg', download: 1 });
         setzeHref('dl-png', { format: 'png', size: wert('opt-size') || 1024, download: 1 });
         setzeHref('dl-pdf', { format: 'pdf', download: 1 });
