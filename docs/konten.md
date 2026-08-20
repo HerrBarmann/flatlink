@@ -156,6 +156,31 @@ sich dann nicht mehr entfernen.
 und tragen kein Passwort, das ein Zweitfaktor absichern könnte. Wer ein
 Konto besonders schützen will, prüft daher auch dessen Schlüsselliste.
 
+### Vorschlagen statt verlangen
+
+Ein Passkey nützt nur dem, der einen hat. Im Profil steht er seit je, aber
+dorthin geht selten jemand ohne Anlass. `'passkey_hint'` (`on` | `local` |
+`off`, auch unter *Einstellungen*) bietet ihn deshalb von sich aus an: Wer
+keinen hat, landet nach der Anmeldung auf einer Seite, die erklärt, wozu er
+gut ist — mit *Passkey einrichten*, *Später* und *Nicht mehr fragen*.
+
+**Einmal im Monat, nicht öfter.** Der Stand steht am Konto (`pk_hint`): ein
+Datum oder `nie`. Gesetzt wird er beim **Anzeigen**, nicht beim Wegklicken —
+wer den Tab schließt, hat die Frage gesehen. Ein Vorschlag, den man dreimal
+die Woche wegklickt, ist kein Vorschlag mehr, sondern eine Tür, die klemmt;
+darum gibt es das *Nicht mehr fragen* daneben und nicht erst auf Nachfrage.
+
+`local` lässt zentral verwaltete Konten aus. Das ist für Häuser gedacht, in
+denen die Anmeldung am Verzeichnis hängen soll: Ein Passkey käme auch dann
+noch durch, wenn dort das Passwort gewechselt wurde. Gesperrte Konten weist
+er weiterhin ab — `auth_login_passkey()` prüft das —, und der
+Verzeichnisabgleich sperrt, wer dort verschwindet. Wem das genügt, kann `on`
+stehen lassen.
+
+Ohne HTTPS entfällt das Angebot von selbst, wie der Knopf im Profil auch.
+Wann gefragt wird und wann nicht, hält
+[`tests/passkey-hinweis.php`](../tests/passkey-hinweis.php) fest.
+
 ## Zentrale Anmeldung
 
 Beide Wege sind optional, stehen standardmäßig auf `false` und lassen sich

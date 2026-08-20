@@ -149,6 +149,30 @@ remaining method can then no longer be removed.
 password a second factor could protect. Anyone who wants to protect an account
 particularly well therefore also reviews its key list.
 
+### Suggesting rather than requiring
+
+A passkey only helps those who have one. The profile has offered it all
+along, but few people go there without a reason. `'passkey_hint'` (`on` |
+`local` | `off`, also under *Settings*) therefore offers it unprompted:
+accounts without one land, after signing in, on a page explaining what it is
+good for — with *Set up a passkey*, *Later* and *Stop asking*.
+
+**Once a month, no more often.** The state sits on the account (`pk_hint`): a
+date or `nie`. It is written when the page is **shown**, not when it is
+dismissed — closing the tab still counts as having seen the question. A
+suggestion you dismiss three times a week is no longer a suggestion but a
+sticky door; hence the *Stop asking* right beside it rather than buried.
+
+`local` leaves centrally managed accounts out. That is meant for
+organisations where sign-in should stay tied to the directory: a passkey
+would still get through after a password change there. Locked accounts are
+still refused — `auth_login_passkey()` checks — and the directory sync locks
+whoever disappears from it. Where that is enough, leave it on `on`.
+
+Without HTTPS the offer drops away by itself, just like the button in the
+profile. When the question is asked and when it is not is pinned down by
+[`tests/passkey-hinweis.php`](../tests/passkey-hinweis.php).
+
 ## Central sign-in
 
 Both paths are optional, default to `false` and can run in parallel with

@@ -202,6 +202,19 @@ return [
     'Dieses Gerät hat nicht geprüft, wer es benutzt. Für die Anmeldung ohne Passwort ist das nötig – bitte Fingerabdruck, Gesichtserkennung oder Geräte-PIN einrichten.'
         => 'This device did not verify who is using it. Signing in without a password requires that – please set up a fingerprint, face recognition or a device PIN.',
 
+    // ---- Passkey nach der Anmeldung anbieten ----
+    'Passkey einrichten' => 'Set up a passkey',
+    'Ohne Passwort anmelden?' => 'Sign in without a password?',
+    'Mit einem Passkey meldest du dich mit Fingerabdruck, Gesicht oder Geräte-PIN an – das Passwort brauchst du dann nicht mehr. Es bleibt trotzdem gültig, für die Tage ohne dieses Gerät.'
+        => 'With a passkey you sign in using a fingerprint, your face or your device PIN – no password needed. It stays valid all the same, for the days you do not have this device with you.',
+    'Der Passkey liegt in deinem Telefon, deinem Rechner oder deiner Passwortverwaltung und gilt %snur für diese Adresse%s: Auf einer nachgebauten Anmeldeseite gibt ihn dein Gerät gar nicht erst heraus. Genau davor schützt ein Passwort nicht.'
+        => 'The passkey lives in your phone, your computer or your password manager and works %sfor this address only%s: on a look-alike sign-in page your device will not hand it over at all. That is exactly what a password cannot protect you from.',
+    'Später' => 'Later',
+    'Nicht mehr fragen' => 'Stop asking',
+    'Passkey hinterlegt. Beim nächsten Mal genügt dein Gerät.' => 'Passkey registered. Next time your device is enough.',
+    'Alles klar – wir fragen nicht mehr danach. Im Profil geht es weiterhin.'
+        => 'Understood – we will not ask again. Your profile still has it if you change your mind.',
+
     // ---- Passkey-Skript ----
     'Dieser Browser kennt keine Passkeys.' => 'This browser does not support passkeys.',
     'Warte auf dein Gerät …' => 'Waiting for your device …',
@@ -915,6 +928,15 @@ your password immediately and contact us.
     'Zwei-Faktor-Anmeldung abgeschaltet.' => 'Two-factor sign-in turned off.',
     'Zwei-Faktor-Anmeldung ist aktiv.' => 'Two-factor sign-in is active.',
     'Zwei-Faktor-Anmeldung verlangen' => 'Require two-factor sign-in',
+    'Passkey vorschlagen' => 'Suggest a passkey',
+    'allen Konten' => 'to all accounts',
+    'nur lokalen Konten' => 'to local accounts only',
+    'gar nicht' => 'never',
+    'Wer noch keinen Passkey hat, bekommt nach der Anmeldung einmal im Monat das Angebot, einen einzurichten – mit einem „Nicht mehr fragen" daneben. Ohne HTTPS entfällt es von selbst.'
+        => 'Accounts without a passkey are offered one after signing in, once a month, with a "stop asking" right beside it. Without HTTPS the offer drops away on its own.',
+    'Auf dieser Instanz greift die Einstellung gerade nicht:' => 'This setting has no effect on this instance right now:',
+    '%snur lokalen Konten%s ist für Häuser gedacht, in denen die Anmeldung am Verzeichnis hängen soll: Ein Passkey käme auch dann noch durch, wenn dort das Passwort gewechselt wurde. Gesperrte Konten weist er weiterhin ab.'
+        => '%sTo local accounts only%s is meant for organisations where sign-in should stay tied to the directory: a passkey would still get through after a password change there. Locked accounts are still refused.',
     'Zweite Stufe beim Anmelden' => 'Second factor at sign-in',
     'Zweite Stufe für %s zurückgesetzt. Vergewissere dich, dass die Anfrage wirklich von dieser Person kam – danach schützt nur noch das Passwort.' => 'Second factor for %s reset. Make sure the request really came from this person – after this, only the password protects the account.',
     'Zweite Stufe für „%s“ wirklich zurücksetzen? Danach schützt nur noch das Passwort.' => 'Really reset the second factor for “%s”? After this, only the password protects the account.',

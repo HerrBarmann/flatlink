@@ -343,6 +343,75 @@ function passkey_user_by_handle(string $handle): ?string
     return null;
 }
 
+// ---- Der Hinweis nach der Anmeldung --------------------------------------
+//
+// Ein Passkey nützt nur dem, der einen hat. Im Profil steht er seit je, aber
+// dorthin geht selten jemand ohne Anlass — deshalb bietet ihn die Anmeldung
+// von sich aus an. Einmal im Monat, nicht öfter: Ein Vorschlag, den man
+// dreimal die Woche wegklickt, ist kein Vorschlag mehr, sondern eine Tür, die
+// klemmt.
+//
+// Der Stand steht am Konto (`pk_hint`): ein Datum oder „nie".
+
+/**
+ * Ist es Zeit, diesem Konto einen Passkey anzubieten?
+ *
+ * Nimmt die Kennung, nicht den Datensatz: user_get() liefert das Konto ohne
+ * sein eigenes `name`-Feld, auth_user() dagegen mit. Wer beides annimmt, prüft
+ * je nach Aufrufer etwas anderes – und übersieht dann still, dass längst ein
+ * Passkey hinterlegt ist.
+ */
+function passkey_hint_due(string $user): bool
+{
+    $u = user_get($user);
+    if ($u === null) return false;
+
+    // Leer heißt „nicht gesetzt" – etwa auf einer Instanz, deren
+    // inc/config.php älter ist als diese Fassung.
+    $modus = (string)(settings()['passkey_hint'] ?? '') ?: 'on';
+    if ($modus === 'off') return false;
+    // 'local': Zentral verwaltete Konten bleiben außen vor. Wo die Anmeldung
+    // am Verzeichnis hängen soll, wäre ein Passkey ein zweiter Schlüssel,
+    // den das Verzeichnis nicht kennt.
+    if ($modus === 'local' && ($u['auth'] ?? 'local') !== 'local') return false;
+
+    // Ohne HTTPS geht es technisch nicht – dann auch nichts versprechen.
+    if (!webauthn_possible()) return false;
+    if ((array)($u['passkeys'] ?? []) !== []) return false;
+
+    $stand = (string)($u['pk_hint'] ?? '');
+    if ($stand === 'nie') return false;
+    if ($stand === '') return true;              // noch nie gefragt
+    $zeit = strtotime($stand);
+    return $zeit === false || $zeit < time() - 30 * 86400;
+}
+
+/**
+ * Vermerken, dass gefragt wurde.
+ *
+ * Gesetzt wird beim ANZEIGEN, nicht beim Wegklicken: Wer die Seite schließt,
+ * hat die Frage gesehen und soll morgen nicht wieder dieselbe bekommen.
+ */
+function passkey_hint_seen(string $user, bool $nie = false): void
+{
+    users_update(function (array $users) use ($user, $nie) {
+        if (!isset($users[$user])) return null;
+        $users[$user]['pk_hint'] = $nie ? 'nie' : date('c');
+        return $users;
+    }, $user);
+}
+
+/**
+ * Wohin nach einer erfolgreichen Anmeldung?
+ *
+ * An einer Stelle, damit kein Anmeldeweg den Hinweis versehentlich
+ * überspringt – und keiner ihn versehentlich doppelt zeigt.
+ */
+function login_ziel(string $user): string
+{
+    return passkey_hint_due($user) ? 'passkey.php' : 'index.php';
+}
+
 /** Antwort als JSON ausgeben und beenden */
 function wa_json(array $daten, int $status = 200): never
 {

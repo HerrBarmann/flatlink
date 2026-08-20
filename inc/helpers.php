@@ -235,6 +235,7 @@ function settings(): array
             'custom_code_min_len' => (int)cfg('custom_code_min_len'),
             'custom_code_quota' => (int)cfg('custom_code_quota'),
             'totp_required' => (string)cfg('totp_required'),
+            'passkey_hint' => (string)cfg('passkey_hint'),
             'domains' => (array)cfg('domains'),
             'language' => (string)cfg('language'),
             'ext_stores' => (array)cfg('ext_stores'),

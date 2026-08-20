@@ -232,6 +232,15 @@ return [
     // einer App. Auch zur Laufzeit unter Einstellungen änderbar.
     'totp_required' => 'off',
 
+    // Konten ohne Passkey nach der Anmeldung einmal im Monat darauf
+    // hinweisen: 'on' (alle), 'local' (nur lokale Konten – zentral
+    // verwaltete bleiben außen vor) oder 'off'.
+    //
+    // 'local' ist für Häuser gedacht, in denen die Anmeldung am Verzeichnis
+    // hängen soll: Ein Passkey käme auch dann noch durch, wenn dort das
+    // Passwort gewechselt wurde. (Gesperrte Konten weist er weiterhin ab.)
+    'passkey_hint' => 'on',
+
     // Anfragen je Stunde und Zugangsschlüssel für die Programmierschnittstelle.
     // Gezählt wird nach Schlüssel, nicht nach IP – ein Server, der die
     // Schnittstelle bedient, kommt immer von derselben Adresse.

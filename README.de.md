@@ -86,7 +86,7 @@ Gezählt wird je Tag, für die Seite und je Ziel.
 | | |
 | --- | --- |
 | **Konten** | Selbstregistrierung per Double-Opt-In, Passwort-Reset, Rollen, Limits je Konto |
-| **Anmeldung** | zweistufig: Passkey **statt** Passwort (WebAuthn, mit Nutzerprüfung) oder Einmalkennwort (TOTP) daneben, instanzweit erzwingbar |
+| **Anmeldung** | zweistufig: Passkey **statt** Passwort (WebAuthn, mit Nutzerprüfung) oder Einmalkennwort (TOTP) daneben, instanzweit erzwingbar; Konten ohne Passkey bekommen einmal im Monat das Angebot |
 | **Zentrale Anmeldung** | LDAP und Active Directory mit Verzeichnissuche; Shibboleth, SAML und OpenID Connect über den Webserver |
 | **Gruppen** | als Rechtegruppe (Berechtigungen und Limits) oder Arbeitsgruppe (das Team verwaltet die Links gemeinsam) |
 | **Namensräume** | Präfix je Abteilung – `/bib/oeffnungszeiten` gehört der Bibliothek |

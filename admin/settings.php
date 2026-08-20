@@ -5,6 +5,7 @@ declare(strict_types=1);
 // flatlink · Zusatzbedingung zur Namensnennung nach §7(b) AGPL: siehe LICENSE
 require_once __DIR__ . '/../inc/store.php';
 require_once __DIR__ . '/../inc/auth.php';
+require_once __DIR__ . '/../inc/webauthn.php';   // webauthn_possible() für den Passkey-Hinweis
 require_once __DIR__ . '/../inc/groups.php';
 require_once __DIR__ . '/../inc/domains.php';
 require_once __DIR__ . '/../inc/zip.php';
@@ -63,6 +64,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $neu['custom_code_quota'] = max(0, min(100000, (int)($_POST['custom_code_quota'] ?? 0)));
         $modus = (string)($_POST['totp_required'] ?? 'off');
         $neu['totp_required'] = in_array($modus, ['off', 'admins', 'all'], true) ? $modus : 'off';
+        $hinweis = (string)($_POST['passkey_hint'] ?? 'on');
+        $neu['passkey_hint'] = in_array($hinweis, ['on', 'local', 'off'], true) ? $hinweis : 'on';
         $sprache = (string)($_POST['language'] ?? 'de');
         $neu['language'] = isset(lang_available()[$sprache]) ? $sprache : 'de';
     }
@@ -219,6 +222,19 @@ $host = preg_replace('#^https?://#', '', base_url());
             <?php endforeach; ?>
         </select>
         <p class="muted small"><?= t('Ein Passkey oder ein Einmalkennwort aus einer App – beides zählt. Wer noch keines eingerichtet hat, wird nach der Anmeldung dorthin geführt statt ausgesperrt.') ?></p>
+
+        <label for="s-pkhint"><?= t('Passkey vorschlagen') ?></label>
+        <select id="s-pkhint" name="passkey_hint" style="max-width:22rem">
+            <?php foreach (['on' => t('allen Konten'), 'local' => t('nur lokalen Konten'), 'off' => t('gar nicht')] as $k => $lbl): ?>
+            <option value="<?= e($k) ?>"<?= ($s['passkey_hint'] ?? 'on') === $k ? ' selected' : '' ?>><?= e($lbl) ?></option>
+            <?php endforeach; ?>
+        </select>
+        <p class="muted small"><?= t('Wer noch keinen Passkey hat, bekommt nach der Anmeldung einmal im Monat das Angebot, einen einzurichten – mit einem „Nicht mehr fragen" daneben. Ohne HTTPS entfällt es von selbst.') ?></p>
+        <?php if (!webauthn_possible()): ?>
+        <p class="muted small"><strong><?= t('Auf dieser Instanz greift die Einstellung gerade nicht:') ?></strong> <?= t('Passkeys brauchen eine gesicherte Verbindung (HTTPS).') ?></p>
+        <?php endif; ?>
+        <p class="muted small"><?= t('%snur lokalen Konten%s ist für Häuser gedacht, in denen die Anmeldung am Verzeichnis hängen soll: Ein Passkey käme auch dann noch durch, wenn dort das Passwort gewechselt wurde. Gesperrte Konten weist er weiterhin ab.', '<em>', '</em>') ?></p>
+
         <button class="btn btn-primary" type="submit"><?= t('Grundregeln speichern') ?></button>
     </form>
 </div>

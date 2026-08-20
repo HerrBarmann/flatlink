@@ -43,7 +43,7 @@ if ($wartet !== null) {
             $err = passkey_verify($wartet, $daten);
             if ($err !== null) wa_json(['error' => $err], 403);
             auth_pending_complete();
-            wa_json(['ok' => true, 'redirect' => 'index.php']);
+            wa_json(['ok' => true, 'redirect' => login_ziel($wartet)]);
         }
         // Auch die zweite Stufe wird gebremst – sechs Stellen sind sonst in
         // überschaubarer Zeit durchprobiert.
@@ -51,7 +51,7 @@ if ($wartet !== null) {
             $fehler = t('Zu viele Versuche – bitte später erneut.');
         } elseif ($mitApp && totp_check($wartet, (string)($_POST['code'] ?? ''))) {
             auth_pending_complete();
-            redirect_to('index.php');
+            redirect_to(login_ziel($wartet));
         } else {
             $fehler = t('Der Code stimmt nicht.');
         }
@@ -107,8 +107,8 @@ if (!$firstRun && sso_enabled()) {
     $ssoErr = sso_attempt();
     if ($ssoErr !== null) {
         $error = $ssoErr;
-    } elseif (auth_user() !== null) {
-        redirect_to('index.php');
+    } elseif (($ssoKonto = auth_user()) !== null) {
+        redirect_to(login_ziel((string)$ssoKonto['name']));
     }
 }
 
@@ -179,6 +179,7 @@ if (!$firstRun && $kennung === '' && $_SERVER['REQUEST_METHOD'] === 'POST'
     if (!auth_login_passkey($wer)) {
         wa_json(['error' => t('Dieses Konto steht nicht zur Verfügung.')], 403);
     }
+    // Kein login_ziel(): Wer sich mit einem Passkey anmeldet, hat einen.
     wa_json(['ok' => true, 'redirect' => 'index.php']);
 }
 
@@ -213,6 +214,7 @@ if ($kennung !== '' && $_SERVER['REQUEST_METHOD'] === 'POST'
     if (!auth_login_passkey($kennung)) {
         wa_json(['error' => t('Dieses Konto steht nicht zur Verfügung.')], 403);
     }
+    // Kein login_ziel(): Wer sich mit einem Passkey anmeldet, hat einen.
     wa_json(['ok' => true, 'redirect' => 'index.php']);
 }
 
@@ -241,15 +243,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['schritt'] ?? '') === '') {
         if ($error === null) {
             auth_login($username, $password);
             flash(t('Willkommen! Admin-Konto angelegt.'));
-            redirect_to('index.php');
+            redirect_to(login_ziel($username));
         }
     } elseif (auth_login($username, $password, $braucht2fa)) {
         unset($_SESSION['login_name']);
-        redirect_to($braucht2fa ? 'login.php' : 'index.php');
+        redirect_to($braucht2fa ? 'login.php' : login_ziel($username));
     } elseif (ldap_enabled() && ldap_login($username, $password) === null) {
         // Lokales Passwort hat nicht gepasst – jetzt das Verzeichnis fragen
         unset($_SESSION['login_name']);
-        redirect_to('index.php');
+        redirect_to(login_ziel($username));
     } else {
         $error = t('Login fehlgeschlagen.');
     }
