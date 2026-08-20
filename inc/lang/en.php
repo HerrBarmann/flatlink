@@ -34,7 +34,6 @@ return [
     'Missbrauch melden' => 'Report abuse',
     'Profil / Passwort ändern' => 'Profile / change password',
     'flatlink ist ein Open-Source-Projekt von ' => 'flatlink is an open source project by ',
-    'Läuft mit flatlink, einem Open-Source-Projekt von ' => 'Runs on flatlink, an open source project by ',
 
     // ---- Startseite ----
     'Kurzlinks & QR-Codes' => 'Short links & QR codes',

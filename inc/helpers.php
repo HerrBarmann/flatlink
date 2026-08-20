@@ -856,10 +856,13 @@ function origin_note(): string
         // und in beiden Themes richtig sitzt
         $glyph = $svg === '' ? '' : str_replace('<svg ', '<svg class="origin-mark" aria-hidden="true" focusable="false" ', $svg);
     }
-    $self = cfg('site_name') === 'flatlink'
-        ? t('flatlink ist ein Open-Source-Projekt von ')
-        : t('Läuft mit flatlink, einem Open-Source-Projekt von ');
-    return '<p class="origin">' . $glyph . '<span>' . $self
+    // Ein Satz für alle Instanzen. Früher stand hier für fremde Instanzen
+    // „Läuft mit flatlink, …" – gut gemeint, aber es machte aus derselben
+    // Namensnennung zwei verschiedene Fußzeilen, je nachdem wie die Instanz
+    // heißt. Die Zeile ist eine Lizenzangabe, keine Standortmeldung; sie soll
+    // überall gleich lauten und gleich aussehen.
+    return '<p class="origin">' . $glyph . '<span>'
+        . t('flatlink ist ein Open-Source-Projekt von ')
         . '<a href="https://1337.kiwi/flatlink" target="_blank" rel="noopener">1337.kiwi</a>'
         . '</span></p>';
 }
