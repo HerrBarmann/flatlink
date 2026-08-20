@@ -1,8 +1,64 @@
 # Accounts and sign-in
 
-Two-factor sign-in with passkeys or one-time passwords, central sign-in via
+Sign-in in two steps, passkeys and one-time passwords, central sign-in via
 LDAP or the web server, and what accounts decide about their own data. Back
 to the [README](../README.md). – 🇩🇪 [Deutsche Fassung](konten.md).
+
+## The sign-in form
+
+Signing in takes two steps: first who you are, then the proof.
+
+That is not fashion but necessity. A passkey is tied to an account – the page
+cannot know which devices qualify until it knows who is signing in. As long as
+username and password shared one form, the only place left for a passkey was
+*behind* the password, which is the role of a second factor. That wastes it: a
+passkey is already two things at once – possession of the device **and**
+unlocking it.
+
+So:
+
+1. **Username.** Email address or username. Anyone with a discoverable passkey
+   is offered it right here, in the field's own suggestion list, and is one tap
+   away from being signed in – no typing at all. The field carries
+   `autocomplete="username webauthn"` for that; the search happens on the
+   device, not on the server.
+2. **Proof.** If passkeys exist, the prompt starts on its own. *Use password
+   instead* sits next to it, and cancelling brings the field back. If there are
+   none, the password field is right there instead.
+
+*Use another account* returns to step 1. Without JavaScript the passkey path
+falls away and the password field stands where it always stood.
+
+### What the passkey has to carry alone
+
+As a second factor the server was content with the *User Present* bit (0x01):
+somebody touched the device – the knowledge proof was the password before it.
+As a replacement for the password that is not enough. flatlink additionally
+requires *User Verified* (0x04): the device checked a fingerprint, a face or a
+PIN. Without that, a phone left unlocked on a desk would be the entire
+sign-in.
+
+Registration in the profile therefore asks for `userVerification: 'required'` –
+a device that never asks would not get through later, and that is better said
+up front. The same response still passes as a second factor; the difference
+lies purely in what it is being used for.
+
+This is pinned down by [`tests/passkey-anmeldung.php`](../tests/passkey-anmeldung.php):
+the test plays the authenticator itself and checks, among other things, that
+one and the same response is accepted as a second factor and rejected as a
+password replacement.
+
+### What the form reveals about accounts
+
+Named plainly, because it cannot be avoided entirely: an unknown name looks
+exactly like an account without a passkey in step 2 – a password field, and
+the error only after submitting. An account that *does* have a passkey is
+recognisable by the prompt that starts.
+
+That is the price of the offer, and it is the same trade the large providers
+make. The path through the suggestion list in step 1 gives away nothing: there,
+the device does the searching. Both paths sit behind the same failed-attempt
+limiter as password sign-in.
 
 ## Two-factor sign-in
 
@@ -13,6 +69,10 @@ service that hands out printed codes, a password alone is a thin door.
 
 Two methods are available, both set up in the profile. They are not mutually
 exclusive – whoever registers both gets the choice at sign-in.
+
+Strictly speaking the heading is now only accurate for the one-time password:
+it stands *beside* the password. The passkey stands *in its place* (see above)
+and brings its own second factor along.
 
 ### Passkeys (WebAuthn)
 

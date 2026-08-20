@@ -86,7 +86,7 @@ Counted per day, for the page and per target.
 | | |
 | --- | --- |
 | **Accounts** | self-registration via double opt-in, password reset, roles, per-account limits |
-| **Two factors** | passkeys (WebAuthn) and one-time passwords (TOTP), enforceable instance-wide |
+| **Sign-in** | two-step: a passkey **instead of** the password (WebAuthn, with user verification) or a one-time password (TOTP) beside it, enforceable instance-wide |
 | **Central sign-in** | LDAP and Active Directory with directory search; Shibboleth, SAML and OpenID Connect through the web server |
 | **Groups** | as a permission group (rights and limits) or a working group (the team manages the links together) |
 | **Namespaces** | a prefix per department – `/lib/opening-hours` belongs to the library |

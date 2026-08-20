@@ -38,6 +38,34 @@
         });
     }
 
+    /* Die Antwort des Geräts in das JSON packen, das der Server erwartet.
+     * userHandle liefert nur der Weg ohne vorher bekannte Kennung – dort sagt
+     * es uns, welches Konto gemeint ist. */
+    function antwort(c) {
+        return JSON.stringify({
+            id: c.id,
+            clientDataJSON: b64u(c.response.clientDataJSON),
+            authenticatorData: b64u(c.response.authenticatorData),
+            signature: b64u(c.response.signature),
+            userHandle: c.response.userHandle ? b64u(c.response.userHandle) : ''
+        });
+    }
+
+    /* Ein verborgenes Formular hervorholen – und den Knopf, der es geholt
+     * hat, gleich mit wegnehmen: Er verspräche sonst noch etwas, das schon
+     * eingetreten ist. */
+    function hervorholen(id) {
+        var ziel = document.getElementById(id || '');
+        if (!ziel) return;
+        ziel.hidden = false;
+        document.querySelectorAll('[data-zeigt="' + id + '"]').forEach(function (b) {
+            var p = b.closest('p');
+            (p && p.children.length === 1 ? p : b).hidden = true;
+        });
+        var feld = ziel.querySelector('input[type="password"]');
+        if (feld) feld.focus();
+    }
+
     function melden(box, text, fehler) {
         if (!box) return;
         box.textContent = text;
@@ -70,6 +98,10 @@
         var url = btn.getAttribute('data-url') || '';
         var csrf = btn.getAttribute('data-csrf') || '';
         var box = document.getElementById(btn.getAttribute('data-status') || '');
+        /* Auf der Anmeldeseite steht das Passwortfeld im Markup, damit es ohne
+         * JavaScript erreichbar bleibt. Verborgen wird es erst hier – und nur,
+         * wenn der Passkey-Weg tatsächlich zur Verfügung steht. */
+        var weg = document.getElementById(btn.getAttribute('data-verbirgt') || '');
 
         if (!vorhanden) {
             btn.disabled = true;
@@ -77,8 +109,15 @@
             return;
         }
 
+        /* leise = die Abfrage lief von selbst los, nicht auf Klick. Dann darf
+         * ein Fehlschlag keine rote Meldung produzieren: Wer nichts angefasst
+         * hat, hat auch nichts falsch gemacht. Er bekommt kommentarlos das
+         * Passwortfeld zurück und den Knopf, um es doch zu versuchen. */
+        var leise = false;
+
         btn.addEventListener('click', function () {
             btn.disabled = true;
+            if (weg) weg.hidden = true;
             melden(box, modus === 'login' ? t('Warte auf dein Gerät …') : t('Folge der Abfrage deines Geräts …'), false);
 
             senden(url, { action: 'pk_challenge', _csrf: csrf }).then(function (opt) {
@@ -104,24 +143,84 @@
 
                 opt.allowCredentials = idsUmbauen(opt.allowCredentials);
                 return navigator.credentials.get({ publicKey: opt }).then(function (c) {
-                    return senden(url, {
-                        action: 'pk_verify',
-                        _csrf: csrf,
-                        daten: JSON.stringify({
-                            id: c.id,
-                            clientDataJSON: b64u(c.response.clientDataJSON),
-                            authenticatorData: b64u(c.response.authenticatorData),
-                            signature: b64u(c.response.signature)
-                        })
-                    });
+                    return senden(url, { action: 'pk_verify', _csrf: csrf, daten: antwort(c) });
                 });
             }).then(function (a) {
                 if (a && a.ok) { window.location.href = a.redirect || window.location.pathname; return; }
                 throw new Error((a && a.error) || t('Es hat nicht geklappt.'));
             }).catch(function (e) {
-                melden(box, fehlertext(e), true);
+                var vonSelbst = leise;
+                leise = false;
                 btn.disabled = false;
+                melden(box, vonSelbst ? '' : fehlertext(e), true);
+                // Abgebrochen? Dann will jemand das Passwort – und findet es
+                // nur, wenn es wieder da ist.
+                if (weg) hervorholen(weg.id);
             });
+        });
+
+        /* Sofortstart: Die Abfrage beginnt von selbst, sobald die Seite steht.
+         * Ein echter Klick ist das nicht, aber die Browser lassen es zu, und
+         * es erspart einen Klick, der ohnehin nur „ja, bitte" bedeutet.
+         * Verweigert einer die Abfrage ohne Geste, landet man im catch oben –
+         * dann steht das Passwortfeld wieder da und der Knopf daneben. */
+        if (btn.getAttribute('data-sofort') === '1') {
+            if (weg) weg.hidden = true;
+            leise = true;
+            setTimeout(function () { btn.click(); }, 60);
+        }
+    });
+
+    /* „Stattdessen Passwort": bringt das verborgene Formular zurück und setzt
+     * den Zeiger gleich hinein. */
+    document.querySelectorAll('[data-zeigt]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            hervorholen(btn.getAttribute('data-zeigt') || '');
+        });
+    });
+
+    /* ---- Schritt 1: der Vorschlag im Namensfeld -------------------------
+     *
+     * „Conditional mediation" heißt: Wir fragen im Hintergrund nach einem
+     * Passkey, und der Browser zeigt das Ergebnis nicht als Fenster, sondern
+     * als Eintrag in der Vorschlagsliste des Namensfelds. Wer keinen hat,
+     * merkt von alledem nichts – deshalb wird hier auch kein Fehler gemeldet,
+     * wenn es nicht klappt.
+     *
+     * Welches Konto gemeint war, sagt uns das Gerät hinterher selbst. */
+    document.querySelectorAll('[data-passkey-cond]').forEach(function (form) {
+        var url = form.getAttribute('data-passkey-cond') || '';
+        var csrf = form.getAttribute('data-csrf') || '';
+        var box = document.getElementById(form.getAttribute('data-status') || '');
+
+        if (!vorhanden || !window.PublicKeyCredential.isConditionalMediationAvailable) return;
+
+        /* Die Anfrage wartet, bis jemand einen Vorschlag anklickt – notfalls
+         * ewig. Wer stattdessen tippt und abschickt, soll sie nicht im Rücken
+         * behalten: Das Formular bricht sie beim Absenden ab. */
+        var stop = new AbortController();
+        form.addEventListener('submit', function () { stop.abort(); });
+
+        window.PublicKeyCredential.isConditionalMediationAvailable().then(function (geht) {
+            if (!geht) return;
+            return senden(url, { action: 'pk_any_challenge', _csrf: csrf }).then(function (opt) {
+                if (opt.error) throw new Error(opt.error);
+                opt.challenge = ab(opt.challenge);
+                opt.allowCredentials = [];
+                return navigator.credentials.get({ publicKey: opt, mediation: 'conditional', signal: stop.signal });
+            }).then(function (c) {
+                melden(box, t('Warte auf dein Gerät …'), false);
+                return senden(url, { action: 'pk_any_verify', _csrf: csrf, daten: antwort(c) });
+            }).then(function (a) {
+                if (a && a.ok) { window.location.href = a.redirect || window.location.pathname; return; }
+                throw new Error((a && a.error) || t('Es hat nicht geklappt.'));
+            });
+        }).catch(function (e) {
+            // Kein Passkey, abgebrochen, Fenster gewechselt: alles kein Fehler.
+            // Nur wenn der Server etwas zu sagen hatte, sagen wir es weiter.
+            if (e && e.name !== 'NotAllowedError' && e.name !== 'AbortError') {
+                melden(box, fehlertext(e), true);
+            }
         });
     });
 })();

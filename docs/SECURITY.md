@@ -108,12 +108,25 @@ Vollständigkeit halber:
   verorten ließe. Wer feinere Statistik braucht, baut sie über
   `inc/local.php` an – und passt die Datenschutzerklärung an.
 
-- **Zwei-Faktor-Anmeldung** gibt es in zwei Formen, im Profil einzurichten
-  und optional erzwingbar: Passkeys (WebAuthn) und Einmalkennwörter aus
-  einer App (TOTP). Passkeys sind an die Domain gebunden und deshalb gegen
+- **Die Anmeldung läuft zweistufig**: erst die Kennung, dann der Nachweis.
+  Ein Passkey (WebAuthn) tritt dabei an die **Stelle** des Passworts, nicht
+  dahinter – dafür verlangt der Server neben *User Present* auch *User
+  Verified*, also den geprüften Fingerabdruck, das Gesicht oder die PIN.
+  Ohne diesen zweiten Nachweis wird die Antwort nur als zweite Stufe
+  angenommen. Passkeys sind an die Domain gebunden und deshalb gegen
   nachgebaute Anmeldeseiten wirksam, wogegen ein abtippbarer Code nicht
-  schützt. Beide schützen die Anmeldung mit Passwort – **nicht** die API:
-  Ein Zugangsschlüssel ist ein eigener Nachweis und gilt für sich.
+  schützt.
+
+- **Einmalkennwörter aus einer App** (TOTP) treten daneben, als zweite Stufe
+  nach dem Passwort. Beide Verfahren sind im Profil einzurichten und optional
+  erzwingbar. Beide schützen die Anmeldung – **nicht** die API: Ein
+  Zugangsschlüssel ist ein eigener Nachweis und gilt für sich.
+
+- **Kontonamen** verrät die Maske nur eingeschränkt: Ein unbekannter Name
+  sieht aus wie ein Konto ohne Passkey, der Fehler kommt erst nach dem
+  Passwort. Wer einen Passkey hinterlegt hat, ist an der startenden Abfrage
+  erkennbar – das lässt sich nicht vermeiden, ohne das Angebot aufzugeben.
+  Beide Wege liegen unter derselben Fehlversuchsbremse.
 
 - **Zurücksetzen der zweiten Stufe** kann ein Administrator unter *Nutzer*.
   Für Passkeys gibt es keine Wiederherstellungscodes, also braucht es diesen

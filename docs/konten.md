@@ -1,9 +1,65 @@
 # Konten und Anmeldung
 
-Zwei-Faktor-Anmeldung mit Passkeys oder Einmalkennwörtern, zentrale
+Anmeldung in zwei Schritten, Passkeys und Einmalkennwörter, zentrale
 Anmeldung über LDAP oder den Webserver, und was Konten selbst über ihre
 Daten bestimmen. Zurück zur [README](../README.de.md). – 🇬🇧 [English
 version](konten.en.md).
+
+## Die Anmeldemaske
+
+Die Anmeldung läuft in zwei Schritten: erst die Kennung, dann der Nachweis.
+
+Das ist keine Mode, sondern eine Notwendigkeit. Ein Passkey ist an ein Konto
+gebunden – welche Geräte in Frage kommen, weiß die Seite erst, wenn sie weiß,
+wer sich anmelden will. Solange Kennung und Passwort in einer Maske standen,
+blieb dem Passkey nur der Platz *hinter* dem Passwort, also die Rolle des
+zweiten Faktors. Das verschenkt ihn: Ein Passkey ist selbst schon zweierlei –
+Besitz des Geräts **und** dessen Entsperrung.
+
+Also:
+
+1. **Kennung.** E-Mail oder Nutzername. Wer einen auffindbaren Passkey hat,
+   bekommt ihn hier schon in der Vorschlagsliste des Feldes angeboten und ist
+   mit einem Tippen drin – getippt werden muss nichts. Das Feld trägt dafür
+   `autocomplete="username webauthn"`, die Suche macht das Gerät, nicht der
+   Server.
+2. **Nachweis.** Gibt es Passkeys, startet die Abfrage von selbst. Daneben
+   steht *Stattdessen Passwort*; wer abbricht, bekommt das Feld zurück. Gibt es
+   keine, steht dort gleich das Passwortfeld.
+
+*Anderes Konto* führt zurück in Schritt 1. Ohne JavaScript entfällt der
+Passkey-Weg und das Passwortfeld steht da, wo es immer stand.
+
+### Was der Passkey allein tragen muss
+
+Als zweite Stufe genügte dem Server das Bit *User Present* (0x01): Irgendwer
+hat das Gerät berührt – der Wissensnachweis war ja das Passwort davor. Als
+Ersatz fürs Passwort reicht das nicht. Dafür verlangt flatlink zusätzlich
+*User Verified* (0x04): Das Gerät hat Fingerabdruck, Gesicht oder PIN geprüft.
+Ohne diesen Nachweis wäre ein liegengelassenes, entsperrtes Telefon die ganze
+Anmeldung.
+
+Deshalb steht bei der Einrichtung im Profil `userVerification: 'required'` –
+ein Gerät, das gar nicht erst nachfragt, käme später nicht durch, und das sagt
+man besser vorher. Dieselbe Antwort geht als zweite Stufe weiterhin durch;
+der Unterschied steckt allein im Verwendungszweck.
+
+Festgehalten ist das in [`tests/passkey-anmeldung.php`](../tests/passkey-anmeldung.php):
+Der Test spielt selbst den Authenticator und prüft unter anderem, dass
+dieselbe Antwort als zweite Stufe angenommen und als Passwortersatz abgelehnt
+wird.
+
+### Was die Maske über Konten verrät
+
+Ehrlich benannt, weil es sich nicht ganz vermeiden lässt: Ein unbekannter Name
+sieht in Schritt 2 genauso aus wie ein Konto ohne Passkey – Passwortfeld, und
+der Fehler kommt erst nach dem Absenden. Wer aber einen Passkey hinterlegt hat,
+ist an der startenden Abfrage zu erkennen.
+
+Das ist der Preis des Angebots, und es ist derselbe Handel, den die großen
+Anbieter eingehen. Der Weg über die Vorschlagsliste in Schritt 1 verrät
+dagegen nichts: Dort sucht das Gerät. Beide Wege liegen unter derselben
+Fehlversuchsbremse wie die Passwortanmeldung.
 
 ## Zwei-Faktor-Anmeldung
 
@@ -15,6 +71,10 @@ allein eine dünne Tür.
 
 Zwei Verfahren stehen zur Wahl, beide im Profil einzurichten. Sie schließen
 sich nicht aus – wer beide hinterlegt, hat beim Anmelden die Wahl.
+
+Der Name der Überschrift stimmt streng genommen nur noch für das
+Einmalkennwort: Es tritt *neben* das Passwort. Der Passkey tritt an *dessen
+Stelle* (siehe oben) und bringt seinen zweiten Faktor selbst mit.
 
 ### Passkeys (WebAuthn)
 

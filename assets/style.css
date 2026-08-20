@@ -157,6 +157,19 @@ code, .prefix { font-family: var(--mono); }
 .card.narrow-wide { max-width: 720px; margin: 2rem auto; }
 .card.narrow-wide h2 { margin-top: 1.4rem; font-size: 1.1rem; }
 
+/* Zweistufige Anmeldung: die Kennung aus Schritt 1 und der Weg zurück.
+   Die Zeile ist ein Flex-Container, weil der Knopf in einem eigenen <form>
+   steckt — ein Formular ist Blockinhalt und würde ein <p> sprengen. */
+.konto-zeile {
+    display: flex; align-items: center; flex-wrap: wrap;
+    gap: 0.7rem; margin: 0 0 1.2rem;
+}
+.konto-zeile strong {
+    font-family: var(--mono); font-size: 0.95rem;
+    overflow-wrap: anywhere; min-width: 0;
+}
+.konto-zeile form { margin: 0; }
+
 /* Sprungmarken der Abschnittsüberschriften: Nach dem Absenden eines Formulars
    führt die Umleitung zurück zu dem Abschnitt, aus dem es kam. Ohne diesen
    Abstand klebte die Überschrift am oberen Fensterrand, und was darüber steht

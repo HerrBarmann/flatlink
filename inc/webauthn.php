@@ -266,14 +266,21 @@ function passkey_create_options(array $user): array
             fn($p) => ['type' => 'public-key', 'id' => $p['id']],
             passkeys_of($user['name'])
         ),
-        'authenticatorSelection' => ['residentKey' => 'preferred', 'userVerification' => 'preferred'],
+        // „required" bei der Nutzerprüfung, seit der Passkey das Passwort
+        // ersetzen darf: Ein Gerät, das nicht nachfragt, wer es gerade
+        // benutzt, käme bei der Anmeldung ohnehin nicht durch — dann lieber
+        // schon beim Einrichten sagen als hinterher.
+        // Auffindbar („resident") nur bevorzugt: Sicherheitsschlüssel haben
+        // dafür begrenzt Platz, und ohne Auffindbarkeit funktioniert alles
+        // außer dem Vorschlag im Namensfeld weiterhin.
+        'authenticatorSelection' => ['residentKey' => 'preferred', 'userVerification' => 'required'],
         'timeout' => 120000,
         'attestation' => 'none',
     ];
 }
 
 /** Vorgaben für eine Anmeldung */
-function passkey_request_options(string $user): array
+function passkey_request_options(string $user, bool $alsPasswortersatz = false): array
 {
     return [
         'challenge' => webauthn_challenge('login'),
@@ -282,9 +289,58 @@ function passkey_request_options(string $user): array
             fn($p) => ['type' => 'public-key', 'id' => $p['id']],
             passkeys_of($user)
         ),
-        'userVerification' => 'preferred',
+        // Als ZWEITE Stufe genügt „preferred": Das Passwort war der Nachweis
+        // des Wissens, der Passkey belegt den Besitz.
+        //
+        // Als ERSATZ fürs Passwort muss der Passkey beides allein tragen, und
+        // dafür ist die Nutzerprüfung Pflicht — sonst reicht der bloße Besitz
+        // des entsperrten Geräts, und ein liegengelassenes Telefon wäre die
+        // ganze Anmeldung. Genau hierin unterscheiden sich die beiden Wege.
+        'userVerification' => $alsPasswortersatz ? 'required' : 'preferred',
         'timeout' => 120000,
     ];
+}
+
+/**
+ * Vorgaben für eine Anmeldung, bei der die Kennung noch nicht feststeht.
+ *
+ * Das ist der Weg, den der Browser im Namensfeld anbietet („conditional
+ * mediation"): Ohne `allowCredentials` sucht das Gerät selbst nach einem
+ * passenden Passkey für diese Adresse. Wer das Konto ist, sagt uns hinterher
+ * das Gerät über das `userHandle` in seiner Antwort.
+ *
+ * Voraussetzung ist ein auffindbarer Passkey. Gibt es keinen, passiert
+ * schlicht nichts — der Weg über Kennung und Passwort bleibt daneben offen.
+ */
+function passkey_any_request_options(): array
+{
+    return [
+        'challenge' => webauthn_challenge('login'),
+        'rpId' => webauthn_rp_id(),
+        'allowCredentials' => [],
+        'userVerification' => 'required',
+        'timeout' => 120000,
+    ];
+}
+
+/**
+ * Das Konto zu einem Geräte-Handle finden.
+ *
+ * Nur für den Weg oben. Das Handle ist eine Zufallsfolge, die wir selbst
+ * vergeben haben — es zu kennen ist kein Nachweis. Der Nachweis ist die
+ * Unterschrift, die passkey_verify() danach gegen den hinterlegten Schlüssel
+ * dieses Kontos prüft.
+ */
+function passkey_user_by_handle(string $handle): ?string
+{
+    if ($handle === '') return null;
+    foreach (users_all() as $name => $u) {
+        $h = (string)($u['wa_handle'] ?? '');
+        if ($h !== '' && hash_equals($h, $handle) && (array)($u['passkeys'] ?? []) !== []) {
+            return (string)$name;
+        }
+    }
+    return null;
 }
 
 /** Antwort als JSON ausgeben und beenden */
@@ -431,7 +487,7 @@ function passkey_register(string $user, array $antwort, string $label): ?string
  *
  * @return ?string Fehlermeldung oder null bei Erfolg
  */
-function passkey_verify(string $user, array $antwort): ?string
+function passkey_verify(string $user, array $antwort, bool $alsPasswortersatz = false): ?string
 {
     $challenge = webauthn_take_challenge('login');
     if ($challenge === null) return t('Der Vorgang ist abgelaufen – bitte neu anmelden.');
@@ -458,6 +514,12 @@ function passkey_verify(string $user, array $antwort): ?string
         return t('Der Passkey gehört zu einer anderen Adresse.');
     }
     if (($auth['flags'] & 0x01) === 0) return t('Das Gerät hat die Anwesenheit nicht bestätigt.');
+    // Bit 0x04 = User Verified: Das Gerät hat Fingerabdruck, Gesicht oder PIN
+    // geprüft. Ohne diesen Nachweis ist ein Passkey nur ein Besitzfaktor —
+    // als Passwortersatz zu wenig, als zweite Stufe genau richtig.
+    if ($alsPasswortersatz && ($auth['flags'] & 0x04) === 0) {
+        return t('Dieses Gerät hat nicht geprüft, wer es benutzt. Für die Anmeldung ohne Passwort ist das nötig – bitte Fingerabdruck, Gesichtserkennung oder Geräte-PIN einrichten.');
+    }
 
     // (4) Die Unterschrift muss zum hinterlegten Schlüssel passen
     $signiert = $authRaw . hash('sha256', $clientData, true);

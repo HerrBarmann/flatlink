@@ -112,9 +112,116 @@ if (!$firstRun && sso_enabled()) {
     }
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+// ---- Zweistufige Anmeldung ----------------------------------------------
+//
+// Erst die Kennung, dann der Nachweis. Der Grund ist der Passkey: Er ist kein
+// zweiter Faktor, sondern ein Ersatz fürs Passwort — Besitz des Geräts UND
+// dessen Entsperrung per Fingerabdruck, Gesicht oder PIN. Ihn hinter ein
+// Passwort zu hängen, verschenkt genau das.
+//
+// Erst wenn die Kennung bekannt ist, weiß die Seite, ob dieses Konto Passkeys
+// hat — vorher gibt es nichts anzubieten.
+//
+// Zur Preisgabe von Kontonamen, ehrlich: Ein unbekanntes Konto sieht genauso
+// aus wie eines ohne Passkey — Passwortfeld, Fehler erst nach dem Absenden.
+// Wer aber einen Passkey hinterlegt hat, ist an der Abfrage zu erkennen. Das
+// lässt sich nicht vermeiden, ohne das Angebot selbst aufzugeben, und es ist
+// derselbe Handel, den die großen Anbieter eingehen. Der Weg über das
+// Namensfeld (unten, „conditional mediation") verrät dagegen gar nichts: Dort
+// sucht das Gerät, nicht der Server.
+$kennung = trim((string)($_SESSION['login_name'] ?? ''));
+$kennungKeys = $kennung !== '' ? passkeys_of($kennung) : [];
+
+if (!$firstRun && $_SERVER['REQUEST_METHOD'] === 'POST'
+    && ($_POST['schritt'] ?? '') === 'kennung') {
     csrf_check();
-    $username = trim((string)($_POST['username'] ?? ''));
+    $eingabe = trim((string)($_POST['username'] ?? ''));
+    if ($eingabe === '') {
+        $error = t('Bitte gib deine Kennung ein.');
+    } else {
+        // Auf die tatsächliche Schreibweise bringen, wenn es das Konto gibt –
+        // sonst unverändert übernehmen, damit die Maske für Unbekannte gleich
+        // aussieht.
+        $_SESSION['login_name'] = user_resolve($eingabe) ?? mb_substr($eingabe, 0, 190);
+        redirect_to('login.php');
+    }
+}
+
+// Schritt 1, Passkey aus dem Namensfeld: Das Gerät sucht selbst nach einem
+// passenden Konto, wir erfahren es erst aus seiner Antwort.
+if (!$firstRun && $kennung === '' && $_SERVER['REQUEST_METHOD'] === 'POST'
+    && in_array($_POST['action'] ?? '', ['pk_any_challenge', 'pk_any_verify'], true)) {
+    csrf_check();
+    if (!login_source_ok()) {
+        wa_json(['error' => t('Zu viele Fehlversuche. Bitte später erneut.')], 429);
+    }
+    if (($_POST['action'] ?? '') === 'pk_any_challenge') {
+        wa_json(passkey_any_request_options());
+    }
+    $daten = json_decode((string)($_POST['daten'] ?? ''), true);
+    if (!is_array($daten)) wa_json(['error' => t('Antwort unlesbar.')], 400);
+    // Das Handle sagt uns nur, WEN das Gerät meint. Ob es darf, entscheidet
+    // gleich darauf die Unterschrift.
+    $wer = passkey_user_by_handle((string)($daten['userHandle'] ?? ''));
+    if ($wer === null) {
+        webauthn_take_challenge('login');
+        wa_json(['error' => t('Zu diesem Passkey gibt es hier kein Konto.')], 403);
+    }
+    if (login_throttle_left($wer) > 0) {
+        webauthn_take_challenge('login');
+        wa_json(['error' => t('Zu viele Fehlversuche. Bitte später erneut.')], 429);
+    }
+    $err = passkey_verify($wer, $daten, true);
+    if ($err !== null) {
+        login_failure_note();
+        wa_json(['error' => $err], 403);
+    }
+    if (!auth_login_passkey($wer)) {
+        wa_json(['error' => t('Dieses Konto steht nicht zur Verfügung.')], 403);
+    }
+    wa_json(['ok' => true, 'redirect' => 'index.php']);
+}
+
+if (!$firstRun && $_SERVER['REQUEST_METHOD'] === 'POST'
+    && ($_POST['schritt'] ?? '') === 'andere') {
+    csrf_check();
+    unset($_SESSION['login_name']);
+    redirect_to('login.php');
+}
+
+// Passkey als Anmeldung, nicht als zweite Stufe. Beide Wege antworten mit
+// JSON; gerufen werden sie vom Skript im Browser.
+if ($kennung !== '' && $_SERVER['REQUEST_METHOD'] === 'POST'
+    && in_array($_POST['action'] ?? '', ['pk_challenge', 'pk_verify'], true)) {
+    csrf_check();
+    if (!login_source_ok() || login_throttle_left($kennung) > 0) {
+        wa_json(['error' => t('Zu viele Fehlversuche. Bitte später erneut.')], 429);
+    }
+    if ($kennungKeys === []) {
+        wa_json(['error' => t('Für dieses Konto ist kein Passkey hinterlegt.')], 400);
+    }
+    if (($_POST['action'] ?? '') === 'pk_challenge') {
+        wa_json(passkey_request_options($kennung, true));
+    }
+    $daten = json_decode((string)($_POST['daten'] ?? ''), true);
+    if (!is_array($daten)) wa_json(['error' => t('Antwort unlesbar.')], 400);
+    $err = passkey_verify($kennung, $daten, true);
+    if ($err !== null) {
+        login_failure_note();
+        wa_json(['error' => $err], 403);
+    }
+    if (!auth_login_passkey($kennung)) {
+        wa_json(['error' => t('Dieses Konto steht nicht zur Verfügung.')], 403);
+    }
+    wa_json(['ok' => true, 'redirect' => 'index.php']);
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['schritt'] ?? '') === '') {
+    csrf_check();
+    // Im zweiten Schritt steht die Kennung in der Sitzung, nicht im Formular.
+    $username = $firstRun
+        ? trim((string)($_POST['username'] ?? ''))
+        : ($kennung !== '' ? $kennung : trim((string)($_POST['username'] ?? '')));
     $password = (string)($_POST['password'] ?? '');
 
     // Gesperrt? Dann gar nicht erst prüfen, sondern sofort mit 429 antworten.
@@ -137,9 +244,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             redirect_to('index.php');
         }
     } elseif (auth_login($username, $password, $braucht2fa)) {
+        unset($_SESSION['login_name']);
         redirect_to($braucht2fa ? 'login.php' : 'index.php');
     } elseif (ldap_enabled() && ldap_login($username, $password) === null) {
         // Lokales Passwort hat nicht gepasst – jetzt das Verzeichnis fragen
+        unset($_SESSION['login_name']);
         redirect_to('index.php');
     } else {
         $error = t('Login fehlgeschlagen.');
@@ -167,15 +276,75 @@ page_header($firstRun ? t('Ersteinrichtung') : t('Login'), true);
         <p class="muted small" style="text-align:center"><?= t('oder mit lokalem Konto:') ?></p>
     <?php endif; ?>
 
+    <?php if ($firstRun): ?>
     <form method="post" action="" data-enter-submit>
         <?= csrf_field() ?>
-        <label for="username"><?= $firstRun ? t('Nutzername') : t('E-Mail oder Nutzername') ?></label>
+        <label for="username"><?= t('Nutzername') ?></label>
         <input id="username" type="text" name="username" required autofocus autocomplete="username">
-        <label for="password"><?= t('Passwort') ?><?= $firstRun ? ' ' . t('(mind. 8 Zeichen)') : '' ?></label>
-        <input id="password" type="password" name="password" required autocomplete="<?= $firstRun ? 'new-password' : 'current-password' ?>">
-        <p><button class="btn btn-primary" type="submit"><?= $firstRun ? t('Admin anlegen') : t('Anmelden') ?></button></p>
+        <label for="password"><?= t('Passwort') ?> <?= t('(mind. 8 Zeichen)') ?></label>
+        <input id="password" type="password" name="password" required autocomplete="new-password">
+        <p><button class="btn btn-primary" type="submit"><?= t('Admin anlegen') ?></button></p>
     </form>
+
+    <?php elseif ($kennung === ''): ?>
+    <?php /* Schritt 1: Wer bist du?
+             Das Feld trägt „webauthn" im autocomplete. Zusammen mit dem Skript
+             bietet der Browser einen auffindbaren Passkey schon hier in der
+             Vorschlagsliste an — getippt werden muss dann gar nichts mehr.
+             Der Server verrät dabei nicht, wer überhaupt einen hat: Die Suche
+             findet ausschließlich auf dem Gerät statt. */ ?>
+    <div id="pk-status" class="flash" style="display:none"></div>
+    <form method="post" action="" data-enter-submit
+          data-passkey-cond="login.php" data-csrf="<?= e(csrf_token()) ?>" data-status="pk-status">
+        <?= csrf_field() ?>
+        <input type="hidden" name="schritt" value="kennung">
+        <label for="username"><?= t('E-Mail oder Nutzername') ?></label>
+        <input id="username" type="text" name="username" required autofocus
+               autocomplete="username webauthn">
+        <p><button class="btn btn-primary" type="submit"><?= t('Weiter') ?></button></p>
+    </form>
+
+    <?php else: ?>
+    <div class="konto-zeile">
+        <strong><?= e($kennung) ?></strong>
+        <form method="post" action="">
+            <?= csrf_field() ?>
+            <input type="hidden" name="schritt" value="andere">
+            <button class="btn btn-small" type="submit"><?= t('Anderes Konto') ?></button>
+        </form>
+    </div>
+
+    <?php if ($kennungKeys !== []): ?>
+    <?php /* Schritt 2 mit Passkey: Das Skript startet die Abfrage von selbst,
+             sobald die Seite steht — genau so, wie es die großen Anbieter tun.
+             Bricht jemand ab oder klappt es nicht, blendet es das Passwortfeld
+             wieder ein.
+
+             Warum das Passwortfeld hier trotzdem im Markup steht und nicht
+             erst vom Skript erzeugt wird: Ohne JavaScript gäbe es sonst
+             überhaupt keinen Weg mehr hinein. Verborgen wird es deshalb vom
+             Skript, nicht vom Server. */ ?>
+    <div id="pk-status" class="flash" style="display:none"></div>
+    <p><button class="btn btn-primary" type="button" style="width:100%"
+               data-passkey="login" data-url="login.php" data-csrf="<?= e(csrf_token()) ?>"
+               data-status="pk-status" data-sofort="1" data-verbirgt="pw-form"><?= t('Mit Passkey anmelden') ?></button></p>
+    <p class="muted small" style="text-align:center">
+        <button class="btn btn-small" type="button" data-zeigt="pw-form"><?= t('Stattdessen Passwort') ?></button>
+    </p>
+    <?php endif; ?>
+
+    <form method="post" action="" data-enter-submit id="pw-form">
+        <?= csrf_field() ?>
+        <?= username_hint($kennung) ?>
+        <label for="password"><?= t('Passwort') ?></label>
+        <input id="password" type="password" name="password" required
+               <?= $kennungKeys === [] ? 'autofocus ' : '' ?>autocomplete="current-password">
+        <p><button class="btn btn-primary" type="submit"><?= t('Anmelden') ?></button></p>
+    </form>
+
+    <?php endif; ?>
     <?php if (!$firstRun): ?>
+        <?php if ($kennung === '' || $kennungKeys !== []) page_script('assets/passkey.js'); ?>
         <p class="muted small"><a href="../reset.php"><?= t('Passwort vergessen?') ?></a><?php if (settings()['registration'] === 'on'): ?> · <?= t('Noch kein Konto?') ?> <a href="../register.php"><?= t('Registrieren') ?></a><?php endif; ?></p>
         <?php if (ldap_enabled()): ?>
         <p class="muted small"><?= t('Konten aus dem Verzeichnis melden sich hier mit ihrer gewohnten Kennung an.') ?></p>

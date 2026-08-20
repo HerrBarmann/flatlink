@@ -102,12 +102,24 @@ Some things are not holes but deliberate decisions. For completeness:
   time. Whoever needs finer statistics builds them via `inc/local.php` — and
   amends their privacy statement.
 
-- **Two-factor sign-in** comes in two forms, set up in the profile and
-  optionally enforceable: passkeys (WebAuthn) and one-time passwords from an
-  app (TOTP). Passkeys are bound to the domain and therefore effective
-  against look-alike sign-in pages, which a typed code does not protect
-  against. Both protect the password sign-in — **not** the API: an access
-  key is its own credential and stands on its own.
+- **Signing in takes two steps**: first the username, then the proof. A
+  passkey (WebAuthn) takes the **place** of the password rather than sitting
+  behind it — and for that the server requires *User Verified* alongside
+  *User Present*, meaning a verified fingerprint, face or PIN. Without that
+  second proof the response is only accepted as a second factor. Passkeys are
+  bound to the domain and therefore effective against look-alike sign-in
+  pages, which a typed code does not protect against.
+
+- **One-time passwords from an app** (TOTP) stand beside the password, as a
+  second step after it. Both methods are set up in the profile and optionally
+  enforceable. Both protect the sign-in — **not** the API: an access key is
+  its own credential and stands on its own.
+
+- **Account names** are only partly revealed by the form: an unknown name
+  looks like an account without a passkey, and the error arrives only after
+  the password. An account that has a passkey is recognisable by the prompt
+  that starts — unavoidable short of dropping the offer altogether. Both
+  paths sit behind the same failed-attempt limiter.
 
 - **Resetting the second factor** can be done by an administrator under
   *Users*. There are no recovery codes for passkeys, so this route is needed

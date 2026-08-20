@@ -423,7 +423,7 @@ show_flash();
 </div>
 
 <div class="card">
-    <h2 id="zwei-faktor"><?= t('Zwei-Faktor-Anmeldung') ?></h2>
+    <h2 id="zwei-faktor"><?= t('Anmeldung absichern') ?></h2>
     <?php
     $t = totp_get($user['name']);
     $aktiv = totp_active($user['name']);
@@ -432,13 +432,14 @@ show_flash();
     $frischeCodes = $_SESSION['fresh_recovery'] ?? null;
     unset($_SESSION['fresh_recovery']);
     ?>
-    <p class="muted small"><?= t('Ein zweiter Nachweis beim Anmelden. Wer dein Passwort kennt, kommt damit trotzdem nicht an deine Links – und an die Ziele der Codes, die längst irgendwo gedruckt hängen.') ?><?php if ($pflicht): ?> <strong><?= t('Diese Instanz verlangt ihn.') ?></strong><?php endif; ?></p>
+    <p class="muted small"><?= t('Zwei Wege, beide besser als ein Passwort allein: Ein Passkey tritt an die Stelle des Passworts, ein Einmalkennwort tritt daneben. Wer dein Passwort kennt, kommt so oder so nicht an deine Links – und an die Ziele der Codes, die längst irgendwo gedruckt hängen.') ?><?php if ($pflicht): ?> <strong><?= t('Diese Instanz verlangt eines von beiden.') ?></strong><?php endif; ?></p>
 
     <h3>Passkey <span class="muted small">(<?= t('empfohlen') ?>)</span></h3>
     <?php if (!webauthn_possible()): ?>
         <p class="muted small"><?= t('Passkeys brauchen eine gesicherte Verbindung (HTTPS). Auf dieser Instanz ist das gerade nicht der Fall – nimm so lange die App unten.') ?></p>
     <?php else: ?>
         <p class="muted small"><?= t('Fingerabdruck, Gesicht oder Geräte-PIN – hinterlegt in deinem Telefon, deinem Rechner oder auf einem Sicherheitsschlüssel. Anders als ein Code aus einer App ist ein Passkey %san diese Adresse gebunden%s: Auf einer nachgebauten Anmeldeseite gibt ihn dein Gerät gar nicht erst heraus. Genau davor schützt ein abtippbarer Code nicht.', '<strong>', '</strong>') ?></p>
+        <p class="muted small"><?= t('Ist einer eingerichtet, brauchst du beim Anmelden %skein Passwort mehr%s: Kennung eingeben, Gerät entsperren, drin. Das Passwort bleibt trotzdem gültig – für den Fall, dass du das Gerät gerade nicht hast.', '<strong>', '</strong>') ?></p>
 
         <?php if ($keys !== []): ?>
         <ul class="key-list">

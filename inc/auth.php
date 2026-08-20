@@ -286,6 +286,33 @@ function sessions_revoke(string $username, ?string $behalten = null, ?string $ei
     }, $username);
 }
 
+/**
+ * Anmelden ohne Passwort — nach erfolgreichem Passkey.
+ *
+ * Ein Passkey ist kein zweiter Faktor, sondern ein vollwertiger Ersatz für das
+ * Passwort: Er verlangt den Besitz des Geräts UND dessen Entsperrung per
+ * Fingerabdruck, Gesicht oder PIN. Beides zusammen ist mehr als ein Passwort
+ * allein je war, und deshalb folgt darauf auch keine zweite Stufe mehr — die
+ * wäre ein dritter Faktor für einen Vorgang, der schon zwei hat.
+ *
+ * Vorausgesetzt wird, dass der Aufrufer den Passkey mit `$alsPasswortersatz`
+ * geprüft hat; ohne die Nutzerprüfung des Geräts wäre die Annahme falsch.
+ *
+ * @return bool false = Konto gesperrt oder verschwunden
+ */
+function auth_login_passkey(string $username): bool
+{
+    $u = user_get($username);
+    if ($u === null || user_locked($u)) return false;
+    session_regenerate_id(true);
+    unset($_SESSION['pending_user'], $_SESSION['pending_since'], $_SESSION['csrf'], $_SESSION['login_name']);
+    $_SESSION['user'] = $username;
+    $_SESSION['auth_method'] = 'passkey';
+    session_register($username);
+    @unlink(login_throttle_file($username));
+    return true;
+}
+
 function auth_pending(): ?string
 {
     $n = $_SESSION['pending_user'] ?? null;
@@ -303,7 +330,7 @@ function auth_pending_complete(): void
     $n = auth_pending();
     if ($n === null) return;
     session_regenerate_id(true);
-    unset($_SESSION['pending_user'], $_SESSION['pending_since'], $_SESSION['csrf']);
+    unset($_SESSION['pending_user'], $_SESSION['pending_since'], $_SESSION['csrf'], $_SESSION['login_name']);
     $_SESSION['user'] = $n;
     session_register($n);
 }
