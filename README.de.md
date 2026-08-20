@@ -481,7 +481,7 @@ Datei ist:
 | Pfad | Inhalt |
 | --- | --- |
 | `flatlink.sqlite` | alles Genannte – Kurzlinks, Konten, Schlüssel, Einstellungen, Gruppen, Audit, Sitzungen |
-| `clicks/<code>.json` | Klickzähler – bewusst eine Mini-Datei je Code: Der Weiterleitungspfad schreibt sie bei jedem Scan, ohne gemeinsames Schreib-Lock |
+| `clicks/<code>.json` + `.log` | Klickzähler – je Code eine verdichtete Basis und ein Anhang-Protokoll: Ein Scan hängt eine Zeile an, verdichtet wird erst beim Lesen der Statistik |
 | `logos/` | Hochgeladene Logo-Dateien (ihre Metadaten stehen in der Datenbank) |
 | `ratelimit/` | Zähler je IP-Hash (HMAC mit Instanz-Geheimnis), nach 24 h gelöscht |
 | `secret.key` | Geheimnis dieser Instanz für die IP-Hashes – wie ein Passwort behandeln |
@@ -491,8 +491,10 @@ oder ein Klick auf *Sicherung herunterladen* in den Einstellungen.
 
 **Warum die Klickzähler nicht in der Datenbank liegen:** Sie werden im
 Weiterleitungspfad bei *jedem* Scan geschrieben, und genau dort wäre ein
-gemeinsames Schreib-Lock die schlechteste aller Ideen. Eine Datei je Code
-kennt keinen Nachbarn – deshalb schafft eine einzelne CPU tausende
+gemeinsames Schreib-Lock die schlechteste aller Ideen. Ein Scan ist seit 4.1
+nur noch das Anhängen einer Zeile an das Protokoll seines Codes – kein
+Lesen, kein Umbenennen, kein Nachbar. Verdichtet wird, wenn jemand die
+Statistik ansieht. Deshalb schafft eine einzelne CPU tausende gezählte
 Weiterleitungen pro Sekunde.
 
 Eine ehrliche Grenze bleibt: Die Admin-Gesamtliste über *Millionen* Links

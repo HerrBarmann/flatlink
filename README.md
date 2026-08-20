@@ -470,7 +470,7 @@ what is a file for a reason:
 | Path | Content |
 | --- | --- |
 | `flatlink.sqlite` | all of the above – short links, accounts, keys, settings, groups, audit, sessions |
-| `clicks/<code>.json` | Click counters – deliberately one mini file per code: the redirect path writes them on every scan, without a shared write lock |
+| `clicks/<code>.json` + `.log` | Click counters – per code one compacted base and one append log: a scan appends a line, compaction happens when the statistics are read |
 | `logos/` | Uploaded logo files (their metadata lives in the database) |
 | `ratelimit/` | Counters per IP hash (HMAC with the instance secret), deleted after 24 h |
 | `secret.key` | This instance's secret for the IP hashes – treat like a password |
@@ -480,8 +480,10 @@ click on *Download backup* in the settings.
 
 **Why the click counters are not in the database:** they are written on
 *every* scan in the redirect path, and a shared write lock would be the
-worst possible idea exactly there. One file per code knows no neighbour –
-which is why a single CPU manages thousands of redirects per second.
+worst possible idea exactly there. Since 4.1 a scan is nothing but appending
+one line to its code's log – no read, no rename, no neighbour. Compaction
+happens when somebody looks at the statistics. That is why a single CPU
+manages thousands of counted redirects per second.
 
 One honest limit remains: the admin's full list over *millions* of links
 still loads the whole stock into memory even with the database – anyone who

@@ -175,7 +175,20 @@ function link_ausgeschoepft(string $code, array $link): bool
 {
     $m = (int)($link['max_visits'] ?? 0);
     if ($m <= 0) return false;
-    $c = clicks_get($code);
+    // Bewusst NICHT clicks_get(): Das würde bei jedem Aufruf eines
+    // limitierten Links das Protokoll falten. Fürs Limit genügt die Basis
+    // plus die Zahl der noch ungefalteten Zeilen – jede Zeile ist ein
+    // ausgelieferter Aufruf. Ausgenommen sind Ziel-Klicks von Bio-Seiten
+    // („i"-Zeilen): Sie sind kein Seitenaufruf und zählten auch früher
+    // nicht auf das Limit.
+    $c = json_read(clicks_file($code), ['n' => 0, 'last' => null, 'days' => []]);
+    $log = clicks_log_file($code);
+    $offen = 0;
+    if (is_file($log)) {
+        foreach (file($log, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [] as $z) {
+            if (!str_contains($z, '"i":')) $offen++;
+        }
+    }
     // Gegen den UNGEFILTERTEN Zähler prüfen, nicht gegen den der Statistik.
     // Der statistische lässt Bots aus – für Kampagnenzahlen richtig, für ein
     // Limit fatal: Wer „User-Agent: curl/8.0" schickt, wurde weitergeleitet,
@@ -184,7 +197,7 @@ function link_ausgeschoepft(string $code, array $link): bool
     //
     // max() statt nur n_roh, damit Links aus der Zeit vor diesem Feld nicht
     // plötzlich bei null anfangen.
-    return max((int)($c['n'] ?? 0), (int)($c['n_roh'] ?? 0)) >= $m;
+    return max((int)($c['n'] ?? 0), (int)($c['n_roh'] ?? 0)) + $offen >= $m;
 }
 
 /**
@@ -238,6 +251,15 @@ function links_gc(): void
     require_once __DIR__ . '/auth.php';
     pending_gc();
     db_sessions_sweep(db());
+    // Klick-Protokolle, die niemand liest, sollen trotzdem nicht endlos
+    // wachsen: Was über 256 KB liegt, wird jetzt gefaltet. Ein Aufruf ist
+    // ~80 Bytes – das Falten greift also erst nach tausenden Scans ohne
+    // einen einzigen Statistik-Blick.
+    foreach (glob(data_path('clicks') . '/*.log') ?: [] as $lf) {
+        if (filesize($lf) > 256 * 1024) {
+            clicks_fold(rawurldecode(basename($lf, '.log')));
+        }
+    }
 
     require_once __DIR__ . '/auth.php';
     require_once __DIR__ . '/mail.php';
@@ -278,8 +300,15 @@ function links_gc(): void
         // Nur der Zeitpunkt zählt – dafür genügt das Änderungsdatum der
         // Klickdatei. Ein stat() statt Öffnen, Lesen und Dekodieren; bei
         // vielen Links macht das den Unterschied zwischen Sekunden und Minuten.
+        // Die letzte Nutzung steht in der JÜNGEREN der beiden Klick-Dateien:
+        // Das Anhang-Protokoll ist bei aktiven Links das frischere, die
+        // verdichtete Basis bei solchen, deren Statistik zuletzt gelesen wurde.
         $cf = clicks_file($code);
-        $lastUse = is_file($cf) ? filemtime($cf) : strtotime((string)($l['created'] ?? ''));
+        $lf = clicks_log_file($code);
+        $lastUse = max(
+            is_file($cf) ? (int)filemtime($cf) : 0,
+            is_file($lf) ? (int)filemtime($lf) : 0
+        ) ?: strtotime((string)($l['created'] ?? ''));
         if ($lastUse === false || $lastUse >= $warnCutoff) {
             // Wieder genutzt: eventuelle Warn-Markierung zurücksetzen
             if (isset($warned[$code])) unset($warned[$code]);
@@ -620,6 +649,7 @@ function link_delete(string $code): void
     $l = link_get($code);
     link_write($code, fn(?array $l) => null);
     @unlink(clicks_file($code));
+    @unlink(clicks_log_file($code));
     hook_fire('link.deleted', hook_link($code, $l));
 }
 
@@ -657,7 +687,95 @@ function clicks_file(string $code): string
 
 function clicks_get(string $code): array
 {
+    clicks_fold($code);
     return json_read(clicks_file($code), ['n' => 0, 'last' => null, 'days' => []]);
+}
+
+/** Das Anhang-Protokoll neben der verdichteten Basis (siehe clicks_bump) */
+function clicks_log_file(string $code): string
+{
+    return data_path('clicks') . '/' . rawurlencode($code) . '.log';
+}
+
+/**
+ * Das Protokoll in die Basis falten.
+ *
+ * Läuft beim LESEN der Statistik, nicht beim Zählen – Lesen ist selten,
+ * Zählen ist der heißeste Pfad des Systems. Das flock auf dem Protokoll
+ * spannt sich über Lesen, Einarbeiten UND Leeren: Ein zweiter Falter sieht
+ * dieselben Zeilen dadurch nie. Reihenfolge bewusst „erst einarbeiten, dann
+ * leeren" – stürbe der Prozess genau dazwischen, würden Zeilen doppelt
+ * gezählt statt verloren; beides ist ein µs-Fenster, aber Klickzahlen
+ * sollen im Zweifel nicht schrumpfen.
+ */
+function clicks_fold(string $code): void
+{
+    $log = clicks_log_file($code);
+    if (!is_file($log) || filesize($log) === 0) return;
+    $h = fopen($log, 'r+');
+    if ($h === false) return;
+    try {
+        flock($h, LOCK_EX);
+        $inhalt = stream_get_contents($h);
+        if ($inhalt === false || $inhalt === '') return;
+        $zeilen = explode("\n", $inhalt);
+        json_update(clicks_file($code), function (array $c) use ($zeilen): array {
+            foreach ($zeilen as $z) {
+                $e = json_decode($z, true);
+                if (!is_array($e)) continue;
+                $tag = (string)($e['d'] ?? date('Y-m-d'));
+                if (isset($e['roh'])) {
+                    $c['n_roh'] = (int)($c['n_roh'] ?? $c['n'] ?? 0) + 1;
+                    continue;
+                }
+                if (isset($e['i'])) {
+                    $c['items'] ??= [];
+                    $c['items'][(string)$e['i']] = clicks_zaehle((array)($c['items'][(string)$e['i']] ?? []), $tag);
+                    continue;
+                }
+                $c = clicks_zaehle($c, $tag) + $c;
+                foreach ((array)($e['h'] ?? []) as $feld => $wert) {
+                    if (is_string($wert)) $c[$feld] = click_dim_bump((array)($c[$feld] ?? []), $wert);
+                }
+                if (isset($e['w'])) {
+                    $r = (array)($c['routes'] ?? []);
+                    $r[(string)$e['w']] = (int)($r[(string)$e['w']] ?? 0) + 1;
+                    $c['routes'] = $r;
+                }
+            }
+            return $c;
+        }, ['n' => 0, 'last' => null, 'days' => []]);
+        ftruncate($h, 0);
+    } finally {
+        flock($h, LOCK_UN);
+        fclose($h);
+    }
+}
+
+/** Tageszähler eines Zählstands fortschreiben */
+function clicks_zaehle(array $z, string $tag): array
+{
+    $days = $z['days'] ?? [];
+    $days[$tag] = ($days[$tag] ?? 0) + 1;
+    if (count($days) > 400) {
+        ksort($days);
+        $days = array_slice($days, -400, null, true);
+    }
+    return ['n' => ($z['n'] ?? 0) + 1, 'n_roh' => ($z['n_roh'] ?? $z['n'] ?? 0) + 1,
+            'last' => $tag, 'days' => $days];
+}
+
+/** Eine Zeile ans Protokoll hängen – der ganze Schreibaufwand eines Scans */
+function clicks_append(string $code, array $eintrag): void
+{
+    $h = fopen(clicks_log_file($code), 'ab');
+    if ($h === false) return;
+    // Das Lock koordiniert mit clicks_fold(): Während die Verdichtung liest
+    // und leert, wartet der Anhang – sonst verschwände er im ftruncate.
+    flock($h, LOCK_EX);
+    fwrite($h, json_encode($eintrag, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . "\n");
+    flock($h, LOCK_UN);
+    fclose($h);
 }
 
 /** Wie viele verschiedene Werte je Merkmal aufgehoben werden */
@@ -793,57 +911,26 @@ function click_zaehlbar(?array $link = null): bool
  */
 function clicks_roh_bump(string $code): void
 {
-    json_update(clicks_file($code), function (array $c): array {
-        $c['n_roh'] = (int)($c['n_roh'] ?? $c['n'] ?? 0) + 1;
-        return $c;
-    });
+    clicks_append($code, ['d' => date('Y-m-d'), 'roh' => 1]);
 }
 
 function clicks_bump(string $code, ?int $item = null, ?int $weiche = null): void
 {
-    $herkunft = $item === null ? click_dims() : [];
-    json_update(clicks_file($code), function (array $c) use ($item, $herkunft, $weiche) {
-        $today = date('Y-m-d');
-        $zaehle = function (array $z) use ($today): array {
-            $days = $z['days'] ?? [];
-            $days[$today] = ($days[$today] ?? 0) + 1;
-            // Historie begrenzen: älteste Tage raus (400 deckt die 12-Monats-Statistik)
-            if (count($days) > 400) {
-                ksort($days);
-                $days = array_slice($days, -400, null, true);
-            }
-            // Bewusst nur tagesgenau: Bei einem Link mit wenigen Aufrufen wäre ein
-            // sekundengenauer Zeitpunkt der einzige Wert im gesamten Bestand, über
-            // den sich ein einzelner Besuch zeitlich verorten – und mit anderen
-            // Quellen zusammenführen – ließe. Für „letzter Aufruf" genügt der Tag.
-            // n_roh läuft neben n her und wird auch von clicks_roh_bump()
-            // erhöht – es zählt jede ausgelieferte Weiterleitung, damit das
-            // Aufruflimit nicht am Bot-Filter vorbeigeht.
-            return ['n' => ($z['n'] ?? 0) + 1, 'n_roh' => ($z['n_roh'] ?? $z['n'] ?? 0) + 1,
-                    'last' => $today, 'days' => $days];
-        };
-        if ($item === null) {
-            // Die Ziel-Zähler bleiben unangetastet – deshalb wird ergänzt und
-            // nicht ersetzt.
-            $neu = $zaehle($c) + $c;
-            foreach ($herkunft as $feld => $wert) {
-                $neu[$feld] = click_dim_bump((array)($neu[$feld] ?? []), $wert);
-            }
-            // Welche Weiche gegriffen hat. Das ist keine Besuchereigenschaft,
-            // sondern eine Eigenschaft des Links – deshalb unabhängig von
-            // click_dims: Ohne diese Zahl wüsste niemand, ob eine gestellte
-            // Weiche überhaupt je benutzt wird.
-            if ($weiche !== null) {
-                $r = (array)($neu['routes'] ?? []);
-                $r[(string)$weiche] = (int)($r[(string)$weiche] ?? 0) + 1;
-                $neu['routes'] = $r;
-            }
-            return $neu;
-        }
-        $c['items'] ??= [];
-        $c['items'][(string)$item] = $zaehle((array)($c['items'][(string)$item] ?? []));
-        return $c;
-    }, ['n' => 0, 'last' => null, 'days' => []]);
+    // Seit 4.1 ist Zählen ein ANHÄNGEN, kein Lesen-Ändern-Schreiben mehr:
+    // eine Zeile ans Protokoll, fertig. Die alte Fassung öffnete bei jedem
+    // Scan Sperrdatei, Basis und Tempdatei und benannte um – gemessen war
+    // genau das der teuerste Teil einer gezählten Weiterleitung, teurer als
+    // Datenbank und Routing zusammen. Verdichtet wird beim Lesen der
+    // Statistik (clicks_fold) und einmal wöchentlich als Kehrwoche.
+    if ($item !== null) {
+        clicks_append($code, ['d' => date('Y-m-d'), 'i' => (string)$item]);
+        return;
+    }
+    $zeile = ['d' => date('Y-m-d')];
+    $herkunft = click_dims();
+    if ($herkunft !== []) $zeile['h'] = $herkunft;
+    if ($weiche !== null) $zeile['w'] = $weiche;
+    clicks_append($code, $zeile);
 }
 
 // ---- QR-Logos: Metadaten (Anzeigenamen) zu den zufälligen Datei-IDs ----

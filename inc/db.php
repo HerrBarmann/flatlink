@@ -24,9 +24,10 @@ declare(strict_types=1);
  * Schema-Weiche.
  *
  * Was bewusst DRAUSSEN bleibt, jeweils mit Grund:
- *   - clicks/: eine Datei je Code, beschrieben bei jedem Scan. Der
- *     Weiterleitungspfad soll kein gemeinsames Schreib-Lock haben – das
- *     ist der Grund, warum eine CPU tausende Scans je Sekunde schafft.
+ *   - clicks/: je Code eine verdichtete Basis (.json) und ein
+ *     Anhang-Protokoll (.log). Ein Scan hängt eine Zeile an – kein Lesen,
+ *     kein gemeinsames Lock; verdichtet wird beim Lesen der Statistik.
+ *     Das ist der Grund, warum eine CPU tausende Scans je Sekunde schafft.
  *   - ratelimit/: flüchtige Zähler auf heißen Fehlerpfaden; nach einem
  *     Verlust fängt die Zählung harmlos von vorn an.
  *   - secret.key: muss vor und unabhängig von der Datenbank existieren.
