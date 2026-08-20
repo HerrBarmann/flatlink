@@ -170,17 +170,66 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $q = trim((string)($_GET['q'] ?? ''));
 $highlight = (string)($_GET['hl'] ?? '');
 $gFilter = (string)($_GET['g'] ?? '');
-$links = links_visible($user);
+$tagFilter = mb_strtolower(trim((string)($_GET['tag'] ?? '')));
+
+// ---- Der Großbestands-Pfad ------------------------------------------------
+//
+// links_visible() lädt für Vollzugriff den GANZEN Bestand – bei 500.000
+// Links sind das 400 MB, und mit dem üblichen memory_limit ist die Seite
+// dann keine langsame Seite, sondern ein Abbruch. Deshalb entscheidet die
+// Bestandsgröße über den Weg:
+//
+//   klein (bis GROSSBESTAND):  wie immer – alles laden, in PHP filtern,
+//                              Tag-Wolke, Klicksummen.
+//   groß, ohne Filter:         die Seite kommt direkt als SQL-Blatt
+//                              (ORDER BY created DESC LIMIT), nichts wird
+//                              geladen außer 50 Zeilen.
+//   groß, mit Filter/Suche:    der Bestand wird GESTREAMT gefiltert –
+//                              gehalten werden nur die Treffer, gedeckelt,
+//                              damit eine Suche nach „e" nicht doch wieder
+//                              alles sammelt.
+//
+// Die Grenze liegt bewusst da, wo auch die Klicksummen aussteigen: Bis
+// dorthin ändert sich NICHTS am Verhalten.
+const GROSSBESTAND = 2000;
+$vollzugriff = $isAdmin || user_can($user['name'], 'links_all');
+$bestand = $vollzugriff ? links_count() : null;
+$gross = $vollzugriff && $bestand > GROSSBESTAND;
+const SUCHDECKEL = 10000;
+$suchdeckel_erreicht = false;
+
+if (!$gross) {
+    $links = links_visible($user);
+} elseif ($gFilter === '' && $tagFilter === '' && $q === '') {
+    $links = [];   // das Blatt kommt weiter unten direkt aus SQL
+} else {
+    // Gestreamt filtern: dieselben Regeln wie unten im Kleinbestands-Pfad,
+    // nur eben je Zeile statt auf dem geladenen Ganzen.
+    $links = [];
+    foreach (links_each() as $c => $l) {
+        if ($gFilter === '-' && ($l['group'] ?? null) !== null) continue;
+        if ($gFilter !== '' && $gFilter !== '-' && ($l['group'] ?? null) !== $gFilter) continue;
+        if ($tagFilter !== '' && !in_array($tagFilter, (array)($l['tags'] ?? []), true)) continue;
+        if ($q !== '' && !(stripos($c, $q) !== false
+            || stripos((string)($l['url'] ?? ''), $q) !== false
+            || stripos((string)($l['title'] ?? ''), $q) !== false
+            || in_array(mb_strtolower($q), (array)($l['tags'] ?? []), true))) continue;
+        $links[$c] = $l;
+        if (count($links) >= SUCHDECKEL) { $suchdeckel_erreicht = true; break; }
+    }
+}
+
 // Vorschläge für den Kampagnen-Baukasten aus dem Gesamtbestand, nicht aus dem
 // gefilterten Ausschnitt: Sie sollen beim Anlegen vollständig sein, egal
-// welcher Filter gerade in der Liste steht.
-$utmVorschlaege = utm_suggestions($links);
+// welcher Filter gerade in der Liste steht. Auf Großbeständen entfallen sie –
+// wie die Klicksummen.
+$utmVorschlaege = $gross ? [] : utm_suggestions($links);
 // Zahlen für die Kopfzeile: Die Klicksumme liest je Link eine Zählerdatei –
 // das lohnt bis ein paar tausend Links und wird darüber zur Bremse. Dann
 // entfällt sie, die Liste liest ihre Zahlen ohnehin nur noch je Seite.
 $klickVon = [];
 $klicksGesamt = null;
-$linksGesamt = count($links);
+$linksGesamt = $gross ? $bestand : count($links);
 if ($linksGesamt <= 2000) {
     $klicksGesamt = 0;
     foreach ($links as $c => $l) {
@@ -188,23 +237,29 @@ if ($linksGesamt <= 2000) {
         $klicksGesamt += $klickVon[$c];
     }
 }
-if ($gFilter === '-') {
-    $links = array_filter($links, fn($l) => ($l['group'] ?? null) === null);
-} elseif ($gFilter !== '') {
-    $links = array_filter($links, fn($l) => ($l['group'] ?? null) === $gFilter);
-}
-// Schlagwort-Filter vor der Suche: Die Wolke unter der Liste soll die Zahlen
-// des gerade gewählten Ausschnitts zeigen, nicht die des Gesamtbestands.
-$alleTags = tags_counts($links);
-$tagFilter = mb_strtolower(trim((string)($_GET['tag'] ?? '')));
-if ($tagFilter !== '') {
-    $links = array_filter($links, fn($l) => in_array($tagFilter, (array)($l['tags'] ?? []), true));
-}
-if ($q !== '') {
-    $links = array_filter($links, fn($l, $c) => stripos($c, $q) !== false
-        || stripos($l['url'], $q) !== false
-        || stripos((string)($l['title'] ?? ''), $q) !== false
-        || in_array(mb_strtolower($q), (array)($l['tags'] ?? []), true), ARRAY_FILTER_USE_BOTH);
+if (!$gross) {
+    if ($gFilter === '-') {
+        $links = array_filter($links, fn($l) => ($l['group'] ?? null) === null);
+    } elseif ($gFilter !== '') {
+        $links = array_filter($links, fn($l) => ($l['group'] ?? null) === $gFilter);
+    }
+    // Schlagwort-Filter vor der Suche: Die Wolke unter der Liste soll die
+    // Zahlen des gerade gewählten Ausschnitts zeigen.
+    $alleTags = tags_counts($links);
+    if ($tagFilter !== '') {
+        $links = array_filter($links, fn($l) => in_array($tagFilter, (array)($l['tags'] ?? []), true));
+    }
+    if ($q !== '') {
+        $links = array_filter($links, fn($l, $c) => stripos($c, $q) !== false
+            || stripos($l['url'], $q) !== false
+            || stripos((string)($l['title'] ?? ''), $q) !== false
+            || in_array(mb_strtolower($q), (array)($l['tags'] ?? []), true), ARRAY_FILTER_USE_BOTH);
+    }
+} else {
+    // Großbestand: gefiltert wurde schon beim Streamen; eine Tag-Wolke über
+    // alles hieße wieder, alles zu lesen – sie entfällt hier, die Suche
+    // übernimmt ihre Aufgabe.
+    $alleTags = [];
 }
 uasort($links, fn($a, $b) => strcmp($b['created'], $a['created']));
 
@@ -214,10 +269,20 @@ uasort($links, fn($a, $b) => strcmp($b['created'], $a['created']));
 // kein Zusatz, sondern das Gegenstück zum Umzug HIERHER – niemand soll
 // bleiben müssen, weil er seine Links nicht mitnehmen kann.
 if (($_GET['export'] ?? '') === 'csv') {
-    $csv = "code;url;name;schlagworte;startdatum;ablaufdatum;gruppe;domain;klicks;angelegt
+    // Auf Großbeständen ohne Filter wird der Export GESTREAMT: Zeile lesen,
+    // Zeile ausgeben, nichts behalten. So exportiert auch eine
+    // 500.000-Link-Instanz mit 128M memory_limit ihren ganzen Bestand.
+    $csvQuelle = ($gross && $links === []) ? links_each() : $links;
+    nosniff_header();
+    header('Content-Type: text/csv; charset=UTF-8');
+    header('Content-Disposition: attachment; filename="links-' . date('Y-m-d') . '.csv"');
+    header('Cache-Control: no-store');
+    // BOM, damit Excel die Umlaute nicht verstümmelt – dieselbe Rücksicht
+    // wie beim Serien-Export und beim Datenexport im Profil
+    echo "\xEF\xBB\xBF" . "code;url;name;schlagworte;startdatum;ablaufdatum;gruppe;domain;klicks;angelegt
 ";
-    foreach ($links as $code => $l) {
-        $csv .= implode(';', array_map('csv_feld', [
+    foreach ($csvQuelle as $code => $l) {
+        echo implode(';', array_map('csv_feld', [
             (string)$code,
             (string)($l['url'] ?? ''),
             (string)($l['title'] ?? ''),
@@ -231,13 +296,6 @@ if (($_GET['export'] ?? '') === 'csv') {
         ])) . "
 ";
     }
-    nosniff_header();
-    header('Content-Type: text/csv; charset=UTF-8');
-    header('Content-Disposition: attachment; filename="links-' . date('Y-m-d') . '.csv"');
-    header('Cache-Control: no-store');
-    // BOM, damit Excel die Umlaute nicht verstümmelt – dieselbe Rücksicht
-    // wie beim Serien-Export und beim Datenexport im Profil
-    echo "\xEF\xBB\xBF" . $csv;
     exit;
 }
 
@@ -245,9 +303,19 @@ if (($_GET['export'] ?? '') === 'csv') {
 // Bestand (für Zählung, Tag-Wolke und den Serien-Knopf), gerendert wird nur
 // das aufgeschlagene Blatt – und nur dessen Klickzähler werden gelesen.
 $jeSeite = 50;
-$seiten = max(1, (int)ceil(count($links) / $jeSeite));
+$listenGesamt = ($gross && $links === []) ? $bestand : count($links);
+$seiten = max(1, (int)ceil($listenGesamt / $jeSeite));
 $seite = max(1, min($seiten, (int)($_GET['p'] ?? 1)));
-$blatt = array_slice($links, ($seite - 1) * $jeSeite, $jeSeite, true);
+if ($gross && $links === []) {
+    // Das Blatt direkt aus SQL: 50 Zeilen, egal wie groß der Bestand ist.
+    $st = db()->prepare('SELECT code, data FROM links ORDER BY created DESC, code LIMIT ? OFFSET ?');
+    $st->bindValue(1, $jeSeite, PDO::PARAM_INT);
+    $st->bindValue(2, ($seite - 1) * $jeSeite, PDO::PARAM_INT);
+    $st->execute();
+    $blatt = db_links_rows($st);
+} else {
+    $blatt = array_slice($links, ($seite - 1) * $jeSeite, $jeSeite, true);
+}
 foreach ($blatt as $c => $l) {
     if (!isset($klickVon[$c])) $klickVon[$c] = (int)(clicks_get((string)$c)['n'] ?? 0);
 }
@@ -640,7 +708,7 @@ if ($neu !== null && link_access($user, $neu)):
 
 <div class="card">
     <div class="list-head">
-        <h2><?= $isAdmin ? t('Alle Links') : ($myGroups === [] ? t('Deine Links') : t('Deine und Gruppen-Links')) ?> <span class="muted">(<?= count($links) ?>)</span></h2>
+        <h2><?= $isAdmin ? t('Alle Links') : ($myGroups === [] ? t('Deine Links') : t('Deine und Gruppen-Links')) ?> <span class="muted">(<?= $listenGesamt ?><?= $suchdeckel_erreicht ? '+' : '' ?>)</span></h2>
         <form method="get" action="" class="short-row">
             <?php if ($assignable !== []): ?>
             <select name="g" data-autosubmit>
@@ -669,7 +737,7 @@ if ($neu !== null && link_access($user, $neu)):
     </p>
     <?php endif; ?>
 
-    <?php if ($links === []): ?>
+    <?php if ($blatt === []): ?>
         <p class="muted"><?= t('Noch keine Links') ?><?= $q !== '' ? ' ' . t('für diese Suche') : '' ?><?= $tagFilter !== '' ? ' ' . t('mit diesem Schlagwort') : '' ?>.</p>
     <?php else: ?>
     <?php
@@ -678,7 +746,7 @@ if ($neu !== null && link_access($user, $neu)):
     $serieFilter = array_filter(['g' => $gFilter, 'tag' => $tagFilter, 'q' => $q], fn($v) => $v !== '');
     ?>
     <p class="muted small" style="margin:0 0 0.5rem">
-        <a class="btn btn-small" href="qrzip.php<?= $serieFilter !== [] ? '?' . e(http_build_query($serieFilter)) : '' ?>"><?= t('QR-Codes dieser %d Links als ZIP', count($links)) ?></a>
+        <a class="btn btn-small" href="qrzip.php<?= $serieFilter !== [] ? '?' . e(http_build_query($serieFilter)) : '' ?>"><?= t('QR-Codes dieser %d Links als ZIP', $listenGesamt) ?></a>
         <a class="btn btn-small" href="index.php?<?= e(http_build_query($serieFilter + ['export' => 'csv'])) ?>"><?= t('CSV-Export') ?></a>
     </p>
     <div class="link-list">
@@ -750,6 +818,9 @@ if ($neu !== null && link_access($user, $neu)):
             return 'index.php' . ($teile !== [] ? '?' . http_build_query($teile) : '');
         };
     ?>
+    <?php if ($suchdeckel_erreicht): ?>
+    <p class="muted small"><?= t('Die Suche zeigt die ersten %d Treffer – bitte enger fassen, um den Rest zu sehen.', SUCHDECKEL) ?></p>
+    <?php endif; ?>
     <nav class="blaettern" aria-label="<?= t('Seiten der Linkliste') ?>">
         <?php if ($seite > 1): ?>
             <a class="btn btn-small" href="<?= e($blattUrl($seite - 1)) ?>">← <?= t('Neuere') ?></a>

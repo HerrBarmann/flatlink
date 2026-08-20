@@ -951,6 +951,10 @@ your password immediately and contact us.
     'z. B. AGB § 2' => 'e.g. Terms § 2',
     'Steht in der Warnmail in Klammern hinter „automatisch gelöscht". Leer lassen, wenn es nichts zu zitieren gibt – dann endet der Satz einfach.'
         => 'Appears in the warning email, in brackets after "deleted automatically". Leave it empty when there is nothing to cite – then the sentence simply ends.',
+    'Die Suche zeigt die ersten %d Treffer – bitte enger fassen, um den Rest zu sehen.'
+        => 'The search shows the first %d matches – narrow it down to see the rest.',
+    'Es passen ohnehin höchstens %d Codes in ein Archiv – angezeigt werden die neuesten. Über Filter oder Suche kommst du an jeden anderen Ausschnitt.'
+        => 'An archive holds at most %d codes anyway – shown are the newest. Filters and search reach every other slice.',
     'Zuletzt gelaufen: %s.' => 'Last run: %s.',
     'Bisher noch nicht gelaufen.' => 'Has not run yet.',
     'Zweite Stufe beim Anmelden' => 'Second factor at sign-in',

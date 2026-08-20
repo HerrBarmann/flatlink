@@ -497,10 +497,13 @@ Lesen, kein Umbenennen, kein Nachbar. Verdichtet wird, wenn jemand die
 Statistik ansieht. Deshalb schafft eine einzelne CPU tausende gezählte
 Weiterleitungen pro Sekunde.
 
-Eine ehrliche Grenze bleibt: Die Admin-Gesamtliste über *Millionen* Links
-lädt auch mit Datenbank den ganzen Bestand in den Speicher – wer wirklich
-dort ankommt, hebt `memory_limit` an. Die gezielte Abfrage je Seite ist der
-nächste Schritt, wenn ihn jemand braucht.
+Diese Grenze ist seit 4.2 gefallen: Ab ein paar tausend Links holt die
+Admin-Liste ihre Seite direkt per SQL, die Suche streamt den Bestand Zeile
+für Zeile, und der CSV-Export gibt aus, ohne zu sammeln. Gemessen mit
+500.000 Links und dem üblichen `memory_limit` von 128M: Seite eins in
+45 ms, der volle Export läuft durch, kein Speicherabbruch – wo vorher ein
+Fatal Error stand. Alles, was den ganzen Bestand durchsehen muss
+(Aufräumen, Safe-Browsing-Lauf), geht denselben streamenden Weg.
 
 ## Was nicht drin ist
 

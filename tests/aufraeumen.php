@@ -30,8 +30,7 @@ if (($argv[1] ?? '') !== '') {
     // Der Wochenmarker verhindert sonst den zweiten Lauf am selben Tag.
     state_set('links-gc', []);
     links_gc();
-    $da = array_keys(links_all());
-    echo implode(',', array_values(array_filter(GC_CODES, fn($c) => in_array($c, $da, true)))), "\n";
+    echo implode(',', array_values(array_filter(GC_CODES, fn($c) => link_get($c) !== null))), "\n";
     exit;
 }
 
@@ -193,7 +192,7 @@ user_delete($konto);
 settings_save($sicherung);
 state_set('links-gc-warned', $warnSicherung);
 pruefe('Testlinks und -konto wieder entfernt',
-    array_intersect(GC_CODES, array_keys(links_all())) === [] && user_get($konto) === null);
+    array_filter(GC_CODES, fn($c) => link_get($c) !== null) === [] && user_get($konto) === null);
 
 echo "\n" . ($fehler === 0 ? "Alle Prüfungen bestanden.\n" : "$fehler Prüfung(en) fehlgeschlagen.\n");
 exit($fehler === 0 ? 0 : 1);

@@ -143,8 +143,11 @@ function safety_recheck(bool $sofort = false): ?array
 
     // Nur aktive Links: Gesperrte sind schon erledigt, abgelaufene leiten
     // ohnehin nicht mehr weiter – beide brauchen keine Anfrage an Google.
+    // Streamen statt laden: gesammelt werden nur Code und Adresse als
+    // Zeichenketten, nicht die vollen Datensätze – der Unterschied zwischen
+    // ein paar und ein paar hundert Megabyte auf großen Instanzen.
     $kandidaten = [];
-    foreach (links_all() as $code => $l) {
+    foreach (links_each() as $code => $l) {
         if (!empty($l['disabled']) || link_expired($l)) continue;
         $url = (string)($l['url'] ?? '');
         if ($url === '') continue;

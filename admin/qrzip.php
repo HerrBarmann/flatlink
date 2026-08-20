@@ -26,11 +26,6 @@ $user = auth_require();
 /** Wie viele Codes höchstens in ein Archiv – darüber wird es eine Aufgabe für einen Server */
 const QRZIP_MAX = 200;
 
-$links = links_visible($user);
-// Bio-Seiten haben ihren eigenen QR-Code auf der Seite selbst; in einer Serie
-// von Tischaufstellern haben sie nichts zu suchen.
-$links = array_filter($links, fn($l) => ($l['kind'] ?? '') !== 'bio');
-
 // Dieselben Filter wie in der Liste, damit der Weg dorthin führt, wo man
 // herkommt: nach Schlagwort filtern, dann „QR-Serie" – und die Auswahl steht
 // schon. Ein zweites Aussuchen wäre genau die Arbeit, die diese Seite spart.
@@ -38,18 +33,32 @@ $gFilter = (string)($_GET['g'] ?? '');
 $tagFilter = mb_strtolower(trim((string)($_GET['tag'] ?? '')));
 $q = trim((string)($_GET['q'] ?? ''));
 $gefiltert = $gFilter !== '' || $tagFilter !== '' || $q !== '';
-if ($gFilter === '-') {
-    $links = array_filter($links, fn($l) => ($l['group'] ?? null) === null);
-} elseif ($gFilter !== '') {
-    $links = array_filter($links, fn($l) => ($l['group'] ?? null) === $gFilter);
-}
-if ($tagFilter !== '') {
-    $links = array_filter($links, fn($l) => in_array($tagFilter, (array)($l['tags'] ?? []), true));
-}
-if ($q !== '') {
-    $links = array_filter($links, fn($l, $c) => stripos((string)$c, $q) !== false
+
+$passt = function (string $c, array $l) use ($gFilter, $tagFilter, $q): bool {
+    // Bio-Seiten haben ihren eigenen QR-Code auf der Seite selbst; in einer
+    // Serie von Tischaufstellern haben sie nichts zu suchen.
+    if (($l['kind'] ?? '') === 'bio') return false;
+    if ($gFilter === '-' && ($l['group'] ?? null) !== null) return false;
+    if ($gFilter !== '' && $gFilter !== '-' && ($l['group'] ?? null) !== $gFilter) return false;
+    if ($tagFilter !== '' && !in_array($tagFilter, (array)($l['tags'] ?? []), true)) return false;
+    if ($q !== '' && !(stripos($c, $q) !== false
         || stripos((string)($l['url'] ?? ''), $q) !== false
-        || stripos((string)($l['title'] ?? ''), $q) !== false, ARRAY_FILTER_USE_BOTH);
+        || stripos((string)($l['title'] ?? ''), $q) !== false)) return false;
+    return true;
+};
+
+// Mehr als ins Archiv passt, muss die Auswahl gar nicht erst anbieten –
+// deshalb darf hier GESTREAMT statt geladen werden: Auf einer Instanz mit
+// hunderttausenden Links bräche links_visible() sonst am memory_limit ab,
+// bevor die Seite überhaupt erscheint.
+$vollzugriff = ($user['role'] ?? '') === 'admin' || user_can($user['name'], 'links_all');
+$links = [];
+$mehrAlsAngezeigt = false;
+$quelle = $vollzugriff ? links_each() : links_visible($user);
+foreach ($quelle as $c => $l) {
+    if (!$passt((string)$c, $l)) continue;
+    if (count($links) >= QRZIP_MAX) { $mehrAlsAngezeigt = true; break; }
+    $links[$c] = $l;
 }
 
 $fehler = null;
@@ -189,6 +198,9 @@ if ($fehler !== null) echo '<div class="flash flash-err">' . e($fehler) . '</div
 <div class="card">
     <h1><?= t('QR-Serie herunterladen') ?></h1>
     <p class="muted small"><?= t('Wähl die Links aus, die als QR-Codes in ein Archiv sollen. Im ZIP liegt zusätzlich eine Übersicht als CSV – wer die Codes an eine Druckerei gibt, braucht die Zuordnung von Datei zu Ziel, nicht nur die Bilder. Höchstens %d auf einmal.', QRZIP_MAX) ?></p>
+    <?php if ($mehrAlsAngezeigt): ?>
+    <p class="muted small"><?= t('Es passen ohnehin höchstens %d Codes in ein Archiv – angezeigt werden die neuesten. Über Filter oder Suche kommst du an jeden anderen Ausschnitt.', QRZIP_MAX) ?></p>
+    <?php endif; ?>
     <?php if ($gefiltert): ?>
     <p class="muted small"><?= t('Gefiltert') ?>
         <?php if ($tagFilter !== ''): ?><?= t('nach Schlagwort') ?> <strong><?= e($tagFilter) ?></strong><?php endif; ?>

@@ -138,6 +138,35 @@ function links_write_many(array $codes, callable $fn): int
  *
  * @return array<string,array> code => Datensatz
  */
+/**
+ * Den Bestand Zeile für Zeile durchlaufen, ohne ihn zu laden.
+ *
+ * links_all() materialisiert alles – bei 500.000 Links sind das 400 MB
+ * und mit dem üblichen memory_limit von 128M ein Abbruch. Wer nur
+ * DURCHSEHEN will (Aufräumen, Safe-Browsing-Lauf, Suche, Export), bekommt
+ * hier einen Datensatz nach dem anderen bei gleichbleibendem Speicher.
+ *
+ * Während der Iteration NICHT in die links-Tabelle schreiben – wer löschen
+ * will, sammelt Codes und löscht danach (so machen es links_gc und der
+ * Safe-Browsing-Lauf).
+ *
+ * @return \Generator<string,array>
+ */
+function links_each(): \Generator
+{
+    $st = db()->query('SELECT code, data FROM links');
+    while (($z = $st->fetch()) !== false) {
+        $d = json_decode((string)$z['data'], true);
+        if (is_array($d)) yield (string)$z['code'] => $d;
+    }
+}
+
+/** Wie viele Links es gibt – ohne einen einzigen zu laden */
+function links_count(): int
+{
+    return (int)db()->query('SELECT COUNT(*) FROM links')->fetchColumn();
+}
+
 function links_of_owner(string $owner): array
 {
     $st = db()->prepare('SELECT code, data FROM links WHERE owner = ?');
@@ -294,7 +323,11 @@ function links_gc(): void
     };
 
     $toWarn = []; // email => [code => lastUse]
-    foreach (links_all() as $code => $l) {
+    // Streamen statt laden: Dieser Lauf steckt in der Anfrage irgendeines
+    // Besuchers – 400 MB für den Vollbestand wären dessen memory_limit.
+    // Gelöscht wird erst NACH der Iteration (siehe links_each).
+    $loeschen = []; // code => Log-Zeile
+    foreach (links_each() as $code => $l) {
         $code = (string)$code;
         if (!empty($l['disabled'])) continue;
         // Nur der Zeitpunkt zählt – dafür genügt das Änderungsdatum der
@@ -319,16 +352,18 @@ function links_gc(): void
         if ($mail === null) {
             // Nicht warnbar: lange Frist, dafür ohne Vorwarnung
             if ($lastUse < $deleteCutoffLong) {
-                link_delete($code);
-                $log('gelöscht (ohne Warnweg, ' . $yearsLong . ' Jahre): ' . $code . ' (letzte Nutzung: ' . date('Y-m-d', $lastUse) . ')');
+                $loeschen[$code] = 'gelöscht (ohne Warnweg, ' . $yearsLong . ' Jahre): ' . $code . ' (letzte Nutzung: ' . date('Y-m-d', $lastUse) . ')';
             }
         } elseif ($lastUse < $deleteCutoff && isset($warned[$code]) && strtotime((string)$warned[$code]) < time() - 30 * 86400) {
-            link_delete($code);
             unset($warned[$code]);
-            $log('gelöscht (nach Warnung): ' . $code . ' (letzte Nutzung: ' . date('Y-m-d', $lastUse) . ')');
+            $loeschen[$code] = 'gelöscht (nach Warnung): ' . $code . ' (letzte Nutzung: ' . date('Y-m-d', $lastUse) . ')';
         } elseif (!isset($warned[$code])) {
             $toWarn[$mail][$code] = $lastUse;
         }
+    }
+    foreach ($loeschen as $code => $zeile) {
+        link_delete((string)$code);
+        $log($zeile);
     }
 
     // Bis 3.9 stand hier fest „(AGB § 2)" – die Nutzungsbedingungen von

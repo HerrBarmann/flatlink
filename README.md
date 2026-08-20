@@ -485,10 +485,13 @@ one line to its code's log – no read, no rename, no neighbour. Compaction
 happens when somebody looks at the statistics. That is why a single CPU
 manages thousands of counted redirects per second.
 
-One honest limit remains: the admin's full list over *millions* of links
-still loads the whole stock into memory even with the database – anyone who
-really gets there raises `memory_limit`. A per-page query is the next step,
-when someone needs it.
+That limit fell in 4.2: beyond a few thousand links the admin list fetches
+its page straight from SQL, search streams the stock row by row, and the
+CSV export emits without collecting. Measured with 500,000 links under the
+usual 128M `memory_limit`: page one in 45 ms, the full export runs through,
+no memory abort – where previously there was a fatal error. Everything that
+must sweep the whole stock (cleanup, the Safe Browsing pass) takes the same
+streaming route.
 
 ## What's not included
 

@@ -254,14 +254,18 @@ case 'schluessel:zurueckziehen':
 case 'link:liste':
     $konto = $rest[0] ?? null;
     $limit = (int)(opt($argv, 'limit') ?: 20);
-    $links = $konto !== null ? links_of_owner($konto) : links_all();
+    // Gestreamt statt geladen: Auch auf einer Instanz mit hunderttausenden
+    // Links kostet die Liste nur die angezeigten Zeilen.
+    $quelle = $konto !== null ? links_of_owner($konto) : links_each();
     $z = [];
-    foreach (array_slice($links, 0, $limit, true) as $code => $l) {
+    $gesamt = $konto !== null ? count($quelle) : links_count();
+    foreach ($quelle as $code => $l) {
+        if (count($z) >= $limit) break;
         $z[] = [$code, mb_substr((string)($l['url'] ?? ''), 0, 52),
                 (string)($l['owner'] ?? ''), (int)(clicks_get((string)$code)['n'] ?? 0)];
     }
     tabelle($z, ['Code', 'Ziel', 'Konto', 'Klicks']);
-    if (count($links) > $limit) sage('  … ' . (count($links) - $limit) . ' weitere');
+    if ($gesamt > $limit) sage('  … ' . ($gesamt - $limit) . ' weitere');
     exit(0);
 
 case 'link:anlegen':
