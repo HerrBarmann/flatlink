@@ -257,6 +257,22 @@ input[type="range"] { width: 100%; accent-color: var(--accent); }
 .btn:hover { background: var(--accent-tint); text-decoration: none; }
 .btn-primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 .btn-primary:hover { background: var(--accent); filter: brightness(0.93); }
+/* Mehrere Schaltflächen nebeneinander.
+ *
+ * Ohne diese Klasse landen sie in einem nackten <p>, und dort trennt sie nur
+ * das Leerzeichen aus dem Zeilenumbruch – vier Pixel. Erzwingt die
+ * Fensterbreite dann einen Umbruch, stehen sie fast bündig übereinander, weil
+ * inline-block keinen vertikalen Abstand kennt. Genau das ist im Betrieb
+ * aufgefallen.
+ *
+ * `gap` wirkt in beide Richtungen und löst damit beide Fälle auf einmal. */
+.cta { display: flex; flex-wrap: wrap; gap: 0.7rem; align-items: center; }
+
+/* Notnagel für den Fall, dass jemand .cta vergisst: Zwei Schaltflächen in
+ * einem klassenlosen Absatz kleben sonst wieder aneinander. Richtig ist
+ * .cta – das hier verhindert nur den auffälligsten Schaden. */
+p:not([class]) > .btn + .btn { margin-left: 0.5rem; }
+
 .btn-small { padding: 0.28rem 0.7rem; font-size: 0.8rem; }
 .btn-danger { border-color: var(--line); color: var(--muted); }
 .btn-danger:hover { border-color: var(--ink); color: var(--ink); background: transparent; }

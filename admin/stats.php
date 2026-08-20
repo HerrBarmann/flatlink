@@ -128,7 +128,7 @@ page_header(t('Statistik'), true);
     </table></div>
     <?php endif; ?>
 
-    <p><a class="btn" href="index.php"><?= t('Zurück zu den Links') ?></a>
+    <p class="cta"><a class="btn" href="index.php"><?= t('Zurück zu den Links') ?></a>
        <a class="btn" href="qrdesign.php?c=<?= e(rawurlencode($code)) ?>">QR-Designer</a>
        <a class="btn" href="stats.php?c=<?= e(rawurlencode($code)) ?>&amp;format=csv"><?= t('CSV-Export') ?></a></p>
 </div>

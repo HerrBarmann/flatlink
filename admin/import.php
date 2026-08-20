@@ -333,7 +333,7 @@ show_flash();
         </tr>
         <?php endforeach; ?>
     </table></div>
-    <p><a class="btn" href="index.php"><?= t('Zu den Links') ?></a> <a class="btn" href="import.php"><?= t('Weiterer Import') ?></a></p>
+    <p class="cta"><a class="btn" href="index.php"><?= t('Zu den Links') ?></a> <a class="btn" href="import.php"><?= t('Weiterer Import') ?></a></p>
 </div>
 <?php endif; ?>
 <?php page_footer(); ?>
