@@ -22,12 +22,13 @@ So:
    away from being signed in – no typing at all. The field carries
    `autocomplete="username webauthn"` for that; the search happens on the
    device, not on the server.
-2. **Proof.** If passkeys exist, the prompt starts on its own. *Use password
-   instead* sits next to it, and cancelling brings the field back. If there are
-   none, the password field is right there instead.
+2. **Proof.** If passkeys exist, the prompt starts on its own. Below it,
+   separated by an *or*, sits the password field — not behind a toggle, simply
+   there. With no passkeys, the upper half is absent.
 
-*Use another account* returns to step 1. Without JavaScript the passkey path
-falls away and the password field stands where it always stood.
+*Not you?* returns to step 1. Without JavaScript only the passkey button falls
+away; everything else stands where it stands — there is nothing to hide and
+nothing to bring back.
 
 ### What the passkey has to carry alone
 

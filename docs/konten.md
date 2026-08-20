@@ -23,12 +23,14 @@ Also:
    mit einem Tippen drin – getippt werden muss nichts. Das Feld trägt dafür
    `autocomplete="username webauthn"`, die Suche macht das Gerät, nicht der
    Server.
-2. **Nachweis.** Gibt es Passkeys, startet die Abfrage von selbst. Daneben
-   steht *Stattdessen Passwort*; wer abbricht, bekommt das Feld zurück. Gibt es
-   keine, steht dort gleich das Passwortfeld.
+2. **Nachweis.** Gibt es Passkeys, startet die Abfrage von selbst. Darunter
+   steht, durch ein *oder* getrennt, das Passwortfeld — nicht hinter einem
+   Umschalter, sondern einfach da. Gibt es keine Passkeys, entfällt der obere
+   Teil.
 
-*Anderes Konto* führt zurück in Schritt 1. Ohne JavaScript entfällt der
-Passkey-Weg und das Passwortfeld steht da, wo es immer stand.
+*Nicht du?* führt zurück in Schritt 1. Ohne JavaScript entfällt allein der
+Passkey-Knopf; alles andere steht, wo es steht — es gibt nichts zu verbergen
+und nichts hervorzuholen.
 
 ### Was der Passkey allein tragen muss
 

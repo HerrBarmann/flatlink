@@ -109,9 +109,9 @@ page_header(t('Registrieren'), false,
             <input id="r-pass" type="password" name="password" required minlength="8" autocomplete="new-password">
             <label for="r-repeat"><?= t('Passwort wiederholen') ?></label>
             <input id="r-repeat" type="password" name="repeat" required minlength="8" autocomplete="new-password">
-            <p><button class="btn btn-primary" type="submit"><?= t('Registrieren') ?></button></p>
+            <p><button class="btn btn-primary btn-block" type="submit"><?= t('Registrieren') ?></button></p>
         </form>
-        <p class="muted small"><?= t('Schon ein Konto?') ?> <a href="admin/"><?= t('Anmelden') ?></a> · <a href="reset.php"><?= t('Passwort vergessen?') ?></a></p>
+        <p class="muted small form-foot"><?= t('Schon ein Konto?') ?> <a href="admin/"><?= t('Anmelden') ?></a> · <a href="reset.php"><?= t('Passwort vergessen?') ?></a></p>
     </div>
 <?php endif; ?>
 <?php page_footer(); ?>

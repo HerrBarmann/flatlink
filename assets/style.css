@@ -157,18 +157,39 @@ code, .prefix { font-family: var(--mono); }
 .card.narrow-wide { max-width: 720px; margin: 2rem auto; }
 .card.narrow-wide h2 { margin-top: 1.4rem; font-size: 1.1rem; }
 
-/* Zweistufige Anmeldung: die Kennung aus Schritt 1 und der Weg zurück.
-   Die Zeile ist ein Flex-Container, weil der Knopf in einem eigenen <form>
-   steckt — ein Formular ist Blockinhalt und würde ein <p> sprengen. */
+/* Zweistufige Anmeldung: die Kennung aus Schritt 1 links, der Weg zurück
+   rechts, darunter ein Strich. Die Zeile ist ein Flex-Container, weil der
+   Rückweg in einem eigenen <form> steckt — ein Formular ist Blockinhalt und
+   würde ein <p> sprengen. */
 .konto-zeile {
-    display: flex; align-items: center; flex-wrap: wrap;
-    gap: 0.7rem; margin: 0 0 1.2rem;
+    display: flex; align-items: baseline; justify-content: space-between;
+    flex-wrap: wrap; gap: 0.6rem 1rem;
+    padding-bottom: 0.9rem; margin: 0 0 1.3rem;
+    border-bottom: 1px solid var(--line);
 }
 .konto-zeile strong {
     font-family: var(--mono); font-size: 0.95rem;
     overflow-wrap: anywhere; min-width: 0;
 }
 .konto-zeile form { margin: 0; }
+
+/* Zwei gleichwertige Wege, getrennt durch ein Wort in der Linie. Kein
+   Umschalter: Beide stehen da, und man nimmt den, der einem liegt. Der Strich
+   entsteht aus den beiden Pseudoelementen, die sich den Platz teilen — so
+   sitzt das Wort immer mittig, egal wie breit die Karte ist. */
+.oder {
+    display: flex; align-items: center; gap: 0.8rem;
+    margin: 1.5rem 0 1.2rem;
+    font-family: var(--mono); font-size: 0.72rem; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--muted);
+}
+.oder::before, .oder::after {
+    content: ""; flex: 1; height: 1px; background: var(--line);
+}
+
+/* Die Zeile unter einer Anmeldemaske: Nebenwege, mittig, klein. */
+.form-foot { text-align: center; margin-top: 1.2rem; }
 
 /* Sprungmarken der Abschnittsüberschriften: Nach dem Absenden eines Formulars
    führt die Umleitung zurück zu dem Abschnitt, aus dem es kam. Ohne diesen
@@ -287,6 +308,20 @@ input[type="range"] { width: 100%; accent-color: var(--accent); }
 p:not([class]) > .btn + .btn { margin-left: 0.5rem; }
 
 .btn-small { padding: 0.28rem 0.7rem; font-size: 0.8rem; }
+
+/* Über die volle Breite – für Masken, in denen es genau einen Weg vorwärts
+   gibt. Bisher stand dafür style="width:100%" an einzelnen Knöpfen. */
+.btn-block { display: block; width: 100%; text-align: center; }
+
+/* Ein Knopf, der wie ein Link aussieht. Für Wege, die technisch ein Formular
+   brauchen (weil sie etwas ändern und deshalb einen CSRF-Nachweis tragen), im
+   Text aber ein Link sein wollen: „Nicht du?" neben der Kennung. Ein <a> wäre
+   hier falsch – es würde die Änderung per GET auslösen. */
+.btn-link {
+    border: 0; background: none; padding: 0; margin: 0;
+    font: inherit; color: var(--accent-deep); cursor: pointer;
+}
+.btn-link:hover { text-decoration: underline; }
 .btn-danger { border-color: var(--line); color: var(--muted); }
 .btn-danger:hover { border-color: var(--ink); color: var(--ink); background: transparent; }
 

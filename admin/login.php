@@ -64,15 +64,15 @@ if ($wartet !== null) {
 
         <?php if ($keys !== []): ?>
         <p class="muted"><?= t('Bestätige mit deinem Passkey – Fingerabdruck, Gesicht oder Geräte-PIN.') ?></p>
-        <p><button class="btn btn-primary" type="button" style="width:100%"
+        <div id="pk-status" class="flash" style="display:none"></div>
+        <p><button class="btn btn-primary btn-block" type="button"
                    data-passkey="login" data-url="login.php" data-csrf="<?= e(csrf_token()) ?>"
                    data-status="pk-status"><?= t('Mit Passkey bestätigen') ?></button></p>
-        <div id="pk-status" class="flash" style="display:none"></div>
         <?php endif; ?>
 
         <?php if ($mitApp): ?>
             <?php if ($keys !== []): ?>
-            <p class="muted small" style="text-align:center"><?= t('oder mit einem Code aus der App:') ?></p>
+            <p class="oder"><?= t('oder') ?></p>
             <?php else: ?>
             <p class="muted"><?= t('Gib den sechsstelligen Code aus deiner Authenticator-App ein. Ein Wiederherstellungscode geht auch.') ?></p>
             <?php endif; ?>
@@ -82,13 +82,13 @@ if ($wartet !== null) {
             <label for="code"><?= t('Code') ?></label>
             <input id="code" type="text" name="code" required<?= $keys === [] ? ' autofocus' : '' ?>
                    autocomplete="one-time-code" inputmode="numeric" placeholder="123456">
-            <p><button class="btn<?= $keys === [] ? ' btn-primary' : '' ?>" type="submit"><?= t('Bestätigen') ?></button></p>
+            <p><button class="btn<?= $keys === [] ? ' btn-primary' : '' ?> btn-block" type="submit"><?= t('Bestätigen') ?></button></p>
         </form>
         <?php endif; ?>
         <form method="post" action="">
             <?= csrf_field() ?>
             <input type="hidden" name="abbruch" value="1">
-            <p class="muted small"><button class="btn btn-small" type="submit"><?= t('Abbrechen') ?></button></p>
+            <p class="muted small form-foot"><button class="btn-link small" type="submit"><?= t('Abbrechen') ?></button></p>
         </form>
     </div>
     <?php
@@ -283,7 +283,7 @@ page_header($firstRun ? t('Ersteinrichtung') : t('Login'), true);
         <input id="username" type="text" name="username" required autofocus autocomplete="username">
         <label for="password"><?= t('Passwort') ?> <?= t('(mind. 8 Zeichen)') ?></label>
         <input id="password" type="password" name="password" required autocomplete="new-password">
-        <p><button class="btn btn-primary" type="submit"><?= t('Admin anlegen') ?></button></p>
+        <p><button class="btn btn-primary btn-block" type="submit"><?= t('Admin anlegen') ?></button></p>
     </form>
 
     <?php elseif ($kennung === ''): ?>
@@ -301,7 +301,7 @@ page_header($firstRun ? t('Ersteinrichtung') : t('Login'), true);
         <label for="username"><?= t('E-Mail oder Nutzername') ?></label>
         <input id="username" type="text" name="username" required autofocus
                autocomplete="username webauthn">
-        <p><button class="btn btn-primary" type="submit"><?= t('Weiter') ?></button></p>
+        <p><button class="btn btn-primary btn-block" type="submit"><?= t('Weiter') ?></button></p>
     </form>
 
     <?php else: ?>
@@ -310,44 +310,42 @@ page_header($firstRun ? t('Ersteinrichtung') : t('Login'), true);
         <form method="post" action="">
             <?= csrf_field() ?>
             <input type="hidden" name="schritt" value="andere">
-            <button class="btn btn-small" type="submit"><?= t('Anderes Konto') ?></button>
+            <button class="btn-link small" type="submit"><?= t('Nicht du?') ?></button>
         </form>
     </div>
 
     <?php if ($kennungKeys !== []): ?>
     <?php /* Schritt 2 mit Passkey: Das Skript startet die Abfrage von selbst,
-             sobald die Seite steht — genau so, wie es die großen Anbieter tun.
-             Bricht jemand ab oder klappt es nicht, blendet es das Passwortfeld
-             wieder ein.
-
-             Warum das Passwortfeld hier trotzdem im Markup steht und nicht
-             erst vom Skript erzeugt wird: Ohne JavaScript gäbe es sonst
-             überhaupt keinen Weg mehr hinein. Verborgen wird es deshalb vom
-             Skript, nicht vom Server. */ ?>
+             sobald die Seite steht — so wie es die großen Anbieter tun.
+             Klappt es nicht oder bricht jemand ab, steht der zweite Weg schon
+             darunter. Bewusst kein Umschalter: Beide Wege sind sichtbar, und
+             damit funktioniert die Maske auch ohne JavaScript unverändert. */ ?>
     <div id="pk-status" class="flash" style="display:none"></div>
-    <p><button class="btn btn-primary" type="button" style="width:100%"
+    <p><button class="btn btn-primary btn-block" type="button"
                data-passkey="login" data-url="login.php" data-csrf="<?= e(csrf_token()) ?>"
-               data-status="pk-status" data-sofort="1" data-verbirgt="pw-form"><?= t('Mit Passkey anmelden') ?></button></p>
-    <p class="muted small" style="text-align:center">
-        <button class="btn btn-small" type="button" data-zeigt="pw-form"><?= t('Stattdessen Passwort') ?></button>
-    </p>
+               data-status="pk-status" data-sofort="1"><?= t('Mit Passkey anmelden') ?></button></p>
+    <p class="oder"><?= t('oder') ?></p>
     <?php endif; ?>
 
-    <form method="post" action="" data-enter-submit id="pw-form">
+    <form method="post" action="" data-enter-submit>
         <?= csrf_field() ?>
         <?= username_hint($kennung) ?>
         <label for="password"><?= t('Passwort') ?></label>
         <input id="password" type="password" name="password" required
                <?= $kennungKeys === [] ? 'autofocus ' : '' ?>autocomplete="current-password">
-        <p><button class="btn btn-primary" type="submit"><?= t('Anmelden') ?></button></p>
+        <?php /* Gibt es einen Passkey, ist ER die Hauptaktion – dann tritt das
+                 Passwort einen Schritt zurück. Ohne Passkey ist es der einzige
+                 Weg und trägt die Betonung selbst. */ ?>
+        <p><button class="btn<?= $kennungKeys === [] ? ' btn-primary' : '' ?> btn-block"
+                   type="submit"><?= t('Anmelden') ?></button></p>
     </form>
 
     <?php endif; ?>
     <?php if (!$firstRun): ?>
         <?php if ($kennung === '' || $kennungKeys !== []) page_script('assets/passkey.js'); ?>
-        <p class="muted small"><a href="../reset.php"><?= t('Passwort vergessen?') ?></a><?php if (settings()['registration'] === 'on'): ?> · <?= t('Noch kein Konto?') ?> <a href="../register.php"><?= t('Registrieren') ?></a><?php endif; ?></p>
+        <p class="muted small form-foot"><a href="../reset.php"><?= t('Passwort vergessen?') ?></a><?php if (settings()['registration'] === 'on'): ?> · <?= t('Noch kein Konto?') ?> <a href="../register.php"><?= t('Registrieren') ?></a><?php endif; ?></p>
         <?php if (ldap_enabled()): ?>
-        <p class="muted small"><?= t('Konten aus dem Verzeichnis melden sich hier mit ihrer gewohnten Kennung an.') ?></p>
+        <p class="muted small form-foot"><?= t('Konten aus dem Verzeichnis melden sich hier mit ihrer gewohnten Kennung an.') ?></p>
         <?php endif; ?>
     <?php endif; ?>
 </div>

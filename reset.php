@@ -80,7 +80,7 @@ page_header(t('Passwort zurücksetzen'));
     <div class="card center">
         <h1><?= t('Erledigt.') ?></h1>
         <p><?= t('Dein Passwort ist geändert – du kannst dich jetzt anmelden.') ?></p>
-        <p><a class="btn btn-primary" href="admin/"><?= t('Zum Login') ?></a></p>
+        <p><a class="btn btn-primary btn-block" href="admin/"><?= t('Zum Login') ?></a></p>
     </div>
 <?php elseif ($stage === 'bad'): ?>
     <div class="card center">
@@ -101,7 +101,7 @@ page_header(t('Passwort zurücksetzen'));
             <input id="rs-new" type="password" name="new" required minlength="8" autofocus autocomplete="new-password">
             <label for="rs-repeat"><?= t('Wiederholen') ?></label>
             <input id="rs-repeat" type="password" name="repeat" required minlength="8" autocomplete="new-password">
-            <p><button class="btn btn-primary" type="submit"><?= t('Passwort setzen') ?></button></p>
+            <p><button class="btn btn-primary btn-block" type="submit"><?= t('Passwort setzen') ?></button></p>
         </form>
     </div>
 <?php elseif ($sent): ?>
@@ -120,7 +120,7 @@ page_header(t('Passwort zurücksetzen'));
             <input type="text" name="website" value="" tabindex="-1" autocomplete="off" aria-hidden="true" class="hp">
             <label for="rs-email"><?= t('E-Mail-Adresse') ?></label>
             <input id="rs-email" type="text" name="email" required autofocus autocomplete="email" inputmode="email">
-            <p><button class="btn btn-primary" type="submit"><?= t('Link anfordern') ?></button></p>
+            <p><button class="btn btn-primary btn-block" type="submit"><?= t('Link anfordern') ?></button></p>
         </form>
     </div>
 <?php endif; ?>

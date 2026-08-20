@@ -51,21 +51,6 @@
         });
     }
 
-    /* Ein verborgenes Formular hervorholen – und den Knopf, der es geholt
-     * hat, gleich mit wegnehmen: Er verspräche sonst noch etwas, das schon
-     * eingetreten ist. */
-    function hervorholen(id) {
-        var ziel = document.getElementById(id || '');
-        if (!ziel) return;
-        ziel.hidden = false;
-        document.querySelectorAll('[data-zeigt="' + id + '"]').forEach(function (b) {
-            var p = b.closest('p');
-            (p && p.children.length === 1 ? p : b).hidden = true;
-        });
-        var feld = ziel.querySelector('input[type="password"]');
-        if (feld) feld.focus();
-    }
-
     function melden(box, text, fehler) {
         if (!box) return;
         box.textContent = text;
@@ -98,10 +83,6 @@
         var url = btn.getAttribute('data-url') || '';
         var csrf = btn.getAttribute('data-csrf') || '';
         var box = document.getElementById(btn.getAttribute('data-status') || '');
-        /* Auf der Anmeldeseite steht das Passwortfeld im Markup, damit es ohne
-         * JavaScript erreichbar bleibt. Verborgen wird es erst hier – und nur,
-         * wenn der Passkey-Weg tatsächlich zur Verfügung steht. */
-        var weg = document.getElementById(btn.getAttribute('data-verbirgt') || '');
 
         if (!vorhanden) {
             btn.disabled = true;
@@ -117,7 +98,6 @@
 
         btn.addEventListener('click', function () {
             btn.disabled = true;
-            if (weg) weg.hidden = true;
             melden(box, modus === 'login' ? t('Warte auf dein Gerät …') : t('Folge der Abfrage deines Geräts …'), false);
 
             senden(url, { action: 'pk_challenge', _csrf: csrf }).then(function (opt) {
@@ -153,9 +133,6 @@
                 leise = false;
                 btn.disabled = false;
                 melden(box, vonSelbst ? '' : fehlertext(e), true);
-                // Abgebrochen? Dann will jemand das Passwort – und findet es
-                // nur, wenn es wieder da ist.
-                if (weg) hervorholen(weg.id);
             });
         });
 
@@ -163,20 +140,11 @@
          * Ein echter Klick ist das nicht, aber die Browser lassen es zu, und
          * es erspart einen Klick, der ohnehin nur „ja, bitte" bedeutet.
          * Verweigert einer die Abfrage ohne Geste, landet man im catch oben –
-         * dann steht das Passwortfeld wieder da und der Knopf daneben. */
+         * kommentarlos, denn darunter steht das Passwortfeld ohnehin schon. */
         if (btn.getAttribute('data-sofort') === '1') {
-            if (weg) weg.hidden = true;
             leise = true;
             setTimeout(function () { btn.click(); }, 60);
         }
-    });
-
-    /* „Stattdessen Passwort": bringt das verborgene Formular zurück und setzt
-     * den Zeiger gleich hinein. */
-    document.querySelectorAll('[data-zeigt]').forEach(function (btn) {
-        btn.addEventListener('click', function () {
-            hervorholen(btn.getAttribute('data-zeigt') || '');
-        });
     });
 
     /* ---- Schritt 1: der Vorschlag im Namensfeld -------------------------
