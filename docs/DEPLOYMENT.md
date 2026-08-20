@@ -192,7 +192,7 @@ Für eine interne Instanz lohnt sich außerdem:
 'custom_code_quota'   => 0,        // Wunsch-Namen nicht kontingentieren
 'custom_code_min_len' => 3,        // kurze Namen erlauben
 'limits' => ['links' => 0, 'stats_days' => 365, 'logos' => 20],  // 0 = unbegrenzt
-'link_gc_years' => 0,              // nichts automatisch aufräumen
+'link_gc_years' => 0,              // nichts automatisch aufräumen (auch in den Grundregeln)
 ```
 
 ---

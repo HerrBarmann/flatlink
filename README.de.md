@@ -103,7 +103,7 @@ Gezählt wird je Tag, für die Seite und je Ziel.
 | **Browser-Erweiterung** | „diese Seite kürzen“ für Chrome und Firefox, gegen die eigene Instanz |
 | **Missbrauchsschutz** | Rate-Limits, Meldeformular, Sperrfunktion, optional Google Safe Browsing samt Wiederholungslauf über den Bestand |
 | **Protokoll** | wer wann was verwaltet hat – nur Verwaltung, nie Besucher |
-| **Aufräumen** | nie aufgerufene Links nach N Jahren, mit Vorwarnung per Mail (aus Vorgabe) |
+| **Aufräumen** | nie aufgerufene Links nach N Jahren, mit Vorwarnung per Mail; Fristen in den Grundregeln, aus Vorgabe |
 | **Demo-Modus** | öffentliche Spielwiese, die sich selbst zurücksetzt – ohne Cron |
 | **Zweisprachig** | Oberfläche auf Deutsch oder Englisch, umschaltbar zur Laufzeit |
 | **Barrierefrei** | geprüft gegen WCAG 2.1 AA, mit [Selbsteinschätzung](docs/barrierefreiheit.md) und Muster-Erklärung für öffentliche Stellen |
@@ -332,7 +332,7 @@ für den Betrieb.
 | `trusted_proxies` | Adressen vorgelagerter Proxys – **ohne sie gelten Rate-Limit und Anmeldesperre versehentlich für alle Besucher gemeinsam** |
 | `safe_browsing_key` | Google Safe Browsing; leer = aus |
 | `safety_recheck_days` | Bestand alle N Tage erneut prüfen (`0` = aus) |
-| `link_gc_years` | nie aufgerufene Links nach N Jahren entfernen (`0` = aus) |
+| `link_gc_years`, `link_gc_years_unreachable`, `link_gc_note` | nie aufgerufene Links nach N Jahren entfernen (`0` = aus) – auch unter *Einstellungen → Grundregeln* |
 | `click_dims` | `false` zählt nur noch Aufrufe, ohne Herkunft/Gerät/Sprache |
 | `demo_mode` | öffentliche Spielwiese mit Selbst-Reset |
 | `language` | `de` oder `en` |

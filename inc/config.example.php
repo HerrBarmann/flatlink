@@ -339,8 +339,17 @@ return [
     // Monat vorher, Löschung frühestens 30 Tage danach); die lange Frist gilt
     // für anonyme Links und Konten ohne E-Mail-Adresse.
     // Beide auf 0 setzen = Aufräumen komplett deaktiviert (Standard).
+    //
+    // Diese drei Werte stehen auch unter Einstellungen → Grundregeln. Was dort
+    // gespeichert wird, gewinnt; diese Datei bleibt die Vorgabe für eine
+    // frische Installation.
     'link_gc_years' => 0,
     'link_gc_years_unreachable' => 0,
+
+    // Worauf sich die Löschung beruft – erscheint in der Warnmail in Klammern,
+    // etwa 'AGB § 2' oder 'siehe Nutzungsbedingungen'. Leer lassen, wenn es
+    // nichts zu zitieren gibt; dann endet der Satz einfach.
+    'link_gc_note' => '',
 
     // Kontaktadresse für Rückfragen (erscheint in Systemmails)
     'contact_email' => '',

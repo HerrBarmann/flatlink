@@ -237,9 +237,13 @@ function links_gc(): void
 
     verified_ip_gc();
 
-    $years = (int)cfg('link_gc_years');
+    // Über settings() statt cfg(): Die Fristen stehen unter „Grundregeln" und
+    // sollen sich ohne Zugriff auf inc/config.php ändern lassen. Die Datei
+    // bleibt die Vorgabe für eine frische Installation.
+    $s = settings();
+    $years = (int)($s['link_gc_years'] ?? 0);
     if ($years < 1) return;
-    $yearsLong = max($years, (int)cfg('link_gc_years_unreachable'));
+    $yearsLong = max($years, (int)($s['link_gc_years_unreachable'] ?? 0));
 
     // Kurze Frist nur, wo eine Warnung möglich ist; sonst die lange
     $deleteCutoff = strtotime('-' . $years . ' years');
@@ -292,6 +296,14 @@ function links_gc(): void
         }
     }
 
+    // Bis 3.9 stand hier fest „(AGB § 2)" – die Nutzungsbedingungen von
+    // 1337.kiwi, aus dessen Betrieb diese Funktion stammt. Auf jeder anderen
+    // Instanz war das eine Quellenangabe auf einen Text, den es dort gar nicht
+    // gibt. Jetzt sagt der Betreiber selbst, worauf er sich beruft – oder auf
+    // nichts, dann bleibt der Satz ohne Klammer.
+    $hinweis = trim((string)($s['link_gc_note'] ?? ''));
+    $hinweis = $hinweis === '' ? '' : ' (' . $hinweis . ')';
+
     foreach ($toWarn as $mail => $codes) {
         $lines = '';
         foreach ($codes as $code => $lastUse) {
@@ -303,7 +315,7 @@ function links_gc(): void
         }
         $ok = mail_send($mail, t('Lange ungenutzte Kurzlinks werden bald gelöscht'),
             t("Hallo,") . "\n\n"
-            . t("die folgenden Kurzlinks deines Kontos wurden seit fast %d Jahren\nnicht ein einziges Mal aufgerufen und werden daher in etwa einem Monat\nautomatisch gelöscht (AGB § 2):", $years) . "\n\n"
+            . t("die folgenden Kurzlinks deines Kontos wurden seit fast %d Jahren\nnicht ein einziges Mal aufgerufen und werden daher in etwa einem Monat\nautomatisch gelöscht%s:", $years, $hinweis) . "\n\n"
             . $lines . "\n"
             . t("Ein einziger Aufruf genügt, um die Frist vollständig zurückzusetzen.\nNichts weiter nötig, wenn die Links weg können.") . "\n\n"
             . "– " . cfg('site_name'));

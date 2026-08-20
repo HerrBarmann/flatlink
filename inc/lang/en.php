@@ -474,9 +474,9 @@ return [
    'Die Exporte von %sBitly%s, %sYOURLS%s, Shlink (Web-Client) und Kutt lassen sich unverändert einlesen: Steht eine Kopfzeile darüber, werden die Spalten daran erkannt statt an ihrer Reihenfolge (%s bzw. %s). Enthält die Code-Spalte eine ganze Adresse wie %s, wird der letzte Teil übernommen – die Kurzcodes bleiben also erhalten.' => 'Exports from %sBitly%s, %sYOURLS%s, Shlink (web client) and Kutt can be read in unchanged: with a header row, columns are recognised by name rather than position (%s or %s). If the code column holds a full address like %s, the last part is taken – so your short codes survive the move.',
     'die folgenden Kurzlinks deines Kontos wurden seit fast %d Jahren
 nicht ein einziges Mal aufgerufen und werden daher in etwa einem Monat
-automatisch gelöscht (AGB § 2):' => 'the following short links of your account have not been visited a single
+automatisch gelöscht%s:' => 'the following short links of your account have not been visited a single
 time in almost %d years and will therefore be deleted automatically
-in about a month (Terms § 2):',
+in about a month%s:',
     'Die Herkunft der Anfrage stimmt nicht.' => 'The origin of the request doesn\'t match.',
     'Die Links der Gruppe bleiben bei ihren Besitzern.' => 'The group\'s links stay with their owners.',
     'Die Mail konnte gerade nicht verschickt werden – bitte später erneut versuchen.' => 'The e-mail could not be sent right now – please try again later.',
@@ -937,6 +937,22 @@ your password immediately and contact us.
     'Auf dieser Instanz greift die Einstellung gerade nicht:' => 'This setting has no effect on this instance right now:',
     '%snur lokalen Konten%s ist für Häuser gedacht, in denen die Anmeldung am Verzeichnis hängen soll: Ein Passkey käme auch dann noch durch, wenn dort das Passwort gewechselt wurde. Gesperrte Konten weist er weiterhin ab.'
         => '%sTo local accounts only%s is meant for organisations where sign-in should stay tied to the directory: a passkey would still get through after a password change there. Locked accounts are still refused.',
+    'Ungenutzte Links aufräumen' => 'Clean up unused links',
+    'Löscht Links, die über den ganzen Zeitraum %skein einziges Mal%s aufgerufen wurden. Ein einziger Aufruf setzt die Frist vollständig zurück. %s0 = aus%s, wie bei den Limits oben.'
+        => 'Deletes links that were not opened %sa single time%s over the whole period. One single visit resets the clock completely. %s0 = off%s, as with the limits above.',
+    'Mit Warnung (Jahre)' => 'With warning (years)',
+    'Ohne Warnweg (Jahre)' => 'No way to warn (years)',
+    'Die kurze Frist gilt, wo sich der Besitzer erreichen lässt: Einen Monat vor Ablauf geht eine Sammelmail an sein Konto, gelöscht wird frühestens 30 Tage danach. Die lange Frist gilt für anonyme Links und Konten ohne E-Mail-Adresse – dort kommt die Löschung ohne Vorwarnung, deshalb später. Kürzer als die kurze kann sie nicht sein.'
+        => 'The short period applies wherever the owner can be reached: one month before it runs out, a single summary email goes to their account, and deletion follows no earlier than 30 days later. The long period applies to anonymous links and accounts without an email address – there the deletion arrives unannounced, which is why it comes later. It cannot be shorter than the short one.',
+    'Gesperrte Links bleiben stehen, damit ihre Codes nicht neu vergeben werden. Der Lauf hängt an keinem Cronjob: Er beginnt höchstens einmal pro Woche, angestoßen vom nächsten angelegten Link.'
+        => 'Disabled links stay, so their codes are not handed out again. The run needs no cron job: it starts at most once a week, triggered by the next link someone creates.',
+    '(optional)' => '(optional)',
+    'Worauf sich die Löschung beruft' => 'What the deletion refers to',
+    'z. B. AGB § 2' => 'e.g. Terms § 2',
+    'Steht in der Warnmail in Klammern hinter „automatisch gelöscht". Leer lassen, wenn es nichts zu zitieren gibt – dann endet der Satz einfach.'
+        => 'Appears in the warning email, in brackets after "deleted automatically". Leave it empty when there is nothing to cite – then the sentence simply ends.',
+    'Zuletzt gelaufen: %s.' => 'Last run: %s.',
+    'Bisher noch nicht gelaufen.' => 'Has not run yet.',
     'Zweite Stufe beim Anmelden' => 'Second factor at sign-in',
     'Zweite Stufe für %s zurückgesetzt. Vergewissere dich, dass die Anfrage wirklich von dieser Person kam – danach schützt nur noch das Passwort.' => 'Second factor for %s reset. Make sure the request really came from this person – after this, only the password protects the account.',
     'Zweite Stufe für „%s“ wirklich zurücksetzen? Danach schützt nur noch das Passwort.' => 'Really reset the second factor for “%s”? After this, only the password protects the account.',

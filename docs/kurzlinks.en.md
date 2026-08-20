@@ -37,6 +37,40 @@ including** its day). An empty field means "immediately". Also available via
 the [API](API.md) (field `starts`, plus `pending` in the response) and in
 the CSV export.
 
+## Cleaning up unused links
+
+A short-link service collects dead weight: codes for a campaign from the year
+before last, test links, leftovers from an import. They cost little space but
+clutter the list – and in a paid operation they are inventory somebody is
+answerable for.
+
+*Settings → Ground rules* holds two periods for this. Only links that were
+**not opened a single time** over the **whole** period are deleted; one single
+visit resets the clock completely.
+
+| Field | Applies to | What happens |
+| --- | --- | --- |
+| **With warning** | links whose owner has an email address | one summary mail per account a month before, deletion no earlier than 30 days later |
+| **No way to warn** | anonymous links, accounts without an address | deletion without notice – hence later; it cannot be shorter than the short period |
+| **What the deletion refers to** | the warning mail | appears in brackets after "deleted automatically", e.g. `Terms § 2`; empty = the sentence simply ends |
+
+**`0` switches it off**, as with the limits above – and completely: with the
+short period at 0 nothing happens at all, even if the long one is set. Off by
+default.
+
+Two things worth knowing before turning it on:
+
+* **Disabled links stay.** Otherwise their code would become free again and
+  eventually be handed to somebody else – the very code someone had disabled.
+* **The run needs no cron job.** It starts at most once a week and is triggered
+  by the next link someone creates. On an instance where nobody is creating
+  anything, nothing happens – deliberately so, because flatlink assumes no cron.
+
+What was deleted and what was warned about is recorded in `data/links-gc.log`.
+When it last ran is shown on the settings page itself.
+[`tests/aufraeumen.php`](../tests/aufraeumen.php) pins the behaviour down –
+including the promise that a single visit saves a link.
+
 ## What counts – and what doesn't
 
 The counters are meant to count visits, not traffic. Three kinds of request

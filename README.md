@@ -103,7 +103,7 @@ Counted per day, for the page and per target.
 | **Browser extension** | "shorten this page" for Chrome and Firefox, pointed at your own instance |
 | **Abuse protection** | rate limits, a report form, blocking, optionally Google Safe Browsing including a re-check pass over the existing links |
 | **Audit log** | who administered what, and when – administration only, never visitors |
-| **Cleanup** | never-visited links after N years, with advance warning by mail (off by default) |
+| **Cleanup** | never-visited links after N years, with advance warning by mail; periods set in the ground rules, off by default |
 | **Demo mode** | a public playground that resets itself – without cron |
 | **Bilingual** | interface in German or English, switchable at runtime |
 | **Accessible** | tested against WCAG 2.1 AA, with a [self-assessment](docs/barrierefreiheit.en.md) and a statement template for public bodies |
@@ -327,7 +327,7 @@ out, not for production.
 | `trusted_proxies` | addresses of upstream proxies – **without them, rate limit and sign-in lock apply to all visitors collectively by accident** |
 | `safe_browsing_key` | Google Safe Browsing; empty = off |
 | `safety_recheck_days` | re-check existing links every N days (`0` = off) |
-| `link_gc_years` | remove never-visited links after N years (`0` = off) |
+| `link_gc_years`, `link_gc_years_unreachable`, `link_gc_note` | remove never-visited links after N years (`0` = off) – also under *Settings → Ground rules* |
 | `click_dims` | `false` counts visits only, without origin/device/language |
 | `demo_mode` | public playground with a self-reset |
 | `language` | `de` or `en` |

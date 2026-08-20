@@ -38,6 +38,42 @@ einschließlich** seines Tages gilt). Ein leeres Feld heißt „sofort“.
 Verfügbar auch über die [Schnittstelle](API.md) (Feld `starts`, dazu
 `pending` in der Antwort) und im CSV-Export.
 
+## Ungenutzte Links aufräumen
+
+Ein Kurzlinkdienst sammelt Karteileichen: Codes für eine Aktion von vorgestern,
+Testlinks, Reste eines Imports. Sie kosten wenig Platz, machen die Liste aber
+unübersichtlich – und in einem bezahlten Betrieb sind sie ein Bestand, für den
+irgendwer haftet.
+
+Unter *Einstellungen → Grundregeln* stehen dafür zwei Fristen. Gelöscht wird
+nur, was über den **ganzen** Zeitraum **kein einziges Mal** aufgerufen wurde;
+ein einziger Aufruf setzt die Frist vollständig zurück.
+
+| Feld | Gilt für | Was passiert |
+| --- | --- | --- |
+| **Mit Warnung** | Links, deren Besitzer eine E-Mail-Adresse hat | Einen Monat vor Ablauf eine Sammelmail je Konto, Löschung frühestens 30 Tage danach |
+| **Ohne Warnweg** | anonyme Links, Konten ohne Adresse | Löschung ohne Vorwarnung – deshalb später; kürzer als die kurze Frist kann sie nicht sein |
+| **Worauf sich die Löschung beruft** | die Warnmail | erscheint in Klammern hinter „automatisch gelöscht“, etwa `AGB § 2`; leer = der Satz endet einfach |
+
+**`0` schaltet ab**, wie bei den Limits darüber – und zwar vollständig: Steht
+die kurze Frist auf 0, passiert gar nichts, auch wenn die lange gesetzt ist.
+Vorgabe ist aus.
+
+Zwei Dinge, die man wissen sollte, bevor man es einschaltet:
+
+* **Gesperrte Links bleiben stehen.** Sonst würde ihr Code wieder frei und
+  irgendwann an jemand anderen vergeben – ausgerechnet der Code, den jemand
+  gesperrt bekommen hat.
+* **Der Lauf hängt an keinem Cronjob.** Er beginnt höchstens einmal pro Woche
+  und wird vom nächsten angelegten Link angestoßen. Auf einer Instanz, auf der
+  gerade niemand etwas anlegt, passiert also nichts – das ist Absicht, denn
+  flatlink setzt keinen Cron voraus.
+
+Was gelöscht und was gewarnt wurde, steht in `data/links-gc.log`. Wann zuletzt
+gelaufen wurde, zeigt die Einstellungsseite selbst an.
+[`tests/aufraeumen.php`](../tests/aufraeumen.php) hält das Verhalten fest –
+einschließlich der Zusage, dass ein einziger Aufruf rettet.
+
 ## Was zählt – und was nicht
 
 Die Zähler sollen Besuche zählen, nicht Abrufe. Drei Sorten Aufrufe bleiben

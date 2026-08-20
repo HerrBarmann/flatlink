@@ -100,6 +100,23 @@ $faelle = [
         'post' => ['public_mode' => 'on', 'public_prefix' => 'p', 'public_rate_limit' => '15', 'registration' => 'on'],
         'erwartet' => ['public_mode', 'public_prefix', 'public_rate_limit', 'registration'],
     ],
+    // Die Grundregeln tragen inzwischen auch die Fristen fürs Aufräumen. Sie
+    // sind das größte Teilformular – wenn irgendwo ein Feld die Nachbarn
+    // mitschreibt, dann hier.
+    'Grundregeln' => [
+        'post' => [
+            'grundregeln' => '1',
+            'limit_links' => '0', 'limit_stats_days' => '0', 'limit_logos' => '0', 'limit_bio' => '0',
+            'custom_code_min_len' => '5', 'custom_code_quota' => '0',
+            'totp_required' => 'off', 'passkey_hint' => 'on', 'language' => 'de',
+            'link_gc_years' => '2', 'link_gc_years_unreachable' => '5', 'link_gc_note' => 'AGB § 2',
+        ],
+        'erwartet' => [
+            'limits', 'default_perms', 'custom_code_min_len', 'custom_code_quota',
+            'totp_required', 'passkey_hint', 'language',
+            'link_gc_years', 'link_gc_years_unreachable', 'link_gc_note',
+        ],
+    ],
 ];
 
 foreach ($faelle as $titel => $fall) {

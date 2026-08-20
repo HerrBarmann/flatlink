@@ -66,6 +66,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $neu['totp_required'] = in_array($modus, ['off', 'admins', 'all'], true) ? $modus : 'off';
         $hinweis = (string)($_POST['passkey_hint'] ?? 'on');
         $neu['passkey_hint'] = in_array($hinweis, ['on', 'local', 'off'], true) ? $hinweis : 'on';
+
+        // Aufräumen: 0 heißt aus, wie bei den Limits darüber. Die lange Frist
+        // darf nicht kürzer sein als die kurze – wer nicht gewarnt werden
+        // kann, soll nicht FRÜHER gelöscht werden als wer gewarnt wird.
+        // links_gc() fängt das ohnehin mit max() ab; hier steht es, damit der
+        // gespeicherte Wert dem entspricht, was die Seite anzeigt.
+        $gcKurz = max(0, min(50, (int)($_POST['link_gc_years'] ?? 0)));
+        $gcLang = max(0, min(50, (int)($_POST['link_gc_years_unreachable'] ?? 0)));
+        $neu['link_gc_years'] = $gcKurz;
+        $neu['link_gc_years_unreachable'] = $gcKurz > 0 ? max($gcKurz, $gcLang) : $gcLang;
+        // Landet unverändert im Text einer Mail, nicht in HTML – Zeilenumbrüche
+        // raus, damit niemand eigene Absätze in fremde Post schreibt.
+        $neu['link_gc_note'] = mb_substr(trim(preg_replace('/\s+/u', ' ',
+            (string)($_POST['link_gc_note'] ?? ''))), 0, 120);
         $sprache = (string)($_POST['language'] ?? 'de');
         $neu['language'] = isset(lang_available()[$sprache]) ? $sprache : 'de';
     }
@@ -234,6 +248,32 @@ $host = preg_replace('#^https?://#', '', base_url());
         <p class="muted small"><strong><?= t('Auf dieser Instanz greift die Einstellung gerade nicht:') ?></strong> <?= t('Passkeys brauchen eine gesicherte Verbindung (HTTPS).') ?></p>
         <?php endif; ?>
         <p class="muted small"><?= t('%snur lokalen Konten%s ist für Häuser gedacht, in denen die Anmeldung am Verzeichnis hängen soll: Ein Passkey käme auch dann noch durch, wenn dort das Passwort gewechselt wurde. Gesperrte Konten weist er weiterhin ab.', '<em>', '</em>') ?></p>
+
+        <h3><?= t('Ungenutzte Links aufräumen') ?></h3>
+        <p class="muted small"><?= t('Löscht Links, die über den ganzen Zeitraum %skein einziges Mal%s aufgerufen wurden. Ein einziger Aufruf setzt die Frist vollständig zurück. %s0 = aus%s, wie bei den Limits oben.', '<strong>', '</strong>', '<strong>', '</strong>') ?></p>
+
+        <div class="two-col">
+            <div>
+                <label for="s-gc"><?= t('Mit Warnung (Jahre)') ?></label>
+                <input id="s-gc" type="number" name="link_gc_years" min="0" max="50"
+                       value="<?= (int)($s['link_gc_years'] ?? 0) ?>">
+            </div>
+            <div>
+                <label for="s-gc-lang"><?= t('Ohne Warnweg (Jahre)') ?></label>
+                <input id="s-gc-lang" type="number" name="link_gc_years_unreachable" min="0" max="50"
+                       value="<?= (int)($s['link_gc_years_unreachable'] ?? 0) ?>">
+            </div>
+        </div>
+        <p class="muted small"><?= t('Die kurze Frist gilt, wo sich der Besitzer erreichen lässt: Einen Monat vor Ablauf geht eine Sammelmail an sein Konto, gelöscht wird frühestens 30 Tage danach. Die lange Frist gilt für anonyme Links und Konten ohne E-Mail-Adresse – dort kommt die Löschung ohne Vorwarnung, deshalb später. Kürzer als die kurze kann sie nicht sein.') ?></p>
+        <label for="s-gc-note"><?= t('Worauf sich die Löschung beruft') ?> <span class="muted"><?= t('(optional)') ?></span></label>
+        <input id="s-gc-note" type="text" name="link_gc_note" maxlength="120"
+               placeholder="<?= e(t('z. B. AGB § 2')) ?>"
+               value="<?= e((string)($s['link_gc_note'] ?? '')) ?>">
+        <p class="muted small"><?= t('Steht in der Warnmail in Klammern hinter „automatisch gelöscht". Leer lassen, wenn es nichts zu zitieren gibt – dann endet der Satz einfach.') ?></p>
+
+        <p class="muted small"><?= t('Gesperrte Links bleiben stehen, damit ihre Codes nicht neu vergeben werden. Der Lauf hängt an keinem Cronjob: Er beginnt höchstens einmal pro Woche, angestoßen vom nächsten angelegten Link.') ?>
+        <?php $gcStand = json_read(data_path() . '/links-gc.json'); ?>
+        <?php if (!empty($gcStand['last_run'])): ?><?= t('Zuletzt gelaufen: %s.', e(date('d.m.Y H:i', (int)strtotime((string)$gcStand['last_run'])))) ?><?php else: ?><?= t('Bisher noch nicht gelaufen.') ?><?php endif; ?></p>
 
         <button class="btn btn-primary" type="submit"><?= t('Grundregeln speichern') ?></button>
     </form>
