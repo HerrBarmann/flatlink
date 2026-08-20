@@ -4,7 +4,6 @@ declare(strict_types=1);
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // flatlink · Zusatzbedingung zur Namensnennung nach §7(b) AGPL: siehe LICENSE
 require_once __DIR__ . '/inc/store.php';
-require_once __DIR__ . '/inc/bio.php';
 require_once __DIR__ . '/inc/routing.php';
 
 $code = $_GET['c'] ?? '';
@@ -84,7 +83,10 @@ $limitiert = !$zaehlbar && (int)($link['max_visits'] ?? 0) > 0;
 // Abzweigung steht bewusst hinter Sperre und Ablauf – auch eine Seite kann
 // gesperrt sein oder auslaufen – und vor dem Passwortschutz, damit sich auch
 // eine ganze Seite schützen lässt.
-if (bio_is($link) && empty($link['pass'])) {
+if (($link['kind'] ?? '') === 'bio' && empty($link['pass'])) {
+    // Erst jetzt, wo feststehend eine Bio-Seite gerendert wird – die
+    // gewöhnliche Weiterleitung soll die 440 Zeilen nicht mitparsen.
+    require_once __DIR__ . '/inc/bio.php';
     $i = $_GET['i'] ?? null;
     if (is_string($i) && $i !== '' && ctype_digit($i)) {
         bio_follow($code, $link, (int)$i);
@@ -108,7 +110,8 @@ if (!empty($link['pass'])) {
         } elseif ($given !== '' && password_verify($given, (string)$link['pass'])) {
             // Auch eine geschützte Bio-Seite wird nach dem Passwort gezeigt,
             // statt weiterzuleiten – sie hat ja kein einzelnes Ziel.
-            if (bio_is($link)) {
+            if (($link['kind'] ?? '') === 'bio') {
+                require_once __DIR__ . '/inc/bio.php';
                 $i = $_GET['i'] ?? null;
                 if (is_string($i) && $i !== '' && ctype_digit($i)) bio_follow($code, $link, (int)$i);
                 bio_render($code, $link);

@@ -3,7 +3,10 @@ declare(strict_types=1);
 
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // flatlink · Zusatzbedingung zur Namensnennung nach §7(b) AGPL: siehe LICENSE
-require_once __DIR__ . '/qrlib.php';
+// qrlib.php wird hier bewusst NICHT geladen: Der QR-Encoder ist mit 1600
+// Zeilen die größte Datei des Projekts, und der Weiterleitungspfad – die
+// heißeste Stelle überhaupt – braucht ihn nie. Wer Codes zeichnet
+// (qr.php, Designer, Prüfbild, Vektor-Export), lädt ihn selbst.
 require_once __DIR__ . '/lang.php';
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/audit.php';
