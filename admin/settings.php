@@ -24,14 +24,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // dieser Anfrage tatsächlich vorkommt – sonst löschte jedes Formular beim
     // Speichern die Felder der anderen.
     //
-    // Grundlage ist bewusst die DATEI, nicht der aufgelöste Stand aus
+    // Grundlage ist bewusst der GESPEICHERTE Stand, nicht der aufgelöste aus
     // settings(): Der enthält auch alles, was nur in inc/config.php steht.
     // Schriebe man ihn zurück, wären nach dem ersten Speichern eines
-    // beliebigen Formulars sämtliche Werte in data/settings.json eingefroren –
-    // und eine spätere Änderung an der Konfigurationsdatei bliebe wirkungslos,
-    // ohne dass irgendwo etwas davon zu sehen wäre. Genau so ist einmal ein
+    // beliebigen Formulars sämtliche Vorgaben eingefroren – und eine spätere
+    // Änderung an der Konfigurationsdatei bliebe wirkungslos, ohne dass
+    // irgendwo etwas davon zu sehen wäre. Genau so ist einmal ein
     // Standardrecht verlorengegangen, das per Upload nachgereicht wurde.
-    $neu = json_read(data_path() . '/settings.json');
+    $neu = settings_stored();
     $fehler = null;
 
     if (isset($_POST['public_mode'])) {
@@ -272,7 +272,7 @@ $host = preg_replace('#^https?://#', '', base_url());
         <p class="muted small"><?= t('Steht in der Warnmail in Klammern hinter „automatisch gelöscht". Leer lassen, wenn es nichts zu zitieren gibt – dann endet der Satz einfach.') ?></p>
 
         <p class="muted small"><?= t('Gesperrte Links bleiben stehen, damit ihre Codes nicht neu vergeben werden. Der Lauf hängt an keinem Cronjob: Er beginnt höchstens einmal pro Woche, angestoßen vom nächsten angelegten Link.') ?>
-        <?php $gcStand = json_read(data_path() . '/links-gc.json'); ?>
+        <?php $gcStand = (array)state_get('links-gc'); ?>
         <?php if (!empty($gcStand['last_run'])): ?><?= t('Zuletzt gelaufen: %s.', e(date('d.m.Y H:i', (int)strtotime((string)$gcStand['last_run'])))) ?><?php else: ?><?= t('Bisher noch nicht gelaufen.') ?><?php endif; ?></p>
 
         <button class="btn btn-primary" type="submit"><?= t('Grundregeln speichern') ?></button>

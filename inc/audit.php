@@ -11,19 +11,15 @@ declare(strict_types=1);
  * werden ausschließlich Handlungen der Verwaltung, nie Besucher. Keine
  * IP-Adressen, keine Klicks, keine Weiterleitungen.
  *
- * Abgelegt als eine JSON-Zeile je Ereignis in data/audit.log – lesbar mit
- * bloßem Auge, und zugleich das Format, das sich in ein zentrales Log
- * (SIEM) ziehen lässt, ohne dass flatlink dafür etwas wissen muss.
+ * Abgelegt in der Tabelle audit (bis 4.0: data/audit.log; die Übernahme in
+ * inc/db.php nimmt den Bestand mit). Für ein zentrales Log (SIEM) liefert
+ * `tools/flatlink audit` weiterhin JSON-Zeilen – dasselbe Format, das
+ * vorher in der Datei stand, nur eben zum Abholen statt zum Mitlesen.
  *
  * Die Einträge entstehen in der Sprache der Instanz zum Zeitpunkt der
  * Handlung – ein Protokoll ist ein historisches Dokument, es wird nicht
  * nachträglich umformuliert.
  */
-
-function audit_file(): string
-{
-    return data_path() . '/audit.log';
-}
 
 /**
  * Eine Verwaltungshandlung festhalten.
@@ -36,9 +32,7 @@ function audit(string $aktion, string $objekt = ''): void
     $wer = function_exists('auth_user') ? (auth_user()['name'] ?? null) : null;
     $zeile = ['t' => date('c'), 'wer' => $wer ?? 'system', 'aktion' => $aktion];
     if ($objekt !== '') $zeile['objekt'] = $objekt;
-    file_put_contents(audit_file(),
-        json_encode($zeile, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . "\n",
-        FILE_APPEND | LOCK_EX);
+    db_audit_add(db(), $zeile['t'], $zeile);
 }
 
 /**
@@ -51,30 +45,6 @@ function audit(string $aktion, string $objekt = ''): void
  */
 function audit_tail(int $anzahl = 200): array
 {
-    $datei = audit_file();
-    if (!is_file($datei)) return [];
-    $f = fopen($datei, 'r');
-    if ($f === false) return [];
-    try {
-        $groesse = fstat($f)['size'] ?? 0;
-        $puffer = '';
-        $pos = $groesse;
-        // Rückwärts blockweise lesen, bis genug Zeilen beisammen sind
-        while ($pos > 0 && substr_count($puffer, "\n") <= $anzahl) {
-            $schritt = min(65536, $pos);
-            $pos -= $schritt;
-            fseek($f, $pos);
-            $puffer = fread($f, $schritt) . $puffer;
-        }
-    } finally {
-        fclose($f);
-    }
-    $zeilen = array_filter(explode("\n", $puffer), fn($z) => trim($z) !== '');
-    $zeilen = array_slice($zeilen, -$anzahl);
-    $out = [];
-    foreach (array_reverse($zeilen) as $z) {
-        $d = json_decode($z, true);
-        if (is_array($d) && isset($d['t'], $d['aktion'])) $out[] = $d;
-    }
-    return $out;
+    return db_audit_tail(db(), $anzahl);
 }
+

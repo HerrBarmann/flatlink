@@ -36,12 +36,6 @@ declare(strict_types=1);
  * Ergebnis und daneben einen Knopf.
  */
 
-/** Wo das Ergebnis des letzten Laufs steht */
-function probe_file(): string
-{
-    return data_path() . '/webroot-probe.json';
-}
-
 /**
  * Das gespeicherte Ergebnis, oder null, wenn noch nie geprüft wurde.
  *
@@ -49,7 +43,7 @@ function probe_file(): string
  */
 function probe_last(): ?array
 {
-    $d = json_read(probe_file());
+    $d = (array)state_get('probe');
     return isset($d['stand']) ? $d : null;
 }
 
@@ -128,6 +122,6 @@ function probe_status(array $kopf): int
 function probe_save(string $stand, string $detail): array
 {
     $d = ['stand' => $stand, 'zeit' => date('c'), 'detail' => $detail];
-    json_write(probe_file(), $d);
+    state_set('probe', $d);
     return $d;
 }

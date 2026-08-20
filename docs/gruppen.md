@@ -140,7 +140,7 @@ Was **jedes** Konto darf, steht unter *Einstellungen → Grundregeln*: Limits
 für Links, Statistik-Tiefe und Logos, das Kontingent für Wunsch-Codes und
 die Rechte, die alle bekommen. Die Vorgaben dafür stehen in
 `inc/config.php`; was in der Oberfläche geändert wird, überschreibt sie und
-landet in `data/settings.json`. Wer mehr bekommen soll als der Grundrahmen,
+landet in der Ablage (Tabelle `settings`). Wer mehr bekommen soll als der Grundrahmen,
 bekommt es über eine Gruppe.
 
 ### Zwei Arten von Gruppen

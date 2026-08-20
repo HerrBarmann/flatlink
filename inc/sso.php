@@ -146,15 +146,10 @@ function access_denied_reason(string $username, array $groups, array $c): ?strin
 
 // -------------------------------------------- Warteschlange zur Freischaltung
 
-function pending_users_file(): string
-{
-    return data_path() . '/pending-users.json';
-}
-
 /** @return array<string,array> Kennung => {display, email, groups, first_seen, last_seen, tries} */
 function pending_users(): array
 {
-    return json_read(pending_users_file());
+    return db_map_all(db(), 'pending_users', 'name');
 }
 
 /**
@@ -167,7 +162,7 @@ function pending_users(): array
  */
 function pending_user_note(string $username, ?string $display, ?string $email, array $groups, string $reason = 'unbekannt', string $source = 'sso'): void
 {
-    json_update(pending_users_file(), function (array $q) use ($username, $display, $email, $groups, $reason, $source) {
+    db_map_update(db(), 'pending_users', 'name', function (array $q) use ($username, $display, $email, $groups, $reason, $source) {
         $now = date('c');
         $q[$username] = [
             'reason' => $reason,
@@ -205,7 +200,7 @@ function pending_user_note(string $username, ?string $display, ?string $email, a
 
 function pending_user_drop(string $username): void
 {
-    json_update(pending_users_file(), function (array $q) use ($username) {
+    db_map_update(db(), 'pending_users', 'name', function (array $q) use ($username) {
         unset($q[$username]);
         return $q;
     });

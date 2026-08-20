@@ -214,7 +214,7 @@ function json_update(string $file, callable $fn, array $default = []): array
     }
 }
 
-// ---- Laufzeit-Einstellungen (vom Admin änderbar, data/settings.json) ----
+// ---- Laufzeit-Einstellungen (vom Admin änderbar, Tabelle settings) ----
 
 function settings(): array
 {
@@ -243,14 +243,49 @@ function settings(): array
             'language' => (string)cfg('language'),
             'ext_stores' => (array)cfg('ext_stores'),
         ];
-        $s = array_merge($defaults, json_read(data_path() . '/settings.json'));
+        require_once __DIR__ . '/db.php';
+        $s = array_merge($defaults, db_kv_all(db(), 'settings'));
     }
     return $s;
 }
 
 function settings_save(array $new): void
 {
-    json_write(data_path() . '/settings.json', $new);
+    require_once __DIR__ . '/db.php';
+    db_kv_replace(db(), 'settings', $new);
+}
+
+/**
+ * Nur der GESPEICHERTE Stand, ohne die Vorgaben aus der Konfiguration.
+ *
+ * Für die Einstellungsseite: Sie nimmt den gespeicherten Stand als Grundlage
+ * und überschreibt, was das Formular mitbringt. Nähme sie settings() – den
+ * aufgelösten Stand –, fröre das erste Speichern sämtliche Vorgaben aus
+ * inc/config.php ein (siehe den Kommentar dort).
+ */
+function settings_stored(): array
+{
+    require_once __DIR__ . '/db.php';
+    return db_kv_all(db(), 'settings');
+}
+
+/** Betriebs-Marker (GC-Stand, Warnlisten …) – Namensraum state */
+function state_get(string $key, mixed $default = []): mixed
+{
+    require_once __DIR__ . '/db.php';
+    return db_state_get(db(), $key, $default);
+}
+
+function state_set(string $key, mixed $wert): void
+{
+    require_once __DIR__ . '/db.php';
+    db_state_set(db(), $key, $wert);
+}
+
+function state_update(string $key, callable $fn, mixed $default = []): mixed
+{
+    require_once __DIR__ . '/db.php';
+    return db_state_update(db(), $key, $fn, $default);
 }
 
 // ---- CSRF ----

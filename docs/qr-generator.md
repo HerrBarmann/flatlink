@@ -77,7 +77,7 @@ Löschen bleiben beim Eigentümer (und bei Administratoren), und das Logo wird
 weiter auf dessen Kontingent angerechnet. Wer ein geteiltes Logo in seiner
 Liste sieht, kann es also benutzen, aber niemandem wegnehmen.
 
-Technisch steht die Freigabe in `data/logos.json` als Liste von
+Technisch steht die Freigabe in den Logo-Metadaten (Tabelle `logos`) als Liste von
 Gruppen-Kennungen (`shared`), der Stern `*` steht für alle Konten. Gruppen,
 die es nicht mehr gibt, werden beim Speichern verworfen.
 

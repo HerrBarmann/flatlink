@@ -21,7 +21,7 @@ show_flash();
 ?>
 <div class="card">
     <h2><?= t('Protokoll') ?> <span class="muted">(<?= t('die letzten %d Verwaltungshandlungen', 200) ?>)</span></h2>
-    <p class="muted small"><?= t('Festgehalten wird, wer wann was verwaltet hat – Links gesperrt, Konten freigeschaltet, Domains geändert. Besucher tauchen hier nie auf: keine Klicks, keine Adressen, keine Weiterleitungen. Die Datei dahinter ist %s, eine JSON-Zeile je Ereignis.', '<code>data/audit.log</code>') ?></p>
+    <p class="muted small"><?= t('Festgehalten wird, wer wann was verwaltet hat – Links gesperrt, Konten freigeschaltet, Domains geändert. Besucher tauchen hier nie auf: keine Klicks, keine Adressen, keine Weiterleitungen. Für ein zentrales Log liefert %s die Einträge als JSON-Zeilen.', '<code>tools/flatlink audit</code>') ?></p>
     <?php if ($eintraege === []): ?>
     <p class="muted"><?= t('Noch keine Einträge.') ?></p>
     <?php else: ?>

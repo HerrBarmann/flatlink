@@ -17,6 +17,10 @@ function auth_boot(): void
         : ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
             || ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
     session_name('kurzsid');
+    // Sitzungen liegen in der Datenbank (Tabelle sessions, siehe inc/db.php).
+    // Registriert VOR session_start – und mit Shutdown-Anmeldung, damit
+    // write/close sicher laufen, auch wenn ein Skript mit exit endet.
+    session_set_save_handler(new DbSitzungen(), true);
     session_set_cookie_params([
         'lifetime' => 0,
         'path' => '/',
@@ -877,9 +881,14 @@ function user_delete(string $username, string $linkModus = 'delete', ?string $an
 
     // Offene Bestätigungen (E-Mail-Wechsel, Passwort-Reset) mitnehmen – sie
     // tragen die Kennung und wären sonst noch stundenlang einlösbar.
-    foreach (glob(data_path('pending') . '/*.json') ?: [] as $f) {
-        $d = json_read($f);
-        if (($d['user'] ?? null) === $username) @unlink($f);
+    $st = db()->prepare('SELECT id, data FROM confirmations');
+    $st->execute();
+    while (($z = $st->fetch()) !== false) {
+        $d = json_decode((string)$z['data'], true);
+        if (is_array($d) && ($d['user'] ?? null) === $username) {
+            $del = db()->prepare('DELETE FROM confirmations WHERE id = ?');
+            $del->execute([(string)$z['id']]);
+        }
     }
     // Zugangsschlüssel gehören zum Konto und dürfen es nicht überleben. Die
     // Schnittstelle weist sie zwar ohnehin ab, sobald das Konto fehlt – aber
@@ -944,14 +953,12 @@ function user_activate(string $email, string $passHash): ?string
     return $err;
 }
 
-// ---- Einmal-Token (Registrierungs-Bestätigung, Passwort-Reset) in data/pending/ ----
+// ---- Einmal-Token (Registrierungs-Bestätigung, Passwort-Reset), Tabelle confirmations ----
 
 function pending_gc(): void
 {
-    foreach (glob(data_path('pending') . '/*.json') ?: [] as $f) {
-        $d = json_read($f);
-        if (($d['expires'] ?? 0) < time()) @unlink($f);
-    }
+    $st = db()->prepare('DELETE FROM confirmations WHERE expires < ?');
+    $st->execute([time()]);
 }
 
 /** Token anlegen; $kind trennt die Namensräume ('reg', 'pwreset'). */
@@ -959,7 +966,7 @@ function pending_create(string $kind, array $data, int $ttl = 86400): string
 {
     pending_gc();
     $token = bin2hex(random_bytes(32));
-    json_write(data_path('pending') . '/' . $kind . '-' . $token . '.json', $data + ['expires' => time() + $ttl]);
+    db_confirmation_put(db(), $kind . '-' . $token, time() + $ttl, $data + ['expires' => time() + $ttl]);
     return $token;
 }
 
@@ -967,15 +974,34 @@ function pending_create(string $kind, array $data, int $ttl = 86400): string
 function pending_get(string $kind, string $token): ?array
 {
     if (preg_match('/^[a-f0-9]{64}$/', $token) !== 1) return null;
-    $d = json_read(data_path('pending') . '/' . $kind . '-' . $token . '.json');
-    if ($d === [] || ($d['expires'] ?? 0) < time()) return null;
+    $d = db_confirmation_get(db(), $kind . '-' . $token);
+    if ($d === null || ($d['expires'] ?? 0) < time()) return null;
     return $d;
 }
 
-/** Token lesen UND verbrauchen (einmalige Einlösung). */
+/**
+ * Token lesen UND verbrauchen (einmalige Einlösung).
+ *
+ * Lesen und Löschen in einer Transaktion: Zwei gleichzeitige Einlösungen
+ * desselben Tokens dürfen nicht beide durchkommen – vorher erledigte das
+ * unlink(), dessen zweiter Aufruf ins Leere ging.
+ */
 function pending_take(string $kind, string $token): ?array
 {
-    $d = pending_get($kind, $token);
-    if ($d !== null) @unlink(data_path('pending') . '/' . $kind . '-' . $token . '.json');
+    if (preg_match('/^[a-f0-9]{64}$/', $token) !== 1) return null;
+    $pdo = db();
+    $pdo->exec('BEGIN IMMEDIATE');
+    try {
+        $d = db_confirmation_get($pdo, $kind . '-' . $token);
+        if ($d !== null) {
+            $st = $pdo->prepare('DELETE FROM confirmations WHERE id = ?');
+            $st->execute([$kind . '-' . $token]);
+        }
+        $pdo->exec('COMMIT');
+    } catch (Throwable $e) {
+        $pdo->exec('ROLLBACK');
+        throw $e;
+    }
+    if ($d === null || ($d['expires'] ?? 0) < time()) return null;
     return $d;
 }

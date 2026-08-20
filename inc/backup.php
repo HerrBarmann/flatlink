@@ -58,10 +58,11 @@ function backup_build(): array
         $uebersicht[$name] = strlen($inhalt);
     }
 
-    // 3) Verzeichnisse: Klickzähler, Logos, Meldungen, offene Bestätigungen.
-    //    Rate-Limit-Zähler bleiben draußen – sie sind nach 24 Stunden ohnehin
-    //    hinfällig und würden eine Sicherung nur aufblähen.
-    foreach (['clicks', 'logos', 'reports', 'pending'] as $ordner) {
+    // 3) Verzeichnisse: Klickzähler, Logo-Dateien, Meldungen.
+    //    Rate-Limit-Zähler und Sperrdateien bleiben draußen – nach 24 Stunden
+    //    ohnehin hinfällig; die offenen Bestätigungen liegen seit 4.0 in der
+    //    Datenbank und stecken im SQL-Teil.
+    foreach (['clicks', 'logos', 'reports'] as $ordner) {
         $pfad = data_path() . '/' . $ordner;
         if (!is_dir($pfad)) continue;
         $n = 0;
@@ -84,14 +85,16 @@ function backup_build(): array
     return [$zip->build(), $uebersicht];
 }
 
-/** Die Einzeldateien, die mitgesichert werden (ohne Sperrdateien) */
+/**
+ * Die Einzeldateien, die mitgesichert werden (ohne Sperrdateien).
+ *
+ * Seit 4.0 ist das nur noch das Instanz-Geheimnis: Einstellungen, Gruppen,
+ * Logo-Metadaten, Warteschlange, Bestätigungen, Audit und die Betriebs-Marker
+ * liegen in der Datenbank und stecken damit im SQL-Teil der Sicherung.
+ */
 function backup_dateien(): array
 {
-    return [
-        'settings.json', 'groups.json', 'logos.json',
-        'pending-users.json', 'secret.key', 'audit.log',
-        'links-gc.json', 'links-gc-warned.json',
-    ];
+    return ['secret.key'];
 }
 
 /** Der Zettel im Archiv */

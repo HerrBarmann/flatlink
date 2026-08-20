@@ -473,31 +473,27 @@ Instanz mit einer Million Links und hunderttausend Konten: Anmeldeseite 9
 ms, ein einzelnes Konto 0,01 ms, das Nachschlagen einer Weiterleitung 0,01
 ms – alles innerhalb der üblichen PHP-Speichergrenze.
 
-Alles Übrige sind kleine JSON-Dateien unter `data/`, mit `flock` gegen
-gleichzeitige Schreibzugriffe und atomarem Schreiben über Tempdatei plus
-`rename`:
+Seit 4.0 liegt der gesamte wachsende Zustand in dieser einen Datei –
+Einstellungen, Gruppen, Logo-Metadaten, offene Bestätigungen,
+Audit-Protokoll, Sitzungen. Daneben bleibt nur, was aus gutem Grund eine
+Datei ist:
 
-| Datei | Inhalt |
+| Pfad | Inhalt |
 | --- | --- |
-| `flatlink.sqlite` | Kurzlinks, Konten und Zugangsschlüssel, siehe oben |
+| `flatlink.sqlite` | alles Genannte – Kurzlinks, Konten, Schlüssel, Einstellungen, Gruppen, Audit, Sitzungen |
 | `clicks/<code>.json` | Klickzähler – bewusst eine Mini-Datei je Code: Der Weiterleitungspfad schreibt sie bei jedem Scan, ohne gemeinsames Schreib-Lock |
-| `groups.json` | Gruppen: Anzeigename und Rechte |
-| `settings.json` | Zur Laufzeit änderbare Einstellungen |
-| `logos/` | Hochgeladene Logos für QR-Codes |
+| `logos/` | Hochgeladene Logo-Dateien (ihre Metadaten stehen in der Datenbank) |
 | `ratelimit/` | Zähler je IP-Hash (HMAC mit Instanz-Geheimnis), nach 24 h gelöscht |
 | `secret.key` | Geheimnis dieser Instanz für die IP-Hashes – wie ein Passwort behandeln |
-| `pending/` | Offene Bestätigungs-Token (Registrierung, Reset) |
 
 Ein Backup ist damit weiterhin ein simples Kopieren des `data/`-Ordners –
 oder ein Klick auf *Sicherung herunterladen* in den Einstellungen.
 
-**Warum nicht alles in der Datenbank liegt:** In sie gehört, was mit dem
-Bestand wächst und deshalb nicht am Stück gelesen werden darf – Links,
-Konten, Zugangsschlüssel. Die Klickzähler bleiben bewusst Einzeldateien: Sie
-werden im Weiterleitungspfad bei *jedem* Scan geschrieben, und genau dort
-wäre ein gemeinsames Schreib-Lock die schlechteste aller Ideen. Der Rest –
-Einstellungen, Gruppen, Logo-Namen – ist klein, konstant und in einer
-Textdatei leichter zu reparieren als in einer Tabelle.
+**Warum die Klickzähler nicht in der Datenbank liegen:** Sie werden im
+Weiterleitungspfad bei *jedem* Scan geschrieben, und genau dort wäre ein
+gemeinsames Schreib-Lock die schlechteste aller Ideen. Eine Datei je Code
+kennt keinen Nachbarn – deshalb schafft eine einzelne CPU tausende
+Weiterleitungen pro Sekunde.
 
 Eine ehrliche Grenze bleibt: Die Admin-Gesamtliste über *Millionen* Links
 lädt auch mit Datenbank den ganzen Bestand in den Speicher – wer wirklich

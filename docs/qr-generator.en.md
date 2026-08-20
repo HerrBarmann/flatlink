@@ -74,7 +74,7 @@ stay with the owner (and administrators), and the logo still counts towards
 their quota. Anyone who sees a shared logo in their list can use it, but cannot
 take it away from anyone.
 
-Technically the share lives in `data/logos.json` as a list of group ids
+Technically the share lives in the logo metadata (table `logos`) as a list of group ids
 (`shared`); the asterisk `*` stands for all accounts. Groups that no longer
 exist are discarded on save.
 

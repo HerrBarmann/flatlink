@@ -15,7 +15,7 @@ require_once __DIR__ . '/store.php';
  * überhaupt dürfen). Ein Konto kann in beliebig vielen Gruppen sein; seine
  * Rechte sind die Vereinigung aller Gruppenrechte.
  *
- * Ablage: data/groups.json
+ * Ablage: Tabelle groups (siehe inc/db.php)
  *   { "marketing": { "name": "Marketing", "perms": ["custom_code"], "created": "..." } }
  * Mitgliedschaften stehen am Konto in users.json unter "groups".
  */
@@ -83,15 +83,21 @@ function perms_sections(): array
     ];
 }
 
-function groups_file(): string
+/**
+ * Alle Gruppen, je Anfrage nur einmal geladen.
+ *
+ * Der Zwischenspeicher hat denselben Grund wie bei users_all(): group_label()
+ * läuft in Linklisten einmal je Zeile – vorher las jede Zeile die komplette
+ * groups.json neu von der Platte.
+ *
+ * @return array<string,array{name:string,perms:string[],created:string}>
+ */
+function groups_all(bool $frisch = false): array
 {
-    return data_path() . '/groups.json';
-}
-
-/** @return array<string,array{name:string,perms:string[],created:string}> */
-function groups_all(): array
-{
-    return json_read(groups_file());
+    static $cache = null;
+    if ($frisch) { $cache = null; return []; }
+    if ($cache === null) $cache = db_map_all(db(), 'groups', 'id');
+    return $cache;
 }
 
 function group_get(string $id): ?array
@@ -143,7 +149,7 @@ function group_save(string $id, string $name, array $perms, array $limits = [], 
         return t('Präfix: 1–32 Zeichen, nur Kleinbuchstaben, Ziffern, Punkt, Minus, Unterstrich.');
     }
 
-    json_update(groups_file(), function (array $groups) use ($id, $name, $perms, $clean, $prefix, $shared) {
+    db_map_update(db(), 'groups', 'id', function (array $groups) use ($id, $name, $perms, $clean, $prefix, $shared) {
         $groups[$id] = [
             'name' => $name,
             'perms' => $perms,
@@ -154,6 +160,7 @@ function group_save(string $id, string $name, array $perms, array $limits = [], 
         ];
         return $groups;
     });
+    groups_all(true);
     return null;
 }
 
@@ -205,10 +212,11 @@ function all_prefixes(): array
  */
 function group_delete(string $id): void
 {
-    json_update(groups_file(), function (array $groups) use ($id) {
+    db_map_update(db(), 'groups', 'id', function (array $groups) use ($id) {
         unset($groups[$id]);
         return $groups;
     });
+    groups_all(true);
     users_update(function (array $users) use ($id) {
         foreach ($users as $k => $u) {
             if (in_array($id, $u['groups'] ?? [], true)) {

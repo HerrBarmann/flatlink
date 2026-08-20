@@ -136,7 +136,7 @@ What **every** account may do is set under *Settings → Base rules*: limits
 for links, statistics depth and logos, the quota for custom codes and the
 permissions everyone gets. Their defaults live in `inc/config.php`; whatever
 is changed in the interface overrides them and lands in
-`data/settings.json`. Whoever should get more than the baseline gets it
+the storage (table `settings`). Whoever should get more than the baseline gets it
 through a group.
 
 ### Two kinds of groups

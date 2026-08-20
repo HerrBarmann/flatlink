@@ -28,7 +28,7 @@ const GC_CODES = ['gc-anon-alt', 'gc-anon-jung', 'gc-mail-alt', 'gc-frisch'];
 // ---- Unterprozess: einen Lauf mit einer Einstellung ausführen -------------
 if (($argv[1] ?? '') !== '') {
     // Der Wochenmarker verhindert sonst den zweiten Lauf am selben Tag.
-    @unlink(data_path() . '/links-gc.json');
+    state_set('links-gc', []);
     links_gc();
     $da = array_keys(links_all());
     echo implode(',', array_values(array_filter(GC_CODES, fn($c) => in_array($c, $da, true)))), "\n";
@@ -46,8 +46,7 @@ function pruefe(string $was, bool $ok, string $detail = ''): void
 echo "Aufräumen ungenutzter Links\n\n";
 
 $sicherung = settings();
-$warnDatei = data_path() . '/links-gc-warned.json';
-$warnSicherung = is_file($warnDatei) ? (string)file_get_contents($warnDatei) : null;
+$warnSicherung = state_get('links-gc-warned');
 
 /** Eine Einstellung setzen und einen Lauf in einem eigenen Prozess anstoßen. */
 function lauf(int $kurz, int $lang, string $notiz = ''): array
@@ -94,7 +93,7 @@ alt_anlegen('gc-anon-alt',  null,   6);   // niemand erreichbar, sehr alt
 alt_anlegen('gc-anon-jung', null,   3);   // niemand erreichbar, unter der langen Frist
 alt_anlegen('gc-mail-alt',  $konto, 3);   // erreichbar, über der kurzen Frist
 alt_anlegen('gc-frisch',    $konto, 0);   // heute angelegt
-@unlink($warnDatei);
+state_set('links-gc-warned', []);
 
 // ---- Aus heißt aus --------------------------------------------------------
 
@@ -114,7 +113,7 @@ pruefe('Frischer Link bleibt unangetastet', in_array('gc-frisch', $da, true));
 pruefe('Erreichbarer Link wird zunächst nur gewarnt, nicht gelöscht',
     in_array('gc-mail-alt', $da, true));
 
-$warnungen = json_read($warnDatei);
+$warnungen = (array)state_get('links-gc-warned');
 pruefe('… und steht als gewarnt vermerkt', isset($warnungen['gc-mail-alt']));
 
 // ---- Die Quellenangabe in der Warnmail -----------------------------------
@@ -139,14 +138,14 @@ function mailstand(): int
 }
 
 alt_anlegen('gc-mail-alt', $konto, 3);
-@unlink($warnDatei);
+state_set('links-gc-warned', []);
 $ab = mailstand();
 lauf(2, 5, 'AGB § 2');
 $post = mailseit($ab);
 pruefe('Quellenangabe aus der Einstellung steht in der Warnmail', str_contains($post, 'automatisch gelöscht (AGB § 2):'));
 
 alt_anlegen('gc-mail-alt', $konto, 3);
-@unlink($warnDatei);
+state_set('links-gc-warned', []);
 $ab = mailstand();
 lauf(2, 5);
 $post = mailseit($ab);
@@ -154,7 +153,7 @@ pruefe('Ohne Einstellung endet der Satz einfach – keine fremde Quelle',
     str_contains($post, 'automatisch gelöscht:') && !str_contains($post, 'gelöscht ('));
 
 alt_anlegen('gc-mail-alt', $konto, 3);
-@unlink($warnDatei);
+state_set('links-gc-warned', []);
 lauf(2, 5);
 
 // ---- Nach der Warnfrist ---------------------------------------------------
@@ -165,19 +164,19 @@ pruefe('Direkt danach immer noch da – die 30 Tage laufen',
 
 // Die Warnung 31 Tage zurückdatieren
 $warnungen['gc-mail-alt'] = date('c', time() - 31 * 86400);
-json_write($warnDatei, $warnungen);
+state_set('links-gc-warned', $warnungen);
 $da = lauf(2, 5);
 pruefe('31 Tage nach der Warnung gelöscht', !in_array('gc-mail-alt', $da, true));
 
 // ---- Ein Aufruf setzt die Frist zurück ------------------------------------
 
 alt_anlegen('gc-mail-alt', $konto, 3);
-@unlink($warnDatei);
+state_set('links-gc-warned', ['gc-mail-alt' => date('c')]);
 touch(clicks_file('gc-mail-alt'));   // heute aufgerufen
 $da = lauf(2, 5);
 pruefe('Ein einziger Aufruf rettet den Link', in_array('gc-mail-alt', $da, true));
 pruefe('… und nimmt auch die Warn-Markierung zurück',
-    !isset(json_read($warnDatei)['gc-mail-alt']));
+    !isset(((array)state_get('links-gc-warned'))['gc-mail-alt']));
 
 // ---- Gesperrte Links bleiben ---------------------------------------------
 
@@ -192,7 +191,7 @@ pruefe('Gesperrte Links bleiben stehen, damit ihr Code nicht neu vergeben wird',
 foreach (GC_CODES as $c) link_delete($c);
 user_delete($konto);
 settings_save($sicherung);
-if ($warnSicherung !== null) { file_put_contents($warnDatei, $warnSicherung); } else { @unlink($warnDatei); }
+state_set('links-gc-warned', $warnSicherung);
 pruefe('Testlinks und -konto wieder entfernt',
     array_intersect(GC_CODES, array_keys(links_all())) === [] && user_get($konto) === null);
 

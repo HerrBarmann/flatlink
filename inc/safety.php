@@ -78,8 +78,7 @@ function urls_flagged(array $urls): array
  */
 function safety_fail_note(): void
 {
-    $f = data_path() . '/safety-fails.json';
-    json_update($f, function (array $d) {
+    state_update('safety-fails', function (array $d) {
         $d['n'] = (int)($d['n'] ?? 0) + 1;
         if (($d['seit'] ?? '') === '') $d['seit'] = date('c');
         $d['zuletzt'] = date('c');
@@ -90,8 +89,7 @@ function safety_fail_note(): void
 /** Nach einer geglückten Prüfung ist die Strähne vorbei */
 function safety_fail_reset(): void
 {
-    $f = data_path() . '/safety-fails.json';
-    if (is_file($f)) @unlink($f);
+    state_set('safety-fails', []);
 }
 
 /**
@@ -100,7 +98,7 @@ function safety_fail_reset(): void
  */
 function safety_fail_state(): ?array
 {
-    $d = json_read(data_path() . '/safety-fails.json');
+    $d = (array)state_get('safety-fails');
     return isset($d['n']) && (int)$d['n'] > 0 ? $d : null;
 }
 

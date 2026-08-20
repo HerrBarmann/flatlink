@@ -56,20 +56,21 @@ function demo_reset(): void
     require_once __DIR__ . '/groups.php';
     require_once __DIR__ . '/bio.php';
 
-    // Datenbank leeren – Tabellen bleiben, Inhalte gehen
-    foreach (['links', 'users', 'tokens'] as $t) {
+    // Datenbank leeren – Tabellen bleiben, Inhalte gehen. Die eigene Sitzung
+    // stirbt dabei mit (Tabelle sessions), und genau das soll sie: Der Reset
+    // wirft alle raus, auch den, der ihn ausgelöst hat.
+    foreach (['links', 'users', 'tokens', 'settings', 'state', 'groups',
+              'logos', 'pending_users', 'confirmations', 'audit', 'sessions'] as $t) {
         db()->exec('DELETE FROM ' . $t);
     }
-    // Dateibestand: Zähler, Logos, Meldungen, Bestätigungen, Einstellungen
-    foreach (['clicks', 'logos', 'reports', 'pending'] as $ordner) {
+    // Dateibestand: Zähler, Logo-Dateien, Meldungen
+    foreach (['clicks', 'logos', 'reports'] as $ordner) {
         foreach (glob(data_path($ordner) . '/*') ?: [] as $f) {
             if (is_file($f) && !str_ends_with($f, '.lock')) @unlink($f);
         }
     }
-    foreach (['groups.json', 'settings.json', 'pending-users.json', 'audit.log'] as $f) {
-        @unlink(data_path() . '/' . $f);
-    }
-    users_all(true);   // Konten-Zwischenspeicher dieser Anfrage verwerfen
+    users_all(true);    // Konten-Zwischenspeicher dieser Anfrage verwerfen
+    groups_all(true);   // dito für die Gruppen
 
     // ---- Der Bestand: genug, um jede Funktion anzufassen ----
     user_add('demo', 'demo-1234', 'admin');

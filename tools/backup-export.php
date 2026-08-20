@@ -169,7 +169,7 @@ foreach (backup_dateien() as $name) {
 }
 
 // Klickzähler, Logos, Meldungen, offene Bestätigungen
-foreach (['clicks', 'logos', 'reports', 'pending'] as $ordner) {
+foreach (['clicks', 'logos', 'reports'] as $ordner) {
     $quelle = data_path() . '/' . $ordner;
     if (!is_dir($quelle)) continue;
     $dateien = array_filter(glob($quelle . '/*') ?: [],

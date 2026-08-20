@@ -463,30 +463,25 @@ derived copies for searching. Measured on an instance with one million links
 and a hundred thousand accounts: login page 9 ms, a single account 0.01 ms,
 a redirect lookup 0.01 ms – all within PHP's usual memory limit.
 
-Everything else is small JSON files under `data/`, with `flock` against
-concurrent writes and atomic writing via temp file plus `rename`:
+Since 4.0 all growing state lives in this one file – settings, groups, logo
+metadata, open confirmations, the audit log, sessions. Next to it stays only
+what is a file for a reason:
 
-| File | Content |
+| Path | Content |
 | --- | --- |
-| `flatlink.sqlite` | Short links, accounts and access keys, see above |
+| `flatlink.sqlite` | all of the above – short links, accounts, keys, settings, groups, audit, sessions |
 | `clicks/<code>.json` | Click counters – deliberately one mini file per code: the redirect path writes them on every scan, without a shared write lock |
-| `groups.json` | Groups: display name and permissions |
-| `settings.json` | Settings changeable at runtime |
-| `logos/` | Uploaded logos for QR codes |
+| `logos/` | Uploaded logo files (their metadata lives in the database) |
 | `ratelimit/` | Counters per IP hash (HMAC with the instance secret), deleted after 24 h |
 | `secret.key` | This instance's secret for the IP hashes – treat like a password |
-| `pending/` | Open confirmation tokens (registration, reset) |
 
 A backup therefore remains a simple copy of the `data/` folder – or one
 click on *Download backup* in the settings.
 
-**Why not everything lives in the database:** into it goes what grows with
-the stock and therefore must not be read in one piece – links, accounts,
-access keys. The click counters deliberately stay individual files: they are
-written on *every* scan in the redirect path, and a shared write lock would
-be the worst possible idea exactly there. The rest – settings, groups, logo
-names – is small, constant, and easier to repair in a text file than in a
-table.
+**Why the click counters are not in the database:** they are written on
+*every* scan in the redirect path, and a shared write lock would be the
+worst possible idea exactly there. One file per code knows no neighbour –
+which is why a single CPU manages thousands of redirects per second.
 
 One honest limit remains: the admin's full list over *millions* of links
 still loads the whole stock into memory even with the database – anyone who

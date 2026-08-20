@@ -125,6 +125,8 @@ case '-h':
     sage('');
     sage('Betrieb');
     sage('  zustand                            kurzer Selbsttest');
+    sage('  audit [--limit=200]                Verwaltungsprotokoll als JSON-Zeilen');
+    sage('                                     (fuer SIEM/zentrale Logs, neueste zuletzt)');
     sage('');
     sage('Ohne --anwenden zeigt ldap:abgleich nur, was er täte.');
     exit(0);
@@ -291,6 +293,17 @@ case 'link:loeschen':
 
 case 'ldap:abgleich':
     require __DIR__ . '/ldap-abgleich.php';
+    exit(0);
+
+case 'audit':
+    // Dasselbe Zeilenformat, das bis 4.0 in data/audit.log stand – wer das
+    // Protokoll bisher per tail in ein zentrales Log gezogen hat, ruft
+    // jetzt dieses Kommando im Cron und bekommt identische Zeilen.
+    require_once dirname(__DIR__) . '/inc/audit.php';
+    $limit = max(1, (int)(opt($argv, 'limit') ?? 200));
+    foreach (array_reverse(audit_tail($limit)) as $e) {
+        sage(json_encode($e, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+    }
     exit(0);
 
 default:

@@ -228,9 +228,16 @@ function links_gc(): void
     require_once __DIR__ . '/safety.php';
     safety_recheck();
 
-    $marker = data_path() . '/links-gc.json';
-    if (is_file($marker) && filemtime($marker) > time() - 7 * 86400) return;
-    json_write($marker, ['last_run' => date('c')]);
+    $stand = state_get('links-gc');
+    if ((int)strtotime((string)($stand['last_run'] ?? '')) > time() - 7 * 86400) return;
+    state_set('links-gc', ['last_run' => date('c')]);
+
+    // Die wöchentliche Kehrwoche der übrigen Tabellen hängt an derselben
+    // Gelegenheit: abgelaufene Bestätigungen und alte Sitzungen. Beide
+    // braucht kein Cron – aber wachsen dürfen sie auch nicht.
+    require_once __DIR__ . '/auth.php';
+    pending_gc();
+    db_sessions_sweep(db());
 
     require_once __DIR__ . '/auth.php';
     require_once __DIR__ . '/mail.php';
@@ -249,8 +256,7 @@ function links_gc(): void
     $deleteCutoff = strtotime('-' . $years . ' years');
     $warnCutoff = strtotime('-' . $years . ' years +30 days'); // 1 Monat vor Ablauf
     $deleteCutoffLong = strtotime('-' . $yearsLong . ' years');
-    $warnFile = data_path() . '/links-gc-warned.json';
-    $warned = json_read($warnFile);
+    $warned = (array)state_get('links-gc-warned');
     $trustedBase = base_url(true);
     $log = function (string $line): void {
         file_put_contents(data_path() . '/links-gc.log', date('c') . ' ' . $line . "\n", FILE_APPEND | LOCK_EX);
@@ -326,7 +332,7 @@ function links_gc(): void
             }
         }
     }
-    json_write($warnFile, $warned);
+    state_set('links-gc-warned', $warned);
 }
 
 /**
@@ -842,15 +848,10 @@ function clicks_bump(string $code, ?int $item = null, ?int $weiche = null): void
 
 // ---- QR-Logos: Metadaten (Anzeigenamen) zu den zufälligen Datei-IDs ----
 
-function logos_meta_file(): string
-{
-    return data_path() . '/logos.json';
-}
-
 /** @return array<string,array{name:string,by:?string,created:string,shared?:string[]}> */
 function logos_meta(): array
 {
-    return json_read(logos_meta_file());
+    return db_map_all(db(), 'logos', 'id');
 }
 
 /**
@@ -910,7 +911,7 @@ function logo_store(array $datei, string $wunschname, string $besitzer): array
 
 function logo_meta_set(string $id, string $name, ?string $by): void
 {
-    json_update(logos_meta_file(), function (array $m) use ($id, $name, $by) {
+    db_map_update(db(), 'logos', 'id', function (array $m) use ($id, $name, $by) {
         // Eine vorhandene Freigabe überlebt das Umbenennen
         $m[$id] = ['name' => $name, 'by' => $by, 'created' => date('c'),
                    'shared' => (array)($m[$id]['shared'] ?? [])];
@@ -938,7 +939,7 @@ function logo_share_set(string $id, array $gruppen): void
         if (isset($bekannt[$g])) $sauber[] = $g;
     }
     $sauber = array_values(array_unique($sauber));
-    json_update(logos_meta_file(), function (array $m) use ($id, $sauber) {
+    db_map_update(db(), 'logos', 'id', function (array $m) use ($id, $sauber) {
         if (isset($m[$id])) $m[$id]['shared'] = $sauber;
         return $m;
     });
@@ -960,7 +961,7 @@ function logo_visible_for(array $meta, string $username, string $role, array $gr
 
 function logo_meta_delete(string $id): void
 {
-    json_update(logos_meta_file(), function (array $m) use ($id) {
+    db_map_update(db(), 'logos', 'id', function (array $m) use ($id) {
         unset($m[$id]);
         return $m;
     });

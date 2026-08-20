@@ -10,7 +10,7 @@ declare(strict_types=1);
  * dieselbe Stelle schicken. Nahm man den AUFGELÖSTEN Stand als Grundlage –
  * also inklusive allem, was nur in `inc/config.php` steht –, dann fror das
  * erste Speichern eines beliebigen Formulars sämtliche Werte in
- * `data/settings.json` ein. Eine spätere Änderung an der Konfigurationsdatei
+ * der Ablage ein. Eine spätere Änderung an der Konfigurationsdatei
  * blieb danach wirkungslos, ohne dass irgendwo ein Hinweis darauf zu sehen
  * gewesen wäre. Genau so ist ein per Upload nachgereichtes Standardrecht
  * verlorengegangen.
@@ -78,9 +78,8 @@ if (user_get($name) === null) {
     if ($err !== null) exit("Konto ließ sich nicht anlegen: $err\n");
 }
 
-$datei = data_path() . '/settings.json';
-$vorher = is_file($datei) ? (string)file_get_contents($datei) : null;
-@unlink($datei);   // von einem sauberen Stand aus
+$vorher = settings_stored();
+settings_save([]);   // von einem sauberen Stand aus
 
 $html = hole($basis . '/admin/login.php');
 hole($basis . '/admin/login.php', ['_csrf' => token($html), 'username' => $name, 'password' => 'Pruef-Passwort-123!']);
@@ -120,11 +119,11 @@ $faelle = [
 ];
 
 foreach ($faelle as $titel => $fall) {
-    @unlink($datei);
+    settings_save([]);
     $html = hole($basis . '/admin/settings.php');
     hole($basis . '/admin/settings.php', ['_csrf' => token($html)] + $fall['post']);
 
-    $gespeichert = is_file($datei) ? (array)json_decode((string)file_get_contents($datei), true) : [];
+    $gespeichert = settings_stored();
     $ist = array_keys($gespeichert);
     sort($ist);
     $soll = $fall['erwartet'];
@@ -134,19 +133,18 @@ foreach ($faelle as $titel => $fall) {
 }
 
 // Und die Gegenprobe: Ein zweites Formular darf das erste nicht wegwerfen.
-@unlink($datei);
+settings_save([]);
 $html = hole($basis . '/admin/settings.php');
 hole($basis . '/admin/settings.php', ['_csrf' => token($html)] + $faelle['Browser-Erweiterung']['post']);
 $html = hole($basis . '/admin/settings.php');
 hole($basis . '/admin/settings.php', ['_csrf' => token($html)] + $faelle['Öffentlicher Zugang']['post']);
-$nach = (array)json_decode((string)file_get_contents($datei), true);
+$nach = settings_stored();
 pruefe('Zweites Formular lässt das erste stehen',
     isset($nach['public_mode']));
 
 // ---- Aufräumen ------------------------------------------------------------
 
-@unlink($datei);
-if ($vorher !== null) file_put_contents($datei, $vorher);
+settings_save($vorher);
 @unlink($keks);
 // Das Testkonto verschwindet wieder – ein Admin-Konto, dessen Passwort im
 // Quelltext dieses Skripts steht, hat einen Testlauf nicht zu überleben.
