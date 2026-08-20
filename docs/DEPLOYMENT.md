@@ -21,7 +21,8 @@ ausprobieren will, ist mit den drei Zeilen im
    Connect](#8-shibboleth-saml-und-openid-connect)
 9. [Gruppen und Rechte in der Praxis](#9-gruppen-und-rechte-in-der-praxis)
 10. [Betrieb](#10-betrieb)
-11. [Wenn etwas nicht geht](#11-wenn-etwas-nicht-geht)
+11. [Leistung](#11-leistung)
+12. [Wenn etwas nicht geht](#12-wenn-etwas-nicht-geht)
 
 > **Zur Verlässlichkeit dieser Anleitung:** Die Teile zu flatlink selbst sind
 > gegen den Code geprüft. Bei den Fremdkomponenten – Shibboleth, LDAP,
@@ -983,7 +984,38 @@ Eigene Seiten anlegen und in `page_footer()` in
 
 ---
 
-## 11. Wenn etwas nicht geht
+## 11. Leistung
+
+flatlink selbst braucht keine Einstellung: Eine gezählte Weiterleitung
+kostet rund 0,2 ms in PHP, die Datenbank-Verbindung wird über
+`PDO::ATTR_PERSISTENT` je Worker wiederverwendet, und die Klickzählung ist
+ein einzelnes Anhängen an eine Datei. Was danach noch den Unterschied
+macht, liegt beim Betreiber – in absteigender Wirkung:
+
+1. **PHP-FPM mit `mpm_event`** (oder nginx + FPM) statt `mod_php` mit
+   `mpm_prefork`. Beim Prefork-Modell hält jede offene Verbindung – auch
+   eine wartende – einen vollen Prozess samt PHP fest, und HTTP/2 ist
+   ausgeschlossen. Der Umstieg hebt die Kapazität unter Last, nicht die
+   Zeit des einzelnen Aufrufs.
+2. **OPcache** ist auf fast jedem Server an (Vorgabe). Der letzte Schritt
+   ist `opcache.validate_timestamps=0`: PHP prüft Dateien dann nicht mehr
+   auf Änderung. Der Preis ist eine neue Pflicht – **nach jedem Update
+   `php-fpm` neu laden**, sonst läuft kommentarlos der alte Code weiter.
+   Wer dafür kein Deployment-Skript hat, lässt die Vorgabe stehen.
+3. **`pm.max_children`** der FPM-Voreinstellung prüfen: Debian liefert 5 –
+   gedacht für Server, die sich den Speicher mit vielem teilen. Ein
+   flatlink-Worker braucht ~40 MB; auf einer eigenen Maschine darf es ein
+   Vielfaches sein.
+4. **HTTP/2 und TLS 1.3** helfen der Verwaltung (parallele Assets) und dem
+   ersten Eindruck. Der einzelne Scan bleibt netzgebunden: DNS, TCP und
+   TLS-Handshake eines kalten Telefons kosten drei bis vier Umläufe, bevor
+   PHP überhaupt beginnt – daran ändert kein Server-Tuning etwas.
+
+Auf **Shared Hosting** ist nichts davon einstellbar – und nichts davon
+nötig: aktuelle PHP-Version im Kundenmenü wählen, fertig. Genau für diesen
+Fall ist flatlink gebaut.
+
+## 12. Wenn etwas nicht geht
 
 | Symptom | Wahrscheinliche Ursache |
 | --- | --- |

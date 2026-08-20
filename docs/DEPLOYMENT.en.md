@@ -216,7 +216,37 @@ cron is needed and it runs on shared hosting.
 page shows mail and Safe Browsing state. Failed webhook deliveries and Safe
 Browsing failures are surfaced in the admin UI rather than logged silently.
 
-## 10. When something breaks
+## 10. Performance
+
+flatlink itself needs no tuning: a counted redirect costs about 0.2 ms in
+PHP, the database connection is reused per worker via
+`PDO::ATTR_PERSISTENT`, and click counting is a single append to a file.
+What still makes a difference sits with the operator, in descending order
+of impact:
+
+1. **PHP-FPM with `mpm_event`** (or nginx + FPM) instead of `mod_php` with
+   `mpm_prefork`. Under prefork, every open connection – including an idle
+   keep-alive one – pins a full process with PHP inside, and HTTP/2 is
+   impossible. The switch raises capacity under load, not the time of a
+   single request.
+2. **OPcache** is on almost everywhere (the default). The last step is
+   `opcache.validate_timestamps=0`: PHP then stops checking files for
+   changes. The price is a new duty – **reload `php-fpm` after every
+   update**, or the old code keeps running without a word. If you have no
+   deployment script to do that, keep the default.
+3. **Check `pm.max_children`** of the FPM default: Debian ships 5, meant
+   for servers that share their memory with many things. A flatlink worker
+   needs ~40 MB; on a dedicated machine a multiple of that is fine.
+4. **HTTP/2 and TLS 1.3** help the admin area (parallel assets) and first
+   impressions. The individual scan stays network-bound: DNS, TCP and the
+   TLS handshake of a cold phone cost three to four round trips before PHP
+   even starts – no server tuning changes that.
+
+On **shared hosting** none of this is configurable – and none of it is
+needed: pick a current PHP version in the hosting panel, done. That is
+exactly the case flatlink is built for.
+
+## 11. When something breaks
 
 - **500 on some pages after an update:** you probably uploaded only part of
   the release. The upload list in each release note names every changed file
