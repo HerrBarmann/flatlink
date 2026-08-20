@@ -988,7 +988,7 @@ your password immediately and contact us.
     'Dieses SVG lässt sich nicht sicher übernehmen – bitte als einfache Grafik (Pfade und Flächen) exportieren oder PNG verwenden.' => 'This SVG cannot be adopted safely – please export it as a plain graphic (paths and shapes) or use PNG.',
     'Domain „%s“ entfernt' => 'Domain “%s” removed',
     'Domain „%s“ hinzugefügt' => 'Domain “%s” added',
-    'Festgehalten wird, wer wann was verwaltet hat – Links gesperrt, Konten freigeschaltet, Domains geändert. Besucher tauchen hier nie auf: keine Klicks, keine Adressen, keine Weiterleitungen. Die Datei dahinter ist %s, eine JSON-Zeile je Ereignis.' => 'Recorded is who administered what and when – links blocked, accounts approved, domains changed. Visitors never appear here: no clicks, no addresses, no redirects. The file behind it is %s, one JSON line per event.',
+    'Festgehalten wird, wer wann was verwaltet hat – Links gesperrt, Konten freigeschaltet, Domains geändert. Besucher tauchen hier nie auf: keine Klicks, keine Adressen, keine Weiterleitungen. Für ein zentrales Log liefert %s die Einträge als JSON-Zeilen.' => 'Recorded is who administered what and when – links blocked, accounts approved, domains changed. Visitors never appear here: no clicks, no addresses, no redirects. For a central log, %s delivers the entries as JSON lines.',
     'Handlung' => 'Action',
     'Konto' => 'Account',
     'Noch keine Einträge.' => 'No entries yet.',
