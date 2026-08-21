@@ -286,7 +286,6 @@ function link_ausgeschoepft(string $code, array $link, string $domain = ''): boo
     $st->execute([clicks_schluessel($code, $domain)]);
     $c = $st->fetch() ?: ['n' => 0, 'n_roh' => 0];
     $st->closeCursor();
-    $offen = 0;
     // Gegen den UNGEFILTERTEN Zähler prüfen, nicht gegen den der Statistik.
     // Der statistische lässt Bots aus – für Kampagnenzahlen richtig, für ein
     // Limit fatal: Wer „User-Agent: curl/8.0" schickt, wurde weitergeleitet,
@@ -295,7 +294,7 @@ function link_ausgeschoepft(string $code, array $link, string $domain = ''): boo
     //
     // max() statt nur n_roh, damit Links aus der Zeit vor diesem Feld nicht
     // plötzlich bei null anfangen.
-    return max((int)($c['n'] ?? 0), (int)($c['n_roh'] ?? 0)) + $offen >= $m;
+    return max((int)($c['n'] ?? 0), (int)($c['n_roh'] ?? 0)) >= $m;
 }
 
 /**
@@ -1126,6 +1125,16 @@ function clicks_log_file(string $code, string $domain = ''): string
  * gezählt statt verloren; beides ist ein µs-Fenster, aber Klickzahlen
  * sollen im Zweifel nicht schrumpfen.
  */
+/**
+ * Ein Anhang-Protokoll aus der Zeit vor 5.2 einlesen und entfernen.
+ *
+ * Anders als die Basis ist es ein ZUWACHS: Es wird mit Plus verrechnet und
+ * danach gelöscht, damit es nicht ein zweites Mal zählt. Gelesen werden auch
+ * die älteren Zeilenformate – Tupelzeilen aus 4.1/4.2 (`d` und `h`
+ * zusammen) und die datumslosen Merkmalzeilen aus 4.3.
+ *
+ * Zum Aufruf mit Dateinamen gilt dasselbe wie bei clicks_altbasis().
+ */
 function clicks_altlog(string $code, string $domain = ''): void
 {
     $log = clicks_log_file($code, $domain);
@@ -1202,7 +1211,16 @@ function clicks_uebernahme(string $code, string $domain = ''): void
     clicks_altlog($code, $domain);
 }
 
-/** Eine Basisdatei aus der Zeit vor 5.1 einlesen und entfernen */
+/**
+ * Eine Basisdatei aus der Zeit vor 5.1 einlesen und entfernen.
+ *
+ * ZUM AUFRUF MIT DATEINAMEN: Kehrwoche und Sicherung laufen über das
+ * Verzeichnis und kennen nur den Dateinamen, also den ZUSAMMENGESETZTEN
+ * Schlüssel („kunde-a.link/shop"). Sie übergeben ihn als `$code` und lassen
+ * `$domain` leer. Das trägt, weil `clicks_schluessel($x, '')` die Identität
+ * ist – der Schlüssel geht unverändert durch. Wer hier etwas ändert, muss
+ * diese Eigenschaft erhalten.
+ */
 function clicks_altbasis(string $code, string $domain = ''): void
 {
     $f = clicks_file($code, $domain);

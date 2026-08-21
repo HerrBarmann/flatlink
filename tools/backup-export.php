@@ -172,11 +172,23 @@ foreach (backup_dateien() as $name) {
 foreach (['clicks', 'logos', 'reports'] as $ordner) {
     $quelle = data_path() . '/' . $ordner;
     if (!is_dir($quelle)) continue;
-    // Klick-Protokolle vor dem Export falten – gesichert werden Summen,
-    // kein Anhang-Protokoll (Review 4.2.0, F1).
+    // Zählstände aus den alten Ablagen einlesen, bevor exportiert wird:
+    // gesichert werden Summen, kein Anhang-Protokoll (Review 4.2.0, F1).
+    // Seit 5.2 räumt das die Dateien gleich mit ab – was hier durchläuft,
+    // braucht nach dem Export niemand mehr.
+    //
+    // Der Zwilling dieser Schleife steht in inc/backup.php. Beim Wegfall des
+    // Protokolls (5.2) wurde nur der nachgezogen, und dieser hier rief
+    // weiter clicks_fold() – eine Funktion, die es nicht mehr gab. Das
+    // Werkzeug starb mit einem Fatal Error, nachdem es datenbank.sql und
+    // secret.key schon geschrieben hatte: ein halber Sicherungsstand, und
+    // das ausgerechnet direkt nach einem Umbau der Datenhaltung.
     if ($ordner === 'clicks') {
+        foreach (glob($quelle . '/*.json') ?: [] as $bf) {
+            clicks_altbasis(rawurldecode(basename($bf, '.json')));
+        }
         foreach (glob($quelle . '/*.log') ?: [] as $lf) {
-            if (filesize($lf) > 0) clicks_fold(rawurldecode(basename($lf, '.log')));
+            clicks_altlog(rawurldecode(basename($lf, '.log')));
         }
         clearstatcache();
     }

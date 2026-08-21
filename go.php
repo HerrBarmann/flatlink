@@ -130,10 +130,10 @@ if (!empty($link['pass'])) {
                 bio_render($code, $link, $namensraum);
             }
             [$ziel, $weiche] = route_target($link);
-            if ($zaehlbar) clicks_bump($code, null, $weiche, $namensraum);
-            elseif ($limitiert) clicks_roh_bump($code, $namensraum);
-            header('Location: ' . $ziel, true, 302);
-            exit;
+            weiterleitung($ziel, function () use ($code, $weiche, $namensraum, $zaehlbar, $limitiert) {
+                if ($zaehlbar) clicks_bump($code, null, $weiche, $namensraum);
+                elseif ($limitiert) clicks_roh_bump($code, $namensraum);
+            });
         } else {
             // Kein Warten mehr an dieser Stelle: Der golock-Zähler oben
             // bremst bereits, und ein sleep() hätte für seine Dauer einen
@@ -171,7 +171,10 @@ if (!empty($link['pass'])) {
 if (($link['og_title'] ?? '') !== '' && route_ist_vorschau()) {
     preview_render($code, $link, $ziel);
 }
-if ($zaehlbar) clicks_bump($code, null, $weiche, $namensraum);
-elseif ($limitiert) clicks_roh_bump($code, $namensraum);
-header('Location: ' . $ziel, true, 302);
-exit;
+// Erst weiterleiten, dann zählen: Das Zählen ist eine Schreib-Transaktion,
+// und auf ein Schreib-Lock soll der Besucher nicht warten (siehe
+// weiterleitung()).
+weiterleitung($ziel, function () use ($code, $weiche, $namensraum, $zaehlbar, $limitiert) {
+    if ($zaehlbar) clicks_bump($code, null, $weiche, $namensraum);
+    elseif ($limitiert) clicks_roh_bump($code, $namensraum);
+});

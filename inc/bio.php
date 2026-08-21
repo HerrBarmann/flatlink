@@ -23,6 +23,11 @@ declare(strict_types=1);
  * Besucher, nicht die Seite.
  */
 require_once __DIR__ . '/store.php';
+// bio_follow() leitet weiter und zählt danach – dafür braucht es
+// weiterleitung(). Bisher trug go.php das bei, weil es routing.php ohnehin
+// lädt; eine Abhängigkeit, die nur zufällig erfüllt war. routing.php lädt
+// seinerseits nichts von hier, ein Ringschluss entsteht also nicht.
+require_once __DIR__ . '/routing.php';
 
 /** Höchstzahl der Ziele auf einer Seite – jenseits davon liest sie ohnehin niemand */
 const BIO_MAX_ITEMS = 30;
@@ -436,7 +441,9 @@ function bio_follow(string $code, array $l, int $i, string $domain = ''): never
         header('Location: ' . base_url() . '/' . $code, true, 302);
         exit;
     }
-    if (click_zaehlbar($l)) clicks_bump($code, $i, null, $domain);
-    header('Location: ' . (string)$items[$i]['url'], true, 302);
-    exit;
+    // Auch hier erst weiterleiten, dann zählen – aus demselben Grund wie in
+    // go.php: Der Klick auf ein Bio-Ziel schreibt in die Datenbank.
+    weiterleitung((string)$items[$i]['url'], function () use ($code, $l, $i, $domain) {
+        if (click_zaehlbar($l)) clicks_bump($code, $i, null, $domain);
+    });
 }

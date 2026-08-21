@@ -207,8 +207,9 @@ function db_schema(PDO $pdo): void
     // Auf Shared Hosting ist nicht der Plattenplatz die Obergrenze, sondern
     // das Inode-Kontingent: Ein angeklickter Link belegte drei Inoden
     // (Basis, deren Sperrdatei, Anhang-Protokoll), bei üblichen 250.000
-    // Inoden also rund 83.000 Links. Basis und Sperrdatei entfallen damit;
-    // das Protokoll bleibt, weil es der heiße Pfad ist (siehe clicks_bump).
+    // Inoden also rund 83.000 Links. Seit 5.2 belegt er keine mehr – auch
+    // das Protokoll ist weg, ein gezählter Klick ist eine Transaktion und
+    // sonst nichts (siehe clicks_bump).
     //
     // `item` trennt den Link selbst ('') von den Zielen einer Bio-Seite
     // ('0', '1', …). So braucht es keine zweite Tabelle für dieselbe Sache.

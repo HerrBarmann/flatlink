@@ -43,6 +43,51 @@ declare(strict_types=1);
  * Umleitung. Ohne eigene Angaben am Link passiert gar nichts: Dann wird auch
  * ein Vorschau-Abruf ganz normal weitergeleitet.
  */
+/**
+ * Weiterleiten – und erst danach zählen.
+ *
+ * Seit 5.2 ist das Zählen eine Schreib-Transaktion. SQLite lässt unter WAL
+ * genau einen Schreiber zu, und `busy_timeout` steht auf fünf Sekunden: Hält
+ * ein anderer Vorgang das Lock – etwa `links_write_many()`, das EINE
+ * Transaktion um eine Massenänderung klammert –, wartete der Besucher mit.
+ *
+ * Der Grundsatz stand schon in clicks_bump(): „Statistik ist Beiwerk der
+ * Weiterleitung, nicht ihr Zweck." Für FEHLER galt er (sie werden
+ * geschluckt), für WARTEZEIT bisher nicht. Hier wird er auch dafür wahr:
+ * Der Kopf geht raus, die Antwort wird abgeschlossen, gezählt wird danach.
+ *
+ * Sauber garantiert ist das nur unter PHP-FPM, wo
+ * `fastcgi_finish_request()` die Verbindung wirklich schließt. Sonst wird
+ * mit `Content-Length: 0` plus `flush()` nachgeholfen: PHP sendet die
+ * Kopfzeilen erst, wenn Rumpf-Ausgabe beginnt, deshalb das leere `echo`.
+ * Das ist Best effort – der Browser folgt der Umleitung in aller Regel
+ * sofort, aber die Zusage gilt nur mit FPM.
+ *
+ * @param callable():void $zaehlen läuft NACH dem Abschluss der Antwort
+ */
+function weiterleitung(string $ziel, ?callable $zaehlen = null): never
+{
+    header('Location: ' . $ziel, true, 302);
+    header('Content-Length: 0');
+    if ($zaehlen === null) exit;
+
+    if (function_exists('fastcgi_finish_request')) {
+        fastcgi_finish_request();
+    } else {
+        echo '';
+        while (ob_get_level() > 0) @ob_end_flush();
+        @flush();
+    }
+    // Ab hier sieht der Besucher nichts mehr. Was schiefgeht, geht still
+    // schief – dieselbe Haltung wie in clicks_bump().
+    try {
+        $zaehlen();
+    } catch (Throwable $e) {
+        // nichts: die Weiterleitung ist längst draußen
+    }
+    exit;
+}
+
 function route_ist_vorschau(): bool
 {
     $ua = (string)($_SERVER['HTTP_USER_AGENT'] ?? '');
