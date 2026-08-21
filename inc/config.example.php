@@ -241,6 +241,12 @@ return [
     // Passwort gewechselt wurde. (Gesperrte Konten weist er weiterhin ab.)
     'passkey_hint' => 'on',
 
+    // Das Protokoll der Verwaltungshandlungen auf die jüngsten N Einträge
+    // begrenzen (0 = unbegrenzt, Vorgabe). Für Institutionen ist die
+    // Nachvollziehbarkeit der Zweck des Protokolls – wer dagegen in seiner
+    // Datenschutzerklärung eine Begrenzung zusagt, trägt die Zahl hier ein.
+    'audit_keep' => 0,
+
     // Anfragen je Stunde und Zugangsschlüssel für die Programmierschnittstelle.
     // Gezählt wird nach Schlüssel, nicht nach IP – ein Server, der die
     // Schnittstelle bedient, kommt immer von derselben Adresse.

@@ -48,3 +48,22 @@ function audit_tail(int $anzahl = 200): array
     return db_audit_tail(db(), $anzahl);
 }
 
+/**
+ * Das Protokoll auf die jüngsten Einträge begrenzen.
+ *
+ * Läuft in der wöchentlichen Kehrwoche mit cfg('audit_keep') als Maß;
+ * 0 heißt unbegrenzt – das ist die Vorgabe, denn für Institutionen ist
+ * die Nachvollziehbarkeit der Zweck des Protokolls. Wer in seiner
+ * Datenschutzerklärung eine Begrenzung zusagt (wie 1337.kiwi), setzt
+ * die Zahl in der Konfiguration und macht die Zusage damit wahr.
+ */
+function audit_prune(int $keep): int
+{
+    if ($keep < 1) return 0;
+    $pdo = db();
+    $max = (int)$pdo->query('SELECT COALESCE(MAX(id), 0) FROM audit')->fetchColumn();
+    if ($max <= $keep) return 0;
+    $st = $pdo->prepare('DELETE FROM audit WHERE id <= ?');
+    $st->execute([$max - $keep]);
+    return $st->rowCount();
+}

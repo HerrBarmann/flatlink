@@ -542,7 +542,9 @@ function passkey_register(string $user, array $antwort, string $label): ?string
             'alg' => $alg,
             'sign_count' => (int)$auth['signCount'],
             'label' => mb_substr(trim($label), 0, 60) ?: 'Passkey',
-            'created' => date('c'),
+            // Tagesgenau bzw. stundengenau – siehe Datenschutzerklärung:
+            // Es wird nicht feiner gespeichert, als dort zugesagt ist.
+            'created' => date('Y-m-d'),
             'last_used' => null,
         ];
         $users[$user]['passkeys'] = array_values($liste);
@@ -609,8 +611,14 @@ function passkey_verify(string $user, array $antwort, bool $alsPasswortersatz = 
         if (!isset($users[$user]['passkeys'])) return null;
         foreach ($users[$user]['passkeys'] as $i => $p) {
             if (($p['id'] ?? '') === $id) {
+                $stunde = date('Y-m-d\TH:00:00P');
+                // Gleicher Zähler, gleiche Stunde: nichts zu schreiben. Das
+                // erspart nebenbei einen Konto-Schreibzugriff je Anmeldung.
+                if ((int)($p['sign_count'] ?? 0) === $neu && ($p['last_used'] ?? '') === $stunde) {
+                    return null;
+                }
                 $users[$user]['passkeys'][$i]['sign_count'] = $neu;
-                $users[$user]['passkeys'][$i]['last_used'] = date('c');
+                $users[$user]['passkeys'][$i]['last_used'] = $stunde;
                 return $users;
             }
         }

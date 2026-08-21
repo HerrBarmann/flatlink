@@ -282,8 +282,10 @@ function links_gc(): void
     // Gelegenheit: abgelaufene Bestätigungen und alte Sitzungen. Beide
     // braucht kein Cron – aber wachsen dürfen sie auch nicht.
     require_once __DIR__ . '/auth.php';
+    require_once __DIR__ . '/audit.php';
     pending_gc();
     db_sessions_sweep(db());
+    audit_prune((int)cfg('audit_keep'));
     // Klick-Protokolle, die niemand liest, werden wöchentlich gefaltet –
     // unabhängig von ihrer Größe (Review 4.2.0, F1): Gerade der Link mit
     // fünfzig Aufrufen im Monat, dessen Statistik nie jemand öffnet, soll

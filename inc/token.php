@@ -105,7 +105,9 @@ function token_create(string $user, string $label, string $umfang = TOKEN_VOLL,
         // Die ersten Zeichen im Klartext, damit sich mehrere Schlüssel in
         // der Liste auseinanderhalten lassen. Zum Anmelden reicht das nicht.
         'hint' => substr($plain, 0, strlen(TOKEN_PREFIX) + 6),
-        'created' => date('c'),
+        // Tagesgenau, nicht sekundengenau: Mehr verspricht die
+        // Datenschutzerklärung nicht, also wird mehr auch nicht abgelegt.
+        'created' => date('Y-m-d'),
         'last_used' => null,
         'scope' => $umfang,
         // Nur setzen, wenn gewünscht – ein fehlendes Feld ist die Antwort
@@ -133,7 +135,9 @@ function token_find(string $plain): ?array
     // Datei aufreihen – für eine Angabe, die auf die Stunde genau reicht.
     $letzte = (string)($eintrag['last_used'] ?? '');
     if ($letzte === '' || strtotime($letzte) < time() - 3600) {
-        $eintrag['last_used'] = date('c');
+        // Zur vollen Stunde abgeschnitten – die Angabe SOLL nicht genauer
+        // sein, nicht nur nicht genauer angezeigt werden.
+        $eintrag['last_used'] = date('Y-m-d\TH:00:00P');
         db_token_put(db(), $abdruck, $eintrag);
     }
     return $eintrag;
