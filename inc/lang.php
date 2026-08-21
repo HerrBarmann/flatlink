@@ -25,15 +25,57 @@ declare(strict_types=1);
  * bestimmen kann.
  */
 
-/** Sprache dieser Instanz, zwei Kleinbuchstaben; 'de' ist die Quellsprache */
-function lang(): string
+/**
+ * Sprache dieser Instanz, zwei Kleinbuchstaben; 'de' ist die Quellsprache.
+ *
+ * $setzen übersteuert sie für DIESE EINE Anfrage – gedacht für öffentliche
+ * Seiten, die ihre Sprache aus dem Browser aushandeln (eine Projektseite,
+ * eine Landingpage). Muss vor der ersten Ausgabe stehen; t() bemerkt den
+ * Wechsel und lädt das passende Wörterbuch nach.
+ *
+ * Bewusst kein Speichern in der Sitzung: Der Weiterleitungspfad startet
+ * keine, und eine Sprache, die je nach Vorgeschichte anders ausfällt, wäre
+ * für Zwischenspeicher und Suchmaschinen ein Ärgernis.
+ */
+function lang(?string $setzen = null): string
 {
     static $l = null;
+    if ($setzen !== null && preg_match('/^[a-z]{2}$/', $setzen) === 1) {
+        return $l = $setzen;
+    }
     if ($l === null) {
         $kandidat = (string)(settings()['language'] ?? '');
         $l = preg_match('/^[a-z]{2}$/', $kandidat) === 1 ? $kandidat : 'de';
     }
     return $l;
+}
+
+/**
+ * Die vom Browser bevorzugte Sprache, beschränkt auf das, was da ist.
+ *
+ * Wertet Accept-Language mitsamt Gewichtung aus (`de-AT;q=0.9`). Kennt die
+ * Installation keine davon, bleibt es bei $vorgabe.
+ */
+function lang_aus_browser(string $vorgabe = 'en'): string
+{
+    $kopf = (string)($_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? '');
+    if ($kopf === '') return $vorgabe;
+    $wunsch = [];
+    foreach (explode(',', $kopf) as $teil) {
+        $stueck = explode(';q=', trim($teil));
+        $kuerzel = strtolower(substr(trim($stueck[0]), 0, 2));
+        if (preg_match('/^[a-z]{2}$/', $kuerzel) !== 1) continue;
+        $gewicht = isset($stueck[1]) ? (float)$stueck[1] : 1.0;
+        // Beim ersten Vorkommen bleiben: „de,de-AT" nennt dieselbe Sprache
+        // zweimal, das zweite Gewicht soll das erste nicht verdrängen.
+        if (!isset($wunsch[$kuerzel])) $wunsch[$kuerzel] = $gewicht;
+    }
+    arsort($wunsch);
+    $da = lang_available();
+    foreach (array_keys($wunsch) as $kuerzel) {
+        if (isset($da[$kuerzel])) return $kuerzel;
+    }
+    return $vorgabe;
 }
 
 /** Welche Sprachen diese Installation mitbringt @return array<string,string> Kürzel => Eigenname */
@@ -60,9 +102,13 @@ function lang_available(): array
 function t(string $text, ...$args): string
 {
     static $woerterbuch = null;
-    if ($woerterbuch === null) {
-        $datei = __DIR__ . '/lang/' . lang() . '.php';
-        $woerterbuch = lang() !== 'de' && is_file($datei) ? (array)require $datei : [];
+    static $geladenFuer = null;
+    // Auch die geladene Sprache merken: Eine Seite darf sie je Anfrage
+    // übersteuern (siehe lang()), und dann muss das Wörterbuch mitziehen.
+    if ($woerterbuch === null || $geladenFuer !== lang()) {
+        $geladenFuer = lang();
+        $datei = __DIR__ . '/lang/' . $geladenFuer . '.php';
+        $woerterbuch = $geladenFuer !== 'de' && is_file($datei) ? (array)require $datei : [];
     }
     $uebersetzt = (string)($woerterbuch[$text] ?? $text);
     return $args === [] ? $uebersetzt : vsprintf($uebersetzt, $args);

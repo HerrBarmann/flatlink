@@ -725,7 +725,10 @@ function page_header(string $title, bool $admin = false, ?string $desc = null, ?
     require_once __DIR__ . '/demo.php';
     demo_boot();
     security_headers();
-    echo '<!doctype html><html lang="de"><head><meta charset="utf-8">'
+    // Das lang-Attribut stand hier fest auf "de" – auch auf einer englischen
+    // Instanz. Ein Screenreader spricht englischen Text dann mit deutscher
+    // Aussprache, und Suchmaschinen ordnen die Seite falsch ein.
+    echo '<!doctype html><html lang="' . e(lang()) . '"><head><meta charset="utf-8">'
         . '<meta name="viewport" content="width=device-width, initial-scale=1">'
         . '<title>' . e($title) . ' – ' . $site . '</title>';
     if ($desc !== null) {
@@ -745,6 +748,14 @@ function page_header(string $title, bool $admin = false, ?string $desc = null, ?
     }
     if ($canonical !== null) {
         echo '<link rel="canonical" href="' . e($canonical) . '">';
+    }
+    // Sprachvarianten derselben Seite. Eine Seite, die ihre Sprache aus dem
+    // Browser aushandelt, muss den Suchmaschinen sagen, wo die anderen
+    // Fassungen liegen – sonst indexieren sie nur die, die der Crawler
+    // zufällig bekommen hat. Erwartet ['de' => Adresse, …]; 'x-default'
+    // nennt die Fassung für alles Übrige.
+    foreach ((array)($GLOBALS['_page_alternate'] ?? []) as $sprache => $adresse) {
+        echo '<link rel="alternate" hreflang="' . e((string)$sprache) . '" href="' . e((string)$adresse) . '">';
     }
     if ($admin) {
         echo '<meta name="robots" content="noindex">';
