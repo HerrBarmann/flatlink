@@ -59,6 +59,53 @@ function opt(array $argv, string $name): ?string
 }
 function hat(array $argv, string $name): bool { return opt($argv, $name) !== null; }
 
+/**
+ * Der Namensraum, den ein Aufruf meint.
+ *
+ * Seit 5.0 bestimmen Domain UND Code einen Link. Ohne `--domain` gilt die
+ * Hauptdomain – auf einer Instanz mit einer Domain ändert sich dadurch
+ * nichts. Eine unbekannte Domain bricht ab, statt still auf die Hauptdomain
+ * zu fallen: Ein Tippfehler im Domainnamen träfe sonst den falschen Link,
+ * und beim Löschen wäre das nicht zurückzuholen.
+ */
+function cli_domain(array $argv): string
+{
+    $roh = opt($argv, 'domain');
+    if ($roh === null || $roh === '') return '';
+    $d = domain_clean($roh);
+    if ($d === '' || !in_array($d, domains_all(), true)) {
+        raus("Die Domain $roh ist auf dieser Instanz nicht eingetragen."
+            . "\n  Eingetragen: " . implode(', ', cli_domainnamen()));
+    }
+    return $d === domain_main() ? '' : $d;
+}
+
+/**
+ * Wie die Hauptdomain auf der Kommandozeile heißt.
+ *
+ * Ohne gesetzte 'base_url' baut domain_main() den Host aus $_SERVER zusammen –
+ * hier käme dabei „localhosttools" heraus. Dann lieber ein Wort als ein
+ * Hostname, den es nicht gibt.
+ */
+function cli_hauptdomain(): string
+{
+    return base_url(true) !== '' ? domain_main() : '(Hauptdomain)';
+}
+
+/** Alle Namensräume als Namen, für Meldungen */
+function cli_domainnamen(): array
+{
+    $out = [cli_hauptdomain()];
+    foreach (domains_extra() as $d) $out[] = $d['host'];
+    return $out;
+}
+
+/** Wie ein Link in einer Meldung heißt – mit Domain, wo es mehrere gibt */
+function cli_linkname(string $code, string $domain): string
+{
+    return $domain === '' ? $code : $domain . '/' . $code;
+}
+
 /** Stellen, die keine Schalter sind */
 function args(array $argv): array
 {
@@ -116,8 +163,11 @@ case '-h':
     sage('');
     sage('Links');
     sage('  link:liste [konto] [--limit=20]    Links auflisten');
-    sage('  link:anlegen <ziel> [--konto=…] [--code=…]');
-    sage('  link:loeschen <code>');
+    sage('  link:anlegen <ziel> [--konto=…] [--code=…] [--domain=…]');
+    sage('  link:loeschen <code> [--domain=…]');
+    if (domains_multi()) {
+        sage('                                     ohne --domain gilt die Hauptdomain');
+    }
     sage('');
     sage('Verzeichnis');
     sage('  ldap:abgleich [--anwenden]         Konten sperren, die im Verzeichnis fehlen');
@@ -259,22 +309,43 @@ case 'link:liste':
     $quelle = $konto !== null ? links_of_owner($konto) : links_each();
     $z = [];
     $gesamt = $konto !== null ? count($quelle) : links_count();
-    foreach ($quelle as $code => $l) {
+    // Der Schlüssel der Karte trägt seit 5.0 die Domain mit; angezeigt wird
+    // der nackte Code, und die Domain bekommt eine eigene Spalte – aber nur,
+    // wo es überhaupt mehrere gibt.
+    $mehrere = domains_multi();
+    foreach ($quelle as $l) {
         if (count($z) >= $limit) break;
-        $z[] = [$code, mb_substr((string)($l['url'] ?? ''), 0, 52),
-                (string)($l['owner'] ?? ''), (int)(clicks_get((string)$code)['n'] ?? 0)];
+        $c = (string)($l['_code'] ?? '');
+        $d = (string)($l['domain'] ?? '');
+        $zeile = [$c];
+        if ($mehrere) $zeile[] = $d === '' ? cli_hauptdomain() : $d;
+        $zeile[] = mb_substr((string)($l['url'] ?? ''), 0, 52);
+        $zeile[] = (string)($l['owner'] ?? '');
+        $zeile[] = (int)(clicks_get($c, $d)['n'] ?? 0);
+        $z[] = $zeile;
     }
-    tabelle($z, ['Code', 'Ziel', 'Konto', 'Klicks']);
+    tabelle($z, $mehrere
+        ? ['Code', 'Domain', 'Ziel', 'Konto', 'Klicks']
+        : ['Code', 'Ziel', 'Konto', 'Klicks']);
     if ($gesamt > $limit) sage('  … ' . ($gesamt - $limit) . ' weitere');
     exit(0);
 
 case 'link:anlegen':
-    $ziel = $rest[0] ?? raus('Aufruf: link:anlegen <ziel> [--konto=…] [--code=…]');
+    $ziel = $rest[0] ?? raus('Aufruf: link:anlegen <ziel> [--konto=…] [--code=…] [--domain=…]');
+    $domain = cli_domain($argv);
     $konto = opt($argv, 'konto') ?: '';
     if ($konto !== '' && user_get($konto) === null) raus("Das Konto $konto gibt es nicht.");
     $user = ['name' => $konto, 'role' => $konto !== '' ? (user_get($konto)['role'] ?? 'user') : 'user'];
-    [$err, $full, $opts] = link_rules_create($user, ['url' => $ziel, 'code' => opt($argv, 'code') ?: '']);
+    [$err, $full, $opts] = link_rules_create($user,
+        ['url' => $ziel, 'code' => opt($argv, 'code') ?: '', 'domain' => $domain]);
     if ($err !== null) raus($err);
+    // link_rules_create() lässt eine Domain fallen, die dem Konto nicht
+    // offensteht. Auf der Kommandozeile sitzt der Betreiber – aber still
+    // woanders anlegen als verlangt wäre trotzdem falsch.
+    if ((string)($opts['domain'] ?? '') !== $domain) {
+        raus("Die Domain " . ($domain === '' ? cli_hauptdomain() : $domain)
+            . " steht dem Konto " . ($konto === '' ? '(ohne)' : $konto) . " nicht zur Verfügung.");
+    }
     [$ok, $ergebnis] = link_create($opts['url'], $full, $konto,
         $full === null ? 'random' : 'custom', $opts);
     if (!$ok) raus((string)$ergebnis);
@@ -282,19 +353,35 @@ case 'link:anlegen':
     // zusammen – auf der Kommandozeile käme dabei „localhosttools" heraus.
     // Dann lieber nur den Code nennen als eine Adresse, die es nicht gibt.
     $basis = base_url(true);
-    sage('  ' . ($basis !== '' ? short_url((string)$ergebnis, '') : (string)$ergebnis));
+    sage('  ' . ($basis !== '' || $domain !== ''
+        ? short_url((string)$ergebnis, $domain)
+        : (string)$ergebnis));
     if ($basis === '') {
         sage("  (Nur der Code – 'base_url' ist in inc/config.php nicht gesetzt.)");
     }
     exit(0);
 
 case 'link:loeschen':
-    $code = $rest[0] ?? raus('Aufruf: link:loeschen <code>');
-    if (link_get($code) === null) raus("Den Kurzlink $code gibt es nicht.");
+    $code = $rest[0] ?? raus('Aufruf: link:loeschen <code> [--domain=…]');
+    $domain = cli_domain($argv);
+    $name = cli_linkname($code, $domain);
+    $l = link_get($code, $domain);
+    if ($l === null) {
+        // Sagen, wo sonst gesucht werden könnte: Ohne --domain wird die
+        // Hauptdomain durchsucht, und genau das ist die Verwechslung, die
+        // hier am teuersten wäre.
+        $sonst = [];
+        foreach (domains_extra() as $d) {
+            if ($d['host'] !== $domain && link_get($code, $d['host']) !== null) $sonst[] = $d['host'];
+        }
+        if ($domain !== '' && link_get($code, '') !== null) $sonst[] = cli_hauptdomain();
+        raus("Den Kurzlink $name gibt es nicht."
+            . ($sonst === [] ? '' : "\n  Unter diesen Domains schon: " . implode(', ', $sonst)));
+    }
     // link_delete statt link_write(null): Es räumt Klickzähler, Merkmalstöpfe
     // und den Bestandszähler mit ab – die nackte Löschung ließ die liegen.
-    link_delete($code);
-    sage("  $code gelöscht.");
+    link_delete($code, $domain);
+    sage("  $name gelöscht  →  " . mb_substr((string)($l['url'] ?? ''), 0, 60));
     exit(0);
 
 case 'ldap:abgleich':

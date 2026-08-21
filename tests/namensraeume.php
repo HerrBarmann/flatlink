@@ -122,9 +122,74 @@ pruefe('links_each() verliert keinen der gleichnamigen Links',
 pruefe('Der Schlüssel der Hauptdomain ist der nackte Code',
     isset($gesehen[NS_CODE]) && $gesehen[NS_CODE] === '');
 
+// ---- 6. Die Nebenwege: was aus einem Datensatz herausgelesen wird --------
+//
+// Review 5.0.1, F1: Der Namensraum-Umbau hat die Auflösung erreicht, aber
+// nicht jeden Weg, auf dem ein Datensatz nach außen geht. Drei hook_fire()
+// schlugen ohne Domain nach und trugen bei gleichem Code die Daten des
+// FREMDEN Links in die Webhook-Nutzlast.
+//
+// Die Behebung sitzt an der Wurzel: link_get() markiert, was es zurückgibt,
+// mit dem Namensraum, in dem es gefunden wurde. Daraus folgt jeder
+// `$l['domain']`-Leser – hook_link(), api_link(), short_url(), das Routing.
+// Deshalb steht diese Invariante hier fest, und zwar auch gegen einen
+// Datensatz, dessen gespeichertes Feld etwas anderes behauptet.
+require_once __DIR__ . '/../inc/hooks.php';
+
+$lb = link_get(NS_CODE, NS_B);
+$lh = link_get(NS_CODE);
+pruefe('link_get() markiert mit dem Namensraum, in dem es gefunden wurde',
+    ($lb['domain'] ?? null) === NS_B && !isset($lh['domain']));
+pruefe('… und legt den nackten Code dazu',
+    ($lb['_code'] ?? '') === NS_CODE && ($lh['_code'] ?? '') === NS_CODE);
+
+// Ein Datensatz, dessen JSON-Feld lügt: Die Spalte gewinnt. Ohne diese
+// Zusicherung hinge jeder Leser daran, dass alle Schreibpfade das Feld
+// mitpflegen – eine Annahme, die genau einmal gebrochen werden muss.
+link_write(NS_CODE, function (?array $l) {
+    if ($l === null) return false;
+    $l['domain'] = 'gelogen.test';
+    return $l;
+}, NS_B);
+pruefe('Ein widersprüchliches Feld im Datensatz sticht nicht',
+    (link_get(NS_CODE, NS_B)['domain'] ?? '') === NS_B,
+    'gelesen: ' . (link_get(NS_CODE, NS_B)['domain'] ?? '—'));
+link_write(NS_CODE, function (?array $l) {
+    if ($l === null) return false;
+    $l['domain'] = NS_B;
+    return $l;
+}, NS_B);
+
+// Die Nutzlast, die an einen Webhook ginge. Gebaut wird sie genau so, wie
+// link_create(), link_update() und link_set_disabled() es tun.
+$nutzB = hook_link(NS_CODE, link_get(NS_CODE, NS_B));
+$nutzH = hook_link(NS_CODE, link_get(NS_CODE));
+pruefe('Die Webhook-Nutzlast trägt das Ziel DIESES Links',
+    $nutzB['url'] === 'https://ziel-a.example/' && $nutzH['url'] === 'https://ziel-haupt.example/',
+    $nutzB['url'] . ' vs. ' . $nutzH['url']);
+pruefe('… und eine Kurzadresse unter der richtigen Domain',
+    str_contains($nutzB['short_url'], NS_B) && !str_contains($nutzH['short_url'], NS_B),
+    $nutzB['short_url']);
+
+// Dass die drei Ereignisse die Domain auch WEITERREICHEN, steht im Quelltext
+// und nirgends sonst: hook_fire() schickt über das Netz, und cfg('webhooks')
+// lässt sich zur Laufzeit nicht umbiegen. Statt die Prüfung wegzulassen,
+// wird hier die Zeile selbst festgehalten – grob, aber sie hält genau den
+// Rückfall auf, den das Review gefunden hat.
+$quelle = (string)file_get_contents(__DIR__ . '/../inc/store.php');
+$ohneDomain = preg_match_all(
+    "/hook_fire\\('link\\.(created|updated|blocked)', hook_link\\(\\\$code, link_get\\(\\\$code\\)\\)\\)/",
+    $quelle);
+$mitDomain = preg_match_all(
+    "/hook_fire\\('link\\.(created|updated|blocked)', hook_link\\(\\\$code, link_get\\(\\\$code, \\\$domain\\)\\)\\)/",
+    $quelle);
+pruefe('Alle drei Link-Ereignisse schlagen mit Domain nach',
+    $ohneDomain === 0 && $mitDomain === 3,
+    "ohne Domain: $ohneDomain · mit: $mitDomain");
+
 foreach (['', NS_A, NS_B] as $d) link_delete(NS_CODE, $d);
 
-// ---- 6. Übernahme einer Datenbank von vor 5.0 ----------------------------
+// ---- 7. Übernahme einer Datenbank von vor 5.0 ----------------------------
 echo "\nÜbernahme aus der Zeit vor den Namensräumen\n";
 $tmp = sys_get_temp_dir() . '/flatlink-ns-' . bin2hex(random_bytes(4));
 @mkdir($tmp . '/clicks', 0700, true);

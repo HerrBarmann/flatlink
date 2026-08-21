@@ -43,7 +43,20 @@ function link_get(string $code, string $domain = ''): ?array
     $zeile = $st->fetch();
     if ($zeile === false) return null;
     $d = json_decode((string)$zeile['data'], true);
-    return is_array($d) ? $d : null;
+    if (!is_array($d)) return null;
+    // Die Domain kommt aus der SPALTE, nicht aus dem Datensatz.
+    //
+    // Beides steht dort: Der Schlüssel der Zeile und das Feld `domain` im
+    // JSON. Solange sie übereinstimmen, ist das gleichgültig – aber dass sie
+    // übereinstimmen, ist eine Zusicherung, die an jedem Schreibpfad hängt.
+    // Hier wird sie zur Tatsache: Was zurückkommt, trägt die Domain, unter
+    // der es gefunden wurde. Damit können `$l['domain']`-Leser wie
+    // hook_link() oder api_link() nicht auseinanderlaufen, egal was im
+    // Datensatz steht. Dieselbe Markierung nimmt db_link_kennzeichnen() an
+    // den Listenpfaden vor.
+    if ($domain === '') unset($d['domain']); else $d['domain'] = $domain;
+    $d['_code'] = $code;
+    return $d;
 }
 
 /**
@@ -616,7 +629,7 @@ function link_create(string $url, ?string $code, ?string $owner, string $type, a
     if ($taken) return [false, t('Dieser Code ist schon vergeben.')];
     if (!$ok) return [false, t('Anlegen fehlgeschlagen.')];
     links_count_bump(+1);
-    hook_fire('link.created', hook_link($code, link_get($code)));
+    hook_fire('link.created', hook_link($code, link_get($code, $domain)));
     return [true, $code];
 }
 
@@ -645,7 +658,7 @@ function link_update(string $code, string $url, array $opts = [], string $domain
         }
         return link_apply_meta($l, $opts);
     }, $domain);
-    if ($ok) hook_fire('link.updated', hook_link($code, link_get($code)));
+    if ($ok) hook_fire('link.updated', hook_link($code, link_get($code, $domain)));
     return $ok;
 }
 
@@ -843,7 +856,7 @@ function link_set_disabled(string $code, bool $disabled, string $domain = ''): b
         $l['updated'] = date('c');
         return $l;
     }, $domain);
-    if ($ok) hook_fire('link.blocked', hook_link($code, link_get($code)));
+    if ($ok) hook_fire('link.blocked', hook_link($code, link_get($code, $domain)));
     return $ok;
 }
 
