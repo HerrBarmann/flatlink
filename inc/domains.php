@@ -24,11 +24,17 @@ declare(strict_types=1);
  *   nur ein Namensraum-Präfix der Gruppe (`kunde-a/shop`) – eine Krücke für
  *   ein Problem, das die Domain schon gelöst hatte.
  *
- * Der Preis steht auf der anderen Seite und wird nicht verschwiegen: **Fällt
- * eine Domain weg, lösen ihre Links nicht mehr auf.** Bis 4.5 fingen die
- * übrigen Domains sie auf; heute hängt ein gedruckter Code an seiner Adresse.
- * Wer eine Domain austrägt, bekommt deshalb in den Einstellungen gesagt, wie
- * viele Links davon betroffen sind – gelöscht wird keiner, und ein
+ * Die Begründung von damals lautete: Ein gedruckter Code soll überleben, wenn
+ * eine Domain wegfällt. Sie trug nie. Auf dem Aufkleber steht die Domain –
+ * läuft `kunde-a.link` aus, kommt die Anfrage gar nicht erst hier an, und ob
+ * derselbe Code nebenan unter einer anderen Adresse aufgelöst hätte, hilft
+ * niemandem, der den Aufkleber in der Hand hält.
+ *
+ * Der eine Fall, in dem sich 4.5 und 5.0 wirklich unterscheiden, ist schmaler:
+ * Eine Domain zeigt weiter hierher, wird aber ausgetragen. Bis 4.5 löste ihr
+ * Code über den gemeinsamen Namensraum weiter auf, heute nicht mehr – er liegt
+ * im Namensraum dieser Domain. Deshalb sagen die Einstellungen beim Austragen,
+ * wie viele Links betroffen sind; gelöscht wird keiner, und ein
  * Wiedereintragen macht sie alle wieder erreichbar. Für den Umzug eines
  * einzelnen Links auf eine andere Domain gibt es `link_move()`.
  *

@@ -182,18 +182,22 @@ wissen. Das ist die tragende Entscheidung, deshalb beide Seiten:
   für mehr Platz, oder weil ein Kunde seine eigene Adresse mitbringt. Zwei
   Kunden können beide `/shop` haben, ohne sich abzustimmen. Und niemand
   erreicht unter seiner Domain die Kurzlinks eines anderen.
-- *Dagegen:* Fällt eine Domain weg, lösen ihre Links nicht mehr auf. Ein
-  gedruckter Code hängt an seiner Adresse.
+- *Dagegen:* Wird eine Domain hier ausgetragen, während sie weiter auf den
+  Server zeigt, lösen ihre Links nicht mehr auf.
 
 Bis 4.5 war es umgekehrt: Ein Code gehörte der Instanz und löste unter jeder
-eingerichteten Adresse auf. Das hielt gedruckte Codes am Leben, hieß aber
-auch, dass ein Kunde unter seiner eigenen Domain die Kurzlinks aller anderen
-abrufen konnte. Für einen Dienst, bei dem Kunden ihre Domain mitbringen, war
-das nicht haltbar.
+eingerichteten Adresse auf. Begründet war das damit, dass ein gedruckter Code
+überleben soll, wenn eine Domain wegfällt – ein Argument, das nicht trägt.
+Auf dem Aufkleber steht die Domain. Läuft `kunde-a.link` aus, erreicht die
+Anfrage den Server gar nicht; dass derselbe Code nebenan noch aufgelöst
+hätte, nützt niemandem, der den Aufkleber in der Hand hält. Bezahlt wurde
+dafür mit etwas sehr Realem: Ein Kunde konnte unter seiner eigenen Domain die
+Kurzlinks aller anderen abrufen.
 
-Beim Austragen einer Domain sagt die Verwaltung, wie viele Links betroffen
-sind. Gelöscht wird keiner – wird die Domain wieder eingetragen, lösen sie
-alle wieder auf. Einen einzelnen Link auf eine andere Domain umziehen geht
+Der Unterschied bleibt also auf einen Fall beschränkt: Eine Domain zeigt
+weiter hierher, wird aber ausgetragen. Beim Austragen sagt die Verwaltung
+deshalb, wie viele Links betroffen sind. Gelöscht wird keiner – wird die
+Domain wieder eingetragen, lösen sie alle wieder auf. Einen einzelnen Link auf eine andere Domain umziehen geht
 im Bearbeiten-Formular über das Domain-Auswahlfeld; ist der Code am Ziel
 schon vergeben, wird der Umzug abgelehnt statt still etwas zu überschreiben.
 

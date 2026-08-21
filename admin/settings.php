@@ -292,7 +292,7 @@ $host = preg_replace('#^https?://#', '', base_url());
 <div class="card">
     <h2><?= t('Domains für Kurzlinks') ?></h2>
     <p class="muted small"><?= t('Kurzlinks können unter mehreren Adressen ausgegeben werden. Alle zeigen auf diese Installation – im DNS auf denselben Server, im Zertifikat mit aufgeführt. Die Verwaltung bleibt auf %s; wer %s unter einer Nebendomain aufruft, wird hierher zurückgeleitet.', '<code>' . e(domain_main()) . '</code>', '<code>/admin/</code>') ?></p>
-    <p class="muted small"><strong><?= t('Jede Domain hat ihren eigenen Namensraum.') ?></strong> <?= t('%s und %s sind zwei verschiedene Kurzlinks – zwei Kunden können denselben Code haben, ohne sich abzustimmen, und niemand erreicht unter seiner Domain die Links eines anderen. Die Kehrseite: Wird eine Domain hier entfernt, lösen ihre Links nicht mehr auf. Gelöscht wird dabei keiner; ein Wiedereintragen macht sie alle wieder erreichbar.', '<code>kunde-a.link/shop</code>', '<code>kunde-b.link/shop</code>') ?></p>
+    <p class="muted small"><strong><?= t('Jede Domain hat ihren eigenen Namensraum.') ?></strong> <?= t('%s und %s sind zwei verschiedene Kurzlinks – zwei Kunden können denselben Code haben, ohne sich abzustimmen, und niemand erreicht unter seiner Domain die Links eines anderen. Die Kehrseite: Wird eine Domain hier entfernt, während sie weiter auf diesen Server zeigt, lösen ihre Links nicht mehr auf. Gelöscht wird dabei keiner; ein Wiedereintragen macht sie alle wieder erreichbar.', '<code>kunde-a.link/shop</code>', '<code>kunde-b.link/shop</code>') ?></p>
 
     <ul class="key-list">
         <li>

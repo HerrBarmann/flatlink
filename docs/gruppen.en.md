@@ -176,17 +176,21 @@ other. That is the load-bearing decision, so here are both sides:
   room, or because a client brings their own address. Two clients can both
   have `/shop` without coordinating. And nobody reaches another client's
   short links through their own domain.
-- *Against:* when a domain goes away, its links stop resolving. A printed
-  code is tied to its address.
+- *Against:* if a domain is removed here while it still points at the server,
+  its links stop resolving.
 
 Up to 4.5 it was the other way round: a code belonged to the instance and
-resolved under every configured address. That kept printed codes alive, but
-it also meant a client could list every other client's short links through
-their own domain. For a service where clients bring their own domain, that
-was not tenable.
+resolved under every configured address. The stated reason was that a printed
+code should survive a domain going away – an argument that does not hold. The
+sticker carries the domain. When `client-a.link` expires the request never
+reaches the server at all, and the same code still resolving elsewhere helps
+nobody holding that sticker. What it did cost was real: a client could list
+every other client's short links through their own domain.
 
-Removing a domain tells you how many links are affected. None of them are
-deleted – add the domain back and they all resolve again. To move a single
+So the difference is confined to one case: a domain still points here but is
+removed from the configuration. That is why removing a domain tells you how
+many links are affected. None of them are deleted – add the domain back and
+they all resolve again. To move a single
 link to another domain, use the domain selector in the edit form; if the
 code is already taken there, the move is rejected rather than silently
 overwriting anything.
