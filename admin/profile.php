@@ -27,7 +27,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Beide zeigen ihr Ergebnis obendrein nur ein einziges Mal, und zwar in
     // ihrem Abschnitt: Dort muss der Blick nach dem Absenden hin.
     $anker = match (true) {
-        str_starts_with($action, 'token_')                    => '#api',
         str_starts_with($action, 'totp_'),
         str_starts_with($action, 'pk_')                       => '#zwei-faktor',
         $action === 'session_revoke'                          => '#sitzungen',
@@ -132,29 +131,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             totp_disable($user['name']);
             flash(t('Zwei-Faktor-Anmeldung abgeschaltet.'));
         }
-        redirect_to($zurueck);
-    }
-
-    if ($action === 'token_new') {
-        if (!user_can($user['name'], 'api_access')) {
-            flash(t('Für die Schnittstelle fehlt deinem Konto die Berechtigung.'), 'err');
-        } elseif (count(tokens_of($user['name'])) >= 10) {
-            flash(t('Höchstens zehn Zugangsschlüssel pro Konto – zieh zuerst einen zurück.'), 'err');
-        } else {
-            $neu = token_create($user['name'], (string)($_POST['label'] ?? ''),
-                (string)($_POST['scope'] ?? TOKEN_VOLL), ($_POST['own_only'] ?? '') === '1');
-            // Der Klartext wird nirgends gespeichert; er muss also jetzt gezeigt
-            // werden oder gar nicht. Über die Sitzung, damit die Umleitung
-            // hinter dem Formular erhalten bleibt.
-            $_SESSION['fresh_token'] = $neu['token'];
-            flash(t('Zugangsschlüssel angelegt.'));
-        }
-        redirect_to($zurueck);
-    }
-
-    if ($action === 'token_revoke') {
-        $ok = token_revoke($user['name'], (string)($_POST['id'] ?? ''));
-        flash($ok ? t('Zugangsschlüssel zurückgezogen.') : t('Diesen Schlüssel gibt es nicht.'), $ok ? 'ok' : 'err');
         redirect_to($zurueck);
     }
 
@@ -550,77 +526,6 @@ $auf = fn(string $id): string => $zeige === $id ? ' open' : '';
             <?= csrf_field() ?>
             <input type="hidden" name="action" value="totp_start">
             <p><button class="btn<?= ($pflicht && $keys === []) ? ' btn-primary' : '' ?>" type="submit"><?= t('Einrichten') ?></button></p>
-        </form>
-    <?php endif; ?>
-
-    </div>
-    </details>
-
-    <details class="abschnitt" id="api"<?= $auf('api') ?>>
-    <summary><h2><?= t('Programmierschnittstelle') ?></h2></summary>
-    <div class="abschnitt-inhalt">
-    <?php if (!user_can($user['name'], 'api_access')): ?>
-        <p class="muted small"><?= t('Für den Zugriff über die Schnittstelle fehlt deinem Konto die Berechtigung. Sie hängt an einer Gruppe – ein Administrator kann sie freischalten.') ?></p>
-    <?php else: ?>
-        <?php $frisch = $_SESSION['fresh_token'] ?? null; unset($_SESSION['fresh_token']); ?>
-        <?php if ($frisch !== null): ?>
-        <div class="flash flash-ok" style="word-break:break-all">
-            <strong><?= t('Dein neuer Schlüssel:') ?></strong><br>
-            <code><?= e($frisch) ?></code><br>
-            <span class="small"><?= t('Notier ihn jetzt – er wird nicht gespeichert und lässt sich später nicht noch einmal anzeigen.') ?></span>
-        </div>
-        <?php endif; ?>
-        <?php $doku = trim((string)cfg('api_doc_url')); ?>
-        <p class="muted small"><?= t('Ein Schlüssel meldet ein Programm unter deinem Konto an. Er kann nie mehr, als du selbst darfst – und auf Wunsch deutlich weniger.') ?><?php if ($doku !== ''): ?>
-        <a href="<?= e(str_contains($doku, '://') ? $doku : base_url() . '/' . ltrim($doku, '/')) ?>"><?= t('Zur Anleitung') ?></a>.<?php endif; ?></p>
-        <?php $meine = tokens_of($user['name']); ?>
-        <?php if ($meine !== []): ?>
-        <div class="table-scroll"><table>
-            <tr><th><?= t('Bezeichnung') ?></th><th><?= t('Umfang') ?></th><th><?= t('Anfang') ?></th><th><?= t('Angelegt') ?></th><th><?= t('Zuletzt benutzt') ?></th><th></th></tr>
-            <?php foreach ($meine as $t): ?>
-            <tr>
-                <td><?= e((string)($t['label'] ?? '')) ?: '<span class="muted">' . t('ohne') . '</span>' ?></td>
-                <td class="small"><?php
-                    $umf = token_umfaenge()[(string)($t['scope'] ?? TOKEN_VOLL)] ?? token_umfaenge()[TOKEN_VOLL];
-                    echo e($umf);
-                    if (!empty($t['own_only'])) {
-                        echo '<br><span class="muted">' . t('nur eigene Links') . '</span>';
-                    }
-                ?></td>
-                <td><code><?= e((string)($t['hint'] ?? '')) ?>…</code></td>
-                <td class="small"><?= e(date('d.m.Y', strtotime((string)$t['created']))) ?></td>
-                <td class="small"><?= ($t['last_used'] ?? null) !== null
-                    ? e(date('d.m.Y', strtotime((string)$t['last_used'])))
-                    : '<span class="muted">' . t('nie') . '</span>' ?></td>
-                <td><form method="post" action="" class="inline" data-confirm="<?= t('Schlüssel zurückziehen? Programme, die ihn nutzen, verlieren sofort den Zugriff.') ?>">
-                    <?= csrf_field() ?>
-                    <input type="hidden" name="action" value="token_revoke">
-                    <input type="hidden" name="id" value="<?= e((string)$t['id']) ?>">
-                    <button class="btn btn-small btn-danger" type="submit"><?= t('Zurückziehen') ?></button>
-                </form></td>
-            </tr>
-            <?php endforeach; ?>
-        </table></div>
-        <?php endif; ?>
-        <form method="post" action="">
-            <?= csrf_field() ?>
-            <input type="hidden" name="action" value="token_new">
-            <label for="p-label"><?= t('Neuer Schlüssel') ?> <span class="muted"><?= t('(Bezeichnung, damit du ihn später zuordnen kannst)') ?></span></label>
-            <input id="p-label" type="text" name="label" maxlength="60" placeholder="z. B. Kassensystem">
-
-            <label for="p-scope"><?= t('Umfang') ?> <span class="muted"><?= t('(mehr als dein Konto darf er nie – aber weniger)') ?></span></label>
-            <select id="p-scope" name="scope" style="max-width:22rem">
-                <?php foreach (token_umfaenge() as $wert => $titel): ?>
-                <option value="<?= e($wert) ?>"><?= e($titel) ?></option>
-                <?php endforeach; ?>
-            </select>
-
-            <label class="radio" style="margin-top:.6rem">
-                <input type="checkbox" name="own_only" value="1">
-                <span><?= t('Nur Links, die mit diesem Schlüssel angelegt wurden') ?><br>
-                <span class="muted small"><?= t('Der Schlüssel sieht und ändert nichts vom übrigen Bestand des Kontos – auch nicht das, was du selbst hier anlegst. Passend für ein Kassensystem oder einen Auftrag, der laufend Codes erzeugt.') ?></span></span>
-            </label>
-            <p><button class="btn" type="submit"><?= t('Anlegen') ?></button></p>
         </form>
     <?php endif; ?>
 

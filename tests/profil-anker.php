@@ -40,7 +40,7 @@ $pruefe = function (string $was, bool $ok) use (&$fehler): void {
 // einklappbaren <details>-Abschnitten, nicht mehr an den Überschriften.
 preg_match_all('/<details class="abschnitt" id="([a-z0-9-]+)"/', $quelle, $m);
 $vorhanden = $m[1];
-$pruefe('die Seite vergibt Sprungmarken', count($vorhanden) >= 8);
+$pruefe('die Seite vergibt Sprungmarken', count($vorhanden) >= 7);
 
 // Welche Anker steuert der match()-Ausdruck an?
 preg_match_all("/=> '#([a-z0-9-]+)'/", $quelle, $m2);

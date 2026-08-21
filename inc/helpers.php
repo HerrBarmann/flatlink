@@ -832,10 +832,6 @@ function page_header(string $title, bool $admin = false, ?string $desc = null, ?
         if (function_exists('user_can') && user_can($u['name'], 'logo_upload')) {
             echo '<a href="' . $adm . 'logos.php">' . t('Logos') . '</a> ';
         }
-        // Die Erweiterung stand jahrelang als Abschnitt tief im Profil – wo
-        // niemand eine Erweiterung sucht. Ein Werkzeug, das jeden Tag einen
-        // Klick spart, verdient einen eigenen Platz in der Kopfzeile.
-        echo '<a href="' . $adm . 'erweiterung.php">' . t('Erweiterung') . '</a> ';
         // Die Klappe zeigt, was das Konto auch benutzen darf: Administratoren
         // alles, eine Redaktion nur die Meldungen. Wer nichts davon hat,
         // sieht die Klappe gar nicht.
@@ -936,6 +932,13 @@ function page_footer(): void
 {
     $root = $GLOBALS['_page_root'] ?? '.';
     $links = '<a href="' . $root . '/report.php">' . t('Missbrauch melden') . '</a>';
+    // Erweiterung und Schnittstelle wohnen in der Fußzeile: Beides wird
+    // einmal eingerichtet und dann nie wieder gesucht – dafür ist die
+    // Kopfzeile der falsche (und zu teure) Platz. Nur für Angemeldete;
+    // Gäste könnten mit der Seite nichts anfangen.
+    if (function_exists('auth_user') && auth_user() !== null) {
+        $links .= ' · <a href="' . $root . '/admin/erweiterung.php">' . t('Browser-Erweiterung / API') . '</a>';
+    }
     // Eigene Fußzeilen-Links aus der Konfiguration – hier gehören Impressum
     // und Datenschutzerklärung hin, zu denen öffentliche Instanzen je nach
     // Land verpflichtet sind. Relative Ziele werden auf den Webroot bezogen.

@@ -216,7 +216,13 @@ return [
         => 'Understood – we will not ask again. Your profile still has it if you change your mind.',
 
     // ---- Browser-Erweiterung (eigene Seite seit 4.4) ----
-    'Erweiterung' => 'Extension',
+    'Browser-Erweiterung / API' => 'Browser extension / API',
+    'Er enthält ein Zugangsmittel: nicht weitergeben. Zurückziehen lässt er sich unten bei den Zugangsschlüsseln.'
+        => 'It contains a credential: do not pass it on. It can be revoked below, among the access keys.',
+    'Jeder Code wird nur einmal angezeigt. Ein neuer Code legt einen eigenen Zugangsschlüssel an – alte bleiben gültig, bis du sie unten zurückziehst.'
+        => 'Each code is shown only once. A new code creates its own access key – old ones stay valid until you revoke them below.',
+    'Der Verbindungscode oben ist nichts anderes als ein verpackter Zugangsschlüssel – hier liegen alle Schlüssel deines Kontos, auch für eigene Programme.'
+        => 'The pairing code above is nothing but a wrapped access key – all keys of your account live here, including those for your own programs.',
     'Kürzt die Seite, auf der du gerade bist, mit einem Klick – Kurzlink und QR-Code, ohne den Tab zu wechseln.'
         => 'Shortens the page you are on with one click – short link and QR code, without leaving the tab.',
     '1. Installieren' => '1. Install',
@@ -226,10 +232,6 @@ return [
         => 'As soon as it is listed in the Chrome and Firefox stores, the link appears here. If it is already installed, a pairing code sets it up.',
     'Ein Verbindungscode trägt Adresse und Zugangsschlüssel in einem: in der Erweiterung unter „Einstellungen" einfügen, fertig.'
         => 'A pairing code carries address and access key in one: paste it into the extension under "Settings", done.',
-    'Er enthält ein Zugangsmittel: nicht weitergeben. Zurückziehen lässt er sich im Profil unter „Programmierschnittstelle".'
-        => 'It contains a credential: do not pass it on. It can be revoked in your profile under "API".',
-    'Jeder Code wird nur einmal angezeigt. Ein neuer Code legt einen eigenen Zugangsschlüssel an – alte bleiben gültig, bis du sie im Profil zurückziehst.'
-        => 'Each code is shown only once. A new code creates its own access key – old ones stay valid until you revoke them in your profile.',
     'Für den Zugriff über die Schnittstelle fehlt deinem Konto die Berechtigung – die Erweiterung braucht sie. Frag die Verwaltung deiner Instanz.'
         => 'Your account lacks API permission – the extension needs it. Ask the administrators of your instance.',
 
