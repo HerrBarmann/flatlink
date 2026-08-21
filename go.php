@@ -16,7 +16,20 @@ if (!is_string($code) || $code === '') {
     }
     $code = trim($path, '/');
 }
-$link = lookup_code_ok($code) ? link_get($code) : null;
+// Unter WELCHER Domain gefragt wird, entscheidet mit, welcher Link gemeint
+// ist: Jede eingetragene Domain hat ihren eigenen Namensraum (siehe
+// domain_namensraum()).
+//
+// inc/domains.php wird dafür nur geladen, wenn es überhaupt eine zweite
+// Domain gibt – so wie short_url() es hält. go.php ist der heißeste Pfad des
+// Systems, und die allermeisten Instanzen haben genau eine Domain; die sollen
+// für die Trennung kein einziges geparstes Byte bezahlen.
+$namensraum = '';
+if ((array)cfg('domains') !== []) {
+    require_once __DIR__ . '/inc/domains.php';
+    $namensraum = domain_namensraum();
+}
+$link = lookup_code_ok($code) ? link_get($code, $namensraum) : null;
 
 if ($link === null) {
     http_response_code(404);
@@ -61,7 +74,7 @@ if (link_expired($link)) {
 // Aufruf-Limit: „nur die ersten 50“ – danach dieselbe Antwort wie beim
 // Ablauf. Geprüft wird gegen den Zähler, der ohnehin geführt wird; ein
 // Besucher-Datensatz entsteht dafür nicht.
-if (link_ausgeschoepft($code, $link)) {
+if (link_ausgeschoepft($code, $link, $namensraum)) {
     http_response_code(410);
     page_header(t('Limit erreicht'));
     echo '<div class="card center"><h1>' . t('Limit erreicht') . '</h1><p>'
@@ -89,9 +102,9 @@ if (($link['kind'] ?? '') === 'bio' && empty($link['pass'])) {
     require_once __DIR__ . '/inc/bio.php';
     $i = $_GET['i'] ?? null;
     if (is_string($i) && $i !== '' && ctype_digit($i)) {
-        bio_follow($code, $link, (int)$i);
+        bio_follow($code, $link, (int)$i, $namensraum);
     }
-    bio_render($code, $link);
+    bio_render($code, $link, $namensraum);
 }
 
 // Passwortgeschützte Links (Pro-Feature): erst nach richtigem Passwort weiterleiten
@@ -113,12 +126,12 @@ if (!empty($link['pass'])) {
             if (($link['kind'] ?? '') === 'bio') {
                 require_once __DIR__ . '/inc/bio.php';
                 $i = $_GET['i'] ?? null;
-                if (is_string($i) && $i !== '' && ctype_digit($i)) bio_follow($code, $link, (int)$i);
-                bio_render($code, $link);
+                if (is_string($i) && $i !== '' && ctype_digit($i)) bio_follow($code, $link, (int)$i, $namensraum);
+                bio_render($code, $link, $namensraum);
             }
             [$ziel, $weiche] = route_target($link);
-            if ($zaehlbar) clicks_bump($code, null, $weiche);
-            elseif ($limitiert) clicks_roh_bump($code);
+            if ($zaehlbar) clicks_bump($code, null, $weiche, $namensraum);
+            elseif ($limitiert) clicks_roh_bump($code, $namensraum);
             header('Location: ' . $ziel, true, 302);
             exit;
         } else {
@@ -158,7 +171,7 @@ if (!empty($link['pass'])) {
 if (($link['og_title'] ?? '') !== '' && route_ist_vorschau()) {
     preview_render($code, $link, $ziel);
 }
-if ($zaehlbar) clicks_bump($code, null, $weiche);
-elseif ($limitiert) clicks_roh_bump($code);
+if ($zaehlbar) clicks_bump($code, null, $weiche, $namensraum);
+elseif ($limitiert) clicks_roh_bump($code, $namensraum);
 header('Location: ' . $ziel, true, 302);
 exit;

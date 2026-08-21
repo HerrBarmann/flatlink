@@ -12,6 +12,7 @@ declare(strict_types=1);
  */
 require_once __DIR__ . '/inc/store.php';
 require_once __DIR__ . '/inc/qrlib.php';
+require_once __DIR__ . '/inc/domains.php';
 require_once __DIR__ . '/inc/auth.php';
 require_once __DIR__ . '/inc/groups.php';
 
@@ -143,7 +144,11 @@ if ($type !== 'link') {
     $owner = null; // statischer Code, kein Konto-Bezug
 } else {
     $code = $_GET['c'] ?? '';
-    $link = is_string($code) && lookup_code_ok($code) ? link_get($code) : null;
+    // Ein QR-Code wird unter einer Domain gedruckt – dieselbe entscheidet,
+    // welcher Link gemeint ist. Fehlt der Parameter, greift der Namensraum
+    // des Aufrufs (auf einer Instanz mit einer Domain immer der Haupt-).
+    $qrDom = isset($_GET['d']) ? dom_param_lesen($_GET['d']) : domain_namensraum();
+    $link = is_string($code) && lookup_code_ok($code) ? link_get($code, $qrDom) : null;
     if ($link === null) {
         http_response_code(404);
         exit(t('Unbekannter Kurzlink.'));

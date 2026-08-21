@@ -208,8 +208,10 @@ return [
     'sqlite_file' => '',
 
     // Weitere Domains für Kurzlinks. Alle zeigen auf dieselbe Installation;
-    // die Verwaltung bleibt auf der Adresse aus 'base_url'. Ein Code gehört
-    // der Instanz, nicht der Domain – er löst unter jeder von ihnen auf.
+    // die Verwaltung bleibt auf der Adresse aus 'base_url'. Jede Domain hat
+    // ihren EIGENEN Namensraum: kunde-a.link/shop und kunde-b.link/shop sind
+    // zwei verschiedene Links. Fällt eine Domain weg, lösen ihre Links nicht
+    // mehr auf – gelöscht wird dabei keiner.
     // Je Eintrag entweder nur der Host oder zusätzlich eine Gruppe, der die
     // Domain vorbehalten sein soll:
     //   ['host' => 'kunde.link', 'group' => 'kunde'],

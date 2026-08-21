@@ -45,11 +45,13 @@ function account_export(string $username): array
     }
 
     $links = [];
-    foreach (links_of_owner($username) as $code => $l) {
-        $c = clicks_get((string)$code);
+    foreach (links_of_owner($username) as $l) {
+        $code = (string)$l['_code'];
+        $dom = (string)($l['domain'] ?? '');
+        $c = clicks_get($code, $dom);
         $links[] = [
-            'kurzlink' => short_url((string)$code, (string)($l['domain'] ?? '')),
-            'code' => (string)$code,
+            'kurzlink' => short_url($code, $dom),
+            'code' => $code,
             'name' => $l['title'] ?? null,
             'schlagworte' => array_values((array)($l['tags'] ?? [])),
             'ziel' => $l['url'] ?? null,

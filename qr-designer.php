@@ -23,6 +23,7 @@ require_once __DIR__ . '/inc/safety.php';
 require_once __DIR__ . '/inc/linkrules.php';
 require_once __DIR__ . '/inc/qrpanel.php';
 require_once __DIR__ . '/inc/svg.php';
+require_once __DIR__ . '/inc/domains.php';
 
 auth_boot();
 $user = auth_user();
@@ -97,7 +98,7 @@ if ($user !== null) {
     if ($code !== '' && !isset($links[$code])) $code = '';
     if ($code === '' && $links !== []) $code = (string)array_key_first($links);
 } else {
-    $l = $code !== '' && lookup_code_ok($code) ? link_get($code) : null;
+    $l = $code !== '' && lookup_code_ok($code) ? link_get($code, dom_param_lesen($_GET['d'] ?? '')) : null;
     if ($l === null || !empty($l['disabled']) || link_expired($l)) $code = '';
 }
 

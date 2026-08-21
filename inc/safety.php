@@ -146,12 +146,16 @@ function safety_recheck(bool $sofort = false): ?array
     // Streamen statt laden: gesammelt werden nur Code und Adresse als
     // Zeichenketten, nicht die vollen Datensätze – der Unterschied zwischen
     // ein paar und ein paar hundert Megabyte auf großen Instanzen.
+    // Geschlüsselt wird über den Karten-Schlüssel (mit Domain), gemerkt wird
+    // das Paar – link_set_disabled() braucht Code und Domain getrennt.
     $kandidaten = [];
-    foreach (links_each() as $code => $l) {
+    $wo = [];
+    foreach (links_each() as $schluessel => $l) {
         if (!empty($l['disabled']) || link_expired($l)) continue;
         $url = (string)($l['url'] ?? '');
         if ($url === '') continue;
-        $kandidaten[(string)$code] = $url;
+        $kandidaten[(string)$schluessel] = $url;
+        $wo[(string)$schluessel] = [(string)$l['_code'], (string)($l['domain'] ?? '')];
     }
     if ($kandidaten === []) return ['geprueft' => 0, 'gesperrt' => []];
 
@@ -160,11 +164,12 @@ function safety_recheck(bool $sofort = false): ?array
     foreach (array_chunk($kandidaten, 500, true) as $block) {
         $treffer = urls_flagged(array_values($block));
         if ($treffer === []) continue;
-        foreach ($block as $code => $url) {
+        foreach ($block as $schluessel => $url) {
             if (!in_array($url, $treffer, true)) continue;
-            link_set_disabled($code, true);
-            $gesperrt[] = $code;
-            safety_log('recheck-gesperrt', $code, $url);
+            [$code, $dom] = $wo[$schluessel];
+            link_set_disabled($code, true, $dom);
+            $gesperrt[] = $schluessel;
+            safety_log('recheck-gesperrt', $schluessel, $url);
         }
     }
     return ['geprueft' => count($kandidaten), 'gesperrt' => $gesperrt];

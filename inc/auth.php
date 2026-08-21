@@ -873,13 +873,18 @@ function user_delete(string $username, string $linkModus = 'delete', ?string $an
         return t('Das Zielkonto für die Links gibt es nicht.');
     }
 
-    foreach (links_of_owner($username) as $code => $l) {
+    foreach (links_of_owner($username) as $l) {
+        // Nicht der Schlüssel der Karte, sondern Code und Domain aus dem
+        // Datensatz: Seit die Namensräume getrennt sind, trägt der Schlüssel
+        // die Domain mit, und link_set_owner() will beides einzeln.
+        $code = (string)$l['_code'];
+        $dom = (string)($l['domain'] ?? '');
         if ((string)($l['group'] ?? '') !== '') {
-            link_set_owner((string)$code, null);
+            link_set_owner($code, null, $dom);
         } elseif ($linkModus === 'transfer') {
-            link_set_owner((string)$code, $an);
+            link_set_owner($code, $an, $dom);
         } else {
-            link_delete((string)$code);
+            link_delete($code, $dom);
         }
     }
 

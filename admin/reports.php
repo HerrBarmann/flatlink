@@ -7,6 +7,7 @@ require_once __DIR__ . '/../inc/store.php';
 require_once __DIR__ . '/../inc/auth.php';
 require_once __DIR__ . '/../inc/safety.php';
 require_once __DIR__ . '/../inc/groups.php';
+require_once __DIR__ . '/../inc/domains.php';
 
 // Meldungen darf bearbeiten, wer das Recht dazu hat – Administratoren
 // ohnehin (user_can sagt für sie zu allem ja).
@@ -23,13 +24,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = (string)($_POST['action'] ?? '');
     $file = basename((string)($_POST['file'] ?? ''));
     $code = (string)($_POST['code'] ?? '');
+    $dom = dom_param_lesen($_POST['dom'] ?? '');
 
     if ($action === 'block' && lookup_code_ok($code)) {
-        link_set_disabled($code, true);
+        link_set_disabled($code, true, $dom);
         flash(t('Kurzlink „%s“ gesperrt.', $code));
         audit(t('Kurzlink „%s“ gesperrt.', $code), $code);
     } elseif ($action === 'unblock' && lookup_code_ok($code)) {
-        link_set_disabled($code, false);
+        link_set_disabled($code, false, $dom);
         flash(t('Kurzlink „%s“ entsperrt.', $code));
         audit(t('Kurzlink „%s“ entsperrt.', $code), $code);
     } elseif ($action === 'dismiss' && preg_match('/^[0-9-]+-[a-f0-9]{8}\.json$/', $file) && is_file($reportsDir . '/' . $file)) {
@@ -88,10 +90,12 @@ show_flash();
     <?php else: ?>
     <div class="table-scroll"><table>
         <tr><th><?= t('Eingang') ?></th><th><?= t('Code') ?></th><th><?= t('Grund') ?></th><th><?= t('Beschreibung') ?></th><th><?= t('Ziel-URL') ?></th><th><?= t('Status') ?></th><th></th></tr>
-        <?php foreach ($reports as $file => $r): $link = link_get($r['code'] ?? ''); ?>
+        <?php foreach ($reports as $file => $r):
+            $rDom = dom_param_lesen($r['domain'] ?? '');
+            $link = link_get((string)($r['code'] ?? ''), $rDom); ?>
         <tr>
             <td><?= e(date('d.m.Y H:i', strtotime($r['created'] ?? 'now'))) ?></td>
-            <td><a href="<?= e(short_url((string)($r['code'] ?? ''))) ?>" target="_blank" rel="noopener noreferrer"><?= e((string)($r['code'] ?? '?')) ?></a></td>
+            <td><a href="<?= e(short_url((string)($r['code'] ?? ''), $rDom)) ?>" target="_blank" rel="noopener noreferrer"><?= e((string)($r['code'] ?? '?')) ?></a></td>
             <td><?= e((string)($r['reason'] ?? '–')) ?></td>
             <td class="url-cell" title="<?= e((string)($r['text'] ?? '')) ?>"><?= e(mb_strimwidth((string)($r['text'] ?? '–'), 0, 40, '…')) ?></td>
             <td class="url-cell" title="<?= e($link['url'] ?? '') ?>"><?= $link === null ? '<span class="muted">' . t('gelöscht') . '</span>' : e(mb_strimwidth($link['url'], 0, 40, '…')) ?></td>
@@ -102,6 +106,7 @@ show_flash();
                     <?= csrf_field() ?>
                     <input type="hidden" name="action" value="block">
                     <input type="hidden" name="code" value="<?= e((string)$r['code']) ?>">
+                    <input type="hidden" name="dom" value="<?= e($rDom) ?>">
                     <button class="btn btn-small" type="submit"><?= t('Sperren') ?></button>
                 </form>
                 <?php elseif ($link !== null): ?>
@@ -109,6 +114,7 @@ show_flash();
                     <?= csrf_field() ?>
                     <input type="hidden" name="action" value="unblock">
                     <input type="hidden" name="code" value="<?= e((string)$r['code']) ?>">
+                    <input type="hidden" name="dom" value="<?= e($rDom) ?>">
                     <button class="btn btn-small" type="submit"><?= t('Entsperren') ?></button>
                 </form>
                 <?php endif; ?>

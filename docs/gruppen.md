@@ -174,20 +174,34 @@ Eingerichtet werden sie unter *Einstellungen* oder über `'domains'` in der
 Konfiguration; eine Domain lässt sich einer Gruppe vorbehalten, so wie ein
 Namensraum-Präfix.
 
-**Ein Code gehört der Instanz, nicht der Domain.** Es gibt `/shop` genau
-einmal, und er löst unter jeder eingerichteten Adresse auf. Das ist die
-tragende Entscheidung, deshalb beide Seiten:
+**Jede Domain hat ihren eigenen Namensraum.** `kunde-a.link/shop` und
+`kunde-b.link/shop` sind zwei verschiedene Links, die nichts voneinander
+wissen. Das ist die tragende Entscheidung, deshalb beide Seiten:
 
-- *Dafür:* Ein gedruckter Code stirbt nicht, wenn eine Domain wegfällt.
-  Zieht ein Kunde um oder läuft eine Domain aus, funktionieren die Aufkleber
-  weiter. Für einen Dienst, dessen ganzer Zweck „gedruckt ist gedruckt“
-  lautet, wiegt das schwerer als Exklusivität.
-- *Dagegen:* Zwei Kunden können nicht beide `/shop` haben. Wer das braucht,
-  gibt ihnen [Namensraum-Präfixe](#namensräume) – dafür sind sie da.
+- *Dafür:* Wer eine zweite Domain einträgt, will einen zweiten Namensraum –
+  für mehr Platz, oder weil ein Kunde seine eigene Adresse mitbringt. Zwei
+  Kunden können beide `/shop` haben, ohne sich abzustimmen. Und niemand
+  erreicht unter seiner Domain die Kurzlinks eines anderen.
+- *Dagegen:* Fällt eine Domain weg, lösen ihre Links nicht mehr auf. Ein
+  gedruckter Code hängt an seiner Adresse.
 
-Getrennte Namensräume je Domain wären eine andere Datenhaltung: Ein Link
-wäre nicht mehr durch seinen Code bestimmt, sondern durch Domain *und* Code.
-Das zöge sich durch Ablage, Schnittstelle, Import und jede Oberfläche.
+Bis 4.5 war es umgekehrt: Ein Code gehörte der Instanz und löste unter jeder
+eingerichteten Adresse auf. Das hielt gedruckte Codes am Leben, hieß aber
+auch, dass ein Kunde unter seiner eigenen Domain die Kurzlinks aller anderen
+abrufen konnte. Für einen Dienst, bei dem Kunden ihre Domain mitbringen, war
+das nicht haltbar.
+
+Beim Austragen einer Domain sagt die Verwaltung, wie viele Links betroffen
+sind. Gelöscht wird keiner – wird die Domain wieder eingetragen, lösen sie
+alle wieder auf. Einen einzelnen Link auf eine andere Domain umziehen geht
+im Bearbeiten-Formular über das Domain-Auswahlfeld; ist der Code am Ziel
+schon vergeben, wird der Umzug abgelehnt statt still etwas zu überschreiben.
+
+**Übernahme aus älteren Fassungen:** Bisher war ein Code über alle Domains
+hinweg eindeutig – das ist ein Sonderfall von „je Domain eindeutig". Beim
+ersten Start unter 5.0 wandert die Domain aus dem Datensatz in den
+Schlüssel; kein Link ändert seinen Code, keiner verschwindet, keiner
+kollidiert.
 
 Die **Verwaltung bleibt auf der Hauptdomain** – der aus `base_url`. Eine
 Sitzung, ein Cookie, eine Adresse für Passkeys: Ein unter `kunde.link`

@@ -11,7 +11,7 @@ openapi: 3.1.0
 
 info:
   title: flatlink
-  version: 4.5.2
+  version: 5.0.0
   summary: Kurzlinks und QR-Codes, selbst gehostet
   description: |
     Kurzlinks anlegen, ändern, löschen und Klickzahlen abrufen.
@@ -165,6 +165,17 @@ paths:
   /links/{code}:
     parameters:
       - { name: code, in: path, required: true, schema: { type: string } }
+      - name: domain
+        in: query
+        required: false
+        description: |
+          Der Namensraum, in dem der Code gesucht wird. Seit 5.0 gehört ein
+          Code der Domain, nicht der Instanz: `kunde-a.example/aktion` und
+          `kunde-b.example/aktion` sind zwei verschiedene Links. Ohne Angabe
+          gilt die Hauptdomain — so bleibt jeder Aufruf von vor 5.0 gültig.
+          Eine nicht eingetragene Domain wird mit `unknown_domain`
+          zurückgewiesen.
+        schema: { type: string }
     get:
       operationId: getLink
       tags: [Links]
@@ -234,6 +245,17 @@ paths:
   /links/{code}/stats:
     parameters:
       - { name: code, in: path, required: true, schema: { type: string } }
+      - name: domain
+        in: query
+        required: false
+        description: |
+          Der Namensraum, in dem der Code gesucht wird. Seit 5.0 gehört ein
+          Code der Domain, nicht der Instanz: `kunde-a.example/aktion` und
+          `kunde-b.example/aktion` sind zwei verschiedene Links. Ohne Angabe
+          gilt die Hauptdomain — so bleibt jeder Aufruf von vor 5.0 gültig.
+          Eine nicht eingetragene Domain wird mit `unknown_domain`
+          zurückgewiesen.
+        schema: { type: string }
     get:
       operationId: getLinkStats
       tags: [Links]
@@ -417,7 +439,7 @@ components:
               enum: [no_key, bad_key, no_account, account_locked, no_permission,
                      scope_exceeded, forbidden, not_found, method_not_allowed,
                      not_created, rejected, invalid_json, rate_limited,
-                     too_many_attempts]
+                     too_many_attempts, code_taken, unknown_domain]
             message: { type: string }
 
     Konto:

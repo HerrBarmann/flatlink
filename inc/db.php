@@ -91,7 +91,7 @@ function db(): PDO
  * db_schema() bleibt vollständig idempotent (CREATE IF NOT EXISTS, Übernahme
  * nur bei vorhandener Datei); die Nummer erspart nur die Prüfung.
  */
-const DB_FASSUNG = 3;
+const DB_FASSUNG = 4;
 
 /** Das Schema – läuft nur bei neuer DB_FASSUNG, siehe db() */
 function db_schema(PDO $pdo): void
@@ -99,13 +99,23 @@ function db_schema(PDO $pdo): void
     // WAL steht persistent in der Datei – einmal hier gesetzt, gilt es für
     // jede künftige Verbindung, ohne dass die dafür bezahlt.
     $pdo->exec('PRAGMA journal_mode = WAL');
+    // Ein Kurzlink wird seit 5.0 durch (domain, code) bestimmt, nicht mehr
+    // allein durch den Code: Wer eine zweite Domain einträgt, will einen
+    // zweiten Namensraum – kunde-a.example/shop und kunde-b.example/shop
+    // sind zwei verschiedene Links. Die Hauptdomain trägt den leeren String;
+    // so bleiben alle bestehenden Datensätze gültig, ohne umgeschrieben zu
+    // werden. Aus demselben Grund steht die Domain vor dem Code: Der
+    // Primärschlüssel-Index trägt damit auch die Abfrage „alle Links einer
+    // Domain".
     $pdo->exec('CREATE TABLE IF NOT EXISTS links (
-        code    TEXT PRIMARY KEY,
+        domain  TEXT NOT NULL DEFAULT \'\',
+        code    TEXT NOT NULL,
         owner   TEXT,
         grp     TEXT,
         type    TEXT NOT NULL DEFAULT \'random\',
         created TEXT,
-        data    TEXT NOT NULL
+        data    TEXT NOT NULL,
+        PRIMARY KEY (domain, code)
     )');
     $pdo->exec('CREATE INDEX IF NOT EXISTS links_owner ON links(owner)');
     $pdo->exec('CREATE INDEX IF NOT EXISTS links_grp ON links(grp)');
@@ -199,6 +209,7 @@ function db_schema(PDO $pdo): void
     )');
     $pdo->exec('CREATE INDEX IF NOT EXISTS sessions_zugriff ON sessions(zugriff)');
 
+    db_namensraeume($pdo);
     db_uebernahme($pdo);
     $pdo->exec('PRAGMA user_version = ' . DB_FASSUNG);
 }
@@ -218,6 +229,94 @@ function db_schema(PDO $pdo): void
  * falsche Griff. Die eine sichtbare Folge: Nach diesem Update meldet sich
  * jeder einmal neu an.
  */
+/**
+ * Bestehende Datenbanken auf getrennte Namensräume heben (Fassung 3 → 4).
+ *
+ * `CREATE TABLE IF NOT EXISTS` lässt eine vorhandene Tabelle unangetastet –
+ * eine vor 5.0 angelegte `links` hat deshalb weder die Spalte `domain` noch
+ * den zusammengesetzten Schlüssel. Beides wird hier nachgezogen.
+ *
+ * Die Domain steht schon im Datensatz: Sie war bisher reine Anzeige (unter
+ * welcher Adresse der Link ausgegeben wird), jetzt wird sie Teil der
+ * Identität. Genau deshalb kann dabei nichts kollidieren – bisher war der
+ * Code über ALLE Domains hinweg eindeutig, und das ist ein Sonderfall von
+ * „je Domain eindeutig". Kein Link ändert seinen Code, keiner verschwindet.
+ *
+ * Umbenannt werden müssen dagegen die Klickstände von Links auf einer
+ * Zusatzdomain: Ihre Dateien lagen unter dem nackten Code, ab jetzt liegen
+ * sie unter „domain/code". Wer nur die Hauptdomain betreibt – der Regelfall –
+ * hat hier nichts zu tun.
+ */
+function db_namensraeume(PDO $pdo, ?string $klickVerz = null): void
+{
+    $tabellen = array_map('strval', $pdo->query(
+        "SELECT name FROM sqlite_master WHERE type = 'table'")->fetchAll(PDO::FETCH_COLUMN));
+    $spalten = array_map('strval', $pdo->query('PRAGMA table_info(links)')->fetchAll(PDO::FETCH_COLUMN, 1));
+    // links_alt aufzuräumen ist wichtiger als der Schnellausstieg: Bräche ein
+    // früherer Lauf zwischen Umbenennen und Löschen ab, hätte der Neustart
+    // oben ein leeres `links` angelegt (CREATE TABLE IF NOT EXISTS greift ja) –
+    // und der Schnellausstieg ließe den ganzen Bestand verwaist in links_alt
+    // liegen. Deshalb erst prüfen, ob so eine Leiche herumsteht.
+    if (in_array('domain', $spalten, true) && !in_array('links_alt', $tabellen, true)) return;
+
+    // Eine Transaktion um den ganzen Umbau. SQLite kann DDL zurückrollen –
+    // stirbt der Vorgang mittendrin, steht der Bestand unverändert da und
+    // user_version bleibt auf der alten Fassung, sodass der nächste Start es
+    // erneut versucht.
+    $pdo->exec('BEGIN IMMEDIATE');
+    try {
+        if (!in_array('links_alt', $tabellen, true)) {
+            $pdo->exec('ALTER TABLE links RENAME TO links_alt');
+        } else {
+            // Aus einem abgebrochenen Lauf: Was in `links` steht, stammt
+            // nicht von hier (die Tabelle war leer, als sie entstand).
+            $pdo->exec('DROP TABLE IF EXISTS links');
+        }
+        $pdo->exec('CREATE TABLE links (
+            domain  TEXT NOT NULL DEFAULT \'\',
+            code    TEXT NOT NULL,
+            owner   TEXT,
+            grp     TEXT,
+            type    TEXT NOT NULL DEFAULT \'random\',
+            created TEXT,
+            data    TEXT NOT NULL,
+            PRIMARY KEY (domain, code)
+        )');
+        // json_extract steht in jedem SQLite, das PHP 8.1 mitbringt – die
+        // Domain aus dem Datensatz zu ziehen ist damit ein einziges
+        // INSERT … SELECT statt eines Durchlaufs durch Millionen Zeilen in PHP.
+        $pdo->exec("INSERT INTO links (domain, code, owner, grp, type, created, data)
+            SELECT COALESCE(json_extract(data, '$.domain'), ''), code, owner, grp, type, created, data
+            FROM links_alt");
+        $pdo->exec('DROP TABLE links_alt');
+        $pdo->exec('CREATE INDEX IF NOT EXISTS links_owner ON links(owner)');
+        $pdo->exec('CREATE INDEX IF NOT EXISTS links_grp ON links(grp)');
+        $pdo->exec('CREATE INDEX IF NOT EXISTS links_created ON links(created)');
+        $pdo->exec('COMMIT');
+    } catch (Throwable $e) {
+        try { $pdo->exec('ROLLBACK'); } catch (Throwable) {}
+        throw $e;
+    }
+
+    // Erst NACH dem COMMIT: Ein Dateiumbenennen lässt sich nicht zurückrollen.
+    // Klickstände der Zusatzdomains nachziehen – die Schleife läuft nur über
+    // Links MIT Domain; auf den allermeisten Instanzen ist die Menge leer.
+    // Bricht sie ab, ist der Schaden ein verlorener Zählstand, kein Link.
+    $st = $pdo->query("SELECT domain, code FROM links WHERE domain <> ''");
+    $verz = $klickVerz ?? data_path('clicks');
+    while (($z = $st->fetch()) !== false) {
+        $alt = $verz . '/' . rawurlencode((string)$z['code']);
+        $neu = $verz . '/' . rawurlencode((string)$z['domain'] . '/' . (string)$z['code']);
+        foreach (['.json', '.log', '.json.lock'] as $endung) {
+            if (is_file($alt . $endung) && !file_exists($neu . $endung)) {
+                @rename($alt . $endung, $neu . $endung);
+            }
+        }
+        $u = $pdo->prepare('UPDATE clickdims SET code = ? WHERE code = ?');
+        $u->execute([(string)$z['domain'] . '/' . (string)$z['code'], (string)$z['code']]);
+    }
+}
+
 function db_uebernahme(PDO $pdo): void
 {
     $d = data_path();
@@ -306,11 +405,12 @@ function db_uebernahme(PDO $pdo): void
 // ---- Links ----------------------------------------------------------------
 
 /** Einen Link-Datensatz mitsamt der abgeleiteten Spalten schreiben */
-function db_link_put(PDO $pdo, string $code, array $l): void
+function db_link_put(PDO $pdo, string $code, array $l, string $domain = ''): void
 {
-    $st = $pdo->prepare('REPLACE INTO links (code, owner, grp, type, created, data)
-        VALUES (?, ?, ?, ?, ?, ?)');
+    $st = $pdo->prepare('REPLACE INTO links (domain, code, owner, grp, type, created, data)
+        VALUES (?, ?, ?, ?, ?, ?, ?)');
     $st->execute([
+        $domain,
         $code,
         isset($l['owner']) && is_string($l['owner']) && $l['owner'] !== '' ? $l['owner'] : null,
         isset($l['group']) && is_string($l['group']) && $l['group'] !== '' ? $l['group'] : null,
@@ -326,9 +426,45 @@ function db_links_rows(PDOStatement $st): array
     $out = [];
     while (($zeile = $st->fetch()) !== false) {
         $d = json_decode((string)$zeile['data'], true);
-        if (is_array($d)) $out[(string)$zeile['code']] = $d;
+        if (!is_array($d)) continue;
+        $out[db_link_schluessel($zeile)] = db_link_kennzeichnen($d, $zeile);
     }
     return $out;
+}
+
+/**
+ * Der Karten-Schlüssel eines Links.
+ *
+ * Seit die Namensräume getrennt sind, ist der Code allein nicht mehr
+ * eindeutig – kunde-a.example/shop und kunde-b.example/shop sind zwei Links.
+ * Ein Array, das nach Code schlüsselt, verlöre einen davon. Der Schlüssel
+ * trägt deshalb die Domain, wo eine da ist; auf der Hauptdomain bleibt es der
+ * nackte Code, damit gespeicherte Verweise weiter passen.
+ *
+ * @param array{domain?:string,code:string} $zeile
+ */
+function db_link_schluessel(array $zeile): string
+{
+    $d = (string)($zeile['domain'] ?? '');
+    return $d === '' ? (string)$zeile['code'] : $d . '/' . (string)$zeile['code'];
+}
+
+/**
+ * Code und Domain in den Datensatz legen.
+ *
+ * Der Aufrufer bekommt damit beides aus der Hand, ohne den Schlüssel zerlegen
+ * zu müssen: `_code` ist der Code zum Anzeigen, `domain` die Domain zum
+ * Weiterreichen. `_code` trägt einen Unterstrich, weil es kein gespeichertes
+ * Feld ist, sondern beim Lesen entsteht.
+ *
+ * @param array{domain?:string,code:string} $zeile
+ */
+function db_link_kennzeichnen(array $d, array $zeile): array
+{
+    $d['_code'] = (string)$zeile['code'];
+    $dom = (string)($zeile['domain'] ?? '');
+    if ($dom !== '') $d['domain'] = $dom; else unset($d['domain']);
+    return $d;
 }
 
 // ---- Konten ---------------------------------------------------------------

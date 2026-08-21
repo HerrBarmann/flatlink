@@ -117,8 +117,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'zip')
         $zip = new ZipWriter();
         $csv = "code;kurzlink;ziel;name;schlagworte\n";
 
-        foreach ($gewaehlt as $code) {
-            $l = $links[$code];
+        foreach ($gewaehlt as $schluessel) {
+            $l = $links[$schluessel];
+            // Der Schlüssel der Auswahl trägt die Domain mit – gezeichnet und
+            // benannt wird mit dem nackten Code.
+            $code = (string)$l['_code'];
             $kurz = short_url($code, (string)($l['domain'] ?? ''));
 
             // Die Absenderzeile richtet sich wie überall nach dem Besitzer des
@@ -262,10 +265,10 @@ if ($fehler !== null) echo '<div class="flash flash-err">' . e($fehler) . '</div
         </label>
 
         <div class="check-list">
-            <?php foreach ($links as $code => $l): ?>
+            <?php foreach ($links as $schluessel => $l): $code = (string)$l['_code']; ?>
             <label class="check">
-                <input type="checkbox" name="codes[]" value="<?= e((string)$code) ?>"
-                    <?= isset($vorauswahl[$code]) ? ' checked' : '' ?>>
+                <input type="checkbox" name="codes[]" value="<?= e((string)$schluessel) ?>"
+                    <?= isset($vorauswahl[$schluessel]) ? ' checked' : '' ?>>
                 <span>
                     <code><?= e((string)$code) ?></code>
                     <?php if (($l['title'] ?? '') !== ''): ?>

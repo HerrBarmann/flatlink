@@ -29,17 +29,17 @@ require_once __DIR__ . '/hooks.php';
  */
 function links_all(): array
 {
-    return db_links_rows(db()->query('SELECT code, data FROM links'));
+    return db_links_rows(db()->query('SELECT domain, code, data FROM links'));
 }
 
 /**
  * Einen einzelnen Link holen – der heiße Pfad.
  * Liest genau eine Ablage statt der gesamten Sammlung.
  */
-function link_get(string $code): ?array
+function link_get(string $code, string $domain = ''): ?array
 {
-    $st = db()->prepare('SELECT data FROM links WHERE code = ?');
-    $st->execute([$code]);
+    $st = db()->prepare('SELECT data FROM links WHERE domain = ? AND code = ?');
+    $st->execute([$domain, $code]);
     $zeile = $st->fetch();
     if ($zeile === false) return null;
     $d = json_decode((string)$zeile['data'], true);
@@ -51,15 +51,15 @@ function link_get(string $code): ?array
  * $fn bekommt den Datensatz (oder null) und gibt den neuen zurück; null
  * löscht ihn.
  */
-function link_write(string $code, callable $fn): bool
+function link_write(string $code, callable $fn, string $domain = ''): bool
 {
     // BEGIN IMMEDIATE nimmt das Schreib-Lock sofort: lesen, ändern,
     // schreiben als ein Vorgang.
     $pdo = db();
     $pdo->exec('BEGIN IMMEDIATE');
     try {
-        $st = $pdo->prepare('SELECT data FROM links WHERE code = ?');
-        $st->execute([$code]);
+        $st = $pdo->prepare('SELECT data FROM links WHERE domain = ? AND code = ?');
+        $st->execute([$domain, $code]);
         $zeile = $st->fetch();
         $alt = $zeile === false ? null : json_decode((string)$zeile['data'], true);
         $neu = $fn(is_array($alt) ? $alt : null);
@@ -68,10 +68,10 @@ function link_write(string $code, callable $fn): bool
             return false;
         }
         if ($neu === null) {
-            $del = $pdo->prepare('DELETE FROM links WHERE code = ?');
-            $del->execute([$code]);
+            $del = $pdo->prepare('DELETE FROM links WHERE domain = ? AND code = ?');
+            $del->execute([$domain, $code]);
         } else {
-            db_link_put($pdo, $code, $neu);
+            db_link_put($pdo, $code, $neu, $domain);
         }
         $pdo->exec('COMMIT');
         return true;
@@ -98,7 +98,7 @@ function link_write(string $code, callable $fn): bool
  * $fn bekommt jeden Datensatz und gibt den neuen zurück; `false` lässt ihn
  * unangetastet, `null` löscht ihn.
  *
- * @param string[] $codes
+ * @param array<string|array{0:string,1:string}> $codes Code oder [Code, Domain]
  * @return int Zahl der tatsächlich geänderten Datensätze
  */
 function links_write_many(array $codes, callable $fn): int
@@ -107,18 +107,23 @@ function links_write_many(array $codes, callable $fn): int
     $pdo = db();
     $pdo->exec('BEGIN IMMEDIATE');
     try {
-        $lesen = $pdo->prepare('SELECT data FROM links WHERE code = ?');
-        $loeschen = $pdo->prepare('DELETE FROM links WHERE code = ?');
+        $lesen = $pdo->prepare('SELECT data FROM links WHERE domain = ? AND code = ?');
+        $loeschen = $pdo->prepare('DELETE FROM links WHERE domain = ? AND code = ?');
         $zaehler = 0;
         $n = 0;
-        foreach ($codes as $code) {
-            $lesen->execute([(string)$code]);
+        foreach ($codes as $eintrag) {
+            // Ein blanker String meint die Hauptdomain – so bleiben Aufrufer
+            // gültig, die von getrennten Namensräumen nichts wissen.
+            [$code, $domain] = is_array($eintrag)
+                ? [(string)$eintrag[0], (string)($eintrag[1] ?? '')]
+                : [(string)$eintrag, ''];
+            $lesen->execute([$domain, $code]);
             $zeile = $lesen->fetch();
             $alt = $zeile === false ? null : json_decode((string)$zeile['data'], true);
-            $neu = $fn(is_array($alt) ? $alt : null, (string)$code);
+            $neu = $fn(is_array($alt) ? $alt : null, $code, $domain);
             if ($neu === false) continue;
-            if ($neu === null) { if (is_array($alt)) $zaehler--; $loeschen->execute([(string)$code]); }
-            else { if (!is_array($alt)) $zaehler++; db_link_put($pdo, (string)$code, $neu); }
+            if ($neu === null) { if (is_array($alt)) $zaehler--; $loeschen->execute([$domain, $code]); }
+            else { if (!is_array($alt)) $zaehler++; db_link_put($pdo, $code, $neu, $domain); }
             $n++;
         }
         $pdo->exec('COMMIT');
@@ -156,10 +161,10 @@ function links_write_many(array $codes, callable $fn): int
  */
 function links_each(): \Generator
 {
-    $st = db()->query('SELECT code, data FROM links');
+    $st = db()->query('SELECT domain, code, data FROM links');
     while (($z = $st->fetch()) !== false) {
         $d = json_decode((string)$z['data'], true);
-        if (is_array($d)) yield (string)$z['code'] => $d;
+        if (is_array($d)) yield db_link_schluessel($z) => db_link_kennzeichnen($d, $z);
     }
 }
 
@@ -194,17 +199,37 @@ function links_count_bump(int $um): void
 
 function links_of_owner(string $owner): array
 {
-    $st = db()->prepare('SELECT code, data FROM links WHERE owner = ?');
+    $st = db()->prepare('SELECT domain, code, data FROM links WHERE owner = ?');
     $st->execute([$owner]);
     return db_links_rows($st);
+}
+
+/**
+ * Wie viele Links unter einer Domain liegen.
+ *
+ * Gebraucht beim Entfernen einer Domain aus den Grundregeln: Seit die
+ * Namensräume getrennt sind, sind deren Links danach nicht mehr erreichbar –
+ * gelöscht werden sie nicht, aber unter keiner Adresse mehr auflösbar. Das
+ * darf niemandem stumm passieren.
+ *
+ * Läuft über den Primärschlüssel-Index (domain zuerst) und kostet deshalb
+ * auch bei Millionen Links nur den einen Bereich.
+ */
+function links_count_of_domain(string $domain): int
+{
+    $st = db()->prepare('SELECT COUNT(*) FROM links WHERE domain = ?');
+    $st->execute([$domain]);
+    return (int)$st->fetchColumn();
 }
 
 /** Die Codes einer Arbeitsgruppe @return string[] */
 function link_codes_of_group(string $group): array
 {
-    $st = db()->prepare('SELECT code FROM links WHERE grp = ?');
+    $st = db()->prepare('SELECT domain, code FROM links WHERE grp = ?');
     $st->execute([$group]);
-    return array_map('strval', $st->fetchAll(PDO::FETCH_COLUMN));
+    $out = [];
+    while (($z = $st->fetch()) !== false) $out[] = [(string)$z['code'], (string)$z['domain']];
+    return $out;
 }
 
 /**
@@ -225,7 +250,7 @@ function link_expired(array $link): bool
  * es entsteht kein zusätzlicher Speicher. Bots zählen nicht (click_zaehlbar),
  * das Limit meint also echte Besuche.
  */
-function link_ausgeschoepft(string $code, array $link): bool
+function link_ausgeschoepft(string $code, array $link, string $domain = ''): bool
 {
     $m = (int)($link['max_visits'] ?? 0);
     if ($m <= 0) return false;
@@ -235,8 +260,8 @@ function link_ausgeschoepft(string $code, array $link): bool
     // ausgelieferter Aufruf. Ausgenommen sind Ziel-Klicks von Bio-Seiten
     // („i"-Zeilen): Sie sind kein Seitenaufruf und zählten auch früher
     // nicht auf das Limit.
-    $c = json_read(clicks_file($code), ['n' => 0, 'last' => null, 'days' => []]);
-    $log = clicks_log_file($code);
+    $c = json_read(clicks_file($code, $domain), ['n' => 0, 'last' => null, 'days' => []]);
+    $log = clicks_log_file($code, $domain);
     $offen = 0;
     if (is_file($log)) {
         foreach (file($log, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [] as $z) {
@@ -308,7 +333,11 @@ function links_gc(): void
     // Sekunden – kleine Bestände erledigen alles unverändert in einer.
     $stand = state_get('links-gc');
     $cursor = (string)($stand['cursor'] ?? '');
-    $rundeOffen = $cursor !== '';
+    // Der Cursor ist seit den getrennten Namensräumen ein Paar: Sortiert wird
+    // nach (domain, code) – der Reihenfolge des Primärschlüssels, damit der
+    // Scan dem Index folgt statt zu sortieren.
+    $cursorDom = (string)($stand['cursor_domain'] ?? '');
+    $rundeOffen = $cursor !== '' || $cursorDom !== '';
     if ($rundeOffen) {
         if ((int)strtotime((string)($stand['slice'] ?? '')) > time() - 3600) return;
     } else {
@@ -317,6 +346,7 @@ function links_gc(): void
     state_set('links-gc', [
         'last_run' => $rundeOffen ? (string)($stand['last_run'] ?? '') : date('c'),
         'cursor' => $cursor,
+        'cursor_domain' => $cursorDom,
         'slice' => date('c'),
         'gezaehlt' => $rundeOffen ? (int)($stand['gezaehlt'] ?? 0) : 0,
     ]);
@@ -409,17 +439,19 @@ function links_gc(): void
     // Cursor aus dem state als Startpunkt und einem Zeitbudget von zwei
     // Sekunden. Gelöscht wird erst NACH der Iteration (in die Tabelle
     // schreiben, während ein Cursor auf ihr steht, ist verbotenes Terrain).
-    $loeschen = []; // code => Log-Zeile
+    $loeschen = []; // schluessel => [code, domain, Log-Zeile]
     $budgetStart = microtime(true);
     $fertig = true;
-    $st = db()->prepare('SELECT code, data FROM links WHERE code > ? ORDER BY code');
-    $st->execute([$cursor]);
+    $st = db()->prepare('SELECT domain, code, data FROM links
+        WHERE (domain, code) > (?, ?) ORDER BY domain, code');
+    $st->execute([$cursorDom, $cursor]);
     // Die Runde zählt den Bestand nebenbei: 'gezaehlt' summiert über alle
     // Scheiben, und am Rundenende wird der gepflegte Zähler damit begradigt –
     // ein eigenes COUNT(*) je Woche kostete bei fünfzig Millionen Links über
     // dreißig Sekunden und wäre genau der Fehler, den die Scheiben beheben.
     $geprueft = 0;
     $letzter = $cursor;
+    $letzterDom = $cursorDom;
     while (($zeile = $st->fetch()) !== false) {
         // Zwei Bremsen: das Zeitbudget des Scans UND ein Deckel auf der
         // eingesammelten Löscharbeit. Ohne den zweiten kann ein 2-Sekunden-
@@ -432,10 +464,16 @@ function links_gc(): void
             // setzt genau dort wieder an.
             $fertig = false;
             $cursor = $letzter;
+            $cursorDom = $letzterDom;
             break;
         }
         $code = (string)$zeile['code'];
+        $domain = (string)($zeile['domain'] ?? '');
+        // Merk- und Löschlisten schlüsseln über die Domain mit: Zwei Links
+        // gleichen Codes auf zwei Domains sind zwei Vorgänge.
+        $schluessel = db_link_schluessel($zeile);
         $letzter = $code;
+        $letzterDom = $domain;
         $geprueft++;
         $l = json_decode((string)$zeile['data'], true);
         if (!is_array($l)) continue;
@@ -446,15 +484,15 @@ function links_gc(): void
         // Die letzte Nutzung steht in der JÜNGEREN der beiden Klick-Dateien:
         // Das Anhang-Protokoll ist bei aktiven Links das frischere, die
         // verdichtete Basis bei solchen, deren Statistik zuletzt gelesen wurde.
-        $cf = clicks_file($code);
-        $lf = clicks_log_file($code);
+        $cf = clicks_file($code, $domain);
+        $lf = clicks_log_file($code, $domain);
         $lastUse = max(
             is_file($cf) ? (int)filemtime($cf) : 0,
             is_file($lf) ? (int)filemtime($lf) : 0
         ) ?: strtotime((string)($l['created'] ?? ''));
         if ($lastUse === false || $lastUse >= $warnCutoff) {
             // Wieder genutzt: eventuelle Warn-Markierung zurücksetzen
-            if (isset($warned[$code])) unset($warned[$code]);
+            if (isset($warned[$schluessel])) unset($warned[$schluessel]);
             continue;
         }
 
@@ -462,13 +500,13 @@ function links_gc(): void
         if ($mail === null) {
             // Nicht warnbar: lange Frist, dafür ohne Vorwarnung
             if ($lastUse < $deleteCutoffLong) {
-                $loeschen[$code] = 'gelöscht (ohne Warnweg, ' . $yearsLong . ' Jahre): ' . $code . ' (letzte Nutzung: ' . date('Y-m-d', $lastUse) . ')';
+                $loeschen[$schluessel] = [$code, $domain, 'gelöscht (ohne Warnweg, ' . $yearsLong . ' Jahre): ' . $schluessel . ' (letzte Nutzung: ' . date('Y-m-d', $lastUse) . ')'];
             }
-        } elseif ($lastUse < $deleteCutoff && isset($warned[$code]) && strtotime((string)$warned[$code]) < time() - 30 * 86400) {
-            unset($warned[$code]);
-            $loeschen[$code] = 'gelöscht (nach Warnung): ' . $code . ' (letzte Nutzung: ' . date('Y-m-d', $lastUse) . ')';
-        } elseif (!isset($warned[$code])) {
-            $toWarn[$mail][$code] = $lastUse;
+        } elseif ($lastUse < $deleteCutoff && isset($warned[$schluessel]) && strtotime((string)$warned[$schluessel]) < time() - 30 * 86400) {
+            unset($warned[$schluessel]);
+            $loeschen[$schluessel] = [$code, $domain, 'gelöscht (nach Warnung): ' . $schluessel . ' (letzte Nutzung: ' . date('Y-m-d', $lastUse) . ')'];
+        } elseif (!isset($warned[$schluessel])) {
+            $toWarn[$mail][$schluessel] = $lastUse;
         }
     }
     $st->closeCursor();
@@ -482,10 +520,11 @@ function links_gc(): void
         state_set('links-count', ['n' => $summe]);
     } else {
         state_set('links-gc', ['last_run' => (string)($altStand['last_run'] ?? date('c')),
-            'cursor' => $cursor, 'slice' => date('c'), 'gezaehlt' => $summe]);
+            'cursor' => $cursor, 'cursor_domain' => $cursorDom,
+            'slice' => date('c'), 'gezaehlt' => $summe]);
     }
-    foreach ($loeschen as $code => $zeile) {
-        link_delete((string)$code);
+    foreach ($loeschen as [$code, $domain, $zeile]) {
+        link_delete($code, $domain);
         $log($zeile);
     }
 
@@ -540,12 +579,18 @@ function link_create(string $url, ?string $code, ?string $owner, string $type, a
 {
     links_gc();
 
+    // Seit 5.0 hat jede Domain ihren eigenen Namensraum: Ob ein Code frei ist,
+    // entscheidet sich unter DER Domain, für die er angelegt wird. Wer eine
+    // zweite Domain einträgt, will schließlich einen zweiten Namensraum – und
+    // ein Kunde, der seine eigene Domain mitbringt, darf sich nicht daran
+    // stören, welche Codes andere Kunden schon vergeben haben.
+    $domain = (string)($opts['domain'] ?? '');
     $prefix = (string)($opts['prefix'] ?? '');
     $expires = $opts['expires'] ?? null;
     $group = $opts['group'] ?? null;
 
     if ($code === null) {
-        $code = link_random_code($prefix);
+        $code = link_random_code($prefix, $domain);
         if ($code === null) {
             return [false, t('Kein freier Code gefunden – Code-Länge in config.php erhöhen.')];
         }
@@ -566,7 +611,7 @@ function link_create(string $url, ?string $code, ?string $owner, string $type, a
         // in den Datensätzen der Instanzen, die ohne Gruppen arbeiten
         if ($group !== null && $group !== '') $new['group'] = $group;
         return link_apply_meta($new, $opts);
-    });
+    }, $domain);
 
     if ($taken) return [false, t('Dieser Code ist schon vergeben.')];
     if (!$ok) return [false, t('Anlegen fehlgeschlagen.')];
@@ -580,7 +625,7 @@ function link_create(string $url, ?string $code, ?string $owner, string $type, a
  *
  * @param array{expires?:?string,title?:?string,tags?:string[]} $opts
  */
-function link_update(string $code, string $url, array $opts = []): bool
+function link_update(string $code, string $url, array $opts = [], string $domain = ''): bool
 {
     // Wer den Vorgang auslöst, steht in der Sitzung – im Schreib-Callback
     // wäre der Aufruf zu spät, er liefe dann innerhalb der Transaktion.
@@ -599,7 +644,7 @@ function link_update(string $code, string $url, array $opts = []): bool
             $l = link_history_add($l, $vorher, $url, $wer);
         }
         return link_apply_meta($l, $opts);
-    });
+    }, $domain);
     if ($ok) hook_fire('link.updated', hook_link($code, link_get($code)));
     return $ok;
 }
@@ -731,14 +776,14 @@ function tags_counts(array $links): array
 }
 
 /** Gruppenzuordnung eines Links setzen ($group = null hebt sie auf) */
-function link_set_group(string $code, ?string $group): bool
+function link_set_group(string $code, ?string $group, string $domain = ''): bool
 {
     return link_write($code, function (?array $l) use ($group) {
         if ($l === null) return false;
         if ($group === null || $group === '') unset($l['group']); else $l['group'] = $group;
         $l['updated'] = date('c');
         return $l;
-    });
+    }, $domain);
 }
 
 /**
@@ -752,14 +797,14 @@ function link_set_group(string $code, ?string $group): bool
  * Ohne Gruppe und ohne Besitzer wäre ein Link allerdings herrenlos – nur noch
  * für Administratoren auffindbar. Das prüft der Aufrufer.
  */
-function link_set_owner(string $code, ?string $owner): bool
+function link_set_owner(string $code, ?string $owner, string $domain = ''): bool
 {
     return link_write($code, function (?array $l) use ($owner) {
         if ($l === null) return false;
         if ($owner === null || $owner === '') unset($l['owner']); else $l['owner'] = $owner;
         $l['updated'] = date('c');
         return $l;
-    });
+    }, $domain);
 }
 
 /** Anzahl aktiver Wunsch-Codes eines Kontos (für das Pro-Kontingent) */
@@ -779,44 +824,105 @@ function link_count(string $owner): int
 }
 
 /** Passwortschutz setzen (Hash) oder entfernen (null) – Pro-Feature */
-function link_set_password(string $code, ?string $hash): bool
+function link_set_password(string $code, ?string $hash, string $domain = ''): bool
 {
     return link_write($code, function (?array $l) use ($hash) {
         if ($l === null) return false;
         if ($hash === null) unset($l['pass']); else $l['pass'] = $hash;
         $l['updated'] = date('c');
         return $l;
-    });
+    }, $domain);
 }
 
 /** Link wegen Missbrauchs sperren/entsperren (gesperrte Links antworten mit 410) */
-function link_set_disabled(string $code, bool $disabled): bool
+function link_set_disabled(string $code, bool $disabled, string $domain = ''): bool
 {
     $ok = link_write($code, function (?array $l) use ($disabled) {
         if ($l === null) return false;
         if ($disabled) $l['disabled'] = true; else unset($l['disabled']);
         $l['updated'] = date('c');
         return $l;
-    });
+    }, $domain);
     if ($ok) hook_fire('link.blocked', hook_link($code, link_get($code)));
     return $ok;
 }
 
-function link_delete(string $code): void
+/**
+ * Einen Link in einen anderen Namensraum umziehen.
+ *
+ * Bis 5.0 war das Feld `domain` reine Anzeige – es zu ändern hieß, denselben
+ * Link unter anderer Adresse auszugeben. Jetzt ist die Domain Teil der
+ * Identität, und ein Wechsel ist ein echter Umzug: Der Code muss am Ziel frei
+ * sein, und die Klickstände müssen mit.
+ *
+ * Bewusst NICHT als „löschen und neu anlegen": Das verlöre Anlagedatum,
+ * Verlauf und Klickstände. Der Datensatz wandert unverändert, nur sein
+ * Schlüssel ändert sich.
+ *
+ * @return array{0:bool,1:string} [ok, Fehlertext bei false]
+ */
+function link_move(string $code, string $von, string $nach): array
+{
+    if ($von === $nach) return [true, ''];
+    $pdo = db();
+    $pdo->exec('BEGIN IMMEDIATE');
+    try {
+        $st = $pdo->prepare('SELECT data FROM links WHERE domain = ? AND code = ?');
+        $st->execute([$nach, $code]);
+        if ($st->fetch() !== false) {
+            $pdo->exec('ROLLBACK');
+            return [false, t('Unter dieser Domain ist %s schon vergeben.', $code)];
+        }
+        $st->execute([$von, $code]);
+        $zeile = $st->fetch();
+        if ($zeile === false) {
+            $pdo->exec('ROLLBACK');
+            return [false, t('Diesen Kurzlink gibt es nicht (mehr).')];
+        }
+        $l = json_decode((string)$zeile['data'], true);
+        if (!is_array($l)) {
+            $pdo->exec('ROLLBACK');
+            return [false, t('Diesen Kurzlink gibt es nicht (mehr).')];
+        }
+        if ($nach === '') unset($l['domain']); else $l['domain'] = $nach;
+        $l['updated'] = date('c');
+        $loeschen = $pdo->prepare('DELETE FROM links WHERE domain = ? AND code = ?');
+        $loeschen->execute([$von, $code]);
+        db_link_put($pdo, $code, $l, $nach);
+        // Die Merkmalstöpfe hängen am selben Schlüssel wie die Dateien.
+        $u = $pdo->prepare('UPDATE clickdims SET code = ? WHERE code = ?');
+        $u->execute([clicks_schluessel($code, $nach), clicks_schluessel($code, $von)]);
+        $pdo->exec('COMMIT');
+    } catch (Throwable $e) {
+        try { $pdo->exec('ROLLBACK'); } catch (Throwable) {}
+        return [false, t('Der Umzug ist fehlgeschlagen.')];
+    }
+    // Erst nach dem COMMIT: Dateien lassen sich nicht zurückrollen, und ein
+    // Klickstand, der am alten Ort liegen bleibt, ist der harmlosere Ausgang
+    // als ein Datensatz ohne seinen Zählstand.
+    foreach ([[clicks_file($code, $von), clicks_file($code, $nach)],
+              [clicks_log_file($code, $von), clicks_log_file($code, $nach)],
+              [clicks_file($code, $von) . '.lock', clicks_file($code, $nach) . '.lock']] as [$a, $b]) {
+        if (is_file($a) && !file_exists($b)) @rename($a, $b);
+    }
+    return [true, ''];
+}
+
+function link_delete(string $code, string $domain = ''): void
 {
     // Vor dem Löschen lesen: Danach gäbe es nichts mehr zu melden als den Code
-    $l = link_get($code);
-    link_write($code, fn(?array $l) => null);
+    $l = link_get($code, $domain);
+    link_write($code, fn(?array $l) => null, $domain);
     if ($l !== null) links_count_bump(-1);
-    @unlink(clicks_file($code));
-    @unlink(clicks_log_file($code));
+    @unlink(clicks_file($code, $domain));
+    @unlink(clicks_log_file($code, $domain));
     // Auch die Sperrdatei, die json_update() neben der Basis anlegt: Sie
     // blieb sonst für immer liegen – ein Inode je je gelöschtem Link. Auf
     // Shared Hosting ist das Inode-Kontingent die eigentliche Obergrenze,
     // und ein Leck darin fällt erst auf, wenn nichts mehr geht.
-    @unlink(clicks_file($code) . '.lock');
+    @unlink(clicks_file($code, $domain) . '.lock');
     $st = db()->prepare('DELETE FROM clickdims WHERE code = ?');
-    $st->execute([$code]);
+    $st->execute([clicks_schluessel($code, $domain)]);
     hook_fire('link.deleted', hook_link($code, $l));
 }
 
@@ -827,7 +933,7 @@ function link_delete(string $code): void
  * Geprüft wird nur die Ablage des Kandidaten, nicht die gesamte Sammlung –
  * ein Lesevorgang von wenigen Kilobyte statt der ganzen Datei.
  */
-function link_random_code(string $prefix = ''): ?string
+function link_random_code(string $prefix = '', string $domain = ''): ?string
 {
     $alphabet = cfg('alphabet');
     $len = cfg('code_length');
@@ -839,27 +945,39 @@ function link_random_code(string $prefix = ''): ?string
         }
         if (!valid_code($seg)) continue;
         $code = $prefix === '' ? $seg : $prefix . '/' . $seg;
-        if (link_get($code) === null) return $code;
+        if (link_get($code, $domain) === null) return $code;
     }
     return null;
 }
 
 // ---- Klickzähler (eigene Mini-Datei pro Code, hält links.json aus dem Redirect-Pfad raus) ----
 
-function clicks_file(string $code): string
+function clicks_file(string $code, string $domain = ''): string
 {
     // rawurlencode macht auch Prefix-Codes ("p/abc") zu kollisionsfreien Dateinamen
-    return data_path('clicks') . '/' . rawurlencode($code) . '.json';
+    return data_path('clicks') . '/' . rawurlencode(clicks_schluessel($code, $domain)) . '.json';
 }
 
-function clicks_get(string $code): array
+/**
+ * Der Dateiname eines Zählstands. Auf der Hauptdomain ist es der nackte Code –
+ * damit bleiben alle Dateien aus der Zeit vor den getrennten Namensräumen
+ * gültig, ohne umbenannt zu werden. Eine Zusatzdomain stellt sich davor.
+ * Verwechseln kann sich das nicht: Ein Code darf keinen Punkt enthalten,
+ * eine Domain hat immer einen.
+ */
+function clicks_schluessel(string $code, string $domain = ''): string
 {
-    clicks_fold($code);
-    $c = json_read(clicks_file($code), ['n' => 0, 'last' => null, 'days' => []]);
+    return $domain === '' ? $code : $domain . '/' . $code;
+}
+
+function clicks_get(string $code, string $domain = ''): array
+{
+    clicks_fold($code, $domain);
+    $c = json_read(clicks_file($code, $domain), ['n' => 0, 'last' => null, 'days' => []]);
     // Die Merkmalstöpfe leben seit 4.4 in der Tabelle clickdims; was in der
     // Basisdatei liegt, ist Altbestand aus der Zeit davor. Beides addieren –
     // so zählen alte Summen weiter, ohne dass eine Übernahme nötig wäre.
-    foreach (clicks_dims_of($code) as $feld => $werte) {
+    foreach (clicks_dims_of($code, $domain) as $feld => $werte) {
         foreach ($werte as $wert => $n) {
             $c[$feld][$wert] = (int)($c[$feld][$wert] ?? 0) + $n;
         }
@@ -868,9 +986,9 @@ function clicks_get(string $code): array
 }
 
 /** Das Anhang-Protokoll neben der verdichteten Basis (siehe clicks_bump) */
-function clicks_log_file(string $code): string
+function clicks_log_file(string $code, string $domain = ''): string
 {
-    return data_path('clicks') . '/' . rawurlencode($code) . '.log';
+    return data_path('clicks') . '/' . rawurlencode(clicks_schluessel($code, $domain)) . '.log';
 }
 
 /**
@@ -884,9 +1002,9 @@ function clicks_log_file(string $code): string
  * gezählt statt verloren; beides ist ein µs-Fenster, aber Klickzahlen
  * sollen im Zweifel nicht schrumpfen.
  */
-function clicks_fold(string $code): void
+function clicks_fold(string $code, string $domain = ''): void
 {
-    $log = clicks_log_file($code);
+    $log = clicks_log_file($code, $domain);
     if (!is_file($log) || filesize($log) === 0) return;
     $h = fopen($log, 'r+');
     if ($h === false) return;
@@ -896,7 +1014,7 @@ function clicks_fold(string $code): void
         if ($inhalt === false || $inhalt === '') return;
         $zeilen = explode("\n", $inhalt);
         $altdims = [];
-        json_update(clicks_file($code), function (array $c) use ($zeilen, &$altdims): array {
+        json_update(clicks_file($code, $domain), function (array $c) use ($zeilen, &$altdims): array {
             foreach ($zeilen as $z) {
                 $e = json_decode($z, true);
                 if (!is_array($e)) continue;
@@ -925,7 +1043,7 @@ function clicks_fold(string $code): void
             }
             return $c;
         }, ['n' => 0, 'last' => null, 'days' => []]);
-        if ($altdims !== []) clicks_dims_zaehle($code, $altdims);
+        if ($altdims !== []) clicks_dims_zaehle($code, $altdims, $domain);
         ftruncate($h, 0);
     } finally {
         flock($h, LOCK_UN);
@@ -959,9 +1077,9 @@ const CLICKS_FOLD_AB = 32768;
  *
  * Alle Zeilen eines Aufrufs gehen in EINEM fwrite unter EINEM Lock raus.
  */
-function clicks_append(string $code, array ...$eintraege): void
+function clicks_append(string $code, string $domain, array ...$eintraege): void
 {
-    $h = fopen(clicks_log_file($code), 'ab');
+    $h = fopen(clicks_log_file($code, $domain), 'ab');
     if ($h === false) return;
     // Das Lock koordiniert mit clicks_fold(): Während die Verdichtung liest
     // und leert, wartet der Anhang – sonst verschwände er im ftruncate.
@@ -977,7 +1095,7 @@ function clicks_append(string $code, array ...$eintraege): void
     // Falten erst NACH der Freigabe: clicks_fold() nimmt dasselbe flock über
     // einen eigenen Dateigriff, und zwei Griffe desselben Prozesses sperren
     // einander aus wie zwei Prozesse.
-    if ($gross) clicks_fold($code);
+    if ($gross) clicks_fold($code, $domain);
 }
 
 /** Wie viele verschiedene Werte je Merkmal aufgehoben werden */
@@ -1111,9 +1229,9 @@ function click_zaehlbar(?array $link = null): bool
  * gesetztem Limit – für alle anderen bleibt eine Bot-Anfrage das, was sie war:
  * ein Aufruf, der keine Datei anfasst.
  */
-function clicks_roh_bump(string $code): void
+function clicks_roh_bump(string $code, string $domain = ''): void
 {
-    clicks_append($code, ['roh' => 1]);
+    clicks_append($code, $domain, ['roh' => 1]);
 }
 
 /**
@@ -1129,9 +1247,14 @@ function clicks_roh_bump(string $code): void
  * Schreiben fehl (Datenbank ausgelastet), wird der Besucher trotzdem
  * weitergeleitet und der Topf um eins ärmer – der harmloseste Ausgang.
  */
-function clicks_dims_zaehle(string $code, array $paare): void
+function clicks_dims_zaehle(string $code, array $paare, string $domain = ''): void
 {
     if ($paare === []) return;
+    // Dieselbe Schlüsselbildung wie beim Dateinamen: Die Töpfe eines Links
+    // auf einer Zusatzdomain stehen unter "domain/code". Damit braucht die
+    // Tabelle keine eigene Spalte und keine Übernahme – Altbestand auf der
+    // Hauptdomain steht weiter unter dem nackten Code.
+    $code = clicks_schluessel($code, $domain);
     $pdo = db();
     $update = $pdo->prepare('UPDATE clickdims SET n = n + 1 WHERE code = ? AND feld = ? AND wert = ?');
     $anz = $pdo->prepare('SELECT COUNT(*) FROM clickdims WHERE code = ? AND feld = ?');
@@ -1156,10 +1279,10 @@ function clicks_dims_zaehle(string $code, array $paare): void
 }
 
 /** @return array<string,array<string,int>> feld => (wert => n) */
-function clicks_dims_of(string $code): array
+function clicks_dims_of(string $code, string $domain = ''): array
 {
     $st = db()->prepare('SELECT feld, wert, n FROM clickdims WHERE code = ?');
-    $st->execute([$code]);
+    $st->execute([clicks_schluessel($code, $domain)]);
     $out = [];
     while (($z = $st->fetch()) !== false) {
         $out[(string)$z['feld']][(string)$z['wert']] = (int)$z['n'];
@@ -1167,7 +1290,7 @@ function clicks_dims_of(string $code): array
     return $out;
 }
 
-function clicks_bump(string $code, ?int $item = null, ?int $weiche = null): void
+function clicks_bump(string $code, ?int $item = null, ?int $weiche = null, string $domain = ''): void
 {
     // Seit 4.1 ist Zählen ein ANHÄNGEN, kein Lesen-Ändern-Schreiben mehr –
     // gemessen war das Umschreiben der Basis der teuerste Teil einer
@@ -1182,17 +1305,17 @@ function clicks_bump(string $code, ?int $item = null, ?int $weiche = null): void
     // beschreibt keine Zeile des Protokolls einen einzelnen Besuch, und die
     // zentrale Zusage der Statistik gilt auch für den Weg zur Summe.
     if ($item !== null) {
-        clicks_append($code, ['d' => date('Y-m-d'), 'i' => (string)$item]);
+        clicks_append($code, $domain, ['d' => date('Y-m-d'), 'i' => (string)$item]);
         return;
     }
     // Ins Protokoll geht NUR die Zählzeile – ein Datum, sonst nichts. Alles,
     // was ein Merkmal ist (Herkunft, Gerät, Sprache, gegriffene Weiche),
     // wird direkt als Summe gezählt und taucht nie als Einzeleintrag auf.
-    clicks_append($code, ['d' => date('Y-m-d')]);
+    clicks_append($code, $domain, ['d' => date('Y-m-d')]);
     $paare = [];
     foreach (click_dims() as $feld => $wert) $paare[] = [$feld, $wert];
     if ($weiche !== null) $paare[] = ['routes', (string)$weiche];
-    clicks_dims_zaehle($code, $paare);
+    clicks_dims_zaehle($code, $paare, $domain);
 }
 
 // ---- QR-Logos: Metadaten (Anzeigenamen) zu den zufälligen Datei-IDs ----

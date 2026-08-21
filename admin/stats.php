@@ -8,11 +8,13 @@ require_once __DIR__ . '/../inc/auth.php';
 require_once __DIR__ . '/../inc/bio.php';
 require_once __DIR__ . '/../inc/groups.php';
 require_once __DIR__ . '/../inc/routing.php';
+require_once __DIR__ . '/../inc/domains.php';
 
 $user = auth_require();
 
 $code = (string)($_GET['c'] ?? '');
-$link = lookup_code_ok($code) ? link_get($code) : null;
+$dom = dom_param_lesen($_GET['d'] ?? '');
+$link = lookup_code_ok($code) ? link_get($code, $dom) : null;
 if ($link === null || !link_access($user, $link)) {
     http_response_code(404);
     page_header(t('Statistik'), true);
@@ -21,7 +23,7 @@ if ($link === null || !link_access($user, $link)) {
     exit;
 }
 
-$clicks = clicks_get($code);
+$clicks = clicks_get($code, $dom);
 $days = $clicks['days'] ?? [];
 $statsDays = user_limit($user['name'], 'stats_days');
 
@@ -62,7 +64,7 @@ page_header(t('Statistik'), true);
 <div class="card">
     <h2><?= t('Statistik') ?> <span class="muted"><?= t('für') ?></span> <?= e(short_url($code)) ?></h2>
     <?php if (bio_is($link)): ?>
-    <p class="muted"><?= t('Link-in-Bio-Seite %s mit %d Zielen', '<strong>' . e((string)($link['title'] ?? $code)) . '</strong>', count((array)($link['items'] ?? []))) ?> · <a href="bio.php?edit=<?= e(rawurlencode($code)) ?>"><?= t('bearbeiten') ?></a></p>
+    <p class="muted"><?= t('Link-in-Bio-Seite %s mit %d Zielen', '<strong>' . e((string)($link['title'] ?? $code)) . '</strong>', count((array)($link['items'] ?? []))) ?> · <a href="bio.php?edit=<?= e(rawurlencode($code)) ?><?= dom_param($dom) ?>"><?= t('bearbeiten') ?></a></p>
     <?php else: ?>
     <p class="muted"><?= t('Ziel:') ?> <a href="<?= e($link['url']) ?>" target="_blank" rel="noopener"><?= e(mb_strimwidth($link['url'], 0, 80, '…')) ?></a></p>
     <?php endif; ?>
@@ -129,8 +131,8 @@ page_header(t('Statistik'), true);
     <?php endif; ?>
 
     <p class="cta"><a class="btn" href="index.php"><?= t('Zurück zu den Links') ?></a>
-       <a class="btn" href="qrdesign.php?c=<?= e(rawurlencode($code)) ?>">QR-Designer</a>
-       <a class="btn" href="stats.php?c=<?= e(rawurlencode($code)) ?>&amp;format=csv"><?= t('CSV-Export') ?></a></p>
+       <a class="btn" href="qrdesign.php?c=<?= e(rawurlencode($code)) ?><?= dom_param($dom) ?>">QR-Designer</a>
+       <a class="btn" href="stats.php?c=<?= e(rawurlencode($code)) ?><?= dom_param($dom) ?>&amp;format=csv"><?= t('CSV-Export') ?></a></p>
 </div>
 
 <?php

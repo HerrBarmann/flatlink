@@ -5,6 +5,7 @@ declare(strict_types=1);
 // flatlink · Zusatzbedingung zur Namensnennung nach §7(b) AGPL: siehe LICENSE
 require_once __DIR__ . '/inc/store.php';
 require_once __DIR__ . '/inc/auth.php';
+require_once __DIR__ . '/inc/domains.php';
 
 auth_boot();
 
@@ -18,8 +19,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif (!bucket_rate_ok('report', 5)) {
         $error = t('Zu viele Meldungen von dieser Adresse – bitte in einer Stunde erneut.');
     } else {
-        // Eingabe darf der nackte Code oder die volle Kurz-URL sein
+        // Eingabe darf der nackte Code oder die volle Kurz-URL sein.
+        // Der Host wird nicht mehr weggeworfen: Seit die Namensräume
+        // getrennt sind, sagt genau er, WELCHER Link gemeint ist –
+        // kunde-a.example/aktion und kunde-b.example/aktion sind zwei.
         $raw = trim((string)($_POST['code'] ?? ''));
+        $domain = '';
+        if (preg_match('#^https?://([^/]+)/#i', $raw, $m)) {
+            $domain = dom_param_lesen(domain_clean($m[1]));
+        }
         $code = preg_replace('#^https?://[^/]+/#i', '', $raw);
         $code = trim((string)$code, '/ ');
         $reason = (string)($_POST['reason'] ?? '');
@@ -29,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = t('Bitte gib den Kurzlink an (z. B. %s oder nur den Code).', e(short_url('abc123')));
         } elseif (!in_array($reason, ['phishing', 'malware', 'spam', 'sonstiges'], true)) {
             $error = t('Bitte einen Grund auswählen.');
-        } elseif (link_get($code) === null) {
+        } elseif (link_get($code, $domain) === null) {
             // Nicht existierende Codes stillschweigend annehmen – kein Orakel für Code-Enumeration
             $sent = true;
         } else {
@@ -40,12 +48,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // gefunden, hier beim Nachziehen der Webhooks.
             json_write($file, [
                 'code' => $code,
+                'domain' => $domain,
                 'reason' => $reason,
                 'text' => $text,
                 'created' => date('c'),
                 'ip_hash' => ip_hash(),
             ]);
-            hook_fire('report.received', ['code' => $code, 'reason' => $reason, 'text' => $text]);
+            hook_fire('report.received', ['code' => $code, 'domain' => $domain, 'reason' => $reason, 'text' => $text]);
             $sent = true;
         }
     }

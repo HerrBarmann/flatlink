@@ -10,21 +10,27 @@ declare(strict_types=1);
  * zeigen auf dieselbe Installation; unterschieden wird nur, welche Adresse
  * unter einem Link steht und in einem QR-Code landet.
  *
- * **Ein Namensraum für alle Domains.** Ein Code gehört der Instanz, nicht der
- * Domain: `shop` gibt es genau einmal, und er löst unter jeder eingerichteten
- * Domain auf. Das ist die eine Entscheidung, an der hier alles hängt, deshalb
- * die Begründung im Klartext:
+ * **Jede Domain hat ihren eigenen Namensraum.** Ein Link wird seit 5.0 durch
+ * (Domain, Code) bestimmt: `kunde-a.link/shop` und `kunde-b.link/shop` sind
+ * zwei verschiedene Links, die nichts voneinander wissen. Das ist die eine
+ * Entscheidung, an der hier alles hängt, deshalb die Begründung im Klartext:
  *
- * - **Ein gedruckter Code stirbt nicht, wenn eine Domain wegfällt.** Zieht ein
- *   Kunde um oder läuft eine Domain aus, funktionieren die Aufkleber weiter.
- *   Für einen Dienst, dessen ganzer Zweck „gedruckt ist gedruckt" lautet, wiegt
- *   das schwerer als Exklusivität.
- * - **Getrennte Namensräume wären eine andere Datenhaltung.** Ein Link wäre
- *   dann nicht mehr durch seinen Code bestimmt, sondern durch Domain *und*
- *   Code – das zöge sich durch Ablage, Schnittstelle, Import und jede
- *   Oberfläche. Der Preis dafür ist ein Zugeständnis: Zwei Kunden können
- *   nicht beide `/shop` haben. Dafür gibt es die Namensraum-Präfixe der
- *   Gruppen, die genau dieses Problem lösen.
+ * - **Wer eine zweite Domain einträgt, will einen zweiten Namensraum.** Genau
+ *   dafür trägt man sie ein – für mehr Platz, oder weil ein Kunde seine
+ *   eigene Adresse mitbringt. Bis 4.5 löste ein Code unter JEDER Domain auf;
+ *   ein Kunde konnte unter seiner eigenen Adresse die Kurzlinks aller anderen
+ *   Kunden abrufen. Das war kein Merkmal, das war ein Fehler.
+ * - **Zwei Kunden können jetzt beide `/shop` haben.** Bis 4.5 half dagegen
+ *   nur ein Namensraum-Präfix der Gruppe (`kunde-a/shop`) – eine Krücke für
+ *   ein Problem, das die Domain schon gelöst hatte.
+ *
+ * Der Preis steht auf der anderen Seite und wird nicht verschwiegen: **Fällt
+ * eine Domain weg, lösen ihre Links nicht mehr auf.** Bis 4.5 fingen die
+ * übrigen Domains sie auf; heute hängt ein gedruckter Code an seiner Adresse.
+ * Wer eine Domain austrägt, bekommt deshalb in den Einstellungen gesagt, wie
+ * viele Links davon betroffen sind – gelöscht wird keiner, und ein
+ * Wiedereintragen macht sie alle wieder erreichbar. Für den Umzug eines
+ * einzelnen Links auf eine andere Domain gibt es `link_move()`.
  *
  * Eine Nebendomain liefert **nur Kurzlinks** aus – sonst nichts. Startseite,
  * QR-Generatoren, Meldeseite und Verwaltung leiten auf die Hauptdomain um.
@@ -180,6 +186,58 @@ function domain_force_main(): void
     $pfad = (string)($_SERVER['REQUEST_URI'] ?? '/');
     header('Location: ' . base_url() . $pfad, true, 302);
     exit;
+}
+
+/**
+ * In welchem Namensraum löst dieser Aufruf auf?
+ *
+ * Seit 5.0 gehört ein Code nicht mehr der Instanz, sondern der Domain:
+ * kunde-a.example/aktion und kunde-b.example/aktion sind zwei verschiedene
+ * Links, die nichts voneinander wissen. Das ist der Grund, aus dem jemand
+ * überhaupt eine zweite Domain einträgt – er will einen zweiten Namensraum.
+ * Vorher konnte ein Kunde, der seine eigene Domain mitbrachte, unter ihr die
+ * Kurzlinks aller anderen Kunden abrufen; das war ein Fehler, kein Merkmal.
+ *
+ * Die Hauptdomain ist der leere String, nicht ihr Name. So bleibt jeder
+ * Datensatz aus der Zeit davor gültig, ohne angefasst zu werden – und eine
+ * Instanz mit nur einer Domain merkt von der ganzen Trennung nichts.
+ *
+ * Ein fremder oder fehlender Host-Kopf landet ebenfalls im Hauptnamensraum:
+ * Das ist der Fall „direkt über die IP aufgerufen" oder ein Proxy ohne
+ * Host-Durchreichung, und dort ist die Hauptdomain die richtige Annahme.
+ */
+function domain_namensraum(): string
+{
+    if (!domains_multi()) return '';
+    $jetzt = domain_current();
+    if ($jetzt === '' || $jetzt === domain_main()) return '';
+    return in_array($jetzt, domains_all(), true) ? $jetzt : '';
+}
+
+/**
+ * Der Domain-Anhang für eine Verwaltungs-URL.
+ *
+ * Ein Link wird in der Verwaltung über `?c=` bzw. `?edit=` angesprochen –
+ * seit die Namensräume getrennt sind, genügt der Code dafür nicht mehr. Die
+ * Hauptdomain bleibt bewusst ohne Anhang: So funktioniert jeder gespeicherte
+ * oder verschickte Verwaltungs-Link von früher unverändert weiter.
+ */
+function dom_param(string $domain, string $name = 'd'): string
+{
+    return $domain === '' ? '' : '&' . $name . '=' . urlencode($domain);
+}
+
+/**
+ * Die Domain aus einer Verwaltungs-URL oder einem Formular – geprüft.
+ *
+ * Nur eingetragene Domains kommen durch; alles andere ist die Hauptdomain.
+ * Damit kann ein geratener Parameter keinen Namensraum erfinden.
+ */
+function dom_param_lesen(mixed $roh): string
+{
+    $d = domain_clean((string)(is_string($roh) ? $roh : ''));
+    if ($d === '' || $d === domain_main()) return '';
+    return in_array($d, domains_all(), true) ? $d : '';
 }
 
 /**

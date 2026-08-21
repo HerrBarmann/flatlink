@@ -71,7 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($ok) {
                 $linkpass = (string)($_POST['linkpass'] ?? '');
                 if ($linkpass !== '') {
-                    link_set_password($result, password_hash($linkpass, PASSWORD_DEFAULT));
+                    link_set_password($result, password_hash($linkpass, PASSWORD_DEFAULT), (string)($opts['domain'] ?? ''));
                 }
                 // Die Ergebnis-Karte auf der Seite zeigt den Link selbst; die
                 // Meldung kommt nur noch, wenn sie etwas hinzufügt.
@@ -80,13 +80,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($zusatz !== '') {
                     flash(t('Kurzlink %s angelegt', short_url($result, (string)($opts['domain'] ?? ''))) . $zusatz . '.');
                 }
-                redirect_to('index.php?hl=' . urlencode($result));
+                redirect_to('index.php?hl=' . urlencode($result) . dom_param((string)($opts['domain'] ?? ''), 'hld'));
             }
             flash($result, 'err');
         }
     } elseif ($action === 'update') {
         $code = (string)($_POST['code'] ?? '');
-        $link = link_get($code);
+        // Welcher Link gemeint ist, entscheiden Code UND Domain: Seit die
+        // Namensräume getrennt sind, kann derselbe Code unter mehreren
+        // Domains liegen. Das Formular trägt die aktuelle Domain als
+        // verstecktes Feld mit.
+        $domAlt = dom_param_lesen($_POST['dom'] ?? '');
+        $link = link_get($code, $domAlt);
         $err = ($link === null || !link_access($user, $link)) ? t('Kein Zugriff auf diesen Link.') : null;
         $opts = [];
         if ($err === null) {
@@ -114,14 +119,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     (array)($_POST['rw'] ?? []), (array)($_POST['ri'] ?? []), (array)($_POST['ru'] ?? []));
                 if ($wErr !== null) {
                     flash($wErr, 'err');
-                    redirect_to('index.php?edit=' . urlencode($code));
+                    redirect_to('index.php?edit=' . urlencode($code) . dom_param($domAlt));
                 }
                 $opts['rules'] = $regeln;
             }
-            link_update($code, $opts['url'], $opts);
+            // Ein Domainwechsel ist jetzt ein Umzug in einen anderen
+            // Namensraum – er kann scheitern, weil der Code dort schon
+            // vergeben ist. Deshalb zuerst, und bei Fehlschlag bleibt alles
+            // Übrige unter der alten Domain stehen.
+            $domNeu = array_key_exists('domain', $opts) ? (string)$opts['domain'] : $domAlt;
+            $umzugFehler = null;
+            if ($domNeu !== $domAlt) {
+                [$umzugOk, $umzugFehler] = link_move($code, $domAlt, $domNeu);
+                if (!$umzugOk) $domNeu = $domAlt; else $umzugFehler = null;
+            }
+            link_update($code, $opts['url'], $opts, $domNeu);
             // Gruppe nur anfassen, wenn das Formular sie überhaupt anbieten konnte
             if ($assignable !== [] || ($link['group'] ?? null) !== null) {
-                link_set_group($code, $opts['group']);
+                link_set_group($code, $opts['group'], $domNeu);
             }
             // Ein abgelehnter Besitzerwechsel muss sichtbar werden. flash()
             // behält nur die letzte Meldung, und die käme unten – der Wechsel
@@ -136,17 +151,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 } elseif ($neuerBesitzer === '' && (string)($opts['group'] ?? '') === '') {
                     $besitzerFehler = t('ohne Gruppe braucht der Link einen Besitzer, sonst findet ihn niemand mehr');
                 } elseif ($neuerBesitzer !== (string)($link['owner'] ?? '')) {
-                    link_set_owner($code, $neuerBesitzer === '' ? null : $neuerBesitzer);
+                    link_set_owner($code, $neuerBesitzer === '' ? null : $neuerBesitzer, $domNeu);
                     audit(t('Besitzer von %s geändert: %s → %s', $code,
                         (string)($link['owner'] ?? '—'), $neuerBesitzer === '' ? '—' : $neuerBesitzer), $code);
                 }
             }
             if (($_POST['linkpass_remove'] ?? '') === '1') {
-                link_set_password($code, null);
+                link_set_password($code, null, $domNeu);
             } elseif (($linkpass = (string)($_POST['linkpass'] ?? '')) !== '') {
-                link_set_password($code, password_hash($linkpass, PASSWORD_DEFAULT));
+                link_set_password($code, password_hash($linkpass, PASSWORD_DEFAULT), $domNeu);
             }
-            if ($besitzerFehler === null) {
+            if ($umzugFehler !== null) {
+                flash(t('Kurzlink %s aktualisiert, aber die Domain blieb unverändert: %s', $code, $umzugFehler), 'err');
+            } elseif ($besitzerFehler === null) {
                 flash(t('Kurzlink %s aktualisiert.', $code));
             } else {
                 // Der Rest ist gespeichert – das zu verschweigen wäre so
@@ -156,11 +173,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     } elseif ($action === 'delete') {
         $code = (string)($_POST['code'] ?? '');
-        $link = link_get($code);
+        $domAlt = dom_param_lesen($_POST['dom'] ?? '');
+        $link = link_get($code, $domAlt);
         if ($link === null || !link_access($user, $link)) {
             flash(t('Kein Zugriff auf diesen Link.'), 'err');
         } else {
-            link_delete($code);
+            link_delete($code, $domAlt);
             flash(t('Kurzlink %s gelöscht.', $code));
         }
     }
@@ -169,6 +187,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $q = trim((string)($_GET['q'] ?? ''));
 $highlight = (string)($_GET['hl'] ?? '');
+$highlightDom = dom_param_lesen($_GET['hld'] ?? '');
+// Der Schlüssel, unter dem der frische Link in der Liste steht – dieselbe
+// Bildung wie in db_link_schluessel(), damit die Hervorhebung trifft.
+$highlightKey = $highlightDom === '' ? $highlight : $highlightDom . '/' . $highlight;
 $gFilter = (string)($_GET['g'] ?? '');
 $tagFilter = mb_strtolower(trim((string)($_GET['tag'] ?? '')));
 
@@ -245,7 +267,7 @@ $linksGesamt = $gross ? $bestand : count($links);
 if ($linksGesamt <= 2000) {
     $klicksGesamt = 0;
     foreach ($links as $c => $l) {
-        $klickVon[$c] = (int)(clicks_get((string)$c)['n'] ?? 0);
+        $klickVon[$c] = (int)(clicks_get((string)$l['_code'], (string)($l['domain'] ?? ''))['n'] ?? 0);
         $klicksGesamt += $klickVon[$c];
     }
 }
@@ -297,17 +319,19 @@ if (($_GET['export'] ?? '') === 'csv') {
     // wie beim Serien-Export und beim Datenexport im Profil
     echo "\xEF\xBB\xBF" . "code;url;name;schlagworte;startdatum;ablaufdatum;gruppe;domain;klicks;angelegt
 ";
-    foreach ($csvQuelle as $code => $l) {
+    foreach ($csvQuelle as $l) {
+        $code = (string)$l['_code'];
+        $dom = (string)($l['domain'] ?? '');
         echo implode(';', array_map('csv_feld', [
-            (string)$code,
+            $code,
             (string)($l['url'] ?? ''),
             (string)($l['title'] ?? ''),
             implode(', ', (array)($l['tags'] ?? [])),
             (string)($l['starts'] ?? ''),
             (string)($l['expires'] ?? ''),
             (string)($l['group'] ?? ''),
-            (string)($l['domain'] ?? ''),
-            (string)(int)(clicks_get((string)$code)['n'] ?? 0),
+            $dom,
+            (string)(int)(clicks_get($code, $dom)['n'] ?? 0),
             (string)($l['created'] ?? ''),
         ])) . "
 ";
@@ -333,13 +357,13 @@ if ($gross && $links === []) {
     $off = ($seite - 1) * $jeSeite;
     $nimm = max(0, min($jeSeite, $listenGesamt - $off));
     if ($off > intdiv($listenGesamt, 2)) {
-        $st = db()->prepare('SELECT code, data FROM links ORDER BY created ASC, code DESC LIMIT ? OFFSET ?');
+        $st = db()->prepare('SELECT domain, code, data FROM links ORDER BY created ASC, code DESC LIMIT ? OFFSET ?');
         $st->bindValue(1, $nimm, PDO::PARAM_INT);
         $st->bindValue(2, max(0, $listenGesamt - $off - $nimm), PDO::PARAM_INT);
         $st->execute();
         $blatt = array_reverse(db_links_rows($st), true);
     } else {
-        $st = db()->prepare('SELECT code, data FROM links ORDER BY created DESC, code LIMIT ? OFFSET ?');
+        $st = db()->prepare('SELECT domain, code, data FROM links ORDER BY created DESC, code LIMIT ? OFFSET ?');
         $st->bindValue(1, $nimm, PDO::PARAM_INT);
         $st->bindValue(2, $off, PDO::PARAM_INT);
         $st->execute();
@@ -349,11 +373,12 @@ if ($gross && $links === []) {
     $blatt = array_slice($links, ($seite - 1) * $jeSeite, $jeSeite, true);
 }
 foreach ($blatt as $c => $l) {
-    if (!isset($klickVon[$c])) $klickVon[$c] = (int)(clicks_get((string)$c)['n'] ?? 0);
+    if (!isset($klickVon[$c])) $klickVon[$c] = (int)(clicks_get((string)$l['_code'], (string)($l['domain'] ?? ''))['n'] ?? 0);
 }
 
 $editCode = (string)($_GET['edit'] ?? '');
-$editLink = $editCode !== '' ? link_get($editCode) : null;
+$editDom = dom_param_lesen($_GET['d'] ?? '');
+$editLink = $editCode !== '' ? link_get($editCode, $editDom) : null;
 if ($editLink !== null && !link_access($user, $editLink)) $editLink = null;
 
 page_header(t('Links'), true);
@@ -378,9 +403,10 @@ show_flash();
 <?php
 // Der frisch angelegte Link bekommt seine eigene Karte – mit Kurzadresse zum
 // Kopieren und dem QR-Code, wie nach dem Kürzen auf der Startseite.
-$neu = $highlight !== '' && $editLink === null ? link_get($highlight) : null;
+$neu = $highlight !== '' && $editLink === null ? link_get($highlight, $highlightDom) : null;
 if ($neu !== null && link_access($user, $neu)):
-    $neuKurz = short_url($highlight, (string)($neu['domain'] ?? '')); ?>
+    $neuKurz = short_url($highlight, $highlightDom);
+    $hlUrl = dom_param($highlightDom); ?>
 <div class="card result">
     <h2><?= t('Angelegt.') ?></h2>
     <div class="short-row">
@@ -388,11 +414,11 @@ if ($neu !== null && link_access($user, $neu)):
         <button class="btn" type="button" data-copy="#short"><?= t('Kopieren') ?></button>
     </div>
     <div class="qr-preview">
-        <img src="../qr.php?c=<?= e(rawurlencode($highlight)) ?>&amp;size=240" width="180" height="180"
+        <img src="../qr.php?c=<?= e(rawurlencode($highlight)) ?><?= $hlUrl ?>&amp;size=240" width="180" height="180"
              alt="<?= t('QR-Code für %s', e($neuKurz)) ?>">
         <div class="qr-links">
-            <a class="btn btn-small" href="qrdesign.php?c=<?= e(rawurlencode($highlight)) ?>"><?= t('Im QR-Designer gestalten') ?></a>
-            <a class="btn btn-small" href="stats.php?c=<?= e(rawurlencode($highlight)) ?>"><?= t('Statistik') ?></a>
+            <a class="btn btn-small" href="qrdesign.php?c=<?= e(rawurlencode($highlight)) ?><?= $hlUrl ?>"><?= t('Im QR-Designer gestalten') ?></a>
+            <a class="btn btn-small" href="stats.php?c=<?= e(rawurlencode($highlight)) ?><?= $hlUrl ?>"><?= t('Statistik') ?></a>
         </div>
     </div>
 </div>
@@ -537,11 +563,15 @@ if ($neu !== null && link_access($user, $neu)):
 
 <?php if ($editLink !== null): ?>
 <div class="card highlight">
-    <h2><?= t('„%s“ bearbeiten', e($editCode)) ?></h2>
+    <h2><?= t('„%s“ bearbeiten', e(short_url($editCode, $editDom))) ?></h2>
     <form method="post" action="" class="grid-form">
         <?= csrf_field() ?>
         <input type="hidden" name="action" value="update">
         <input type="hidden" name="code" value="<?= e($editCode) ?>">
+        <!-- Unter WELCHER Domain der Link heute liegt. Das Auswahlfeld weiter
+             unten sagt, wohin er soll – die beiden können auseinandergehen,
+             und dann ist es ein Umzug. -->
+        <input type="hidden" name="dom" value="<?= e($editDom) ?>">
         <div>
             <label for="e-url"><?= t('Ziel-URL') ?></label>
             <input id="e-url" type="text" name="url" value="<?= e($editLink['url']) ?>" required>
@@ -656,7 +686,7 @@ if ($neu !== null && link_access($user, $neu)):
             for ($f = $bisher; $f < min($bisher + 3, ROUTE_MAX); $f++) {
                 $weichen[] = ['wenn' => 'device', 'ist' => '', 'url' => ''];
             }
-            $klicks = (array)(clicks_get($editCode)['routes'] ?? []);
+            $klicks = (array)(clicks_get($editCode, $editDom)['routes'] ?? []);
         ?>
         <details class="mehr"<?= count($weichen) > 1 ? ' open' : '' ?>>
             <summary><?= t('Weichen: je nach Gerät, Sprache, Land oder Anteil woandershin') ?></summary>
@@ -782,11 +812,16 @@ if ($neu !== null && link_access($user, $neu)):
         <a class="btn btn-small" href="index.php?<?= e(http_build_query($serieFilter + ['export' => 'csv'])) ?>"><?= t('CSV-Export') ?></a>
     </p>
     <div class="link-list">
-        <?php foreach ($blatt as $code => $link):
-            $kurz = short_url((string)$code, (string)($link['domain'] ?? ''));
+        <?php foreach ($blatt as $schluessel => $link):
+            // $schluessel trägt die Domain mit und ist damit eindeutig;
+            // angezeigt und weitergereicht wird der nackte Code plus Domain.
+            $code = (string)$link['_code'];
+            $dom = (string)($link['domain'] ?? '');
+            $domUrl = dom_param($dom);
+            $kurz = short_url($code, $dom);
             $utm = utm_extract((string)($link['url'] ?? ''));
         ?>
-        <article class="link-row<?= $code === $highlight ? ' row-hl' : '' ?>">
+        <article class="link-row<?= $schluessel === $highlightKey ? ' row-hl' : '' ?>">
             <div class="link-main">
                 <div class="link-line">
                     <a class="link-code" href="<?= e($kurz) ?>" target="_blank" rel="noopener"><?= e((string)$code) ?></a>
@@ -825,17 +860,18 @@ if ($neu !== null && link_access($user, $neu)):
                     <?php endif; ?>
                 </div>
             </div>
-            <a class="link-klicks" href="stats.php?c=<?= e(rawurlencode((string)$code)) ?>" title="<?= t('Statistik') ?>">
-                <strong><?= number_format($klickVon[$code] ?? 0, 0, t(','), t('.')) ?></strong>
+            <a class="link-klicks" href="stats.php?c=<?= e(rawurlencode($code)) ?><?= $domUrl ?>" title="<?= t('Statistik') ?>">
+                <strong><?= number_format($klickVon[$schluessel] ?? 0, 0, t(','), t('.')) ?></strong>
                 <span><?= t('Klicks') ?></span>
             </a>
             <div class="link-actions actions">
-                <a class="btn btn-small" href="qrdesign.php?c=<?= e(rawurlencode((string)$code)) ?>">QR</a>
-                <a class="btn btn-small" href="index.php?edit=<?= e(rawurlencode((string)$code)) ?>"><?= t('Bearbeiten') ?></a>
-                <form method="post" action="" class="inline" data-confirm="<?= t('Kurzlink „%s“ wirklich löschen?', e((string)$code)) ?>">
+                <a class="btn btn-small" href="qrdesign.php?c=<?= e(rawurlencode($code)) ?><?= $domUrl ?>">QR</a>
+                <a class="btn btn-small" href="index.php?edit=<?= e(rawurlencode($code)) ?><?= $domUrl ?>"><?= t('Bearbeiten') ?></a>
+                <form method="post" action="" class="inline" data-confirm="<?= t('Kurzlink „%s“ wirklich löschen?', e($kurz)) ?>">
                     <?= csrf_field() ?>
                     <input type="hidden" name="action" value="delete">
-                    <input type="hidden" name="code" value="<?= e((string)$code) ?>">
+                    <input type="hidden" name="code" value="<?= e($code) ?>">
+                    <input type="hidden" name="dom" value="<?= e($dom) ?>">
                     <button class="btn btn-small btn-danger" type="submit"><?= t('Löschen') ?></button>
                 </form>
             </div>

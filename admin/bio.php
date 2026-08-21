@@ -16,6 +16,7 @@ require_once __DIR__ . '/../inc/groups.php';
 require_once __DIR__ . '/../inc/linkrules.php';
 require_once __DIR__ . '/../inc/bio.php';
 require_once __DIR__ . '/../inc/qrpanel.php';   // qr_logo_choices() für die Logo-Auswahl
+require_once __DIR__ . '/../inc/domains.php';
 
 $user = auth_require();
 $isAdmin = $user['role'] === 'admin';
@@ -32,6 +33,7 @@ if (!user_can($user['name'], 'bio_page')) {
 
 $assignable = link_rules_assignable($user);
 $editCode = (string)($_GET['edit'] ?? '');
+$editDom = dom_param_lesen($_GET['d'] ?? '');
 $darfGestalten = user_can($user['name'], 'bio_style');
 $bioLimit = user_limit($user['name'], 'bio');
 
@@ -39,6 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_check();
     $action = (string)($_POST['action'] ?? '');
     $code = (string)($_POST['code'] ?? '');
+    $dom = dom_param_lesen($_POST['dom'] ?? '');
 
     [$itemErr, $items] = bio_items_from_fields(
         array_map('strval', (array)($_POST['label'] ?? [])),
@@ -54,7 +57,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // davon unberührt: Bearbeitet ein Vertreter die Seite, soll das Logo des
     // Besitzers nicht verschwinden, bloß weil er selbst es nicht sieht.
     $logoWunsch = (string)($_POST['bio_logo'] ?? '');
-    $logoAlt = $action === 'update' ? (string)(link_get($code)['bio_logo'] ?? '') : '';
+    $logoAlt = $action === 'update' ? (string)(link_get($code, $dom)['bio_logo'] ?? '') : '';
     if ($logoWunsch !== '' && $logoWunsch !== $logoAlt && !isset(qr_logo_choices($user)[$logoWunsch])) {
         $logoWunsch = $logoAlt;
     }
@@ -101,11 +104,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 bio_write($ergebnis, $items, $text, $index, $stil);
                 flash(t('Seite %s angelegt.', short_url($ergebnis)));
-                redirect_to('bio.php?edit=' . urlencode($ergebnis));
+                redirect_to('bio.php?edit=' . urlencode($ergebnis) . dom_param($dom));
             }
         }
     } elseif ($action === 'update') {
-        $l = link_get($code);
+        $l = link_get($code, $dom);
         if ($l === null || !bio_is($l) || !link_access($user, $l)) {
             flash(t('Kein Zugriff auf diese Seite.'), 'err');
         } elseif ($itemErr !== null) {
@@ -120,21 +123,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($err !== null) {
                 flash($err, 'err');
             } else {
-                link_update($code, $opts['url'], $opts);
+                link_update($code, $opts['url'], $opts, $dom);
                 if ($assignable !== [] || ($l['group'] ?? null) !== null) {
-                    link_set_group($code, $opts['group']);
+                    link_set_group($code, $opts['group'], $dom);
                 }
-                bio_write($code, $items, $text, $index, $stil);
+                bio_write($code, $items, $text, $index, $stil, $dom);
                 flash(t('Seite aktualisiert.'));
             }
         }
-        redirect_to('bio.php?edit=' . urlencode($code));
+        redirect_to('bio.php?edit=' . urlencode($code) . dom_param($dom));
     } elseif ($action === 'delete') {
-        $l = link_get($code);
+        $l = link_get($code, $dom);
         if ($l === null || !bio_is($l) || !link_access($user, $l)) {
             flash(t('Kein Zugriff auf diese Seite.'), 'err');
         } else {
-            link_delete($code);
+            link_delete($code, $dom);
             flash(t('Seite %s gelöscht.', $code));
         }
     }
@@ -144,7 +147,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $seiten = array_filter(links_visible($user), 'bio_is');
 uasort($seiten, fn($a, $b) => strcmp((string)($b['created'] ?? ''), (string)($a['created'] ?? '')));
 
-$edit = $editCode !== '' ? link_get($editCode) : null;
+$edit = $editCode !== '' ? link_get($editCode, $editDom) : null;
 if ($edit !== null && (!bio_is($edit) || !link_access($user, $edit))) $edit = null;
 
 $myPrefixes = $isAdmin ? [] : user_prefixes($user['name']);
@@ -165,23 +168,27 @@ show_flash();
     <h2><?= t('Deine Seiten') ?></h2>
     <div class="table-scroll"><table>
         <tr><th><?= t('Seite') ?></th><th><?= t('Ziele') ?></th><th><?= t('Aufrufe') ?></th><th><?= t('Gruppe') ?></th><th><?= t('Angelegt') ?></th><th></th></tr>
-        <?php foreach ($seiten as $c => $l): $k = clicks_get((string)$c); ?>
-        <tr<?= (string)$c === $editCode ? ' class="row-hl"' : '' ?>>
-            <td><a href="<?= e(short_url((string)$c)) ?>" target="_blank" rel="noopener"><?= e((string)$c) ?></a>
+        <?php foreach ($seiten as $schluessel => $l):
+            $c = (string)$l['_code'];
+            $cDom = (string)($l['domain'] ?? '');
+            $k = clicks_get($c, $cDom); ?>
+        <tr<?= $c === $editCode && $cDom === $editDom ? ' class="row-hl"' : '' ?>>
+            <td><a href="<?= e(short_url($c, $cDom)) ?>" target="_blank" rel="noopener"><?= e($c) ?></a>
                 <?php if (($l['title'] ?? '') !== ''): ?><br><span class="link-title"><?= e((string)$l['title']) ?></span><?php endif; ?></td>
             <td><?= count((array)($l['items'] ?? [])) ?></td>
-            <td><a href="stats.php?c=<?= e(rawurlencode((string)$c)) ?>"><?= (int)($k['n'] ?? 0) ?></a></td>
+            <td><a href="stats.php?c=<?= e(rawurlencode($c)) ?><?= dom_param($cDom) ?>"><?= (int)($k['n'] ?? 0) ?></a></td>
             <td><?php $g = $l['group'] ?? null;
                 echo $g === null ? '<span class="muted">–</span>'
                     : '<span class="tag tag-on">' . e(group_label($g)) . '</span>'; ?></td>
             <td class="small"><?= e(date('d.m.Y', strtotime((string)$l['created']))) ?></td>
             <td class="actions">
-                <a class="btn btn-small" href="bio.php?edit=<?= e(rawurlencode((string)$c)) ?>"><?= t('Bearbeiten') ?></a>
-                <a class="btn btn-small" href="qr.php?c=<?= e(rawurlencode((string)$c)) ?>&amp;format=svg&amp;download=1">QR</a>
+                <a class="btn btn-small" href="bio.php?edit=<?= e(rawurlencode($c)) ?><?= dom_param($cDom) ?>"><?= t('Bearbeiten') ?></a>
+                <a class="btn btn-small" href="qr.php?c=<?= e(rawurlencode($c)) ?><?= dom_param($cDom) ?>&amp;format=svg&amp;download=1">QR</a>
                 <form method="post" action="" class="inline" data-confirm="<?= e(t('Seite endgültig löschen?')) ?>">
                     <?= csrf_field() ?>
                     <input type="hidden" name="action" value="delete">
-                    <input type="hidden" name="code" value="<?= e((string)$c) ?>">
+                    <input type="hidden" name="code" value="<?= e($c) ?>">
+                    <input type="hidden" name="dom" value="<?= e($cDom) ?>">
                     <button class="btn btn-small btn-danger" type="submit"><?= t('Löschen') ?></button>
                 </form>
             </td>
@@ -196,7 +203,7 @@ show_flash();
     <form method="post" action="" class="grid-form">
         <?= csrf_field() ?>
         <input type="hidden" name="action" value="<?= $edit !== null ? 'update' : 'create' ?>">
-        <?php if ($edit !== null): ?><input type="hidden" name="code" value="<?= e($editCode) ?>"><?php endif; ?>
+        <?php if ($edit !== null): ?><input type="hidden" name="code" value="<?= e($editCode) ?>"><input type="hidden" name="dom" value="<?= e($editDom) ?>"><?php endif; ?>
 
         <label for="b-title"><?= t('Überschrift') ?></label>
         <input id="b-title" type="text" name="title" maxlength="120" required

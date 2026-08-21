@@ -228,13 +228,13 @@ function group_delete(string $id): void
     // Die Zuordnung entfernen, die Links selbst behalten. Über die Codes der
     // Gruppe und link_write, damit data-Spalte und abgeleitete grp-Spalte
     // zusammen geschrieben werden – wie überall.
-    foreach (link_codes_of_group($id) as $code) {
+    foreach (link_codes_of_group($id) as [$code, $dom]) {
         link_write($code, function (?array $l) {
             if ($l === null) return false;
             unset($l['group']);
             $l['updated'] = date('c');
             return $l;
-        });
+        }, $dom);
     }
 }
 
@@ -441,10 +441,18 @@ function links_visible(array $user): array
     // weiterhin link_access().
     $kandidaten = links_of_owner($user['name']);
     foreach (user_shared_groups($user['name']) as $gid) {
-        foreach (link_codes_of_group($gid) as $code) {
-            if (isset($kandidaten[$code])) continue;
-            $l = link_get($code);
-            if ($l !== null) $kandidaten[$code] = $l;
+        foreach (link_codes_of_group($gid) as [$code, $dom]) {
+            // Geschlüsselt wird wie überall über Code UND Domain – sonst
+            // verdrängte ein Link der einen Domain den gleichnamigen der
+            // anderen aus der Liste.
+            $schluessel = $dom === '' ? $code : $dom . '/' . $code;
+            if (isset($kandidaten[$schluessel])) continue;
+            $l = link_get($code, $dom);
+            if ($l !== null) {
+                $l['_code'] = $code;
+                if ($dom !== '') $l['domain'] = $dom;
+                $kandidaten[$schluessel] = $l;
+            }
         }
     }
     return array_filter($kandidaten, fn($l) => link_access($user, $l));

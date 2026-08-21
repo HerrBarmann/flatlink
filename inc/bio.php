@@ -84,7 +84,7 @@ function bio_items_from_fields(array $labels, array $urls): array
  * Setzt zugleich die Kennzeichnung `kind`, an der der Weiterleitungspfad eine
  * Seite von einem gewöhnlichen Kurzlink unterscheidet.
  */
-function bio_write(string $code, array $items, string $text, bool $index, ?array $stil = null): bool
+function bio_write(string $code, array $items, string $text, bool $index, ?array $stil = null, string $domain = ''): bool
 {
     return link_write($code, function (?array $l) use ($items, $text, $index, $stil) {
         if ($l === null) return false;
@@ -117,7 +117,7 @@ function bio_write(string $code, array $items, string $text, bool $index, ?array
         }
         $l['updated'] = date('c');
         return $l;
-    });
+    }, $domain);
 }
 
 /** Wie viele Bio-Seiten dieses Konto schon hat */
@@ -320,14 +320,14 @@ function bio_colors(array $l): array
  * eigenen Code mit einer laufenden Nummer. Nur so lässt sich zählen, welches
  * Ziel gefragt ist – und auch das wieder nur als Zahl je Tag.
  */
-function bio_render(string $code, array $l): never
+function bio_render(string $code, array $l, string $domain = ''): never
 {
     $items = (array)($l['items'] ?? []);
     $titel = trim((string)($l['title'] ?? '')) !== '' ? (string)$l['title'] : (string)$code;
     $text = trim((string)($l['bio_text'] ?? ''));
     $f = bio_colors($l);
 
-    if (click_zaehlbar($l)) clicks_bump($code);
+    if (click_zaehlbar($l)) clicks_bump($code, null, null, $domain);
 
     $logoUrl = bio_logo_url($l);
 
@@ -429,14 +429,14 @@ function bio_origin_note(): string
  * Eine ungültige Nummer führt zur Seite zurück, nicht ins Leere – so lässt sich
  * über durchprobierte Nummern auch nichts erkunden.
  */
-function bio_follow(string $code, array $l, int $i): never
+function bio_follow(string $code, array $l, int $i, string $domain = ''): never
 {
     $items = array_values((array)($l['items'] ?? []));
     if (!isset($items[$i])) {
         header('Location: ' . base_url() . '/' . $code, true, 302);
         exit;
     }
-    if (click_zaehlbar($l)) clicks_bump($code, $i);
+    if (click_zaehlbar($l)) clicks_bump($code, $i, null, $domain);
     header('Location: ' . (string)$items[$i]['url'], true, 302);
     exit;
 }

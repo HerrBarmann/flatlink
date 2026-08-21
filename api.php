@@ -247,9 +247,30 @@ if (!bucket_rate_ok('api', $limit, $eintrag['id'])) {
     api_fail(429, 'rate_limited', t('Stundengrenze von %d Anfragen erreicht.', $limit));
 }
 
+/**
+ * Der Namensraum, den ein Aufruf meint.
+ *
+ * Seit 5.0 gehört ein Code der Domain, nicht der Instanz. `?domain=` wählt
+ * ihn; ohne Angabe ist es die Hauptdomain – so bleibt jeder Aufruf gültig,
+ * der vor der Trennung geschrieben wurde. Eine nicht eingetragene Domain
+ * wird zurückgewiesen statt still auf die Hauptdomain zu fallen: Sonst
+ * bekäme ein Tippfehler im Domainnamen die Links einer anderen Domain zu
+ * sehen.
+ */
+function api_domain(mixed $roh): string
+{
+    if ($roh === null || $roh === '') return '';
+    $d = domain_clean((string)$roh);
+    if ($d === '' || $d === domain_main()) return '';
+    if (!in_array($d, domains_all(), true)) {
+        api_fail(422, 'unknown_domain', t('Diese Domain ist auf dieser Instanz nicht eingetragen.'));
+    }
+    return $d;
+}
+
 // ---- Darstellung eines Links ---------------------------------------------
 
-function api_link(string $code, array $l): array
+function api_link(string $code, array $l, string $domain = ''): array
 {
     return [
         'code' => $code,
@@ -274,14 +295,14 @@ function api_link(string $code, array $l): array
         'disabled' => (bool)($l['disabled'] ?? false),
         'created' => $l['created'] ?? null,
         'updated' => $l['updated'] ?? null,
-        'clicks' => (int)(clicks_get($code)['n'] ?? 0),
+        'clicks' => (int)(clicks_get($code, $domain)['n'] ?? 0),
     ];
 }
 
 /** Link holen und Zugriff prüfen – oder mit der passenden Antwort aussteigen */
-function api_link_or_fail(array $user, string $code): array
+function api_link_or_fail(array $user, string $code, string $domain = ''): array
 {
-    $l = link_get($code);
+    $l = link_get($code, $domain);
     // Bewusst dieselbe Antwort für „gibt es nicht" und „gehört jemand anderem":
     // Sonst ließe sich über die Schnittstelle herausfinden, welche Kurzcodes
     // vergeben sind.
@@ -354,7 +375,7 @@ if ($ressource === 'links') {
             $seite = array_slice($links, $offset, $limitN, true);
 
             $out = [];
-            foreach ($seite as $c => $l) $out[] = api_link((string)$c, $l);
+            foreach ($seite as $l) $out[] = api_link((string)$l['_code'], $l, (string)($l['domain'] ?? ''));
             api_out(200, ['total' => $gesamt, 'limit' => $limitN, 'offset' => $offset, 'links' => $out]);
         }
 
@@ -381,7 +402,7 @@ if ($ressource === 'links') {
             if (!$ok) api_fail(409, 'not_created', $ergebnis);
 
             $pass = (string)($in['password'] ?? '');
-            if ($pass !== '') link_set_password($ergebnis, password_hash($pass, PASSWORD_DEFAULT));
+            if ($pass !== '') link_set_password($ergebnis, password_hash($pass, PASSWORD_DEFAULT), (string)($opts['domain'] ?? ''));
 
             // Herkunft vermerken, wenn der Schlüssel daran gebunden ist –
             // sonst fände er den eben angelegten Link im nächsten Aufruf
@@ -397,7 +418,8 @@ if ($ressource === 'links') {
             }
 
             header('Location: ' . base_url() . '/api.php/links/' . rawurlencode($ergebnis));
-            api_out(201, api_link($ergebnis, (array)link_get($ergebnis)));
+            $neuDom = (string)($opts['domain'] ?? '');
+            api_out(201, api_link($ergebnis, (array)link_get($ergebnis, $neuDom), $neuDom));
         }
         api_fail(405, 'method_not_allowed', t('Hier sind GET und POST vorgesehen.'));
     }
@@ -405,11 +427,14 @@ if ($ressource === 'links') {
     // ---- Einzelner Link ----
     $code = $teile[1];
     $unter = $teile[2] ?? '';
+    // Welcher Namensraum gemeint ist, sagt ?domain= – ohne Angabe die
+    // Hauptdomain. Damit bleibt jeder Aufruf von vor 5.0 gültig.
+    $domain = api_domain($_GET['domain'] ?? null);
 
     if ($unter === 'stats' && count($teile) === 3) {
         if ($method !== 'GET') api_fail(405, 'method_not_allowed', t('Hier ist nur GET vorgesehen.'));
-        api_link_or_fail($user, $code);
-        $c = clicks_get($code);
+        api_link_or_fail($user, $code, $domain);
+        $c = clicks_get($code, $domain);
         // Die Statistik reicht nur so weit zurück, wie das Konto sie sehen darf
         $tage = user_limit($name, 'stats_days');
         $days = (array)($c['days'] ?? []);
@@ -438,11 +463,11 @@ if ($ressource === 'links') {
     if ($unter !== '') api_fail(404, 'not_found', t('Diesen Endpunkt gibt es nicht.'));
 
     if ($method === 'GET') {
-        api_out(200, api_link($code, api_link_or_fail($user, $code)));
+        api_out(200, api_link($code, api_link_or_fail($user, $code, $domain), $domain));
     }
 
     if ($method === 'PATCH' || $method === 'PUT') {
-        $l = api_link_or_fail($user, $code);
+        $l = api_link_or_fail($user, $code, $domain);
         $in = api_body();
         // Nur übergebene Felder ändern. Ein Aufruf, der bloß das Ziel setzt,
         // darf nicht nebenbei den Namen löschen – anders als ein Formular,
@@ -472,21 +497,30 @@ if ($ressource === 'links') {
             $opts['rules'] = $regeln;
         }
 
-        link_update($code, $opts['url'], $opts);
-        if (array_key_exists('group', $rein)) link_set_group($code, $opts['group']);
+        // Ein Domainwechsel ist ein Umzug in einen anderen Namensraum: Der
+        // Code muss dort frei sein, sonst bleibt der Link, wo er ist – und
+        // die Antwort sagt es, statt still das Falsche zu tun.
+        $zielDomain = array_key_exists('domain', $opts) ? (string)$opts['domain'] : $domain;
+        if ($zielDomain !== $domain) {
+            [$umzugOk, $umzugFehler] = link_move($code, $domain, $zielDomain);
+            if (!$umzugOk) api_fail(409, 'code_taken', $umzugFehler);
+            $domain = $zielDomain;
+        }
+        link_update($code, $opts['url'], $opts, $domain);
+        if (array_key_exists('group', $rein)) link_set_group($code, $opts['group'], $domain);
         if (array_key_exists('password', $in)) {
             $p = (string)$in['password'];
-            link_set_password($code, $p === '' ? null : password_hash($p, PASSWORD_DEFAULT));
+            link_set_password($code, $p === '' ? null : password_hash($p, PASSWORD_DEFAULT), $domain);
         }
         if (array_key_exists('disabled', $in)) {
-            link_set_disabled($code, (bool)$in['disabled']);
+            link_set_disabled($code, (bool)$in['disabled'], $domain);
         }
-        api_out(200, api_link($code, (array)link_get($code)));
+        api_out(200, api_link($code, (array)link_get($code, $domain), $domain));
     }
 
     if ($method === 'DELETE') {
-        api_link_or_fail($user, $code);
-        link_delete($code);
+        api_link_or_fail($user, $code, $domain);
+        link_delete($code, $domain);
         api_out(200, ['deleted' => $code]);
     }
 

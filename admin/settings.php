@@ -88,8 +88,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $liste = domains_extra();
         if (($_POST['domain_del'] ?? '') !== '') {
             $weg = domain_clean((string)$_POST['domain_del']);
+            // Seit 5.0 hat jede Domain ihren eigenen Namensraum. Wird sie
+            // ausgetragen, sind ihre Links nicht mehr auflösbar – sie
+            // verschwinden nicht, aber sie führen nirgendwo mehr hin.
+            // Deshalb: nicht ohne ausdrückliche Bestätigung.
+            // Umkehrbar: Wird die Domain wieder eingetragen, lösen ihre Links
+            // wieder auf. Deshalb genügt hier die Warnung im Formular (sie
+            // nennt die Zahl) – aber ins Protokoll gehört sie mit Zahl.
+            $betroffen = links_count_of_domain($weg);
             $liste = array_values(array_filter($liste, fn($d) => $d['host'] !== $weg));
-            audit(t('Domain „%s“ entfernt', $weg), $weg);
+            audit($betroffen > 0
+                ? t('Domain „%s“ entfernt – %d Kurzlinks darunter sind bis zum Wiedereintragen nicht erreichbar', $weg, $betroffen)
+                : t('Domain „%s“ entfernt', $weg), $weg);
         } else {
             $host = domain_clean((string)($_POST['domain_host'] ?? ''));
             $grp = (string)($_POST['domain_group'] ?? '');
@@ -282,20 +292,23 @@ $host = preg_replace('#^https?://#', '', base_url());
 <div class="card">
     <h2><?= t('Domains für Kurzlinks') ?></h2>
     <p class="muted small"><?= t('Kurzlinks können unter mehreren Adressen ausgegeben werden. Alle zeigen auf diese Installation – im DNS auf denselben Server, im Zertifikat mit aufgeführt. Die Verwaltung bleibt auf %s; wer %s unter einer Nebendomain aufruft, wird hierher zurückgeleitet.', '<code>' . e(domain_main()) . '</code>', '<code>/admin/</code>') ?></p>
-    <p class="muted small"><strong><?= t('Ein Code gehört der Instanz, nicht der Domain.') ?></strong> <?= t('Es gibt %s genau einmal, und er löst unter jeder eingerichteten Adresse auf. Das hält gedruckte Codes am Leben, wenn eine Domain wegfällt – kostet aber, dass zwei Kunden nicht beide %s haben können. Dafür sind die %sNamensräume der Gruppen%s da.', '<code>/shop</code>', '<code>/shop</code>', '<a href="groups.php">', '</a>') ?></p>
+    <p class="muted small"><strong><?= t('Jede Domain hat ihren eigenen Namensraum.') ?></strong> <?= t('%s und %s sind zwei verschiedene Kurzlinks – zwei Kunden können denselben Code haben, ohne sich abzustimmen, und niemand erreicht unter seiner Domain die Links eines anderen. Die Kehrseite: Wird eine Domain hier entfernt, lösen ihre Links nicht mehr auf. Gelöscht wird dabei keiner; ein Wiedereintragen macht sie alle wieder erreichbar.', '<code>kunde-a.link/shop</code>', '<code>kunde-b.link/shop</code>') ?></p>
 
     <ul class="key-list">
         <li>
             <div><strong><?= e(domain_main()) ?></strong><br>
             <span class="muted small"><?= t('Hauptdomain – aus %s, hier auch die Verwaltung', '<code>base_url</code>') ?></span></div>
         </li>
-        <?php foreach (domains_extra() as $d): ?>
+        <?php foreach (domains_extra() as $d): $anzahl = links_count_of_domain($d['host']); ?>
         <li>
             <div><strong><?= e($d['host']) ?></strong><br>
             <span class="muted small"><?= $d['group'] === ''
                 ? t('für alle Konten wählbar')
-                : t('nur für die Gruppe „%s“', e(group_label($d['group']))) ?></span></div>
-            <form method="post" action="" class="inline" data-confirm="<?= e(t('Domain „%s“ wirklich entfernen? Links, die darauf zeigen, bleiben bestehen und fallen auf die Hauptdomain zurück.', $d['host'])) ?>">
+                : t('nur für die Gruppe „%s“', e(group_label($d['group']))) ?><?= $anzahl > 0
+                ? ' · ' . t('%d Kurzlinks in eigenem Namensraum', $anzahl) : '' ?></span></div>
+            <form method="post" action="" class="inline" data-confirm="<?= e($anzahl > 0
+                ? t('Domain „%s“ wirklich entfernen? Die %d Kurzlinks darunter werden nicht gelöscht, sind danach aber unter keiner Adresse mehr erreichbar.', $d['host'], $anzahl)
+                : t('Domain „%s“ wirklich entfernen?', $d['host'])) ?>">
                 <?= csrf_field() ?>
                 <input type="hidden" name="domains" value="1">
                 <input type="hidden" name="domain_del" value="<?= e($d['host']) ?>">

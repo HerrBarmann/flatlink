@@ -168,20 +168,33 @@ installation: at the same server in DNS, included in the certificate. They
 are set up under *Settings* or via `'domains'` in the configuration; a
 domain can be reserved for a group, just like a namespace prefix.
 
-**A code belongs to the instance, not to the domain.** There is exactly one
-`/shop`, and it resolves under every configured address. That is the
-load-bearing decision, so here are both sides:
+**Every domain has its own namespace.** `client-a.link/shop` and
+`client-b.link/shop` are two different links that know nothing about each
+other. That is the load-bearing decision, so here are both sides:
 
-- *For:* a printed code doesn't die when a domain goes away. If a client
-  moves or a domain expires, the stickers keep working. For a service whose
-  entire purpose is "printed is printed", that outweighs exclusivity.
-- *Against:* two clients cannot both have `/shop`. Whoever needs that gives
-  them [namespace prefixes](#two-kinds-of-groups) – that is what they are
-  for.
+- *For:* whoever adds a second domain wants a second namespace – for more
+  room, or because a client brings their own address. Two clients can both
+  have `/shop` without coordinating. And nobody reaches another client's
+  short links through their own domain.
+- *Against:* when a domain goes away, its links stop resolving. A printed
+  code is tied to its address.
 
-Separate namespaces per domain would be a different data model: a link would
-no longer be determined by its code but by domain *and* code. That would run
-through storage, API, import and every interface.
+Up to 4.5 it was the other way round: a code belonged to the instance and
+resolved under every configured address. That kept printed codes alive, but
+it also meant a client could list every other client's short links through
+their own domain. For a service where clients bring their own domain, that
+was not tenable.
+
+Removing a domain tells you how many links are affected. None of them are
+deleted – add the domain back and they all resolve again. To move a single
+link to another domain, use the domain selector in the edit form; if the
+code is already taken there, the move is rejected rather than silently
+overwriting anything.
+
+**Upgrading from an older version:** a code used to be unique across all
+domains – which is a special case of "unique per domain". On the first start
+under 5.0 the domain moves from the record into the key; no link changes its
+code, none disappears, none collides.
 
 The **administration stays on the main domain** – the one from `base_url`.
 One session, one cookie, one address for passkeys: a passkey registered

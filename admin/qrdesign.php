@@ -11,4 +11,8 @@ declare(strict_types=1);
 require_once __DIR__ . '/../inc/helpers.php';
 
 $code = (string)($_GET['c'] ?? '');
-redirect_to(base_url() . '/qr-designer.php' . ($code !== '' ? '?c=' . rawurlencode($code) : ''));
+// Die Domain wandert mit: Seit 5.0 sagt sie mit, welcher Link gemeint ist.
+$dom = (string)($_GET['d'] ?? '');
+redirect_to(base_url() . '/qr-designer.php' . ($code !== ''
+    ? '?c=' . rawurlencode($code) . ($dom !== '' ? '&d=' . rawurlencode($dom) : '')
+    : ''));

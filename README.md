@@ -50,7 +50,7 @@ not merely claimed.
 | **Switches** | one link, several targets – by device, language, country or share (A/B). The language switch negotiates against the target's own language, storing nothing in the process |
 | **Campaigns** | a builder for `utm_*` parameters, with suggestions from what you already use |
 | **Migration** | CSV import from Bitly, YOURLS, Shlink and Kutt – short codes survive; CSV export in the same format |
-| **Multiple domains** | one per client or institution, all in a single instance |
+| **Multiple domains** | one per client or institution, each with its **own namespace** – `client-a.link/shop` and `client-b.link/shop` are two different links |
 
 ### QR codes
 
@@ -399,8 +399,8 @@ width="760"> </p>
   department.
 - **Clubs, practices, restaurants, small businesses** that want to print a
   QR code and change its target later without replacing the sticker.
-- **Agencies** serving several brands: separate domains per client, shared
-  working groups, an API for automation.
+- **Agencies** serving several brands: a separate domain and namespace per
+  client, shared working groups, an API for automation.
 - **Anyone who wants to prove a claim rather than merely assert it.** "We
   don't track" is a claim on a website. With the source code next to it, it
   becomes verifiable.
