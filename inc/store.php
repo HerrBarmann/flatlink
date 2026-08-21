@@ -347,8 +347,18 @@ function links_gc(): void
     if ($dir !== false) {
         $gefaltet = 0;
         while (($name = readdir($dir)) !== false) {
-            if (!str_ends_with($name, '.log')) continue;
             $pfad = data_path('clicks') . '/' . $name;
+            // Verwaiste Sperrdateien einsammeln: Bis 4.5 ließ link_delete()
+            // die .json.lock liegen – ein Inode je gelöschtem Link, und auf
+            // Shared Hosting ist genau das die Obergrenze. Eine Sperrdatei
+            // ohne Basis UND ohne Protokoll gehört zu keinem Link mehr;
+            // ein lebender Zähler hat immer mindestens eine der beiden.
+            if (str_ends_with($name, '.json.lock')) {
+                $rumpf = substr($pfad, 0, -10);
+                if (!is_file($rumpf . '.json') && !is_file($rumpf . '.log')) @unlink($pfad);
+                continue;
+            }
+            if (!str_ends_with($name, '.log')) continue;
             if (!is_file($pfad) || filesize($pfad) === 0) continue;
             clicks_fold(rawurldecode(substr($name, 0, -4)));
             if (++$gefaltet >= 500) break;
