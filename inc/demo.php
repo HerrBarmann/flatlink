@@ -60,7 +60,7 @@ function demo_reset(): void
     // stirbt dabei mit (Tabelle sessions), und genau das soll sie: Der Reset
     // wirft alle raus, auch den, der ihn ausgelöst hat.
     foreach (['links', 'users', 'tokens', 'settings', 'state', 'groups',
-              'logos', 'pending_users', 'confirmations', 'audit', 'sessions'] as $t) {
+              'logos', 'pending_users', 'confirmations', 'audit', 'sessions', 'clickdims'] as $t) {
         db()->exec('DELETE FROM ' . $t);
     }
     // Dateibestand: Zähler, Logo-Dateien, Meldungen

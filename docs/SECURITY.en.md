@@ -134,7 +134,7 @@ at most once a week:
 | Data | Period |
 | --- | --- |
 | Daily values of the click counter | 400 days |
-| Click append log (`clicks/*.log`, each line a date OR one single attribute, never both) | until the next compaction: when statistics are viewed, automatically after ~32 KB, weekly, before every backup |
+| Click append log (`clicks/*.log`, each line nothing but a date – attributes are counted directly as sums and never stored individually) | until the next compaction: when statistics are viewed, automatically after ~32 KB, weekly, before every backup |
 | IP hash of the double opt-in (`verified_ip`) | 12 months |
 | Rate-limit and sign-in-lock entries | 24 hours |
 | Pending registrations, mail changes | 24 hours |

@@ -5,7 +5,6 @@ declare(strict_types=1);
 // flatlink · Zusatzbedingung zur Namensnennung nach §7(b) AGPL: siehe LICENSE
 require_once __DIR__ . '/../inc/auth.php';
 require_once __DIR__ . '/../inc/groups.php';
-require_once __DIR__ . '/../inc/extension.php';
 require_once __DIR__ . '/../inc/store.php';
 require_once __DIR__ . '/../inc/account.php';
 require_once __DIR__ . '/../inc/token.php';
@@ -31,7 +30,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         str_starts_with($action, 'token_')                    => '#api',
         str_starts_with($action, 'totp_'),
         str_starts_with($action, 'pk_')                       => '#zwei-faktor',
-        $action === 'connect_code'                            => '#erweiterung',
         $action === 'session_revoke'                          => '#sitzungen',
         $action === 'display'                                 => '#anzeigename',
         $action === 'email'                                   => '#email',
@@ -46,7 +44,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Absenden wieder ganz oben, obwohl der Anker stimmt. Auf einem Apache
     // ohne Proxy fällt das nie auf; die Anmeldung leitet aus demselben Grund
     // schon immer absolut um.
-    $zurueck = base_url() . '/admin/profile.php' . $anker;
+    // ?zeige= öffnet den Abschnitt serverseitig – die Abschnitte sind seit
+    // 4.4 eingeklappt, und wer gerade etwas abgesendet hat, soll das
+    // Ergebnis sehen, ohne dass dafür JavaScript nötig wäre.
+    $zurueck = base_url() . '/admin/profile.php'
+        . ($anker !== '' ? '?zeige=' . substr($anker, 1) : '') . $anker;
 
     // ---- Passkeys ----
     // Diese drei Fälle antworten mit JSON statt mit einer Seite: Sie werden
@@ -61,7 +63,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $err = passkey_register($user['name'], $daten, (string)($_POST['label'] ?? ''));
         if ($err !== null) wa_json(['error' => $err], 422);
         flash(t('Passkey hinterlegt.'));
-        wa_json(['ok' => true, 'redirect' => 'profile.php' . $anker]);
+        wa_json(['ok' => true, 'redirect' => 'profile.php'
+            . ($anker !== '' ? '?zeige=' . substr($anker, 1) : '') . $anker]);
     }
 
     if ($action === 'pk_remove') {
@@ -152,17 +155,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'token_revoke') {
         $ok = token_revoke($user['name'], (string)($_POST['id'] ?? ''));
         flash($ok ? t('Zugangsschlüssel zurückgezogen.') : t('Diesen Schlüssel gibt es nicht.'), $ok ? 'ok' : 'err');
-        redirect_to($zurueck);
-    }
-
-    if ($action === 'connect_code') {
-        if (!user_can($user['name'], 'api_access')) {
-            flash(t('Für den Zugriff über die Schnittstelle fehlt deinem Konto die Berechtigung.'), 'err');
-            redirect_to($zurueck);
-        }
-        // Wie beim frisch angelegten Schlüssel: einmal anzeigen, dann weg
-        $_SESSION['connect_code'] = ext_connect_code($user['name']);
-        audit(t('Verbindungscode für die Erweiterung erzeugt'));
         redirect_to($zurueck);
     }
 
@@ -312,6 +304,12 @@ if (isset($_GET['token'])) {
 
 page_header(t('Profil'), true);
 show_flash();
+
+// Die Abschnitte sind eingeklappt – acht offene Formulare untereinander
+// waren die Seite, über die sich alle einig waren, dass sie zu voll ist.
+// Offen ist genau einer: der, aus dem gerade eine Aktion kam (?zeige=…).
+$zeige = (string)($_GET['zeige'] ?? '');
+$auf = fn(string $id): string => $zeige === $id ? ' open' : '';
 ?>
 <div class="card narrow">
     <h1><?= t('Profil') ?></h1>
@@ -323,10 +321,11 @@ show_flash();
         <?= t('Wunsch-Codes:') ?> <?= custom_code_count($user['name']) ?><?= $codeQuota > 0 ? '/' . $codeQuota : '' ?>
         (<?= t('mind. %d Zeichen', (int)settings()['custom_code_min_len']) ?>) ·
         <?= t('Logos:') ?> <?= e(limit_label(user_limit($user['name'], 'logos'))) ?> ·
-        <?= t('Statistik:') ?> <?= (int)user_limit($user['name'], 'stats_days') === PHP_INT_MAX ? t('unbegrenzt') : t('%d Tage', (int)user_limit($user['name'], 'stats_days')) ?> ·
-        <a href="import.php"><?= t('CSV-Import') ?></a></span></p>
+        <?= t('Statistik:') ?> <?= (int)user_limit($user['name'], 'stats_days') === PHP_INT_MAX ? t('unbegrenzt') : t('%d Tage', (int)user_limit($user['name'], 'stats_days')) ?></span></p>
 
-    <h2 id="anzeigename"><?= t('Anzeigename') ?></h2>
+    <details class="abschnitt" id="anzeigename"<?= $auf('anzeigename') ?>>
+    <summary><h2><?= t('Anzeigename') ?></h2></summary>
+    <div class="abschnitt-inhalt">
     <?php if (($user['auth'] ?? 'local') !== 'local'): ?>
         <p class="muted small"><?= t('Dein Anzeigename kommt aus der zentralen Anmeldung (%s) und wird bei jeder Anmeldung von dort aktualisiert.', '<strong>' . e(user_display($user['name'])) . '</strong>') ?></p>
     <?php else: ?>
@@ -343,7 +342,12 @@ show_flash();
     </form>
     <?php endif; ?>
 
-    <h2 id="email"><?= t('E-Mail-Adresse') ?></h2>
+    </div>
+    </details>
+
+    <details class="abschnitt" id="email"<?= $auf('email') ?>>
+    <summary><h2><?= t('E-Mail-Adresse') ?></h2></summary>
+    <div class="abschnitt-inhalt">
     <?php $email = user_get($user['name'])['email'] ?? null; ?>
     <?php if ($email !== null): ?>
         <p class="muted small"><?= t('Hinterlegt: %s – wird für Login und Passwort-Reset verwendet.', '<strong>' . e($email) . '</strong>') ?></p>
@@ -366,7 +370,12 @@ show_flash();
         <p class="muted small"><?= t('Wir schicken einen Link an die neue Adresse – erst nach dem Klick ist sie aktiv.') ?></p>
     </form>
 
-    <h2 id="passwort"><?= t('Passwort') ?></h2>
+    </div>
+    </details>
+
+    <details class="abschnitt" id="passwort"<?= $auf('passwort') ?>>
+    <summary><h2><?= t('Passwort') ?></h2></summary>
+    <div class="abschnitt-inhalt">
     <?php if ($extern): ?>
         <p class="muted small"><?= t('Dein Passwort verwaltet die zentrale Anmeldung – hier gibt es keins, das sich ändern ließe. Wende dich dafür an die Stelle, über die du dich anmeldest.') ?></p>
     <?php else: ?>
@@ -384,7 +393,12 @@ show_flash();
     </form>
     <?php endif; ?>
 
-    <h2 id="sitzungen"><?= t('Sitzungen') ?></h2>
+    </div>
+    </details>
+
+    <details class="abschnitt" id="sitzungen"<?= $auf('sitzungen') ?>>
+    <summary><h2><?= t('Sitzungen') ?></h2></summary>
+    <div class="abschnitt-inhalt">
     <p class="muted small"><?= t('Wo dieses Konto gerade angemeldet ist. Abgemeldete Sitzungen enden mit ihrem nächsten Seitenaufruf; ein Passwortwechsel meldet alle anderen von selbst ab.') ?></p>
     <?php
     $sitzungen = (array)(user_get($user['name'])['sessions'] ?? []);
@@ -423,7 +437,12 @@ show_flash();
 </div>
 
 <div class="card">
-    <h2 id="zwei-faktor"><?= t('Anmeldung absichern') ?></h2>
+    </div>
+    </details>
+
+    <details class="abschnitt" id="zwei-faktor"<?= $auf('zwei-faktor') ?>>
+    <summary><h2><?= t('Anmeldung absichern') ?></h2></summary>
+    <div class="abschnitt-inhalt">
     <?php
     $t = totp_get($user['name']);
     $aktiv = totp_active($user['name']);
@@ -534,7 +553,12 @@ show_flash();
         </form>
     <?php endif; ?>
 
-    <h2 id="api"><?= t('Programmierschnittstelle') ?></h2>
+    </div>
+    </details>
+
+    <details class="abschnitt" id="api"<?= $auf('api') ?>>
+    <summary><h2><?= t('Programmierschnittstelle') ?></h2></summary>
+    <div class="abschnitt-inhalt">
     <?php if (!user_can($user['name'], 'api_access')): ?>
         <p class="muted small"><?= t('Für den Zugriff über die Schnittstelle fehlt deinem Konto die Berechtigung. Sie hängt an einer Gruppe – ein Administrator kann sie freischalten.') ?></p>
     <?php else: ?>
@@ -600,45 +624,12 @@ show_flash();
         </form>
     <?php endif; ?>
 
-    <?php if (user_can($user['name'], 'api_access')):
-        $laeden = ext_stores();
-        $ladenNamen = ext_laden_namen();
-    ?>
-    <h2 id="erweiterung"><?= t('Browser-Erweiterung') ?></h2>
-    <p class="muted small"><?= $laeden !== []
-        ? t('Kürzt die geöffnete Seite mit einem Klick. Aus dem Laden installieren, dann unten einen Verbindungscode erzeugen und ihn in den Einstellungen der Erweiterung einfügen – Adresse und Zugangsschlüssel stehen darin.')
-        : t('Kürzt die geöffnete Seite mit einem Klick. Sobald sie in den Läden von Chrome und Firefox steht, findest du den Link hier. Ist sie schon installiert, richtet ein Verbindungscode sie ein.') ?></p>
-
-    <?php if ($laeden !== []): ?>
-    <p class="short-row">
-        <?php foreach ($laeden as $laden => $url): ?>
-        <a class="btn" href="<?= e($url) ?>" target="_blank" rel="noopener">
-            <?= e($ladenNamen[$laden] ?? $laden) ?></a>
-        <?php endforeach; ?>
-    </p>
-    <?php endif; ?>
-    <?php $code = $_SESSION['connect_code'] ?? null; unset($_SESSION['connect_code']); ?>
-    <?php if ($code !== null): ?>
-    <div class="flash flash-ok">
-        <strong><?= t('Dein Verbindungscode:') ?></strong>
-        <p><input type="text" value="<?= e($code) ?>" readonly onclick="this.select()"
-                  style="font-family:var(--mono);font-size:0.85rem" aria-label="<?= t('Verbindungscode') ?>"></p>
-        <p class="small"><?= t('In der Erweiterung unter „Einstellungen“ einfügen – Adresse und Schlüssel stehen darin. Er enthält ein Zugangsmittel: nicht weitergeben. Zurückziehen lässt er sich oben unter „Zugangsschlüssel“.') ?></p>
     </div>
-    <?php endif; ?>
+    </details>
 
-    <p class="short-row">
-        <form method="post" action="" class="inline">
-            <?= csrf_field() ?>
-            <input type="hidden" name="action" value="connect_code">
-            <button class="btn" type="submit"><?= t('Verbindungscode erzeugen') ?></button>
-        </form>
-    </p>
-    <p class="muted small"><?= t('Für eine Erweiterung, die schon installiert ist – etwa aus dem Chrome Web Store oder von addons.mozilla.org. Einmal kopieren, einmal einfügen, fertig.') ?></p>
-
-    <?php endif; ?>
-
-    <h2 id="daten"><?= t('Deine Daten') ?></h2>
+    <details class="abschnitt" id="daten"<?= $auf('daten') ?>>
+    <summary><h2><?= t('Deine Daten') ?></h2></summary>
+    <div class="abschnitt-inhalt">
     <p class="muted small"><?= t('Alles, was über dieses Konto gespeichert ist, als JSON-Datei: Kontodaten, Gruppen, Rechte sowie jeder Kurzlink mit Ziel, Datum und Klickzahlen. Ohne Passwort-Hash – der ist ein Zugangsmittel, kein Inhalt.') ?></p>
     <form method="post" action="">
         <?= csrf_field() ?>
@@ -646,8 +637,13 @@ show_flash();
         <p><button class="btn" type="submit"><?= t('Daten herunterladen') ?></button></p>
     </form>
 
+    </div>
+    </details>
+
     <?php if (cfg('self_delete')): $umfang = account_delete_scope($user['name']); ?>
-    <h2 id="loeschen"><?= t('Konto löschen') ?></h2>
+    <details class="abschnitt" id="loeschen"<?= $auf('loeschen') ?>>
+    <summary><h2><?= t('Konto löschen') ?></h2></summary>
+    <div class="abschnitt-inhalt">
     <p class="muted small"><?= $umfang['eigene'] === 1
         ? t('Das Konto verschwindet mitsamt einem Kurzlink und den zugehörigen Klickzählern. Gedruckte QR-Codes darauf zeigen danach ins Leere.')
         : t('Das Konto verschwindet mitsamt %d Kurzlinks und den zugehörigen Klickzählern. Gedruckte QR-Codes darauf zeigen danach ins Leere.', (int)$umfang['eigene']) ?>
@@ -675,6 +671,9 @@ show_flash();
         <p><button class="btn btn-danger" type="submit"><?= t('Konto endgültig löschen') ?></button></p>
     </form>
     <?php endif; ?>
+    </div>
+    </details>
+
 </div>
 <?php page_script('assets/passkey.js');
 page_footer(); ?>

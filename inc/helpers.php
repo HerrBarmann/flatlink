@@ -832,6 +832,10 @@ function page_header(string $title, bool $admin = false, ?string $desc = null, ?
         if (function_exists('user_can') && user_can($u['name'], 'logo_upload')) {
             echo '<a href="' . $adm . 'logos.php">' . t('Logos') . '</a> ';
         }
+        // Die Erweiterung stand jahrelang als Abschnitt tief im Profil – wo
+        // niemand eine Erweiterung sucht. Ein Werkzeug, das jeden Tag einen
+        // Klick spart, verdient einen eigenen Platz in der Kopfzeile.
+        echo '<a href="' . $adm . 'erweiterung.php">' . t('Erweiterung') . '</a> ';
         // Die Klappe zeigt, was das Konto auch benutzen darf: Administratoren
         // alles, eine Redaktion nur die Meldungen. Wer nichts davon hat,
         // sieht die Klappe gar nicht.

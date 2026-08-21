@@ -369,14 +369,14 @@ der Browser-Kennung eines von drei Wörtern, von der Sprachliste zwei
 Buchstaben. Aus einer Summe lässt sich kein einzelner Besuch herauslesen,
 weil nie ein einzelner Besuch gespeichert wird.
 
-**Der Weg zur Summe, ganz genau:** Damit der Weiterleitungspfad schnell
-bleibt, schreibt ein Scan zunächst Zeilen in ein Anhang-Protokoll
-(`clicks/<code>.log`), das später zu den Summen oben verdichtet wird. Auch
-dort beschreibt **keine Zeile einen einzelnen Besuch**: Die Zählzeile trägt
-nur das Datum, und jedes Merkmal steht einzeln in einer eigenen, datumslosen
-Zeile – was zusammen gehörte, ist nicht verzeichnet. Das Protokoll lebt
-kurz: Verdichtet wird beim Ansehen der Statistik, spätestens nach ein paar
-hundert Aufrufen von selbst, einmal wöchentlich für alles Übrige – und
+**Der Weg zur Summe, ganz genau:** Die drei Merkmale werden **unmittelbar
+aufaddiert** – je Merkmal ein Zähler-Update, nirgends ein Datensatz je
+Aufruf. Daneben schreibt ein Scan eine Zeile in ein Anhang-Protokoll
+(`clicks/<code>.log`), und diese Zeile ist **nur das Datum**: `{"d":
+"2026-08-21"}`, sonst nichts – mit `head data/clicks/*.log` nachprüfbar.
+Das Protokoll lebt kurz: Verdichtet wird beim Ansehen der Statistik,
+spätestens nach ein paar hundert Aufrufen von selbst, wöchentlich für alles
+Übrige (auf sehr großen Beständen über mehrere Wochen verteilt) – und
 **vor jeder Sicherung**, ein Archiv enthält also nur Summen.
 
 Auch der letzte Aufruf steht nur tagesgenau da. Bei einem Link mit einer
@@ -385,7 +385,7 @@ Handvoll Aufrufe wäre eine Uhrzeit sonst der einzige Wert im ganzen Bestand,
 Quellen zusammenführen – ließe.
 
 Das ist keine Absichtserklärung, sondern in [`inc/store.php`](inc/store.php)
-nachlesbar (`clicks_bump()` schreibt, `clicks_fold()` verdichtet). Prüf es nach – genau dafür
+nachlesbar (`clicks_bump()` zählt, `clicks_fold()` verdichtet). Prüf es nach – genau dafür
 liegt der Code offen. Der Weiterleitungspfad (`go.php`) startet nicht einmal
 eine Session, solange kein Passwortschutz auf dem Link liegt.
 

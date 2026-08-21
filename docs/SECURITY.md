@@ -141,7 +141,7 @@ Link-Erstellung, höchstens einmal pro Woche:
 | Daten | Frist |
 | --- | --- |
 | Tageswerte des Klickzählers | 400 Tage |
-| Klick-Anhang-Protokoll (`clicks/*.log`, je Zeile Datum ODER ein einzelnes Merkmal, nie beides) | bis zur nächsten Verdichtung: beim Ansehen der Statistik, automatisch nach ~32 KB, wöchentlich, vor jeder Sicherung |
+| Klick-Anhang-Protokoll (`clicks/*.log`, je Zeile nur ein Datum – Merkmale werden direkt als Summen gezählt und nie einzeln abgelegt) | bis zur nächsten Verdichtung: beim Ansehen der Statistik, automatisch nach ~32 KB, wöchentlich, vor jeder Sicherung |
 | IP-Hash des Double-Opt-In (`verified_ip`) | 12 Monate |
 | Rate-Limit- und Login-Sperr-Einträge | 24 Stunden |
 | Offene Registrierungen, E-Mail-Wechsel | 24 Stunden |

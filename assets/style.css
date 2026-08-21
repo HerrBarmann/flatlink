@@ -157,6 +157,30 @@ code, .prefix { font-family: var(--mono); }
 .card.narrow-wide { max-width: 720px; margin: 2rem auto; }
 .card.narrow-wide h2 { margin-top: 1.4rem; font-size: 1.1rem; }
 
+/* Profil: einklappbare Abschnitte.
+   Acht offene Formulare untereinander waren zu viel Seite – zugeklappt ist
+   das Profil ein Inhaltsverzeichnis, und offen ist genau der Abschnitt, in
+   dem gerade etwas passiert (?zeige= vom Server, sonst der Klick). */
+details.abschnitt { border-top: 1px solid var(--line); }
+details.abschnitt summary {
+    cursor: pointer; list-style: none;
+    display: flex; align-items: center; gap: 0.55rem;
+    padding: 0.75rem 0;
+}
+details.abschnitt summary::-webkit-details-marker { display: none; }
+details.abschnitt summary::before {
+    content: ""; flex: none;
+    width: 0.45em; height: 0.45em;
+    border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted);
+    transform: rotate(-45deg);           /* zu: Pfeil zeigt nach rechts */
+    transition: transform 0.12s;
+}
+details.abschnitt[open] > summary::before { transform: rotate(45deg); }   /* offen: nach unten */
+details.abschnitt summary h2 { margin: 0; font-size: 1.02rem; }
+details.abschnitt summary:hover h2 { color: var(--accent-deep); }
+details.abschnitt .abschnitt-inhalt { padding: 0.1rem 0 1.1rem; }
+details.abschnitt .abschnitt-inhalt > :first-child { margin-top: 0; }
+
 /* Zweistufige Anmeldung: die Kennung aus Schritt 1 links, der Weg zurück
    rechts, darunter ein Strich. Die Zeile ist ein Flex-Container, weil der
    Rückweg in einem eigenen <form> steckt — ein Formular ist Blockinhalt und

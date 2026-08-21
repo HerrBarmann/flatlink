@@ -74,21 +74,22 @@ pruefe('Protokoll nach dem Falten leer', filesize(clicks_log_file($code)) === 0)
 
 clicks_bump($code);   // ein frischer Aufruf mit Merkmalen
 $zeilen = file(clicks_log_file($code), FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
-$verknuepft = array_filter($zeilen, fn($z) => str_contains($z, '"h":') && str_contains($z, '"d":'));
-$mehrfach = array_filter($zeilen, fn($z) => substr_count($z, '"refs"') + substr_count($z, '"langs"') + substr_count($z, '"devs"') > 1);
-pruefe('Keine Protokollzeile verknüpft Merkmale mit einem Besuch',
-    $verknuepft === [] && $mehrfach === []);
-pruefe('Merkmalzeilen tragen kein Datum',
-    array_filter($zeilen, fn($z) => str_contains($z, '"h":')) !== []);
+$mitMerkmal = array_filter($zeilen, fn($z) => str_contains($z, '"h":')
+    || str_contains($z, 'refs') || str_contains($z, 'devs') || str_contains($z, 'langs'));
+pruefe('Das Protokoll enthält KEINE Merkmale mehr – nur Zählzeilen',
+    $mitMerkmal === [] && $zeilen !== []);
+pruefe('Merkmale kommen trotzdem in den Töpfen an (direkt gezählt)',
+    (int)(clicks_dims_of($code)['refs']['such.example'] ?? 0) >= 16);
 
 // Altbestand aus 4.1/4.2: eine Tupelzeile wird weiterhin korrekt gefaltet
 file_put_contents(clicks_log_file($code),
     json_encode(['d' => date('Y-m-d'), 'h' => ['refs' => 'altbestand.example'], 'w' => 9]) . "\n",
     FILE_APPEND);
 $cAlt = clicks_get($code);
-pruefe('Alte Tupelzeile zählt Besuch UND Merkmal',
+pruefe('Alte Tupelzeile zählt Besuch UND Merkmal (Merkmal landet in der Tabelle)',
     (int)$cAlt['n'] === 17 && (int)($cAlt['refs']['altbestand.example'] ?? 0) === 1
-    && (int)($cAlt['routes']['9'] ?? 0) === 1);
+    && (int)($cAlt['routes']['9'] ?? 0) === 1
+    && (int)(clicks_dims_of($code)['refs']['altbestand.example'] ?? 0) === 1);
 
 // ---- Der Deckel: das Protokoll wächst nicht unbegrenzt ----------------------
 
@@ -125,8 +126,9 @@ pruefe('Nach dem Falten geht es nahtlos weiter', (int)$c3['n'] === 919 && (int)$
 // ---- Aufräumen -------------------------------------------------------------
 
 link_delete($code);
-pruefe('Testlink samt Protokoll entfernt',
-    !is_file(clicks_file($code)) && !is_file(clicks_log_file($code)));
+pruefe('Testlink samt Protokoll und Töpfen entfernt',
+    !is_file(clicks_file($code)) && !is_file(clicks_log_file($code))
+    && clicks_dims_of($code) === []);
 
 echo "\n" . ($fehler === 0 ? "Alle Prüfungen bestanden.\n" : "$fehler Prüfung(en) fehlgeschlagen.\n");
 exit($fehler === 0 ? 0 : 1);

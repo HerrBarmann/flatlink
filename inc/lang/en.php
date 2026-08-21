@@ -215,6 +215,24 @@ return [
     'Alles klar – wir fragen nicht mehr danach. Im Profil geht es weiterhin.'
         => 'Understood – we will not ask again. Your profile still has it if you change your mind.',
 
+    // ---- Browser-Erweiterung (eigene Seite seit 4.4) ----
+    'Erweiterung' => 'Extension',
+    'Kürzt die Seite, auf der du gerade bist, mit einem Klick – Kurzlink und QR-Code, ohne den Tab zu wechseln.'
+        => 'Shortens the page you are on with one click – short link and QR code, without leaving the tab.',
+    '1. Installieren' => '1. Install',
+    '2. Verbinden' => '2. Connect',
+    'Verbinden' => 'Connect',
+    'Sobald sie in den Läden von Chrome und Firefox steht, findest du den Link hier. Ist sie schon installiert, richtet ein Verbindungscode sie ein.'
+        => 'As soon as it is listed in the Chrome and Firefox stores, the link appears here. If it is already installed, a pairing code sets it up.',
+    'Ein Verbindungscode trägt Adresse und Zugangsschlüssel in einem: in der Erweiterung unter „Einstellungen" einfügen, fertig.'
+        => 'A pairing code carries address and access key in one: paste it into the extension under "Settings", done.',
+    'Er enthält ein Zugangsmittel: nicht weitergeben. Zurückziehen lässt er sich im Profil unter „Programmierschnittstelle".'
+        => 'It contains a credential: do not pass it on. It can be revoked in your profile under "API".',
+    'Jeder Code wird nur einmal angezeigt. Ein neuer Code legt einen eigenen Zugangsschlüssel an – alte bleiben gültig, bis du sie im Profil zurückziehst.'
+        => 'Each code is shown only once. A new code creates its own access key – old ones stay valid until you revoke them in your profile.',
+    'Für den Zugriff über die Schnittstelle fehlt deinem Konto die Berechtigung – die Erweiterung braucht sie. Frag die Verwaltung deiner Instanz.'
+        => 'Your account lacks API permission – the extension needs it. Ask the administrators of your instance.',
+
     // ---- Passkey-Skript ----
     'Dieser Browser kennt keine Passkeys.' => 'This browser does not support passkeys.',
     'Warte auf dein Gerät …' => 'Waiting for your device …',

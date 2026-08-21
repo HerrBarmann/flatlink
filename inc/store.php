@@ -289,12 +289,24 @@ function links_gc(): void
     // fünfzig Aufrufen im Monat, dessen Statistik nie jemand öffnet, soll
     // kein liegenbleibendes Protokoll haben. Gedeckelt je Lauf, damit der
     // Besucher, der die Kehrwoche anstößt, nicht für zehntausende Dateien
-    // aufkommt; der Rest kommt in den Folgewochen dran.
-    $gefaltet = 0;
-    foreach (glob(data_path('clicks') . '/*.log') ?: [] as $lf) {
-        if (filesize($lf) === 0) continue;
-        clicks_fold(rawurldecode(basename($lf, '.log')));
-        if (++$gefaltet >= 500) break;
+    // aufkommt; auf großen Beständen verteilt sich das über mehrere Wochen –
+    // gefaltete Protokolle sind danach leer und stehen nicht wieder an.
+    //
+    // readdir statt glob (Review 4.3.0, N2): glob baut erst die vollständige,
+    // sortierte Pfadliste auf – bei hunderttausenden Zählerdateien einige
+    // zehn MB im memory_limit des Besuchers, der zufällig die Woche anstößt.
+    // Dieselbe Fehlerklasse, die 4.2.0 aus links_gc() ausgeräumt hat.
+    $dir = @opendir(data_path('clicks'));
+    if ($dir !== false) {
+        $gefaltet = 0;
+        while (($name = readdir($dir)) !== false) {
+            if (!str_ends_with($name, '.log')) continue;
+            $pfad = data_path('clicks') . '/' . $name;
+            if (!is_file($pfad) || filesize($pfad) === 0) continue;
+            clicks_fold(rawurldecode(substr($name, 0, -4)));
+            if (++$gefaltet >= 500) break;
+        }
+        closedir($dir);
     }
 
     require_once __DIR__ . '/auth.php';
@@ -692,6 +704,8 @@ function link_delete(string $code): void
     link_write($code, fn(?array $l) => null);
     @unlink(clicks_file($code));
     @unlink(clicks_log_file($code));
+    $st = db()->prepare('DELETE FROM clickdims WHERE code = ?');
+    $st->execute([$code]);
     hook_fire('link.deleted', hook_link($code, $l));
 }
 
@@ -730,7 +744,16 @@ function clicks_file(string $code): string
 function clicks_get(string $code): array
 {
     clicks_fold($code);
-    return json_read(clicks_file($code), ['n' => 0, 'last' => null, 'days' => []]);
+    $c = json_read(clicks_file($code), ['n' => 0, 'last' => null, 'days' => []]);
+    // Die Merkmalstöpfe leben seit 4.4 in der Tabelle clickdims; was in der
+    // Basisdatei liegt, ist Altbestand aus der Zeit davor. Beides addieren –
+    // so zählen alte Summen weiter, ohne dass eine Übernahme nötig wäre.
+    foreach (clicks_dims_of($code) as $feld => $werte) {
+        foreach ($werte as $wert => $n) {
+            $c[$feld][$wert] = (int)($c[$feld][$wert] ?? 0) + $n;
+        }
+    }
+    return $c;
 }
 
 /** Das Anhang-Protokoll neben der verdichteten Basis (siehe clicks_bump) */
@@ -761,7 +784,8 @@ function clicks_fold(string $code): void
         $inhalt = stream_get_contents($h);
         if ($inhalt === false || $inhalt === '') return;
         $zeilen = explode("\n", $inhalt);
-        json_update(clicks_file($code), function (array $c) use ($zeilen): array {
+        $altdims = [];
+        json_update(clicks_file($code), function (array $c) use ($zeilen, &$altdims): array {
             foreach ($zeilen as $z) {
                 $e = json_decode($z, true);
                 if (!is_array($e)) continue;
@@ -775,23 +799,22 @@ function clicks_fold(string $code): void
                     $c['items'][(string)$e['i']] = clicks_zaehle((array)($c['items'][(string)$e['i']] ?? []), $tag);
                     continue;
                 }
-                // Merkmalzeile ohne Datum (seit 4.3): nur die Töpfe, kein Besuch.
-                // Zeilen mit Datum UND Merkmalen stammen aus 4.1/4.2 und
-                // zählen wie früher beides.
+                // Seit 4.4 stehen im Protokoll nur noch Zählzeilen. Alles
+                // andere ist Altbestand: Merkmalzeilen aus 4.3 (h ohne d)
+                // und Tupelzeilen aus 4.1/4.2 (d und h zusammen) – ihre
+                // Merkmale wandern beim Falten in die Tabelle, ihre Besuche
+                // zählen wie immer.
                 if (isset($e['d'])) {
                     $c = clicks_zaehle($c, $tag) + $c;
-                    if (isset($e['w'])) {
-                        $r = (array)($c['routes'] ?? []);
-                        $r[(string)$e['w']] = (int)($r[(string)$e['w']] ?? 0) + 1;
-                        $c['routes'] = $r;
-                    }
+                    if (isset($e['w'])) $altdims[] = ['routes', (string)$e['w']];
                 }
                 foreach ((array)($e['h'] ?? []) as $feld => $wert) {
-                    if (is_string($wert)) $c[$feld] = click_dim_bump((array)($c[$feld] ?? []), $wert);
+                    if (is_string($wert)) $altdims[] = [(string)$feld, $wert];
                 }
             }
             return $c;
         }, ['n' => 0, 'last' => null, 'days' => []]);
+        if ($altdims !== []) clicks_dims_zaehle($code, $altdims);
         ftruncate($h, 0);
     } finally {
         flock($h, LOCK_UN);
@@ -982,6 +1005,57 @@ function clicks_roh_bump(string $code): void
     clicks_append($code, ['roh' => 1]);
 }
 
+/**
+ * Merkmalstöpfe direkt hochzählen – ein UPSERT je Merkmal, eine Transaktion
+ * je Aufruf.
+ *
+ * Das ist die Antwort auf die letzte Restfrage der Klick-Reviews: Solange
+ * Merkmale – auch einzeln – protokolliert wurden, verriet ihre Nachbarschaft
+ * im Protokoll, was zusammengehörte. Jetzt entsteht nirgends ein Datensatz
+ * je Aufruf; es gibt nur noch die Summen selbst.
+ *
+ * Statistik ist Beiwerk der Weiterleitung, nicht ihr Zweck: Schlägt das
+ * Schreiben fehl (Datenbank ausgelastet), wird der Besucher trotzdem
+ * weitergeleitet und der Topf um eins ärmer – der harmloseste Ausgang.
+ */
+function clicks_dims_zaehle(string $code, array $paare): void
+{
+    if ($paare === []) return;
+    $pdo = db();
+    $update = $pdo->prepare('UPDATE clickdims SET n = n + 1 WHERE code = ? AND feld = ? AND wert = ?');
+    $anz = $pdo->prepare('SELECT COUNT(*) FROM clickdims WHERE code = ? AND feld = ?');
+    $insert = $pdo->prepare('INSERT INTO clickdims (code, feld, wert, n) VALUES (?, ?, ?, 1)
+        ON CONFLICT(code, feld, wert) DO UPDATE SET n = n + 1');
+    try {
+        $pdo->exec('BEGIN IMMEDIATE');
+        foreach ($paare as [$feld, $wert]) {
+            // Der häufige Fall zuerst: den vorhandenen Topf erhöhen.
+            $update->execute([$code, $feld, $wert]);
+            if ($update->rowCount() > 0) continue;
+            // Neuer Wert: dieselbe Obergrenze je Merkmal wie bisher – ab
+            // CLICK_DIM_MAX verschiedenen Werten sammelt „*" den Rest.
+            $anz->execute([$code, $feld]);
+            if ((int)$anz->fetchColumn() >= CLICK_DIM_MAX) $wert = '*';
+            $insert->execute([$code, $feld, $wert]);
+        }
+        $pdo->exec('COMMIT');
+    } catch (Throwable $e) {
+        try { $pdo->exec('ROLLBACK'); } catch (Throwable) {}
+    }
+}
+
+/** @return array<string,array<string,int>> feld => (wert => n) */
+function clicks_dims_of(string $code): array
+{
+    $st = db()->prepare('SELECT feld, wert, n FROM clickdims WHERE code = ?');
+    $st->execute([$code]);
+    $out = [];
+    while (($z = $st->fetch()) !== false) {
+        $out[(string)$z['feld']][(string)$z['wert']] = (int)$z['n'];
+    }
+    return $out;
+}
+
 function clicks_bump(string $code, ?int $item = null, ?int $weiche = null): void
 {
     // Seit 4.1 ist Zählen ein ANHÄNGEN, kein Lesen-Ändern-Schreiben mehr –
@@ -1000,16 +1074,14 @@ function clicks_bump(string $code, ?int $item = null, ?int $weiche = null): void
         clicks_append($code, ['d' => date('Y-m-d'), 'i' => (string)$item]);
         return;
     }
-    $zeilen = [];
-    $zaehlzeile = ['d' => date('Y-m-d')];
-    // Welche Weiche griff, ist eine Eigenschaft des Links, kein
-    // Besuchermerkmal – sie bleibt an der Zählzeile.
-    if ($weiche !== null) $zaehlzeile['w'] = $weiche;
-    $zeilen[] = $zaehlzeile;
-    foreach (click_dims() as $feld => $wert) {
-        $zeilen[] = ['h' => [$feld => $wert]];
-    }
-    clicks_append($code, ...$zeilen);
+    // Ins Protokoll geht NUR die Zählzeile – ein Datum, sonst nichts. Alles,
+    // was ein Merkmal ist (Herkunft, Gerät, Sprache, gegriffene Weiche),
+    // wird direkt als Summe gezählt und taucht nie als Einzeleintrag auf.
+    clicks_append($code, ['d' => date('Y-m-d')]);
+    $paare = [];
+    foreach (click_dims() as $feld => $wert) $paare[] = [$feld, $wert];
+    if ($weiche !== null) $paare[] = ['routes', (string)$weiche];
+    clicks_dims_zaehle($code, $paare);
 }
 
 // ---- QR-Logos: Metadaten (Anzeigenamen) zu den zufälligen Datei-IDs ----

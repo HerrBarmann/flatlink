@@ -171,3 +171,19 @@
         }
     });
 })();
+
+/* Ein Anker, der in einem eingeklappten Abschnitt liegt, öffnet ihn.
+ * Der Server erledigt das für eigene Rücksprünge über ?zeige=…; das hier
+ * deckt Lesezeichen und von Hand getippte #anker ab. */
+(function () {
+    'use strict';
+    function oeffne() {
+        if (!location.hash) return;
+        var el = document.getElementById(location.hash.slice(1));
+        if (!el) return;
+        var d = el.tagName === 'DETAILS' ? el : el.closest('details');
+        if (d) d.open = true;
+    }
+    window.addEventListener('hashchange', oeffne);
+    oeffne();
+})();

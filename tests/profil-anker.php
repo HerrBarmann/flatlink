@@ -36,8 +36,9 @@ $pruefe = function (string $was, bool $ok) use (&$fehler): void {
     if (!$ok) $fehler++;
 };
 
-// Welche Marken vergibt die Seite?
-preg_match_all('/<h2 id="([a-z0-9-]+)"/', $quelle, $m);
+// Welche Marken vergibt die Seite? Seit 4.4 sitzen die ids an den
+// einklappbaren <details>-Abschnitten, nicht mehr an den Überschriften.
+preg_match_all('/<details class="abschnitt" id="([a-z0-9-]+)"/', $quelle, $m);
 $vorhanden = $m[1];
 $pruefe('die Seite vergibt Sprungmarken', count($vorhanden) >= 8);
 
@@ -69,8 +70,15 @@ foreach ($aktionen as $a) {
 // Adresse umgeschrieben – und dabei geht das Fragment verloren. Der Anker
 // stimmt dann, aber man landet trotzdem oben. Auf einem Apache ohne Proxy
 // fällt das nie auf, weshalb es nur auf einer von zwei Instanzen auftrat.
+// Seit 4.4 sind die Abschnitte eingeklappt; der Rücksprung muss den
+// Ziel-Abschnitt serverseitig öffnen (?zeige=…), sonst landet man zwar am
+// Anker, sieht aber eine zugeklappte Zeile – ohne JavaScript für immer.
+$pruefe('der Rücksprung öffnet den Abschnitt serverseitig (?zeige=)',
+    str_contains($quelle, "'?zeige=' . substr(\$anker, 1)")
+    && str_contains($quelle, "\$auf = fn(string \$id): string => \$zeige === \$id ? ' open' : ''"));
+
 $pruefe('die Umleitung nennt eine vollständige Adresse',
-    str_contains($quelle, "base_url() . '/admin/profile.php' . \$anker"));
+    str_contains($quelle, "base_url() . '/admin/profile.php'"));
 $pruefe('keine relative Umleitung mehr übrig',
     !str_contains($quelle, "redirect_to('profile.php"));
 
