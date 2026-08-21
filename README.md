@@ -457,16 +457,17 @@ Two limits that honestly belong with those numbers:
 
 - **Writing stays single.** Creating, changing and deleting run one after
   another — tens of thousands per second as measured, but not in parallel.
-- **On shared hosting the inode quota used to be the ceiling.** Until 5.0 a
-  *clicked* link occupied three small files — a compacted counter, its lock
-  file and the append log — so the usual 250,000 inodes ran out at roughly
-  83,000 clicked links. (An earlier version of this list said "two files" and
-  "100,000 links"; that was one file per link too few.) Since 5.1 the counter
-  lives in the database. What remains on disk is the append log, and the
-  weekly sweep removes it once it is empty, so a link that is not being
-  clicked right now costs **no inode at all**. The log stays deliberately: on
-  ext4 an append costs 0.004 ms against 0.019 ms for the equivalent database
-  transaction, so writing it is the cheaper half of a counted click.
+- **On shared hosting the inode quota used to be the ceiling. It no longer
+  is.** Until 5.0 a *clicked* link occupied three small files — a compacted
+  counter, its lock file and the append log — so the usual 250,000 inodes ran
+  out at roughly 83,000 clicked links. (An earlier version of this list said
+  "two files" and "100,000 links"; that was one file per link too few.) Since
+  5.2 a counted click writes a single database transaction and **no file at
+  all**. Measured on Linux/ext4 with eight processes over 5,000 distinct links:
+  33,193 clicks per second against 34,169 for the old file-plus-transaction
+  path — 2.9% slower, and nothing that a redirect notices. What that buys is
+  one place where a counter lives instead of two, and no per-link ceiling to
+  document.
 
 So the question is not "is it fast enough" but "does our operating standard
 demand more than one replica". If it does, this is the wrong software, and

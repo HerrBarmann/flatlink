@@ -74,7 +74,7 @@ function backup_build(): array
             // gehören Summen, kein Anhang-Protokoll (Review 4.2.0, F1). Nach
             // dem Falten ist die Datei leer und wird übersprungen.
             if ($ordner === 'clicks' && str_ends_with($datei, '.log')) {
-                clicks_fold(rawurldecode(basename($datei, '.log')));
+                clicks_altlog(rawurldecode(basename($datei, '.log')));
                 clearstatcache(true, $datei);
                 if (!is_file($datei) || filesize($datei) === 0) continue;
             }

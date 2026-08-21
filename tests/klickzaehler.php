@@ -3,13 +3,13 @@ declare(strict_types=1);
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // flatlink · Zusatzbedingung zur Namensnennung nach §7(b) AGPL: siehe LICENSE
 /**
- * Prüft die Klickzählung nach dem Umbau auf Anhängen + späte Verdichtung.
+ * Prüft die Klickzählung, seit sie ohne Datei auskommt (5.2).
  *
- * Die Zusage ist einfach und darf nie brechen: Egal wann gefaltet wird und
- * wie oft – am Ende stehen exakt die Zahlen, die die alte
- * Lesen-Ändern-Schreiben-Zählung geliefert hätte. Jeder Aufruf zählt einmal,
- * Herkunft, Weichen und Bio-Ziele landen in ihren Töpfen, und das Aufruflimit
- * sieht auch die noch ungefalteten Zeilen.
+ * Die Zusage ist einfach und darf nie brechen: Jeder Aufruf zählt einmal,
+ * Herkunft, Weichen und Bio-Ziele landen in ihren Töpfen, das Aufruflimit
+ * sieht den vollen Stand – und Zählstände aus jeder früheren Ablage werden
+ * vollständig übernommen: die verdichtete Basis (bis 5.0), das
+ * Anhang-Protokoll (bis 5.1) samt seiner Zeilenformate aus 4.1 bis 4.3.
  *
  * Aufruf: php tests/klickzaehler.php
  */
@@ -26,7 +26,7 @@ function pruefe(string $was, bool $ok, string $detail = ''): void
     printf("  %s %s%s\n", $ok ? '✓' : '✗', $was, $detail !== '' ? " – $detail" : '');
 }
 
-echo "Klickzählung: anhängen, falten, stimmen\n\n";
+echo "Klickzählung ohne Datei\n\n";
 
 $code = 'test-klick';
 link_delete($code);
@@ -45,17 +45,17 @@ for ($i = 0; $i < 5; $i++)  clicks_bump($code, null, 2);     // über Weiche 2
 for ($i = 0; $i < 4; $i++)  clicks_bump($code, 7);           // Bio-Ziel 7
 for ($i = 0; $i < 6; $i++)  clicks_roh_bump($code);          // Bot-Aufrufe (nur roh)
 
-// Seit 5.1 liegt die Basis in clickbase, nicht in einer Datei. Die Zusage
-// bleibt dieselbe: Vor dem Falten steht der Zählstand NUR im Protokoll.
 $basisRoh = static function (string $c): int {
     $st = db()->prepare("SELECT n FROM clickbase WHERE schluessel = ? AND item = ''");
     $st->execute([$c]);
-    return (int)$st->fetchColumn();
+    $n = (int)$st->fetchColumn();
+    $st->closeCursor();
+    return $n;
 };
-pruefe('Vor dem Falten: Protokoll da, Basis noch leer',
-    is_file(clicks_log_file($code)) && $basisRoh($code) === 0);
+pruefe('Der Stand steht sofort in der Tabelle, ohne Datei',
+    $basisRoh($code) === 15 && !is_file(clicks_log_file($code)));
 
-// ---- Das Limit sieht ungefaltete Zeilen ------------------------------------
+// ---- Das Limit sieht den vollen Stand --------------------------------------
 
 $link = link_get($code);
 $link['max_visits'] = 21;
@@ -64,7 +64,7 @@ pruefe('Limit 21: bei 15 Scans + 6 Bots ausgeschöpft (Bio-Ziele zählen nicht)'
 $link['max_visits'] = 22;
 pruefe('Limit 22: noch nicht ausgeschöpft', link_ausgeschoepft($code, $link) === false);
 
-// ---- Falten ----------------------------------------------------------------
+// ---- Die Zahlen ------------------------------------------------------------
 
 $c = clicks_get($code);
 $heute = date('Y-m-d');
@@ -75,20 +75,20 @@ pruefe('Herkunft gefaltet', (int)($c['refs']['such.example'] ?? 0) === 15);
 pruefe('Sprache gefaltet', (int)($c['langs']['de'] ?? 0) === 15);
 pruefe('Weiche 2 fünfmal benutzt', (int)($c['routes']['2'] ?? 0) === 5);
 pruefe('Bio-Ziel 7 viermal', (int)($c['items']['7']['n'] ?? 0) === 4);
-pruefe('Protokoll nach dem Falten leer', filesize(clicks_log_file($code)) === 0);
 
-// ---- F1 (Review 4.2.0): keine Zeile beschreibt einen einzelnen Besuch ------
-
-clicks_bump($code);   // ein frischer Aufruf mit Merkmalen
-$zeilen = file(clicks_log_file($code), FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
-$mitMerkmal = array_filter($zeilen, fn($z) => str_contains($z, '"h":')
-    || str_contains($z, 'refs') || str_contains($z, 'devs') || str_contains($z, 'langs'));
-pruefe('Das Protokoll enthält KEINE Merkmale mehr – nur Zählzeilen',
-    $mitMerkmal === [] && $zeilen !== []);
-pruefe('Merkmale kommen trotzdem in den Töpfen an (direkt gezählt)',
+// ---- F1 (Review 4.2.0): kein Datensatz je Aufruf ---------------------------
+//
+// Der Befund von damals lautete: Solange Merkmale protokolliert wurden,
+// verriet ihre Nachbarschaft im Protokoll, was zusammengehörte. Seit 5.2
+// gibt es das Protokoll gar nicht mehr – es entsteht nirgends ein Eintrag
+// je Aufruf, nur Summen.
+clicks_bump($code);
+pruefe('Es entsteht keine Datei je Aufruf',
+    glob(data_path('clicks') . '/' . rawurlencode($code) . '*') === []);
+pruefe('Merkmale kommen trotzdem in den Töpfen an',
     (int)(clicks_dims_of($code)['refs']['such.example'] ?? 0) >= 16);
 
-// Altbestand aus 4.1/4.2: eine Tupelzeile wird weiterhin korrekt gefaltet
+// Altbestand aus 4.1/4.2: eine Tupelzeile wird weiterhin korrekt eingelesen
 file_put_contents(clicks_log_file($code),
     json_encode(['d' => date('Y-m-d'), 'h' => ['refs' => 'altbestand.example'], 'w' => 9]) . "\n",
     FILE_APPEND);
@@ -97,15 +97,16 @@ pruefe('Alte Tupelzeile zählt Besuch UND Merkmal (Merkmal landet in der Tabelle
     (int)$cAlt['n'] === 17 && (int)($cAlt['refs']['altbestand.example'] ?? 0) === 1
     && (int)($cAlt['routes']['9'] ?? 0) === 1
     && (int)(clicks_dims_of($code)['refs']['altbestand.example'] ?? 0) === 1);
+pruefe('… und das eingelesene Protokoll ist danach weg',
+    !is_file(clicks_log_file($code)));
 
-// ---- Der Deckel: das Protokoll wächst nicht unbegrenzt ----------------------
+// ---- Viele Aufrufe ---------------------------------------------------------
 
 for ($i = 0; $i < 900; $i++) clicks_bump($code);
 clearstatcache();
-pruefe('Anhängen faltet selbst, bevor das Protokoll groß wird',
-    filesize(clicks_log_file($code)) <= CLICKS_FOLD_AB + 4096,
-    filesize(clicks_log_file($code)) . ' Bytes');
-pruefe('… und die Zählung stimmt trotzdem aufs Stück',
+pruefe('900 Aufrufe hinterlassen keine einzige Datei',
+    glob(data_path('clicks') . '/' . rawurlencode($code) . '*') === []);
+pruefe('… und die Zählung stimmt aufs Stück',
     (int)clicks_get($code)['n'] === 917);
 
 // ---- Sicherung enthält nur Summen -------------------------------------------
@@ -114,21 +115,17 @@ clicks_bump($code);
 require_once __DIR__ . '/../inc/zip.php';
 require_once __DIR__ . '/../inc/backup.php';
 [$zip] = backup_build();
-clearstatcache();
-pruefe('Sicherung faltet vorher: Protokoll danach leer',
-    filesize(clicks_log_file($code)) === 0 && strlen($zip) > 1000);
+pruefe('Die Sicherung trägt nur Summen hinaus', strlen($zip) > 1000);
 pruefe('… ohne dass ein Aufruf verloren ginge', (int)clicks_get($code)['n'] === 918);
 
-// ---- Nochmal falten ändert nichts ------------------------------------------
+// ---- Zweimal lesen ändert nichts -------------------------------------------
 
 $c2 = clicks_get($code);
-pruefe('Zweites Falten ist ein Leerlauf', $c2 == clicks_get($code));
-
-// ---- Weiterzählen nach dem Falten ------------------------------------------
+pruefe('Zweites Lesen ist ein Leerlauf', $c2 == clicks_get($code));
 
 clicks_bump($code);
 $c3 = clicks_get($code);
-pruefe('Nach dem Falten geht es nahtlos weiter', (int)$c3['n'] === 919 && (int)$c3['n_roh'] === 925);
+pruefe('Weiterzählen geht nahtlos', (int)$c3['n'] === 919 && (int)$c3['n_roh'] === 925);
 
 // ---- Aufräumen -------------------------------------------------------------
 

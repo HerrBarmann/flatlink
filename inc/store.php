@@ -267,26 +267,26 @@ function link_ausgeschoepft(string $code, array $link, string $domain = ''): boo
 {
     $m = (int)($link['max_visits'] ?? 0);
     if ($m <= 0) return false;
-    // Bewusst NICHT clicks_get(): Das würde bei jedem Aufruf eines
-    // limitierten Links das Protokoll falten. Fürs Limit genügt die Basis
-    // plus die Zahl der noch ungefalteten Zeilen – jede Zeile ist ein
-    // ausgelieferter Aufruf. Ausgenommen sind Ziel-Klicks von Bio-Seiten
-    // („i"-Zeilen): Sie sind kein Seitenaufruf und zählten auch früher
-    // nicht auf das Limit.
+    // Seit 5.2 steht der Stand vollständig in der Tabelle – es gibt nichts
+    // Ungefaltetes mehr, das dazuzuzählen wäre. Ein Blick in den
+    // Primärschlüssel genügt.
+    //
+    // Bewusst NICHT clicks_get(): Das läse Tageszähler und Merkmalstöpfe mit,
+    // die das Limit nichts angehen. Ziel-Klicks von Bio-Seiten stehen unter
+    // ihrer eigenen item-Zeile und zählen deshalb ohnehin nicht mit – sie
+    // sind kein Seitenaufruf.
+    //
+    // Ein Altbestand aus der Zeit davor wird vorher eingelesen, aber nur,
+    // wenn wirklich noch eine Datei da ist: Der Test kostet ein stat(), das
+    // Einlesen passiert je Link genau einmal.
+    if (is_file(clicks_log_file($code, $domain)) || is_file(clicks_file($code, $domain))) {
+        clicks_uebernahme($code, $domain);
+    }
     $st = db()->prepare("SELECT n, n_roh FROM clickbase WHERE schluessel = ? AND item = ''");
     $st->execute([clicks_schluessel($code, $domain)]);
     $c = $st->fetch() ?: ['n' => 0, 'n_roh' => 0];
-    $log = clicks_log_file($code, $domain);
+    $st->closeCursor();
     $offen = 0;
-    if (is_file($log)) {
-        foreach (file($log, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [] as $z) {
-            // Bio-Ziel-Klicks („i") zählten nie aufs Limit; Merkmalzeilen
-            // (h ohne d, seit 4.3) sind kein Besuch, sondern ein Topf-Eintrag.
-            if (str_contains($z, '"i":')) continue;
-            if (str_contains($z, '"h":') && !str_contains($z, '"d":')) continue;
-            $offen++;
-        }
-    }
     // Gegen den UNGEFILTERTEN Zähler prüfen, nicht gegen den der Statistik.
     // Der statistische lässt Bots aus – für Kampagnenzahlen richtig, für ein
     // Limit fatal: Wer „User-Agent: curl/8.0" schickt, wurde weitergeleitet,
@@ -403,32 +403,19 @@ function links_gc(): void
                 if (!is_file($rumpf . '.json') && !is_file($rumpf . '.log')) @unlink($pfad);
                 continue;
             }
-            // Basisdateien aus der Zeit vor 5.1 in die Tabellen holen und
-            // die Inode freigeben. Ohne diesen Zweig bliebe der Zählstand
-            // eines Links, den niemand mehr anklickt und dessen Statistik
-            // niemand ansieht, für immer als Datei liegen – und genau die
-            // Inoden sollten ja frei werden.
+            // Zählstände aus der Zeit vor 5.2 einsammeln: die verdichtete
+            // Basis (bis 5.0) und das Anhang-Protokoll (bis 5.1). Beides
+            // wandert in die Tabellen, die Datei wird gelöscht. Ohne diesen
+            // Durchgang bliebe der Bestand eines Links, den niemand mehr
+            // anklickt und dessen Statistik niemand ansieht, für immer als
+            // Datei liegen – und genau die Inoden sollen ja frei werden.
             if (str_ends_with($name, '.json')) {
-                clicks_uebernahme(rawurldecode(substr($name, 0, -5)));
+                clicks_altbasis(rawurldecode(substr($name, 0, -5)));
                 if (++$gefaltet >= 500) break;
                 continue;
             }
             if (!str_ends_with($name, '.log')) continue;
-            if (!is_file($pfad)) continue;
-            // Ein leeres Protokoll ist alles, was von einem Link übrig
-            // bleibt, dessen Zählstand längst in den Tabellen steht – eine
-            // Inode ohne Inhalt. Sie wird freigegeben; der nächste Klick
-            // legt die Datei neu an. clicks_append() hat dafür einen Riegel:
-            // Es merkt am nlink, wenn ihm die Datei unter dem Griff
-            // weggezogen wurde, und öffnet neu.
-            //
-            // Nur wenn seit einer Stunde nichts mehr geschrieben wurde: Das
-            // hält die Fälle auseinander, in denen gerade jemand zählt.
-            if (filesize($pfad) === 0) {
-                if ((int)filemtime($pfad) < time() - 3600) @unlink($pfad);
-                continue;
-            }
-            clicks_fold(rawurldecode(substr($name, 0, -4)));
+            clicks_altlog(rawurldecode(substr($name, 0, -4)));
             if (++$gefaltet >= 500) break;
         }
         closedir($dir);
@@ -1048,7 +1035,12 @@ function clicks_schluessel(string $code, string $domain = ''): string
  */
 function clicks_get(string $code, string $domain = ''): array
 {
-    clicks_fold($code, $domain);
+    // Nur nachsehen, wenn es überhaupt noch etwas einzulesen gibt: zwei
+    // stat()-Aufrufe statt zweier Öffnungsversuche. Nach der Übernahme ist
+    // beides für immer weg.
+    if (is_file(clicks_file($code, $domain)) || is_file(clicks_log_file($code, $domain))) {
+        clicks_uebernahme($code, $domain);
+    }
     $s = clicks_schluessel($code, $domain);
     $c = ['n' => 0, 'n_roh' => 0, 'last' => null, 'days' => []];
 
@@ -1134,11 +1126,11 @@ function clicks_log_file(string $code, string $domain = ''): string
  * gezählt statt verloren; beides ist ein µs-Fenster, aber Klickzahlen
  * sollen im Zweifel nicht schrumpfen.
  */
-function clicks_fold(string $code, string $domain = ''): void
+function clicks_altlog(string $code, string $domain = ''): void
 {
-    clicks_uebernahme($code, $domain);
     $log = clicks_log_file($code, $domain);
-    if (!is_file($log) || filesize($log) === 0) return;
+    if (!is_file($log)) return;
+    if (filesize($log) === 0) { @unlink($log); return; }
     $h = fopen($log, 'r+');
     if ($h === false) return;
     try {
@@ -1178,9 +1170,13 @@ function clicks_fold(string $code, string $domain = ''): void
         // Reihenfolge bewusst „erst einarbeiten, dann leeren": Stürbe der
         // Prozess dazwischen, würden Zeilen doppelt gezählt statt verloren.
         ftruncate($h, 0);
+        $leeren = true;
     } finally {
         flock($h, LOCK_UN);
         fclose($h);
+        // Erst nach der Freigabe löschen – solange das Lock steht, könnte ein
+        // anderer Prozess noch darauf warten.
+        if ($leeren ?? false) @unlink($log);
     }
 }
 
@@ -1198,6 +1194,16 @@ function clicks_fold(string $code, string $domain = ''): void
  * Absturz zwischen Schreiben und Löschen kostet nichts.
  */
 function clicks_uebernahme(string $code, string $domain = ''): void
+{
+    // Reihenfolge: erst die Basis (ein Stand, mit MAX geschrieben), dann das
+    // Protokoll (ein Zuwachs, mit Plus). Andersherum würde der Zuwachs vom
+    // MAX der Basis wieder verschluckt.
+    clicks_altbasis($code, $domain);
+    clicks_altlog($code, $domain);
+}
+
+/** Eine Basisdatei aus der Zeit vor 5.1 einlesen und entfernen */
+function clicks_altbasis(string $code, string $domain = ''): void
 {
     $f = clicks_file($code, $domain);
     if (!is_file($f)) return;
@@ -1251,63 +1257,15 @@ function clicks_uebernahme(string $code, string $domain = ''): void
     // Erst löschen, wenn die Zeile wirklich in der Tabelle steht.
     $pruef = $pdo->prepare('SELECT 1 FROM clickbase WHERE schluessel = ? AND item = \'\'');
     $pruef->execute([$schluessel]);
-    if ($pruef->fetchColumn() !== false) {
+    $da = $pruef->fetchColumn() !== false;
+    // fetchColumn() erschöpft den Cursor NICHT. Solange er offen steht,
+    // verweigert SQLite auf derselben Verbindung das Schreib-Lock – die
+    // nächste Transaktion stirbt mit „database is locked".
+    $pruef->closeCursor();
+    if ($da) {
         @unlink($f);
         @unlink($f . '.lock');
     }
-}
-
-/**
- * Ab dieser Protokollgröße faltet das Anhängen selbst (Review 4.2.0, F1):
- * Ohne Deckel läge auf einem Link, dessen Statistik niemand ansieht, ein
- * unbegrenzt wachsendes Besuchsprotokoll. ~32 KB sind ein paar hundert
- * Aufrufe; der Falt-Aufwand verteilt sich auf ebenso viele Scans.
- */
-const CLICKS_FOLD_AB = 32768;
-
-/**
- * Zeilen ans Protokoll hängen – der ganze Schreibaufwand eines Scans.
- *
- * Alle Zeilen eines Aufrufs gehen in EINEM fwrite unter EINEM Lock raus.
- */
-function clicks_append(string $code, string $domain, array ...$eintraege): void
-{
-    $datei = clicks_log_file($code, $domain);
-    $puffer = '';
-    foreach ($eintraege as $e) {
-        $puffer .= json_encode($e, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . "\n";
-    }
-    // Zwei Versuche, und der zweite ist kein Aberglaube: Die Kehrwoche
-    // löscht leere Protokolle, um die Inode freizugeben. Zwischen unserem
-    // fopen() und dem flock() kann sie genau das getan haben – dann zeigt
-    // der Griff auf eine Datei, die keinen Namen mehr hat, und der Anhang
-    // ginge lautlos ins Nichts. fstat()['nlink'] === 0 sagt genau das;
-    // dann wird neu geöffnet, und die zweite Runde kann es nicht wieder
-    // treffen, weil die neue Datei noch nicht leer ist, wenn wir sie
-    // freigeben.
-    for ($versuch = 0; $versuch < 2; $versuch++) {
-        $h = fopen($datei, 'ab');
-        if ($h === false) return;
-        // Das Lock koordiniert mit clicks_fold(): Während die Verdichtung
-        // liest und leert, wartet der Anhang – sonst verschwände er im
-        // ftruncate.
-        flock($h, LOCK_EX);
-        if ((int)(fstat($h)['nlink'] ?? 1) === 0) {
-            flock($h, LOCK_UN);
-            fclose($h);
-            continue;
-        }
-        fwrite($h, $puffer);
-        $gross = (fstat($h)['size'] ?? 0) > CLICKS_FOLD_AB;
-        flock($h, LOCK_UN);
-        fclose($h);
-        break;
-    }
-    $gross ??= false;
-    // Falten erst NACH der Freigabe: clicks_fold() nimmt dasselbe flock über
-    // einen eigenen Dateigriff, und zwei Griffe desselben Prozesses sperren
-    // einander aus wie zwei Prozesse.
-    if ($gross) clicks_fold($code, $domain);
 }
 
 /** Wie viele verschiedene Werte je Merkmal aufgehoben werden */
@@ -1427,24 +1385,6 @@ function click_zaehlbar(?array $link = null): bool
     return true;
 }
 
-/**
- * Eine ausgelieferte Weiterleitung zählen, die nicht in die Statistik geht.
- *
- * Gedacht für den einen Fall, in dem das nötig ist: Ein Link hat ein
- * Aufruflimit, und der Aufruf kommt von etwas, das `click_zaehlbar()`
- * aussortiert – ein Bot, ein HEAD-Abruf. In der Statistik hat er nichts zu
- * suchen, im Limit schon, sonst ließe sich die Grenze mit einem beliebigen
- * User-Agent umgehen.
- *
- * Deshalb schreibt diese Funktion nur ein einziges Feld und rührt weder Tage
- * noch Herkunftssummen an. Aufgerufen wird sie ausschließlich bei Links mit
- * gesetztem Limit – für alle anderen bleibt eine Bot-Anfrage das, was sie war:
- * ein Aufruf, der keine Datei anfasst.
- */
-function clicks_roh_bump(string $code, string $domain = ''): void
-{
-    clicks_append($code, $domain, ['roh' => 1]);
-}
 
 /**
  * Merkmalstöpfe direkt hochzählen – ein UPSERT je Merkmal, eine Transaktion
@@ -1502,32 +1442,104 @@ function clicks_dims_of(string $code, string $domain = ''): array
     return $out;
 }
 
+/**
+ * Einen Aufruf zählen – der heißeste Pfad des Systems.
+ *
+ * Seit 5.2 ist das EIN Vorgang: Besuchszähler, Tageszähler und Merkmalstöpfe
+ * gehen in derselben Transaktion in die Datenbank. Kein Anhang-Protokoll,
+ * keine Verdichtung, keine Datei je Link.
+ *
+ * Die Geschichte dahinter, weil sie sich zweimal gedreht hat: 4.1 holte das
+ * Umschreiben der Basisdatei aus dem heißen Pfad und ersetzte es durch einen
+ * Anhang – damals richtig, denn ein JSON-Block neu zu bauen war das Teuerste
+ * am Zählen. 4.4 zog die Merkmalstöpfe in die Tabelle und nahm damit ohnehin
+ * schon eine Schreibtransaktion je Klick. Ab da trug das Protokoll nur noch
+ * den Tageszähler, und dafür eine eigene Datei je Link zu halten war der
+ * Rest einer Begründung, die es nicht mehr gab.
+ *
+ * Gemessen auf der Zielplattform (Linux/ext4, acht Prozesse, 5.000
+ * verschiedene Links, 40.000 Klicks): 33.193 Klicks/s statt 34.169, also
+ * 2,9 % – bei null verlorenen Klicks. Dagegen steht: keine Datei mehr je
+ * angeklicktem Link, und die ganze Faltmaschinerie entfällt.
+ *
+ * Statistik ist Beiwerk der Weiterleitung, nicht ihr Zweck: Schlägt das
+ * Schreiben fehl, wird der Besucher trotzdem weitergeleitet.
+ */
 function clicks_bump(string $code, ?int $item = null, ?int $weiche = null, string $domain = ''): void
 {
-    // Seit 4.1 ist Zählen ein ANHÄNGEN, kein Lesen-Ändern-Schreiben mehr –
-    // gemessen war das Umschreiben der Basis der teuerste Teil einer
-    // gezählten Weiterleitung, teurer als Datenbank und Routing zusammen.
-    // Verdichtet wird beim Lesen der Statistik (clicks_fold), beim
-    // Überschreiten von CLICKS_FOLD_AB und wöchentlich als Kehrwoche.
-    //
-    // Seit 4.3 wird das Merkmals-TUPEL aufgelöst (Review 4.2.0, F1): Die
-    // Zählzeile trägt nur das Datum, jedes Merkmal steht in einer eigenen,
-    // datumslosen Zeile – die Merkmalstöpfe der Statistik waren schon immer
-    // zeitlos-kumulativ, das Datum stand dort nur aus Bequemlichkeit. So
-    // beschreibt keine Zeile des Protokolls einen einzelnen Besuch, und die
-    // zentrale Zusage der Statistik gilt auch für den Weg zur Summe.
-    if ($item !== null) {
-        clicks_append($code, $domain, ['d' => date('Y-m-d'), 'i' => (string)$item]);
-        return;
-    }
-    // Ins Protokoll geht NUR die Zählzeile – ein Datum, sonst nichts. Alles,
-    // was ein Merkmal ist (Herkunft, Gerät, Sprache, gegriffene Weiche),
-    // wird direkt als Summe gezählt und taucht nie als Einzeleintrag auf.
-    clicks_append($code, $domain, ['d' => date('Y-m-d')]);
+    $schluessel = clicks_schluessel($code, $domain);
+    $tag = date('Y-m-d');
+
+    // Merkmale nur für den Link selbst, nicht für ein Bio-Ziel: Ein Klick auf
+    // ein Ziel ist kein Seitenaufruf, und seine Herkunft ist dieselbe wie die
+    // der Seite, die ihn trug.
     $paare = [];
-    foreach (click_dims() as $feld => $wert) $paare[] = [$feld, $wert];
-    if ($weiche !== null) $paare[] = ['routes', (string)$weiche];
-    clicks_dims_zaehle($code, $paare, $domain);
+    if ($item === null) {
+        foreach (click_dims() as $feld => $wert) $paare[] = [$feld, $wert];
+        if ($weiche !== null) $paare[] = ['routes', (string)$weiche];
+    }
+    clicks_schreibe_einen($schluessel, $item === null ? '' : (string)$item, $tag, $paare);
+}
+
+/**
+ * Bot-Aufrufe: zählen aufs Limit, nicht in die Statistik.
+ *
+ * Gedacht für den einen Fall, in dem das nötig ist: Ein Link hat ein
+ * Aufruflimit, und der Aufruf kommt von etwas, das `click_zaehlbar()`
+ * aussortiert. In der Statistik hat er nichts zu suchen, im Limit schon –
+ * sonst ließe sich die Grenze mit einem beliebigen User-Agent umgehen.
+ */
+function clicks_roh_bump(string $code, string $domain = ''): void
+{
+    $pdo = db();
+    $st = $pdo->prepare("INSERT INTO clickbase (schluessel, item, n, n_roh, last)
+        VALUES (?, '', 0, 1, NULL)
+        ON CONFLICT(schluessel, item) DO UPDATE SET n_roh = n_roh + 1");
+    try {
+        $st->execute([clicks_schluessel($code, $domain)]);
+    } catch (Throwable $e) {
+        // siehe clicks_bump: der Besucher wird trotzdem weitergeleitet
+    }
+}
+
+/**
+ * Ein Aufruf, eine Transaktion: Besuch, Tag und Merkmale zusammen.
+ *
+ * @param array<int,array{0:string,1:string}> $paare Merkmal => Wert
+ */
+function clicks_schreibe_einen(string $schluessel, string $item, string $tag, array $paare): void
+{
+    $pdo = db();
+    static $basis = null, $tage = null, $update = null, $anz = null, $insert = null;
+    $basis ??= $pdo->prepare('INSERT INTO clickbase (schluessel, item, n, n_roh, last)
+        VALUES (?, ?, 1, 1, ?)
+        ON CONFLICT(schluessel, item) DO UPDATE SET
+            n = n + 1, n_roh = n_roh + 1, last = excluded.last');
+    $tage ??= $pdo->prepare('INSERT INTO clickdays (schluessel, item, tag, n) VALUES (?, ?, ?, 1)
+        ON CONFLICT(schluessel, item, tag) DO UPDATE SET n = n + 1');
+    $update ??= $pdo->prepare('UPDATE clickdims SET n = n + 1 WHERE code = ? AND feld = ? AND wert = ?');
+    $anz ??= $pdo->prepare('SELECT COUNT(*) FROM clickdims WHERE code = ? AND feld = ?');
+    $insert ??= $pdo->prepare('INSERT INTO clickdims (code, feld, wert, n) VALUES (?, ?, ?, 1)
+        ON CONFLICT(code, feld, wert) DO UPDATE SET n = n + 1');
+    try {
+        $pdo->exec('BEGIN IMMEDIATE');
+        $basis->execute([$schluessel, $item, $tag]);
+        $tage->execute([$schluessel, $item, $tag]);
+        foreach ($paare as [$feld, $wert]) {
+            // Der häufige Fall zuerst: den vorhandenen Topf erhöhen.
+            $update->execute([$schluessel, $feld, $wert]);
+            if ($update->rowCount() > 0) continue;
+            // Neuer Wert: ab CLICK_DIM_MAX verschiedenen sammelt "*" den Rest.
+            $anz->execute([$schluessel, $feld]);
+            $voll = (int)$anz->fetchColumn() >= CLICK_DIM_MAX;
+            $anz->closeCursor();
+            if ($voll) $wert = '*';
+            $insert->execute([$schluessel, $feld, $wert]);
+        }
+        $pdo->exec('COMMIT');
+    } catch (Throwable $e) {
+        try { $pdo->exec('ROLLBACK'); } catch (Throwable) {}
+    }
 }
 
 // ---- QR-Logos: Metadaten (Anzeigenamen) zu den zufälligen Datei-IDs ----

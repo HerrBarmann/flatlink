@@ -3,24 +3,24 @@ declare(strict_types=1);
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // flatlink · Zusatzbedingung zur Namensnennung nach §7(b) AGPL: siehe LICENSE
 /**
- * Prüft den Umzug des Zählstands in die Datenbank (5.1).
+ * Prüft den Zählstand in der Datenbank (5.2).
  *
- * Bis 5.0 lag der verdichtete Zählstand als JSON-Datei neben dem
- * Anhang-Protokoll, mit einer Sperrdatei daneben: drei Inoden je
- * angeklicktem Link. Auf Shared Hosting ist nicht der Plattenplatz die
- * Obergrenze, sondern das Inode-Kontingent – bei üblichen 250.000 waren das
- * rund 83.000 angeklickte Links.
+ * Bis 5.0 belegte ein angeklickter Link drei Dateien: die verdichtete Basis,
+ * deren Sperrdatei und das Anhang-Protokoll. Auf Shared Hosting ist nicht der
+ * Plattenplatz die Obergrenze, sondern das Inode-Kontingent – bei üblichen
+ * 250.000 waren das rund 83.000 angeklickte Links.
  *
- * Seit 5.1 stehen Basis und Tageszähler in den Tabellen clickbase und
- * clickdays. Hier steht fest, was dabei gilt:
+ * Seit 5.2 kostet ein angeklickter Link gar keine Inode mehr. Hier steht
+ * fest, was dabei gilt:
  *
  *   1. Der Zählstand hat dieselbe Gestalt wie vorher – daran hängen
  *      Statistikseite, Datenexport, Schnittstelle und Listen.
- *   2. Ein Altbestand aus der Zeit davor wird vollständig übernommen:
- *      Besuche, Bot-Aufrufe, Tage, Bio-Ziele und Merkmalstöpfe.
- *   3. Die Übernahme ist wiederholbar – sie schreibt mit MAX, nicht mit
- *      Plus. Nur deshalb darf die Datei danach gelöscht werden.
- *   4. Danach liegt keine Basisdatei und keine Sperrdatei mehr da.
+ *   2. Zählen legt keine Datei an.
+ *   3. Beide früheren Ablagen werden vollständig übernommen: die Basisdatei
+ *      (bis 5.0) samt Bio-Zielen und Merkmalstöpfen, und das Anhang-Protokoll
+ *      (bis 5.1) samt seiner Zeilenformate.
+ *   4. Die Übernahme der Basis ist wiederholbar – sie schreibt mit MAX, nicht
+ *      mit Plus. Nur deshalb darf die Datei danach gelöscht werden.
  *
  * Aufruf: php tests/zaehlstand.php
  */
@@ -66,26 +66,17 @@ pruefe('… und die Bio-Ziel-Klicks zählen NICHT auf den Link',
     (int)$c['n'] === 12);
 
 // ---- 2. Was noch auf der Platte liegt -------------------------------------
-$dateien = array_map('basename', glob(data_path('clicks') . '/' . rawurlencode(ZS_CODE) . '*') ?: []);
-pruefe('Nur noch das Anhang-Protokoll, keine Basis, keine Sperrdatei',
-    $dateien === [rawurlencode(ZS_CODE) . '.log'],
-    implode(', ', $dateien) ?: 'gar nichts');
-
-// ---- 3. Das Protokoll darf verschwinden -----------------------------------
 //
-// Die Kehrwoche gibt leere Protokolle frei; der nächste Klick legt die Datei
-// neu an. clicks_append() merkt am nlink, wenn ihm die Datei unter dem Griff
-// weggezogen wurde.
-$log = clicks_log_file(ZS_CODE);
-@unlink($log);
-for ($i = 0; $i < 5; $i++) clicks_bump(ZS_CODE);
-pruefe('Ein gelöschtes Protokoll kostet keinen Klick',
-    (int)clicks_get(ZS_CODE)['n'] === 17,
-    'n=' . (int)clicks_get(ZS_CODE)['n']);
+// Seit 5.2 gar nichts. Das ist der eigentliche Punkt der ganzen Übung: Auf
+// Shared Hosting ist das Inode-Kontingent die Obergrenze, und ein
+// angeklickter Link kostet jetzt keine einzige Inode mehr.
+$dateien = array_map('basename', glob(data_path('clicks') . '/' . rawurlencode(ZS_CODE) . '*') ?: []);
+pruefe('Ein angeklickter Link belegt keine einzige Datei',
+    $dateien === [], implode(', ', $dateien) ?: 'gar nichts');
 
 link_delete(ZS_CODE);
 
-// ---- 4. Übernahme eines Altbestands ---------------------------------------
+// ---- 3. Übernahme einer Basisdatei von vor 5.1 ----------------------------
 echo "\nÜbernahme einer Basisdatei von vor 5.1\n";
 
 link_create('https://example.org/alt', ZS_ALT, null, 'custom', []);
@@ -124,7 +115,7 @@ pruefe('Die Merkmalstöpfe kommen an – als Summe, nicht Zähler für Zähler',
 pruefe('Basisdatei und Sperrdatei sind weg',
     !is_file(clicks_file(ZS_ALT)) && !is_file(clicks_file(ZS_ALT) . '.lock'));
 
-// ---- 5. Wiederholbarkeit --------------------------------------------------
+// ---- 4. Wiederholbarkeit --------------------------------------------------
 //
 // Der Grund, aus dem die Datei gelöscht werden DARF: Ein zweites Einlesen
 // derselben Datei ändert nichts, weil mit MAX geschrieben wird und nicht mit
@@ -142,6 +133,40 @@ pruefe('Ein zweites Einlesen verdoppelt nichts',
 clicks_bump(ZS_ALT);
 pruefe('Frische Klicks addieren sich auf den Altbestand',
     (int)clicks_get(ZS_ALT)['n'] === 251);
+
+// ---- 5. Übernahme eines Anhang-Protokolls von vor 5.2 ---------------------
+//
+// Das Protokoll ist ein ZUWACHS, kein Stand: Es wird mit Plus eingelesen und
+// danach gelöscht, damit es nicht ein zweites Mal zählt. Geprüft wird
+// zusätzlich, dass die Reihenfolge stimmt – erst die Basis (MAX), dann das
+// Protokoll (Plus). Andersherum verschluckte das MAX den Zuwachs.
+echo "\nÜbernahme eines Anhang-Protokolls von vor 5.2\n";
+$heute = date('Y-m-d');
+// Eigenständig: Der Abschnitt davor hat den Stand schon bewegt, und Zahlen,
+// die aus einer Vorgeschichte folgen, prüfen sich schlecht.
+link_delete(ZS_ALT);
+link_create('https://example.org/alt', ZS_ALT, null, 'custom', []);
+file_put_contents(clicks_file(ZS_ALT), json_encode($alt));
+file_put_contents(clicks_log_file(ZS_ALT),
+    str_repeat(json_encode(['d' => $heute]) . "\n", 9)
+    . json_encode(['d' => $heute, 'i' => '0']) . "\n"
+    . json_encode(['roh' => 1]) . "\n"
+    . json_encode(['d' => $heute, 'h' => ['refs' => 'tupel.example'], 'w' => 3]) . "\n");
+$m = clicks_get(ZS_ALT);
+pruefe('Basis UND Protokoll kommen zusammen an',
+    (int)$m['n'] === 250 + 9 + 1 && (int)$m['days'][$heute] === 10,
+    sprintf('n=%d heute=%d', (int)$m['n'], (int)($m['days'][$heute] ?? 0)));
+pruefe('Der Bot-Aufruf zählt nur aufs Limit',
+    (int)$m['n_roh'] === 312 + 9 + 1 + 1,
+    'n_roh=' . (int)$m['n_roh']);
+pruefe('Das Bio-Ziel aus dem Protokoll kommt an',
+    (int)($m['items']['0']['n'] ?? 0) === 41);
+pruefe('Die Tupelzeile bringt ihr Merkmal und ihre Weiche mit',
+    (int)($m['refs']['tupel.example'] ?? 0) === 1 && (int)($m['routes']['3'] ?? 0) === 1);
+pruefe('Beide Dateien sind danach weg',
+    !is_file(clicks_file(ZS_ALT)) && !is_file(clicks_log_file(ZS_ALT)));
+pruefe('Ein zweites Lesen zählt das Protokoll nicht erneut',
+    (int)clicks_get(ZS_ALT)['n'] === 260);
 
 link_delete(ZS_ALT);
 pruefe('Nach dem Löschen ist in allen drei Tabellen nichts mehr übrig',
