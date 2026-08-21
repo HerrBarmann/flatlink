@@ -172,8 +172,16 @@ foreach (backup_dateien() as $name) {
 foreach (['clicks', 'logos', 'reports'] as $ordner) {
     $quelle = data_path() . '/' . $ordner;
     if (!is_dir($quelle)) continue;
+    // Klick-Protokolle vor dem Export falten – gesichert werden Summen,
+    // kein Anhang-Protokoll (Review 4.2.0, F1).
+    if ($ordner === 'clicks') {
+        foreach (glob($quelle . '/*.log') ?: [] as $lf) {
+            if (filesize($lf) > 0) clicks_fold(rawurldecode(basename($lf, '.log')));
+        }
+        clearstatcache();
+    }
     $dateien = array_filter(glob($quelle . '/*') ?: [],
-        fn($d) => is_file($d) && !str_ends_with($d, '.lock'));
+        fn($d) => is_file($d) && !str_ends_with($d, '.lock') && !(str_ends_with($d, '.log') && filesize($d) === 0));
     sort($dateien);
     $summe = 0;
     foreach ($dateien as $datei) {

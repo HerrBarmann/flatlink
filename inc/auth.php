@@ -16,6 +16,10 @@ function auth_boot(): void
         ? str_starts_with($configured, 'https://')
         : ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
             || ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
+    // Erfundene Sitzungskennungen ablehnen statt übernehmen. Erst mit
+    // Strict Mode ruft PHP das validateId() unseres Handlers überhaupt auf –
+    // ohne diese Zeile war die Methode toter Code (Review 4.2.0, F3).
+    ini_set('session.use_strict_mode', '1');
     session_name('kurzsid');
     // Sitzungen liegen in der Datenbank (Tabelle sessions, siehe inc/db.php).
     // Registriert VOR session_start – und mit Shutdown-Anmeldung, damit
@@ -309,7 +313,7 @@ function auth_login_passkey(string $username): bool
     $u = user_get($username);
     if ($u === null || user_locked($u)) return false;
     session_regenerate_id(true);
-    unset($_SESSION['pending_user'], $_SESSION['pending_since'], $_SESSION['csrf'], $_SESSION['login_name']);
+    unset($_SESSION['pending_user'], $_SESSION['pending_since'], $_SESSION['csrf'], $_SESSION['login_name'], $_SESSION['login_roh']);
     $_SESSION['user'] = $username;
     $_SESSION['auth_method'] = 'passkey';
     session_register($username);
@@ -334,7 +338,7 @@ function auth_pending_complete(): void
     $n = auth_pending();
     if ($n === null) return;
     session_regenerate_id(true);
-    unset($_SESSION['pending_user'], $_SESSION['pending_since'], $_SESSION['csrf'], $_SESSION['login_name']);
+    unset($_SESSION['pending_user'], $_SESSION['pending_since'], $_SESSION['csrf'], $_SESSION['login_name'], $_SESSION['login_roh']);
     $_SESSION['user'] = $n;
     session_register($n);
 }

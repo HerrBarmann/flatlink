@@ -369,13 +369,23 @@ der Browser-Kennung eines von drei Wörtern, von der Sprachliste zwei
 Buchstaben. Aus einer Summe lässt sich kein einzelner Besuch herauslesen,
 weil nie ein einzelner Besuch gespeichert wird.
 
+**Der Weg zur Summe, ganz genau:** Damit der Weiterleitungspfad schnell
+bleibt, schreibt ein Scan zunächst Zeilen in ein Anhang-Protokoll
+(`clicks/<code>.log`), das später zu den Summen oben verdichtet wird. Auch
+dort beschreibt **keine Zeile einen einzelnen Besuch**: Die Zählzeile trägt
+nur das Datum, und jedes Merkmal steht einzeln in einer eigenen, datumslosen
+Zeile – was zusammen gehörte, ist nicht verzeichnet. Das Protokoll lebt
+kurz: Verdichtet wird beim Ansehen der Statistik, spätestens nach ein paar
+hundert Aufrufen von selbst, einmal wöchentlich für alles Übrige – und
+**vor jeder Sicherung**, ein Archiv enthält also nur Summen.
+
 Auch der letzte Aufruf steht nur tagesgenau da. Bei einem Link mit einer
 Handvoll Aufrufe wäre eine Uhrzeit sonst der einzige Wert im ganzen Bestand,
 über den sich ein einzelner Besuch zeitlich verorten – und mit anderen
 Quellen zusammenführen – ließe.
 
 Das ist keine Absichtserklärung, sondern in [`inc/store.php`](inc/store.php)
-in etwa zehn Zeilen nachlesbar (`clicks_bump()`). Prüf es nach – genau dafür
+nachlesbar (`clicks_bump()` schreibt, `clicks_fold()` verdichtet). Prüf es nach – genau dafür
 liegt der Code offen. Der Weiterleitungspfad (`go.php`) startet nicht einmal
 eine Session, solange kein Passwortschutz auf dem Link liegt.
 

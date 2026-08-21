@@ -364,13 +364,22 @@ from the browser identifier one of three words, from the language list two
 letters. No single visit can be read out of a total, because no single visit
 is ever stored.
 
+**The path to the total, precisely:** to keep the redirect path fast, a scan
+first writes lines into an append log (`clicks/<code>.log`) that is later
+compacted into the totals above. There too, **no line describes a single
+visit**: the count line carries only the date, and each attribute sits alone
+on its own dateless line – what belonged together is not recorded. The log
+lives briefly: it is compacted when the statistics are viewed, automatically
+after a few hundred visits, weekly for everything else – and **before every
+backup**, so an archive only ever contains totals.
+
 Even the last visit is recorded only to the day. For a link with a handful
 of clicks, a time of day would otherwise be the single value in the whole
 data set by which one visit could be placed in time – and joined with other
 sources.
 
 This is not a statement of intent; it can be read in
-[`inc/store.php`](inc/store.php) in about ten lines (`clicks_bump()`). Go
+[`inc/store.php`](inc/store.php) (`clicks_bump()` writes, `clicks_fold()` compacts). Go
 check – that is exactly why the code is open. The redirect path (`go.php`)
 does not even start a session unless the link is password-protected.
 

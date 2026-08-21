@@ -70,6 +70,14 @@ function backup_build(): array
         foreach (glob($pfad . '/*') ?: [] as $datei) {
             // Sperrdateien sind Betriebsgeräusch, kein Inhalt
             if (!is_file($datei) || str_ends_with($datei, '.lock')) continue;
+            // Klick-Protokolle werden VOR dem Sichern gefaltet: Ins Archiv
+            // gehören Summen, kein Anhang-Protokoll (Review 4.2.0, F1). Nach
+            // dem Falten ist die Datei leer und wird übersprungen.
+            if ($ordner === 'clicks' && str_ends_with($datei, '.log')) {
+                clicks_fold(rawurldecode(basename($datei, '.log')));
+                clearstatcache(true, $datei);
+                if (!is_file($datei) || filesize($datei) === 0) continue;
+            }
             $inhalt = (string)file_get_contents($datei);
             $zip->add($ordner . '/' . basename($datei), $inhalt, filemtime($datei) ?: $jetzt);
             $n++;

@@ -215,7 +215,11 @@ function link_ausgeschoepft(string $code, array $link): bool
     $offen = 0;
     if (is_file($log)) {
         foreach (file($log, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [] as $z) {
-            if (!str_contains($z, '"i":')) $offen++;
+            // Bio-Ziel-Klicks („i") zählten nie aufs Limit; Merkmalzeilen
+            // (h ohne d, seit 4.3) sind kein Besuch, sondern ein Topf-Eintrag.
+            if (str_contains($z, '"i":')) continue;
+            if (str_contains($z, '"h":') && !str_contains($z, '"d":')) continue;
+            $offen++;
         }
     }
     // Gegen den UNGEFILTERTEN Zähler prüfen, nicht gegen den der Statistik.
@@ -280,14 +284,17 @@ function links_gc(): void
     require_once __DIR__ . '/auth.php';
     pending_gc();
     db_sessions_sweep(db());
-    // Klick-Protokolle, die niemand liest, sollen trotzdem nicht endlos
-    // wachsen: Was über 256 KB liegt, wird jetzt gefaltet. Ein Aufruf ist
-    // ~80 Bytes – das Falten greift also erst nach tausenden Scans ohne
-    // einen einzigen Statistik-Blick.
+    // Klick-Protokolle, die niemand liest, werden wöchentlich gefaltet –
+    // unabhängig von ihrer Größe (Review 4.2.0, F1): Gerade der Link mit
+    // fünfzig Aufrufen im Monat, dessen Statistik nie jemand öffnet, soll
+    // kein liegenbleibendes Protokoll haben. Gedeckelt je Lauf, damit der
+    // Besucher, der die Kehrwoche anstößt, nicht für zehntausende Dateien
+    // aufkommt; der Rest kommt in den Folgewochen dran.
+    $gefaltet = 0;
     foreach (glob(data_path('clicks') . '/*.log') ?: [] as $lf) {
-        if (filesize($lf) > 256 * 1024) {
-            clicks_fold(rawurldecode(basename($lf, '.log')));
-        }
+        if (filesize($lf) === 0) continue;
+        clicks_fold(rawurldecode(basename($lf, '.log')));
+        if (++$gefaltet >= 500) break;
     }
 
     require_once __DIR__ . '/auth.php';
@@ -768,14 +775,19 @@ function clicks_fold(string $code): void
                     $c['items'][(string)$e['i']] = clicks_zaehle((array)($c['items'][(string)$e['i']] ?? []), $tag);
                     continue;
                 }
-                $c = clicks_zaehle($c, $tag) + $c;
+                // Merkmalzeile ohne Datum (seit 4.3): nur die Töpfe, kein Besuch.
+                // Zeilen mit Datum UND Merkmalen stammen aus 4.1/4.2 und
+                // zählen wie früher beides.
+                if (isset($e['d'])) {
+                    $c = clicks_zaehle($c, $tag) + $c;
+                    if (isset($e['w'])) {
+                        $r = (array)($c['routes'] ?? []);
+                        $r[(string)$e['w']] = (int)($r[(string)$e['w']] ?? 0) + 1;
+                        $c['routes'] = $r;
+                    }
+                }
                 foreach ((array)($e['h'] ?? []) as $feld => $wert) {
                     if (is_string($wert)) $c[$feld] = click_dim_bump((array)($c[$feld] ?? []), $wert);
-                }
-                if (isset($e['w'])) {
-                    $r = (array)($c['routes'] ?? []);
-                    $r[(string)$e['w']] = (int)($r[(string)$e['w']] ?? 0) + 1;
-                    $c['routes'] = $r;
                 }
             }
             return $c;
@@ -800,17 +812,38 @@ function clicks_zaehle(array $z, string $tag): array
             'last' => $tag, 'days' => $days];
 }
 
-/** Eine Zeile ans Protokoll hängen – der ganze Schreibaufwand eines Scans */
-function clicks_append(string $code, array $eintrag): void
+/**
+ * Ab dieser Protokollgröße faltet das Anhängen selbst (Review 4.2.0, F1):
+ * Ohne Deckel läge auf einem Link, dessen Statistik niemand ansieht, ein
+ * unbegrenzt wachsendes Besuchsprotokoll. ~32 KB sind ein paar hundert
+ * Aufrufe; der Falt-Aufwand verteilt sich auf ebenso viele Scans.
+ */
+const CLICKS_FOLD_AB = 32768;
+
+/**
+ * Zeilen ans Protokoll hängen – der ganze Schreibaufwand eines Scans.
+ *
+ * Alle Zeilen eines Aufrufs gehen in EINEM fwrite unter EINEM Lock raus.
+ */
+function clicks_append(string $code, array ...$eintraege): void
 {
     $h = fopen(clicks_log_file($code), 'ab');
     if ($h === false) return;
     // Das Lock koordiniert mit clicks_fold(): Während die Verdichtung liest
     // und leert, wartet der Anhang – sonst verschwände er im ftruncate.
     flock($h, LOCK_EX);
-    fwrite($h, json_encode($eintrag, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . "\n");
+    $puffer = '';
+    foreach ($eintraege as $e) {
+        $puffer .= json_encode($e, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . "\n";
+    }
+    fwrite($h, $puffer);
+    $gross = (fstat($h)['size'] ?? 0) > CLICKS_FOLD_AB;
     flock($h, LOCK_UN);
     fclose($h);
+    // Falten erst NACH der Freigabe: clicks_fold() nimmt dasselbe flock über
+    // einen eigenen Dateigriff, und zwei Griffe desselben Prozesses sperren
+    // einander aus wie zwei Prozesse.
+    if ($gross) clicks_fold($code);
 }
 
 /** Wie viele verschiedene Werte je Merkmal aufgehoben werden */
@@ -946,26 +979,37 @@ function click_zaehlbar(?array $link = null): bool
  */
 function clicks_roh_bump(string $code): void
 {
-    clicks_append($code, ['d' => date('Y-m-d'), 'roh' => 1]);
+    clicks_append($code, ['roh' => 1]);
 }
 
 function clicks_bump(string $code, ?int $item = null, ?int $weiche = null): void
 {
-    // Seit 4.1 ist Zählen ein ANHÄNGEN, kein Lesen-Ändern-Schreiben mehr:
-    // eine Zeile ans Protokoll, fertig. Die alte Fassung öffnete bei jedem
-    // Scan Sperrdatei, Basis und Tempdatei und benannte um – gemessen war
-    // genau das der teuerste Teil einer gezählten Weiterleitung, teurer als
-    // Datenbank und Routing zusammen. Verdichtet wird beim Lesen der
-    // Statistik (clicks_fold) und einmal wöchentlich als Kehrwoche.
+    // Seit 4.1 ist Zählen ein ANHÄNGEN, kein Lesen-Ändern-Schreiben mehr –
+    // gemessen war das Umschreiben der Basis der teuerste Teil einer
+    // gezählten Weiterleitung, teurer als Datenbank und Routing zusammen.
+    // Verdichtet wird beim Lesen der Statistik (clicks_fold), beim
+    // Überschreiten von CLICKS_FOLD_AB und wöchentlich als Kehrwoche.
+    //
+    // Seit 4.3 wird das Merkmals-TUPEL aufgelöst (Review 4.2.0, F1): Die
+    // Zählzeile trägt nur das Datum, jedes Merkmal steht in einer eigenen,
+    // datumslosen Zeile – die Merkmalstöpfe der Statistik waren schon immer
+    // zeitlos-kumulativ, das Datum stand dort nur aus Bequemlichkeit. So
+    // beschreibt keine Zeile des Protokolls einen einzelnen Besuch, und die
+    // zentrale Zusage der Statistik gilt auch für den Weg zur Summe.
     if ($item !== null) {
         clicks_append($code, ['d' => date('Y-m-d'), 'i' => (string)$item]);
         return;
     }
-    $zeile = ['d' => date('Y-m-d')];
-    $herkunft = click_dims();
-    if ($herkunft !== []) $zeile['h'] = $herkunft;
-    if ($weiche !== null) $zeile['w'] = $weiche;
-    clicks_append($code, $zeile);
+    $zeilen = [];
+    $zaehlzeile = ['d' => date('Y-m-d')];
+    // Welche Weiche griff, ist eine Eigenschaft des Links, kein
+    // Besuchermerkmal – sie bleibt an der Zählzeile.
+    if ($weiche !== null) $zaehlzeile['w'] = $weiche;
+    $zeilen[] = $zaehlzeile;
+    foreach (click_dims() as $feld => $wert) {
+        $zeilen[] = ['h' => [$feld => $wert]];
+    }
+    clicks_append($code, ...$zeilen);
 }
 
 // ---- QR-Logos: Metadaten (Anzeigenamen) zu den zufälligen Datei-IDs ----

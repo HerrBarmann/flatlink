@@ -1,5 +1,12 @@
 <?php
 declare(strict_types=1);
+
+// Nur auf der Kommandozeile – wie alle Werkzeuge hier. Drittes Review in
+// Folge mit demselben Hinweis; jetzt steht er drin.
+if (PHP_SAPI !== 'cli') {
+    http_response_code(403);
+    exit("Nur auf der Kommandozeile.\n");
+}
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // flatlink · Zusatzbedingung zur Namensnennung nach §7(b) AGPL: siehe LICENSE
 /**

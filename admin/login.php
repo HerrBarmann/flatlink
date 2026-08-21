@@ -130,6 +130,14 @@ if (!$firstRun && sso_enabled()) {
 // Namensfeld (unten, „conditional mediation") verrät dagegen gar nichts: Dort
 // sucht das Gerät, nicht der Server.
 $kennung = trim((string)($_SESSION['login_name'] ?? ''));
+// Angezeigt wird die ROHEINGABE, nie das aufgelöste Ergebnis: user_resolve()
+// normalisiert die Schreibweise und löst E-Mail-Adressen auf den internen
+// Kontonamen auf – zurückgespiegelt wäre beides ein Orakel („dieses Konto
+// gibt es", „diese Adresse gehört zu Kennung X"), das der konstante
+// DUMMY_HASH und die gleichlautenden Meldungen andernorts gerade verhindern
+// (Review 4.2.0, F2). Für Drosselung, Passkeys und Anmeldung gilt weiter
+// die aufgelöste Fassung.
+$kennungAnzeige = trim((string)($_SESSION['login_roh'] ?? '')) ?: $kennung;
 $kennungKeys = $kennung !== '' ? passkeys_of($kennung) : [];
 
 if (!$firstRun && $_SERVER['REQUEST_METHOD'] === 'POST'
@@ -143,6 +151,7 @@ if (!$firstRun && $_SERVER['REQUEST_METHOD'] === 'POST'
         // sonst unverändert übernehmen, damit die Maske für Unbekannte gleich
         // aussieht.
         $_SESSION['login_name'] = user_resolve($eingabe) ?? mb_substr($eingabe, 0, 190);
+        $_SESSION['login_roh'] = mb_substr($eingabe, 0, 190);
         redirect_to('login.php');
     }
 }
@@ -186,7 +195,7 @@ if (!$firstRun && $kennung === '' && $_SERVER['REQUEST_METHOD'] === 'POST'
 if (!$firstRun && $_SERVER['REQUEST_METHOD'] === 'POST'
     && ($_POST['schritt'] ?? '') === 'andere') {
     csrf_check();
-    unset($_SESSION['login_name']);
+    unset($_SESSION['login_name'], $_SESSION['login_roh']);
     redirect_to('login.php');
 }
 
@@ -246,11 +255,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['schritt'] ?? '') === '') {
             redirect_to(login_ziel($username));
         }
     } elseif (auth_login($username, $password, $braucht2fa)) {
-        unset($_SESSION['login_name']);
+        unset($_SESSION['login_name'], $_SESSION['login_roh']);
         redirect_to($braucht2fa ? 'login.php' : login_ziel($username));
     } elseif (ldap_enabled() && ldap_login($username, $password) === null) {
         // Lokales Passwort hat nicht gepasst – jetzt das Verzeichnis fragen
-        unset($_SESSION['login_name']);
+        unset($_SESSION['login_name'], $_SESSION['login_roh']);
         redirect_to(login_ziel($username));
     } else {
         $error = t('Login fehlgeschlagen.');
@@ -308,7 +317,7 @@ page_header($firstRun ? t('Ersteinrichtung') : t('Login'), true);
 
     <?php else: ?>
     <div class="konto-zeile">
-        <strong><?= e($kennung) ?></strong>
+        <strong><?= e($kennungAnzeige) ?></strong>
         <form method="post" action="">
             <?= csrf_field() ?>
             <input type="hidden" name="schritt" value="andere">
@@ -331,7 +340,7 @@ page_header($firstRun ? t('Ersteinrichtung') : t('Login'), true);
 
     <form method="post" action="" data-enter-submit>
         <?= csrf_field() ?>
-        <?= username_hint($kennung) ?>
+        <?= username_hint($kennungAnzeige) ?>
         <label for="password"><?= t('Passwort') ?></label>
         <input id="password" type="password" name="password" required
                <?= $kennungKeys === [] ? 'autofocus ' : '' ?>autocomplete="current-password">

@@ -70,16 +70,57 @@ pruefe('Weiche 2 fünfmal benutzt', (int)($c['routes']['2'] ?? 0) === 5);
 pruefe('Bio-Ziel 7 viermal', (int)($c['items']['7']['n'] ?? 0) === 4);
 pruefe('Protokoll nach dem Falten leer', filesize(clicks_log_file($code)) === 0);
 
+// ---- F1 (Review 4.2.0): keine Zeile beschreibt einen einzelnen Besuch ------
+
+clicks_bump($code);   // ein frischer Aufruf mit Merkmalen
+$zeilen = file(clicks_log_file($code), FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
+$verknuepft = array_filter($zeilen, fn($z) => str_contains($z, '"h":') && str_contains($z, '"d":'));
+$mehrfach = array_filter($zeilen, fn($z) => substr_count($z, '"refs"') + substr_count($z, '"langs"') + substr_count($z, '"devs"') > 1);
+pruefe('Keine Protokollzeile verknüpft Merkmale mit einem Besuch',
+    $verknuepft === [] && $mehrfach === []);
+pruefe('Merkmalzeilen tragen kein Datum',
+    array_filter($zeilen, fn($z) => str_contains($z, '"h":')) !== []);
+
+// Altbestand aus 4.1/4.2: eine Tupelzeile wird weiterhin korrekt gefaltet
+file_put_contents(clicks_log_file($code),
+    json_encode(['d' => date('Y-m-d'), 'h' => ['refs' => 'altbestand.example'], 'w' => 9]) . "\n",
+    FILE_APPEND);
+$cAlt = clicks_get($code);
+pruefe('Alte Tupelzeile zählt Besuch UND Merkmal',
+    (int)$cAlt['n'] === 17 && (int)($cAlt['refs']['altbestand.example'] ?? 0) === 1
+    && (int)($cAlt['routes']['9'] ?? 0) === 1);
+
+// ---- Der Deckel: das Protokoll wächst nicht unbegrenzt ----------------------
+
+for ($i = 0; $i < 900; $i++) clicks_bump($code);
+clearstatcache();
+pruefe('Anhängen faltet selbst, bevor das Protokoll groß wird',
+    filesize(clicks_log_file($code)) <= CLICKS_FOLD_AB + 4096,
+    filesize(clicks_log_file($code)) . ' Bytes');
+pruefe('… und die Zählung stimmt trotzdem aufs Stück',
+    (int)clicks_get($code)['n'] === 917);
+
+// ---- Sicherung enthält nur Summen -------------------------------------------
+
+clicks_bump($code);
+require_once __DIR__ . '/../inc/zip.php';
+require_once __DIR__ . '/../inc/backup.php';
+[$zip] = backup_build();
+clearstatcache();
+pruefe('Sicherung faltet vorher: Protokoll danach leer',
+    filesize(clicks_log_file($code)) === 0 && strlen($zip) > 1000);
+pruefe('… ohne dass ein Aufruf verloren ginge', (int)clicks_get($code)['n'] === 918);
+
 // ---- Nochmal falten ändert nichts ------------------------------------------
 
 $c2 = clicks_get($code);
-pruefe('Zweites Falten ist ein Leerlauf', $c2 == $c);
+pruefe('Zweites Falten ist ein Leerlauf', $c2 == clicks_get($code));
 
 // ---- Weiterzählen nach dem Falten ------------------------------------------
 
 clicks_bump($code);
 $c3 = clicks_get($code);
-pruefe('Nach dem Falten geht es nahtlos weiter', (int)$c3['n'] === 16 && (int)$c3['n_roh'] === 22);
+pruefe('Nach dem Falten geht es nahtlos weiter', (int)$c3['n'] === 919 && (int)$c3['n_roh'] === 925);
 
 // ---- Aufräumen -------------------------------------------------------------
 
