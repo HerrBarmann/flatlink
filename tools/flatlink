@@ -291,7 +291,9 @@ case 'link:anlegen':
 case 'link:loeschen':
     $code = $rest[0] ?? raus('Aufruf: link:loeschen <code>');
     if (link_get($code) === null) raus("Den Kurzlink $code gibt es nicht.");
-    link_write($code, fn() => null);
+    // link_delete statt link_write(null): Es räumt Klickzähler, Merkmalstöpfe
+    // und den Bestandszähler mit ab – die nackte Löschung ließ die liegen.
+    link_delete($code);
     sage("  $code gelöscht.");
     exit(0);
 

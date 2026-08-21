@@ -975,6 +975,8 @@ your password immediately and contact us.
         => 'The search shows the first %d matches – narrow it down to see the rest.',
     'Es passen ohnehin höchstens %d Codes in ein Archiv – angezeigt werden die neuesten. Über Filter oder Suche kommst du an jeden anderen Ausschnitt.'
         => 'An archive holds at most %d codes anyway – shown are the newest. Filters and search reach every other slice.',
+    'Die Suche hat nach zehn Sekunden aufgehört – gezeigt wird, was bis dahin gefunden war. Auf einem Bestand dieser Größe hilft ein genauerer Begriff oder ein Filter.'
+        => 'The search stopped after ten seconds – shown is what was found by then. On a stock this size, a more specific term or a filter helps.',
     'Zuletzt gelaufen: %s.' => 'Last run: %s.',
     'Bisher noch nicht gelaufen.' => 'Has not run yet.',
     'Zweite Stufe beim Anmelden' => 'Second factor at sign-in',

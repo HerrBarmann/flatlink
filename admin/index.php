@@ -197,6 +197,7 @@ $bestand = $vollzugriff ? links_count() : null;
 $gross = $vollzugriff && $bestand > GROSSBESTAND;
 const SUCHDECKEL = 10000;
 $suchdeckel_erreicht = false;
+$suchzeit_erreicht = false;
 
 if (!$gross) {
     $links = links_visible($user);
@@ -205,8 +206,19 @@ if (!$gross) {
 } else {
     // Gestreamt filtern: dieselben Regeln wie unten im Kleinbestands-Pfad,
     // nur eben je Zeile statt auf dem geladenen Ganzen.
+    //
+    // Mit ZEITBUDGET: Der Volldurchlauf schafft knapp zwei Millionen Zeilen
+    // je Sekunde – bei fünfzig Millionen Links wären das ~30 Sekunden und
+    // damit das PHP-Zeitlimit. Nach zehn Sekunden bricht die Suche sauber
+    // ab und sagt es dazu, statt kommentarlos in einen Fehler 500 zu laufen.
     $links = [];
+    $suchstart = microtime(true);
+    $geprueft = 0;
     foreach (links_each() as $c => $l) {
+        if ((++$geprueft % 4096) === 0 && microtime(true) - $suchstart > 10) {
+            $suchzeit_erreicht = true;
+            break;
+        }
         if ($gFilter === '-' && ($l['group'] ?? null) !== null) continue;
         if ($gFilter !== '' && $gFilter !== '-' && ($l['group'] ?? null) !== $gFilter) continue;
         if ($tagFilter !== '' && !in_array($tagFilter, (array)($l['tags'] ?? []), true)) continue;
@@ -273,6 +285,10 @@ if (($_GET['export'] ?? '') === 'csv') {
     // Zeile ausgeben, nichts behalten. So exportiert auch eine
     // 500.000-Link-Instanz mit 128M memory_limit ihren ganzen Bestand.
     $csvQuelle = ($gross && $links === []) ? links_each() : $links;
+    // Der Export streamt und braucht kaum Speicher – aber bei zig Millionen
+    // Zeilen mehr Zeit, als PHP standardmäßig erlaubt. Ein Admin-Download
+    // darf so lange dauern, wie er dauert.
+    @set_time_limit(0);
     nosniff_header();
     header('Content-Type: text/csv; charset=UTF-8');
     header('Content-Disposition: attachment; filename="links-' . date('Y-m-d') . '.csv"');
@@ -308,11 +324,27 @@ $seiten = max(1, (int)ceil($listenGesamt / $jeSeite));
 $seite = max(1, min($seiten, (int)($_GET['p'] ?? 1)));
 if ($gross && $links === []) {
     // Das Blatt direkt aus SQL: 50 Zeilen, egal wie groß der Bestand ist.
-    $st = db()->prepare('SELECT code, data FROM links ORDER BY created DESC, code LIMIT ? OFFSET ?');
-    $st->bindValue(1, $jeSeite, PDO::PARAM_INT);
-    $st->bindValue(2, ($seite - 1) * $jeSeite, PDO::PARAM_INT);
-    $st->execute();
-    $blatt = db_links_rows($st);
+    //
+    // OFFSET zählt sich durch alles davor – die LETZTE Seite eines
+    // 50-Millionen-Bestands kostete so über zehn Sekunden. Deshalb wird ab
+    // der Mitte GESPIEGELT: dieselbe Seite von hinten gezählt, aufsteigend
+    // gelesen und umgedreht. Damit ist jede Seite höchstens einen halben
+    // Bestand vom nächsten Ende entfernt.
+    $off = ($seite - 1) * $jeSeite;
+    $nimm = max(0, min($jeSeite, $listenGesamt - $off));
+    if ($off > intdiv($listenGesamt, 2)) {
+        $st = db()->prepare('SELECT code, data FROM links ORDER BY created ASC, code DESC LIMIT ? OFFSET ?');
+        $st->bindValue(1, $nimm, PDO::PARAM_INT);
+        $st->bindValue(2, max(0, $listenGesamt - $off - $nimm), PDO::PARAM_INT);
+        $st->execute();
+        $blatt = array_reverse(db_links_rows($st), true);
+    } else {
+        $st = db()->prepare('SELECT code, data FROM links ORDER BY created DESC, code LIMIT ? OFFSET ?');
+        $st->bindValue(1, $nimm, PDO::PARAM_INT);
+        $st->bindValue(2, $off, PDO::PARAM_INT);
+        $st->execute();
+        $blatt = db_links_rows($st);
+    }
 } else {
     $blatt = array_slice($links, ($seite - 1) * $jeSeite, $jeSeite, true);
 }
@@ -820,6 +852,9 @@ if ($neu !== null && link_access($user, $neu)):
     ?>
     <?php if ($suchdeckel_erreicht): ?>
     <p class="muted small"><?= t('Die Suche zeigt die ersten %d Treffer – bitte enger fassen, um den Rest zu sehen.', SUCHDECKEL) ?></p>
+    <?php endif; ?>
+    <?php if ($suchzeit_erreicht): ?>
+    <p class="muted small"><?= t('Die Suche hat nach zehn Sekunden aufgehört – gezeigt wird, was bis dahin gefunden war. Auf einem Bestand dieser Größe hilft ein genauerer Begriff oder ein Filter.') ?></p>
     <?php endif; ?>
     <nav class="blaettern" aria-label="<?= t('Seiten der Linkliste') ?>">
         <?php if ($seite > 1): ?>

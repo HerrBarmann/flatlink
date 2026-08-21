@@ -109,6 +109,7 @@ function links_write_many(array $codes, callable $fn): int
     try {
         $lesen = $pdo->prepare('SELECT data FROM links WHERE code = ?');
         $loeschen = $pdo->prepare('DELETE FROM links WHERE code = ?');
+        $zaehler = 0;
         $n = 0;
         foreach ($codes as $code) {
             $lesen->execute([(string)$code]);
@@ -116,11 +117,12 @@ function links_write_many(array $codes, callable $fn): int
             $alt = $zeile === false ? null : json_decode((string)$zeile['data'], true);
             $neu = $fn(is_array($alt) ? $alt : null, (string)$code);
             if ($neu === false) continue;
-            if ($neu === null) $loeschen->execute([(string)$code]);
-            else db_link_put($pdo, (string)$code, $neu);
+            if ($neu === null) { if (is_array($alt)) $zaehler--; $loeschen->execute([(string)$code]); }
+            else { if (!is_array($alt)) $zaehler++; db_link_put($pdo, (string)$code, $neu); }
             $n++;
         }
         $pdo->exec('COMMIT');
+        if ($zaehler !== 0) links_count_bump($zaehler);
         return $n;
     } catch (Throwable $e) {
         $pdo->exec('ROLLBACK');
@@ -161,10 +163,33 @@ function links_each(): \Generator
     }
 }
 
-/** Wie viele Links es gibt – ohne einen einzigen zu laden */
+/**
+ * Wie viele Links es gibt – ohne einen einzigen zu laden UND ohne zu zählen.
+ *
+ * COUNT(*) läuft über den ganzen Index: 215 ms bei fünf Millionen Links,
+ * über zwei Sekunden bei fünfzig – und die Admin-Liste fragt bei jedem
+ * Aufruf. Deshalb wird der Stand gepflegt: link_create() zählt hoch,
+ * link_delete() herunter, die wöchentliche Kehrwoche zählt einmal echt
+ * nach und begradigt jede Abweichung (etwa nach Handarbeit direkt an der
+ * Datenbank).
+ */
 function links_count(): int
 {
-    return (int)db()->query('SELECT COUNT(*) FROM links')->fetchColumn();
+    $stand = state_get('links-count', null);
+    if (is_array($stand) && isset($stand['n'])) return max(0, (int)$stand['n']);
+    $n = (int)db()->query('SELECT COUNT(*) FROM links')->fetchColumn();
+    state_set('links-count', ['n' => $n]);
+    return $n;
+}
+
+/** Den gepflegten Bestandszähler verschieben (+1 anlegen, -1 löschen) */
+function links_count_bump(int $um): void
+{
+    state_update('links-count', function ($stand) use ($um) {
+        if (!is_array($stand) || !isset($stand['n'])) return null;   // noch nie gezählt
+        $stand['n'] = max(0, (int)$stand['n'] + $um);
+        return $stand;
+    }, null);
 }
 
 function links_of_owner(string $owner): array
@@ -274,15 +299,35 @@ function links_gc(): void
     require_once __DIR__ . '/safety.php';
     safety_recheck();
 
+    // Zwei Zustände: Entweder beginnt eine neue Wochenrunde – oder eine
+    // angefangene wird fortgesetzt. Der Durchgang über den Bestand ist seit
+    // 4.5 in SCHEIBEN geschnitten (Zeitbudget, Cursor im state): Bei fünfzig
+    // Millionen Links dauerte er sonst länger als das PHP-Zeitlimit des
+    // Besuchers, in dessen Anfrage er zufällig läuft. Eine offene Runde wird
+    // höchstens einmal pro Stunde weitergeführt, je Scheibe ein paar
+    // Sekunden – kleine Bestände erledigen alles unverändert in einer.
     $stand = state_get('links-gc');
-    if ((int)strtotime((string)($stand['last_run'] ?? '')) > time() - 7 * 86400) return;
-    state_set('links-gc', ['last_run' => date('c')]);
+    $cursor = (string)($stand['cursor'] ?? '');
+    $rundeOffen = $cursor !== '';
+    if ($rundeOffen) {
+        if ((int)strtotime((string)($stand['slice'] ?? '')) > time() - 3600) return;
+    } else {
+        if ((int)strtotime((string)($stand['last_run'] ?? '')) > time() - 7 * 86400) return;
+    }
+    state_set('links-gc', [
+        'last_run' => $rundeOffen ? (string)($stand['last_run'] ?? '') : date('c'),
+        'cursor' => $cursor,
+        'slice' => date('c'),
+        'gezaehlt' => $rundeOffen ? (int)($stand['gezaehlt'] ?? 0) : 0,
+    ]);
 
     // Die wöchentliche Kehrwoche der übrigen Tabellen hängt an derselben
     // Gelegenheit: abgelaufene Bestätigungen und alte Sitzungen. Beide
-    // braucht kein Cron – aber wachsen dürfen sie auch nicht.
+    // braucht kein Cron – aber wachsen dürfen sie auch nicht. Nur am
+    // Wochenstart, nicht in jeder Scheibe einer offenen Runde.
     require_once __DIR__ . '/auth.php';
     require_once __DIR__ . '/audit.php';
+    if (!$rundeOffen) {
     pending_gc();
     db_sessions_sweep(db());
     audit_prune((int)cfg('audit_keep'));
@@ -310,18 +355,24 @@ function links_gc(): void
         }
         closedir($dir);
     }
+    }   // Ende der Wochenstart-Jobs
 
     require_once __DIR__ . '/auth.php';
     require_once __DIR__ . '/mail.php';
 
-    verified_ip_gc();
+    if (!$rundeOffen) verified_ip_gc();
 
     // Über settings() statt cfg(): Die Fristen stehen unter „Grundregeln" und
     // sollen sich ohne Zugriff auf inc/config.php ändern lassen. Die Datei
     // bleibt die Vorgabe für eine frische Installation.
     $s = settings();
     $years = (int)($s['link_gc_years'] ?? 0);
-    if ($years < 1) return;
+    if ($years < 1) {
+        // Abgeschaltet – eine etwaige offene Runde nicht als Karteileiche
+        // stehen lassen, sonst klopft das Stunden-Tor ewig an.
+        if ($rundeOffen) state_set('links-gc', ['last_run' => date('c')]);
+        return;
+    }
     $yearsLong = max($years, (int)($s['link_gc_years_unreachable'] ?? 0));
 
     // Kurze Frist nur, wo eine Warnung möglich ist; sonst die lange
@@ -344,12 +395,40 @@ function links_gc(): void
     };
 
     $toWarn = []; // email => [code => lastUse]
-    // Streamen statt laden: Dieser Lauf steckt in der Anfrage irgendeines
-    // Besuchers – 400 MB für den Vollbestand wären dessen memory_limit.
-    // Gelöscht wird erst NACH der Iteration (siehe links_each).
+    // Streamen statt laden – und in Scheiben: sortiert nach Code, mit dem
+    // Cursor aus dem state als Startpunkt und einem Zeitbudget von zwei
+    // Sekunden. Gelöscht wird erst NACH der Iteration (in die Tabelle
+    // schreiben, während ein Cursor auf ihr steht, ist verbotenes Terrain).
     $loeschen = []; // code => Log-Zeile
-    foreach (links_each() as $code => $l) {
-        $code = (string)$code;
+    $budgetStart = microtime(true);
+    $fertig = true;
+    $st = db()->prepare('SELECT code, data FROM links WHERE code > ? ORDER BY code');
+    $st->execute([$cursor]);
+    // Die Runde zählt den Bestand nebenbei: 'gezaehlt' summiert über alle
+    // Scheiben, und am Rundenende wird der gepflegte Zähler damit begradigt –
+    // ein eigenes COUNT(*) je Woche kostete bei fünfzig Millionen Links über
+    // dreißig Sekunden und wäre genau der Fehler, den die Scheiben beheben.
+    $geprueft = 0;
+    $letzter = $cursor;
+    while (($zeile = $st->fetch()) !== false) {
+        // Zwei Bremsen: das Zeitbudget des Scans UND ein Deckel auf der
+        // eingesammelten Löscharbeit. Ohne den zweiten kann ein 2-Sekunden-
+        // Scan hunderttausend überfällige Links einsammeln – und die
+        // Löschschleife danach braucht Minuten (gemessen: 51 s bei 176.000).
+        if (count($loeschen) >= 2000
+            || ($geprueft > 0 && ($geprueft % 4096) === 0 && microtime(true) - $budgetStart > 2)) {
+            // Scheibe voll: Die GERADE GEHOLTE Zeile ist noch unbearbeitet –
+            // der Cursor bleibt auf der letzten fertigen, die nächste Scheibe
+            // setzt genau dort wieder an.
+            $fertig = false;
+            $cursor = $letzter;
+            break;
+        }
+        $code = (string)$zeile['code'];
+        $letzter = $code;
+        $geprueft++;
+        $l = json_decode((string)$zeile['data'], true);
+        if (!is_array($l)) continue;
         if (!empty($l['disabled'])) continue;
         // Nur der Zeitpunkt zählt – dafür genügt das Änderungsdatum der
         // Klickdatei. Ein stat() statt Öffnen, Lesen und Dekodieren; bei
@@ -381,6 +460,19 @@ function links_gc(): void
         } elseif (!isset($warned[$code])) {
             $toWarn[$mail][$code] = $lastUse;
         }
+    }
+    $st->closeCursor();
+    // Rundenstand fortschreiben: fertig = nächste Runde in einer Woche und
+    // der nebenbei gezählte Bestand begradigt den gepflegten Zähler; sonst
+    // merken sich Cursor und Zwischensumme, wo die nächste Scheibe ansetzt.
+    $altStand = state_get('links-gc');
+    $summe = (int)($altStand['gezaehlt'] ?? 0) + $geprueft;
+    if ($fertig) {
+        state_set('links-gc', ['last_run' => date('c')]);
+        state_set('links-count', ['n' => $summe]);
+    } else {
+        state_set('links-gc', ['last_run' => (string)($altStand['last_run'] ?? date('c')),
+            'cursor' => $cursor, 'slice' => date('c'), 'gezaehlt' => $summe]);
     }
     foreach ($loeschen as $code => $zeile) {
         link_delete((string)$code);
@@ -468,6 +560,7 @@ function link_create(string $url, ?string $code, ?string $owner, string $type, a
 
     if ($taken) return [false, t('Dieser Code ist schon vergeben.')];
     if (!$ok) return [false, t('Anlegen fehlgeschlagen.')];
+    links_count_bump(+1);
     hook_fire('link.created', hook_link($code, link_get($code)));
     return [true, $code];
 }
@@ -704,6 +797,7 @@ function link_delete(string $code): void
     // Vor dem Löschen lesen: Danach gäbe es nichts mehr zu melden als den Code
     $l = link_get($code);
     link_write($code, fn(?array $l) => null);
+    if ($l !== null) links_count_bump(-1);
     @unlink(clicks_file($code));
     @unlink(clicks_log_file($code));
     $st = db()->prepare('DELETE FROM clickdims WHERE code = ?');
