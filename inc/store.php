@@ -629,7 +629,7 @@ function link_create(string $url, ?string $code, ?string $owner, string $type, a
     if ($taken) return [false, t('Dieser Code ist schon vergeben.')];
     if (!$ok) return [false, t('Anlegen fehlgeschlagen.')];
     links_count_bump(+1);
-    hook_fire('link.created', hook_link($code, link_get($code, $domain)));
+    hook_fire('link.created', link_ereignis($code, $domain));
     return [true, $code];
 }
 
@@ -658,7 +658,7 @@ function link_update(string $code, string $url, array $opts = [], string $domain
         }
         return link_apply_meta($l, $opts);
     }, $domain);
-    if ($ok) hook_fire('link.updated', hook_link($code, link_get($code, $domain)));
+    if ($ok) hook_fire('link.updated', link_ereignis($code, $domain));
     return $ok;
 }
 
@@ -856,7 +856,7 @@ function link_set_disabled(string $code, bool $disabled, string $domain = ''): b
         $l['updated'] = date('c');
         return $l;
     }, $domain);
-    if ($ok) hook_fire('link.blocked', hook_link($code, link_get($code, $domain)));
+    if ($ok) hook_fire('link.blocked', link_ereignis($code, $domain));
     return $ok;
 }
 

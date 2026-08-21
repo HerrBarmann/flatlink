@@ -107,6 +107,28 @@ function hook_actor(): ?string
  * Wer mehr braucht, holt sich den Link über die Schnittstelle – die Meldung
  * sagt nur, dass und was passiert ist.
  */
+/**
+ * Die Nutzlast zu einem Link-Ereignis – aus dem richtigen Namensraum geholt.
+ *
+ * Sieht nach einer überflüssigen Zeile aus und ist doch der Punkt, an dem
+ * 5.0.1 gescheitert war: Die drei Ereignisse holten den Datensatz mit
+ * `link_get($code)` statt `link_get($code, $domain)` und trugen bei gleichem
+ * Code die Daten eines FREMDEN Links in die Nutzlast.
+ *
+ * Ein Test kann nicht beobachten, was `hook_fire()` ins Netz schickt, und
+ * `cfg('webhooks')` lässt sich zur Laufzeit nicht umbiegen. Solange das
+ * Nachschlagen im Aufruf stand, war der Fehler deshalb nur über den
+ * Quelltext prüfbar – eine Prüfung, die bei jeder Umformatierung bricht.
+ * Hier ist er aufrufbar und damit echt testbar.
+ *
+ * `$domain` hat KEINE Vorgabe: Genau ihr Weglassen war der Fehler, und ein
+ * vergessenes Argument soll auffallen, nicht auf die Hauptdomain fallen.
+ */
+function link_ereignis(string $code, string $domain): array
+{
+    return hook_link($code, link_get($code, $domain));
+}
+
 function hook_link(string $code, ?array $l): array
 {
     return [

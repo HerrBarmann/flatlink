@@ -160,32 +160,37 @@ link_write(NS_CODE, function (?array $l) {
     return $l;
 }, NS_B);
 
-// Die Nutzlast, die an einen Webhook ginge. Gebaut wird sie genau so, wie
-// link_create(), link_update() und link_set_disabled() es tun.
-$nutzB = hook_link(NS_CODE, link_get(NS_CODE, NS_B));
-$nutzH = hook_link(NS_CODE, link_get(NS_CODE));
+// Die Nutzlast, die an einen Webhook ginge – über genau die Funktion, die
+// link_create(), link_update() und link_set_disabled() dafür aufrufen.
+//
+// Bis 5.0.2 stand das Nachschlagen im Aufruf selbst. Ein Test konnte den
+// Fehler von 5.0.1 deshalb nur am Quelltext festmachen: hook_fire() schickt
+// über das Netz, und cfg('webhooks') lässt sich zur Laufzeit nicht umbiegen.
+// Eine solche Prüfung hält zwar den Rückbau auf, bricht aber bei jeder
+// Umformatierung. Seit link_ereignis() ist der Fehler selbst aufrufbar –
+// geprüft wird die Sache statt ihrer Schreibweise.
+$nutzB = link_ereignis(NS_CODE, NS_B);
+$nutzH = link_ereignis(NS_CODE, '');
 pruefe('Die Webhook-Nutzlast trägt das Ziel DIESES Links',
     $nutzB['url'] === 'https://ziel-a.example/' && $nutzH['url'] === 'https://ziel-haupt.example/',
     $nutzB['url'] . ' vs. ' . $nutzH['url']);
 pruefe('… und eine Kurzadresse unter der richtigen Domain',
     str_contains($nutzB['short_url'], NS_B) && !str_contains($nutzH['short_url'], NS_B),
     $nutzB['short_url']);
+pruefe('Die beiden Namensräume liefern verschiedene Nutzlasten',
+    $nutzB['url'] !== $nutzH['url'] && $nutzB['short_url'] !== $nutzH['short_url']);
 
-// Dass die drei Ereignisse die Domain auch WEITERREICHEN, steht im Quelltext
-// und nirgends sonst: hook_fire() schickt über das Netz, und cfg('webhooks')
-// lässt sich zur Laufzeit nicht umbiegen. Statt die Prüfung wegzulassen,
-// wird hier die Zeile selbst festgehalten – grob, aber sie hält genau den
-// Rückfall auf, den das Review gefunden hat.
-$quelle = (string)file_get_contents(__DIR__ . '/../inc/store.php');
-$ohneDomain = preg_match_all(
-    "/hook_fire\\('link\\.(created|updated|blocked)', hook_link\\(\\\$code, link_get\\(\\\$code\\)\\)\\)/",
-    $quelle);
-$mitDomain = preg_match_all(
-    "/hook_fire\\('link\\.(created|updated|blocked)', hook_link\\(\\\$code, link_get\\(\\\$code, \\\$domain\\)\\)\\)/",
-    $quelle);
-pruefe('Alle drei Link-Ereignisse schlagen mit Domain nach',
-    $ohneDomain === 0 && $mitDomain === 3,
-    "ohne Domain: $ohneDomain · mit: $mitDomain");
+// Die Domain lässt sich nicht mehr versehentlich weglassen: Sie ist ein
+// Pflichtargument. Genau ihr Fehlen war der Defekt von 5.0.1 – jetzt wäre es
+// ein TypeError statt eines stillen Rückfalls auf die Hauptdomain.
+$pflicht = false;
+try {
+    $ruf = 'link_ereignis';
+    $ruf(NS_CODE);
+} catch (ArgumentCountError) {
+    $pflicht = true;
+}
+pruefe('Die Domain ist Pflicht, kein stiller Rückfall', $pflicht);
 
 foreach (['', NS_A, NS_B] as $d) link_delete(NS_CODE, $d);
 
