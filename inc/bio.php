@@ -443,7 +443,14 @@ function bio_follow(string $code, array $l, int $i, string $domain = ''): never
     }
     // Auch hier erst weiterleiten, dann zählen – aus demselben Grund wie in
     // go.php: Der Klick auf ein Bio-Ziel schreibt in die Datenbank.
-    weiterleitung((string)$items[$i]['url'], function () use ($code, $l, $i, $domain) {
-        if (click_zaehlbar($l)) clicks_bump($code, $i, null, $domain);
+    //
+    // click_zaehlbar() wird VORHER ausgewertet, nicht im Nachlauf: Es startet
+    // für angemeldete Besucher eine Sitzung, und weiterleitung() schließt die
+    // Sitzung, bevor es zählt. Im Nachlauf gerufen würde es sie gleich wieder
+    // öffnen und die Sperre erneut nehmen – genau das, was dort vermieden
+    // werden soll.
+    $zaehlbar = click_zaehlbar($l);
+    weiterleitung((string)$items[$i]['url'], function () use ($code, $i, $domain, $zaehlbar) {
+        if ($zaehlbar) clicks_bump($code, $i, null, $domain);
     });
 }

@@ -127,6 +127,31 @@ clicks_bump($code);
 $c3 = clicks_get($code);
 pruefe('Weiterzählen geht nahtlos', (int)$c3['n'] === 919 && (int)$c3['n_roh'] === 925);
 
+// ---- Gezählt wird NACH der Weiterleitung (Review 5.2.0, F2) ---------------
+//
+// Seit 5.2 ist Zählen eine Schreib-Transaktion. Steht sie vor dem
+// Location-Kopf, wartet der Besucher auf das Schreib-Lock – gemessen 3,92 s,
+// wenn eine Massenänderung es gerade klammert. weiterleitung() dreht das um.
+//
+// Geprüft wird hier der Quelltext, nicht das Verhalten: Der Unterschied zeigt
+// sich nur unter einem gehaltenen Lock, und ein Test, der auf Zeitfenster
+// baut, wird früher oder später launisch. Was diese Prüfung sicher kann, ist
+// den Rückfall aufhalten – dass jemand die Reihenfolge wieder umdreht.
+foreach (['go.php', 'inc/bio.php'] as $datei) {
+    $q = (string)file_get_contents(__DIR__ . '/../' . $datei);
+    // Ein clicks_bump/clicks_roh_bump, dem ein header('Location' FOLGT, wäre
+    // Ein clicks_bump/clicks_roh_bump, dem ein header('Location' FOLGT, wäre
+    // die alte Reihenfolge. Innerhalb des Nachlaufs steht der Kopf davor.
+    // Der Punkt steht für das Anführungszeichen – so bleibt das Muster frei
+    // von Escape-Klimmzügen.
+    $alteReihenfolge = preg_match(
+        '/clicks_(roh_)?bump\([^;]*;[\s\S]{0,200}?header\(\s*.Location/', $q) === 1;
+    pruefe("$datei zählt nicht vor dem Location-Kopf", !$alteReihenfolge);
+}
+pruefe('weiterleitung() gibt Sitzungssperre und Wartezeit frei',
+    str_contains((string)file_get_contents(__DIR__ . '/../inc/routing.php'), 'session_write_close')
+    && str_contains((string)file_get_contents(__DIR__ . '/../inc/routing.php'), 'busy_timeout = 200'));
+
 // ---- Aufräumen -------------------------------------------------------------
 
 link_delete($code);

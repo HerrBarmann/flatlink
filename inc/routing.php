@@ -71,6 +71,13 @@ function weiterleitung(string $ziel, ?callable $zaehlen = null): never
     header('Content-Length: 0');
     if ($zaehlen === null) exit;
 
+    // Der Nachlauf soll durchlaufen, auch wenn der Besucher abbricht. Im
+    // FPM-Fall ist das ohnehin so – die Verbindung ist abgelöst. Im
+    // Rückfallpfad merkt PHP einen Abbruch erst beim nächsten Schreiben auf
+    // die Ausgabe, und danach kommt keines mehr; das hebt es von „sollte
+    // durchlaufen" auf „läuft durch".
+    ignore_user_abort(true);
+
     if (function_exists('fastcgi_finish_request')) {
         fastcgi_finish_request();
     } else {
@@ -78,6 +85,49 @@ function weiterleitung(string $ziel, ?callable $zaehlen = null): never
         while (ob_get_level() > 0) @ob_end_flush();
         @flush();
     }
+
+    // Die Sitzungssperre freigeben, bevor gewartet wird. click_zaehlbar()
+    // startet für angemeldete Besucher eine Sitzung, und PHP hält deren
+    // Sperre bis zum Skriptende – das liegt jetzt HINTER dem Zählen. Ein
+    // Besitzer, der seinen eigenen Link anklickt, blockierte sonst seine
+    // eigenen parallelen Anfragen für die Dauer des Nachlaufs. Gebraucht
+    // wird die Sitzung hier nicht mehr: Die Antwort ist raus.
+    if (session_status() === PHP_SESSION_ACTIVE) @session_write_close();
+
+    // Kurz warten statt lang. `busy_timeout` steht für die Anfrage auf fünf
+    // Sekunden – richtig, solange jemand auf das Ergebnis wartet. Hier
+    // wartet niemand mehr, und der Worker hinge trotzdem bis zu fünf
+    // Sekunden im BEGIN IMMEDIATE, wenn gerade eine Massenänderung das
+    // Schreib-Lock klammert. Auf einer belebten Instanz sammeln sich so
+    // wartende Worker, bis der Pool voll ist und NEUE Anfragen anstehen.
+    //
+    // Der Handel dabei ist echt und soll nicht schöngeredet werden. Gemessen
+    // mit einem fünf Sekunden gehaltenen Schreib-Lock:
+    //
+    //   busy_timeout   Besucher   Worker belegt   Klick
+    //   200 ms         2,4 ms     0,23 s          verloren
+    //   5000 ms        1,6 ms     5,04 s          gezählt
+    //
+    // Es werden also Klicks verloren, die vorher noch angekommen wären –
+    // aber nur in dem Band, in dem das Lock länger als 200 ms und kürzer
+    // als fünf Sekunden gehalten wird. Im gewöhnlichen Betrieb dauert ein
+    // Schreibkonflikt Mikrosekunden (gemessen 33.000 Klicks/s), und eine
+    // Massenänderung klammert das Lock über ihre ganze Dauer – da rettet
+    // auch die längere Frist nichts, sie hält nur die Worker fest.
+    //
+    // Und genau das ist der Ausschlag: Mit fünf Sekunden füllt sich der Pool,
+    // und NEUE Anfragen stehen an – der Dienst wird für alle langsam. Mit
+    // 200 ms kommen die Worker fünfundzwanzigmal schneller frei; die
+    // Weiterleitungen laufen weiter, nur ein Teil der Zählung fehlt. Ein
+    // verlorener Klick ist der harmlosere Ausgang als ein wartender Besucher.
+    //
+    // Dass die Senkung nicht in die nächste Anfrage durchschlägt, obwohl die
+    // Verbindung persistent ist, liegt an db(): Die statische Variable dort
+    // ist je Anfrage neu, und die PRAGMAs laufen jedes Mal mit.
+    if (function_exists('db')) {
+        try { db()->exec('PRAGMA busy_timeout = 200'); } catch (Throwable) {}
+    }
+
     // Ab hier sieht der Besucher nichts mehr. Was schiefgeht, geht still
     // schief – dieselbe Haltung wie in clicks_bump().
     try {
