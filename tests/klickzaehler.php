@@ -126,8 +126,12 @@ pruefe('Nach dem Falten geht es nahtlos weiter', (int)$c3['n'] === 919 && (int)$
 // ---- Aufräumen -------------------------------------------------------------
 
 link_delete($code);
-pruefe('Testlink samt Protokoll und Töpfen entfernt',
+// Auch die Sperrdatei: Sie blieb bis 4.5 liegen – ein Inode je gelöschtem
+// Link. Auf Shared Hosting ist das Inode-Kontingent die eigentliche
+// Obergrenze, und ein Leck darin fällt erst auf, wenn nichts mehr geht.
+pruefe('Testlink samt Protokoll, Töpfen UND Sperrdatei entfernt',
     !is_file(clicks_file($code)) && !is_file(clicks_log_file($code))
+    && !is_file(clicks_file($code) . '.lock')
     && clicks_dims_of($code) === []);
 
 echo "\n" . ($fehler === 0 ? "Alle Prüfungen bestanden.\n" : "$fehler Prüfung(en) fehlgeschlagen.\n");

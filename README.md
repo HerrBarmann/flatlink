@@ -434,10 +434,35 @@ microseconds. But it means:
 - **No Postgres or MySQL option.** Not "not yet": adding one would mean a
   database server, and that is the dependency the project is built to avoid.
 
-What this is *not* is a capacity problem. One CPU serves **2306 redirects per
-second**, and 831 link creations per second across 20 connections; twenty
-thousand links change nothing about that. Any university, any agency, any
-company runs into their own bandwidth long before they run into this.
+What this is *not* is a capacity problem. Measured against a stock of **fifty
+million short links** (a 13 GB file), throughout with the 128 MB
+`memory_limit` typical of shared hosting:
+
+| Operation | 2 links | 50 M links |
+| --- | --- | --- |
+| Redirect, counted (app work per core) | 0.208 ms | **0.214 ms** |
+| Same, when *every* scan hits a different link | – | 0.506 ms |
+| First page of the admin list | – | 0.04 ms |
+| Last page (page 1,000,000) | – | 0.74 ms |
+| Creating links (import, one transaction) | – | ~400,000/s |
+| One pass over the entire stock | – | 50 s at a constant **2 MB** |
+
+The second column is the point: **the stock costs three percent.** A short
+link is found by its primary key — whether two or fifty million others sit
+next to it changes nothing. Even the worst case, where every single scan hits
+a different link out of fifty million, holds around 2,000 redirects per
+second per core.
+
+Two limits that honestly belong with those numbers:
+
+- **Writing stays single.** Creating, changing and deleting run one after
+  another — tens of thousands per second as measured, but not in parallel.
+- **On shared hosting the inode quota is the ceiling, not the database.**
+  Every *clicked* link needs two small files for its counter. At the usual
+  250,000 inodes that is roughly 100,000 clicked links — a number from your
+  hosting contract, not from this software. On your own server it does not
+  apply. (The counter directory itself stays fast: with 200,000 files in it,
+  a click still costs 0.2 ms.)
 
 So the question is not "is it fast enough" but "does our operating standard
 demand more than one replica". If it does, this is the wrong software, and
@@ -469,9 +494,10 @@ The README is the overview; the depth lives in dedicated documents:
 That is not infrastructure: no server, nothing to set up, nothing to
 maintain – the `pdo_sqlite` extension ships with practically every PHP. The
 full record sits as JSON in a `data` column; the remaining columns are
-derived copies for searching. Measured on an instance with one million links
-and a hundred thousand accounts: login page 9 ms, a single account 0.01 ms,
-a redirect lookup 0.01 ms – all within PHP's usual memory limit.
+derived copies for searching. Whatever grows with the stock is streamed
+rather than loaded — cleanup, search, export and the Safe Browsing pass go
+row by row at constant memory. That is why the table above can show a full
+pass over fifty million rows peaking at 2 MB.
 
 Since 4.0 all growing state lives in this one file – settings, groups, logo
 metadata, open confirmations, the audit log, sessions. Next to it stays only

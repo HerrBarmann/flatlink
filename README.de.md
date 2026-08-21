@@ -441,11 +441,35 @@ und dafür kostet eine Weiterleitung Mikrosekunden. Es heißt aber:
   Datenbank-Server, und das ist die Abhängigkeit, die dieses Projekt
   vermeidet.
 
-Was das **nicht** ist: ein Kapazitätsproblem. Eine CPU schafft **2306
-Weiterleitungen je Sekunde**, dazu 831 Link-Anlagen je Sekunde über 20
-Verbindungen; an zwanzigtausend Links ändert sich daran nichts. Jede
-Hochschule, jede Agentur, jedes Unternehmen stößt lange vorher an die eigene
-Anbindung.
+Was das **nicht** ist: ein Kapazitätsproblem. Nachgemessen an einem Bestand
+von **fünfzig Millionen Kurzlinks** (13-GB-Datei), durchgehend mit dem auf
+Shared Hosting üblichen `memory_limit` von 128 MB:
+
+| Vorgang | 2 Links | 50 Mio. Links |
+| --- | --- | --- |
+| Weiterleitung, gezählt (App-Arbeit je Kern) | 0,208 ms | **0,214 ms** |
+| dieselbe, wenn *jeder* Scan einen anderen Link trifft | – | 0,506 ms |
+| Erste Seite der Verwaltungsliste | – | 0,04 ms |
+| Letzte Seite (Seite 1.000.000) | – | 0,74 ms |
+| Links anlegen (Import, eine Transaktion) | – | ~400.000/s |
+| Ein Durchlauf über den ganzen Bestand | – | 50 s bei konstant **2 MB** Speicher |
+
+Die zweite Spalte ist die Aussage: **Der Bestand kostet drei Prozent.** Ein
+Kurzlink wird über seinen Primärschlüssel gefunden – ob daneben zwei oder
+fünfzig Millionen andere liegen, ändert daran nichts. Selbst der ungünstigste
+Fall, bei dem jeder einzelne Scan einen anderen Link aus fünfzig Millionen
+trifft, bleibt bei rund 2.000 Weiterleitungen je Sekunde und Kern.
+
+Zwei Grenzen, die dabei ehrlich dazugehören:
+
+- **Schreiben bleibt einer.** Anlegen, Ändern, Löschen laufen nacheinander –
+  gemessen zehntausende je Sekunde, aber eben nicht parallel.
+- **Auf Shared Hosting zählt das Inode-Kontingent, nicht die Datenbank.**
+  Jeder *angeklickte* Link braucht zwei kleine Dateien für seinen Zähler. Bei
+  den üblichen 250.000 Inodes sind das rund 100.000 angeklickte Links – die
+  Zahl steht in deinem Hosting-Vertrag, nicht in dieser Software. Auf einem
+  eigenen Server entfällt sie. (Der Zählerordner selbst bleibt schnell: mit
+  200.000 Dateien darin kostet ein Klick unverändert 0,2 ms.)
 
 Die Frage ist also nicht „reicht das", sondern „verlangt unser Betriebsstandard
 mehr als eine Instanz". Wenn ja, ist das hier die falsche Software – und das
@@ -478,10 +502,11 @@ vier Handbücher gibt es auch auf Englisch (`.en.md` daneben):
 Das ist keine Infrastruktur: kein Server, nichts einzurichten, nichts zu
 warten – die Erweiterung `pdo_sqlite` bringt praktisch jedes PHP mit. Der
 vollständige Datensatz steht als JSON in einer `data`-Spalte; die übrigen
-Spalten sind daraus abgeleitete Kopien für die Suche. Gemessen an einer
-Instanz mit einer Million Links und hunderttausend Konten: Anmeldeseite 9
-ms, ein einzelnes Konto 0,01 ms, das Nachschlagen einer Weiterleitung 0,01
-ms – alles innerhalb der üblichen PHP-Speichergrenze.
+Spalten sind daraus abgeleitete Kopien für die Suche. Was am Bestand wächst,
+wird gestreamt statt geladen – Aufräumen, Suche, Export und der
+Safe-Browsing-Lauf gehen Zeile für Zeile bei gleichbleibendem Speicher.
+Deshalb steht in der Tabelle oben ein Volldurchlauf über fünfzig Millionen
+Zeilen mit 2 MB Spitzenverbrauch.
 
 Seit 4.0 liegt der gesamte wachsende Zustand in dieser einen Datei –
 Einstellungen, Gruppen, Logo-Metadaten, offene Bestätigungen,

@@ -800,6 +800,11 @@ function link_delete(string $code): void
     if ($l !== null) links_count_bump(-1);
     @unlink(clicks_file($code));
     @unlink(clicks_log_file($code));
+    // Auch die Sperrdatei, die json_update() neben der Basis anlegt: Sie
+    // blieb sonst für immer liegen – ein Inode je je gelöschtem Link. Auf
+    // Shared Hosting ist das Inode-Kontingent die eigentliche Obergrenze,
+    // und ein Leck darin fällt erst auf, wenn nichts mehr geht.
+    @unlink(clicks_file($code) . '.lock');
     $st = db()->prepare('DELETE FROM clickdims WHERE code = ?');
     $st->execute([$code]);
     hook_fire('link.deleted', hook_link($code, $l));
