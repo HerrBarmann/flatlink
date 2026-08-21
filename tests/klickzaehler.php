@@ -148,6 +148,24 @@ foreach (['go.php', 'inc/bio.php'] as $datei) {
         '/clicks_(roh_)?bump\([^;]*;[\s\S]{0,200}?header\(\s*.Location/', $q) === 1;
     pruefe("$datei zählt nicht vor dem Location-Kopf", !$alteReihenfolge);
 }
+// Die Bio-Seite zählte bis 5.2.2 vor dem ersten Byte Ausgabe (Review 5.2.2,
+// F1). Sie ist die öffentliche Landeseite – bei gehaltenem Schreib-Lock sah
+// der Besucher fünf Sekunden lang nichts. Gemessen mit eingebauter Sonde:
+// Ausgabe nach 22 ms, Zählung danach 233 ms bei busy_timeout 200.
+$bio = (string)file_get_contents(__DIR__ . '/../inc/bio.php');
+pruefe('inc/bio.php zählt nicht vor der Seitenausgabe',
+    preg_match('/clicks_bump\([^;]*;[\s\S]{0,400}?echo\s+.<!doctype/', $bio) !== 1);
+
+// Und die Sprache: Commit 95f5121 hat das festverdrahtete lang="de" aus
+// helpers.php und routing.php geholt, die Bio-Seite aber übersehen. Auf einer
+// englischen Instanz behauptete ausgerechnet die öffentlichste Seite, sie sei
+// deutsch – ein Verstoß gegen WCAG 3.1.1, an einer Stelle, für die es eine
+// Muster-Selbsterklärung gibt.
+foreach (['inc/bio.php', 'inc/routing.php', 'inc/helpers.php'] as $datei) {
+    pruefe("$datei verdrahtet keine Sprache fest",
+        !str_contains((string)file_get_contents(__DIR__ . '/../' . $datei), 'html lang="de"'));
+}
+
 pruefe('weiterleitung() gibt Sitzungssperre und Wartezeit frei',
     str_contains((string)file_get_contents(__DIR__ . '/../inc/routing.php'), 'session_write_close')
     && str_contains((string)file_get_contents(__DIR__ . '/../inc/routing.php'), 'busy_timeout = 200'));

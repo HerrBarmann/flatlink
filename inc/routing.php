@@ -44,33 +44,17 @@ declare(strict_types=1);
  * ein Vorschau-Abruf ganz normal weitergeleitet.
  */
 /**
- * Weiterleiten – und erst danach zählen.
+ * Die Antwort abschließen und alles loslassen, was danach niemand mehr braucht.
  *
- * Seit 5.2 ist das Zählen eine Schreib-Transaktion. SQLite lässt unter WAL
- * genau einen Schreiber zu, und `busy_timeout` steht auf fünf Sekunden: Hält
- * ein anderer Vorgang das Lock – etwa `links_write_many()`, das EINE
- * Transaktion um eine Massenänderung klammert –, wartete der Besucher mit.
+ * Gedacht für Seiten, die nach der Ausgabe noch etwas schreiben wollen –
+ * die Weiterleitung (siehe weiterleitung()) und die Bio-Seite. Beide zählen
+ * einen Aufruf, und Zählen ist seit 5.2 eine Schreib-Transaktion.
  *
- * Der Grundsatz stand schon in clicks_bump(): „Statistik ist Beiwerk der
- * Weiterleitung, nicht ihr Zweck." Für FEHLER galt er (sie werden
- * geschluckt), für WARTEZEIT bisher nicht. Hier wird er auch dafür wahr:
- * Der Kopf geht raus, die Antwort wird abgeschlossen, gezählt wird danach.
- *
- * Sauber garantiert ist das nur unter PHP-FPM, wo
- * `fastcgi_finish_request()` die Verbindung wirklich schließt. Sonst wird
- * mit `Content-Length: 0` plus `flush()` nachgeholfen: PHP sendet die
- * Kopfzeilen erst, wenn Rumpf-Ausgabe beginnt, deshalb das leere `echo`.
- * Das ist Best effort – der Browser folgt der Umleitung in aller Regel
- * sofort, aber die Zusage gilt nur mit FPM.
- *
- * @param callable():void $zaehlen läuft NACH dem Abschluss der Antwort
+ * Danach ist der Besucher weg. Was hier noch passiert, passiert für ihn
+ * unsichtbar; was dabei schiefgeht, geht still schief.
  */
-function weiterleitung(string $ziel, ?callable $zaehlen = null): never
+function antwort_abschliessen(): void
 {
-    header('Location: ' . $ziel, true, 302);
-    header('Content-Length: 0');
-    if ($zaehlen === null) exit;
-
     // Der Nachlauf soll durchlaufen, auch wenn der Besucher abbricht. Im
     // FPM-Fall ist das ohnehin so – die Verbindung ist abgelöst. Im
     // Rückfallpfad merkt PHP einen Abbruch erst beim nächsten Schreiben auf
@@ -78,6 +62,11 @@ function weiterleitung(string $ziel, ?callable $zaehlen = null): never
     // durchlaufen" auf „läuft durch".
     ignore_user_abort(true);
 
+    // Sauber garantiert ist der Abschluss nur unter PHP-FPM, wo
+    // fastcgi_finish_request() die Verbindung wirklich schließt. Sonst wird
+    // gespült: PHP sendet die Kopfzeilen erst, wenn Rumpf-Ausgabe beginnt,
+    // deshalb das leere echo. Das ist Best effort – der Browser ist in aller
+    // Regel sofort fertig, aber die Zusage gilt nur mit FPM.
     if (function_exists('fastcgi_finish_request')) {
         fastcgi_finish_request();
     } else {
@@ -92,6 +81,9 @@ function weiterleitung(string $ziel, ?callable $zaehlen = null): never
     // Besitzer, der seinen eigenen Link anklickt, blockierte sonst seine
     // eigenen parallelen Anfragen für die Dauer des Nachlaufs. Gebraucht
     // wird die Sitzung hier nicht mehr: Die Antwort ist raus.
+    //
+    // Wer nach diesem Aufruf noch click_zaehlbar() ruft, holt die Sperre
+    // zurück – deshalb wird sie bei allen Aufrufern VORHER ausgewertet.
     if (session_status() === PHP_SESSION_ACTIVE) @session_write_close();
 
     // Kurz warten statt lang. `busy_timeout` steht für die Anfrage auf fünf
@@ -127,9 +119,30 @@ function weiterleitung(string $ziel, ?callable $zaehlen = null): never
     if (function_exists('db')) {
         try { db()->exec('PRAGMA busy_timeout = 200'); } catch (Throwable) {}
     }
+}
 
-    // Ab hier sieht der Besucher nichts mehr. Was schiefgeht, geht still
-    // schief – dieselbe Haltung wie in clicks_bump().
+/**
+ * Weiterleiten – und erst danach zählen.
+ *
+ * Seit 5.2 ist das Zählen eine Schreib-Transaktion. SQLite lässt unter WAL
+ * genau einen Schreiber zu, und `busy_timeout` steht auf fünf Sekunden: Hält
+ * ein anderer Vorgang das Lock – etwa `links_write_many()`, das EINE
+ * Transaktion um eine Massenänderung klammert –, wartete der Besucher mit.
+ *
+ * Der Grundsatz stand schon in clicks_bump(): „Statistik ist Beiwerk der
+ * Weiterleitung, nicht ihr Zweck." Für FEHLER galt er (sie werden
+ * geschluckt), für WARTEZEIT bisher nicht. Hier wird er auch dafür wahr:
+ * Der Kopf geht raus, die Antwort wird abgeschlossen, gezählt wird danach.
+ *
+ * @param callable():void $zaehlen läuft NACH dem Abschluss der Antwort
+ */
+function weiterleitung(string $ziel, ?callable $zaehlen = null): never
+{
+    header('Location: ' . $ziel, true, 302);
+    header('Content-Length: 0');
+    if ($zaehlen === null) exit;
+
+    antwort_abschliessen();
     try {
         $zaehlen();
     } catch (Throwable $e) {

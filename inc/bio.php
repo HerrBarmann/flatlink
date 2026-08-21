@@ -332,13 +332,17 @@ function bio_render(string $code, array $l, string $domain = ''): never
     $text = trim((string)($l['bio_text'] ?? ''));
     $f = bio_colors($l);
 
-    if (click_zaehlbar($l)) clicks_bump($code, null, null, $domain);
+    // Ob dieser Aufruf zählt, wird HIER entschieden – gezählt wird erst ganz
+    // unten, nach dem Abschluss der Antwort. click_zaehlbar() startet für
+    // angemeldete Besucher eine Sitzung; nach antwort_abschliessen() gerufen
+    // holte es die eben freigegebene Sperre zurück.
+    $zaehlbar = click_zaehlbar($l);
 
     $logoUrl = bio_logo_url($l);
 
     security_headers();
     header('Content-Type: text/html; charset=UTF-8');
-    echo '<!doctype html><html lang="de"><head><meta charset="utf-8">'
+    echo '<!doctype html><html lang="' . e(lang()) . '"><head><meta charset="utf-8">'
         . '<meta name="viewport" content="width=device-width, initial-scale=1">'
         . '<title>' . e($titel) . '</title>';
     if ($text !== '') {
@@ -393,6 +397,21 @@ function bio_render(string $code, array $l, string $domain = ''): never
     }
     echo bio_origin_note() . '</footer>';
     echo '</body></html>';
+
+    // Erst die Seite, dann der Zähler – dieselbe Reihenfolge wie bei der
+    // Weiterleitung (Review 5.2.0, F2). Stand die Zählung davor, wartete der
+    // Besucher einer Bio-Seite auf das Schreib-Lock, bevor er das erste Byte
+    // sah; bei einer laufenden Massenänderung bis zu fünf Sekunden. Die
+    // Bio-Seite ist dabei kein Nebenweg, sondern die öffentliche Landeseite,
+    // die in Profilen verlinkt und geteilt wird.
+    antwort_abschliessen();
+    if ($zaehlbar) {
+        try {
+            clicks_bump($code, null, null, $domain);
+        } catch (Throwable $e) {
+            // nichts: die Seite ist längst ausgeliefert
+        }
+    }
     exit;
 }
 
