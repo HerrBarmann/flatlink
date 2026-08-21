@@ -87,11 +87,15 @@ pruefe('Löschen trifft nur die eine Domain',
     link_get(NS_CODE, NS_B) === null
     && link_get(NS_CODE, NS_A) !== null
     && link_get(NS_CODE) !== null);
+// Seit 5.1 liegt der Zählstand in Tabellen; die Zusage ist dieselbe wie
+// vorher: Der Stand der einen Domain geht mit, der der anderen bleibt.
 pruefe('… und räumt nur deren Zählstand weg',
-    !is_file(clicks_file(NS_CODE, NS_B))
-    && is_file(clicks_file(NS_CODE, NS_A))
+    (int)clicks_get(NS_CODE, NS_B)['n'] === 0
+    && (int)clicks_get(NS_CODE, NS_A)['n'] === 5
     && clicks_dims_of(NS_CODE, NS_B) === []
     && clicks_dims_of(NS_CODE, NS_A) !== []);
+pruefe('… und lässt keine Datei des gelöschten zurück',
+    !is_file(clicks_file(NS_CODE, NS_B)) && !is_file(clicks_log_file(NS_CODE, NS_B)));
 
 // ---- 4. Umzug ------------------------------------------------------------
 [$umzugOk, $umzugFehler] = link_move(NS_CODE, NS_A, '');

@@ -66,7 +66,12 @@ function alt_anlegen(string $code, ?string $owner, int $jahre): void
     link_delete($code);
     [$ok, $ergebnis] = link_create('https://example.org/' . $code, $code, $owner, 'link');
     if (!$ok) exit("Link $code ließ sich nicht anlegen: $ergebnis\n");
-    @unlink(clicks_file($code));   // nie aufgerufen
+    // Nie aufgerufen: Seit 5.1 heißt das „keine Zeile in clickbase" statt
+    // „keine Basisdatei".
+    @unlink(clicks_file($code));
+    foreach (['clickbase', 'clickdays'] as $tab) {
+        db()->prepare("DELETE FROM $tab WHERE schluessel = ?")->execute([$code]);
+    }
     link_write($code, function (array $l) use ($jahre) {
         $l['created'] = date('c', strtotime('-' . $jahre . ' years'));
         return $l;
@@ -171,7 +176,10 @@ pruefe('31 Tage nach der Warnung gelöscht', !in_array('gc-mail-alt', $da, true)
 
 alt_anlegen('gc-mail-alt', $konto, 3);
 state_set('links-gc-warned', ['gc-mail-alt' => date('c')]);
-touch(clicks_file('gc-mail-alt'));   // heute aufgerufen
+// „Heute aufgerufen" ist seit 5.1 eine Zeile in clickbase, keine angefasste
+// Datei – der Aufräumdienst liest die letzte Nutzung von dort.
+clicks_bump('gc-mail-alt');
+clicks_get('gc-mail-alt');            // faltet ins clickbase
 $da = lauf(2, 5);
 pruefe('Ein einziger Aufruf rettet den Link', in_array('gc-mail-alt', $da, true));
 pruefe('… und nimmt auch die Warn-Markierung zurück',

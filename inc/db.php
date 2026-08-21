@@ -91,7 +91,7 @@ function db(): PDO
  * db_schema() bleibt vollständig idempotent (CREATE IF NOT EXISTS, Übernahme
  * nur bei vorhandener Datei); die Nummer erspart nur die Prüfung.
  */
-const DB_FASSUNG = 4;
+const DB_FASSUNG = 5;
 
 /** Das Schema – läuft nur bei neuer DB_FASSUNG, siehe db() */
 function db_schema(PDO $pdo): void
@@ -199,6 +199,38 @@ function db_schema(PDO $pdo): void
         wert TEXT NOT NULL,
         n    INTEGER NOT NULL DEFAULT 0,
         PRIMARY KEY (code, feld, wert)
+    )');
+
+    // Der Zählstand eines Links – seit 5.1 in der Datenbank statt in zwei
+    // Dateien je Link.
+    //
+    // Auf Shared Hosting ist nicht der Plattenplatz die Obergrenze, sondern
+    // das Inode-Kontingent: Ein angeklickter Link belegte drei Inoden
+    // (Basis, deren Sperrdatei, Anhang-Protokoll), bei üblichen 250.000
+    // Inoden also rund 83.000 Links. Basis und Sperrdatei entfallen damit;
+    // das Protokoll bleibt, weil es der heiße Pfad ist (siehe clicks_bump).
+    //
+    // `item` trennt den Link selbst ('') von den Zielen einer Bio-Seite
+    // ('0', '1', …). So braucht es keine zweite Tabelle für dieselbe Sache.
+    // Der Schlüssel ist derselbe wie bei clickdims und beim Dateinamen:
+    // clicks_schluessel($code, $domain).
+    $pdo->exec('CREATE TABLE IF NOT EXISTS clickbase (
+        schluessel TEXT NOT NULL,
+        item       TEXT NOT NULL DEFAULT \'\',
+        n          INTEGER NOT NULL DEFAULT 0,
+        n_roh      INTEGER NOT NULL DEFAULT 0,
+        last       TEXT,
+        PRIMARY KEY (schluessel, item)
+    )');
+    // Die Tageszähler. Eine Zeile je Link, Ziel und Tag – das ist die Form,
+    // in der sie geschrieben werden (n = n + 1), ohne einen JSON-Block neu
+    // zu bauen. Genau das war an der Basisdatei teuer.
+    $pdo->exec('CREATE TABLE IF NOT EXISTS clickdays (
+        schluessel TEXT NOT NULL,
+        item       TEXT NOT NULL DEFAULT \'\',
+        tag        TEXT NOT NULL,
+        n          INTEGER NOT NULL DEFAULT 0,
+        PRIMARY KEY (schluessel, item, tag)
     )');
 
     // Sitzungen: id → serialisierte PHP-Sitzung. zugriff für das Aufräumen.

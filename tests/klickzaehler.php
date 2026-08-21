@@ -45,8 +45,15 @@ for ($i = 0; $i < 5; $i++)  clicks_bump($code, null, 2);     // über Weiche 2
 for ($i = 0; $i < 4; $i++)  clicks_bump($code, 7);           // Bio-Ziel 7
 for ($i = 0; $i < 6; $i++)  clicks_roh_bump($code);          // Bot-Aufrufe (nur roh)
 
+// Seit 5.1 liegt die Basis in clickbase, nicht in einer Datei. Die Zusage
+// bleibt dieselbe: Vor dem Falten steht der Zählstand NUR im Protokoll.
+$basisRoh = static function (string $c): int {
+    $st = db()->prepare("SELECT n FROM clickbase WHERE schluessel = ? AND item = ''");
+    $st->execute([$c]);
+    return (int)$st->fetchColumn();
+};
 pruefe('Vor dem Falten: Protokoll da, Basis noch leer',
-    is_file(clicks_log_file($code)) && (json_read(clicks_file($code))['n'] ?? 0) === 0);
+    is_file(clicks_log_file($code)) && $basisRoh($code) === 0);
 
 // ---- Das Limit sieht ungefaltete Zeilen ------------------------------------
 
@@ -126,13 +133,16 @@ pruefe('Nach dem Falten geht es nahtlos weiter', (int)$c3['n'] === 919 && (int)$
 // ---- Aufräumen -------------------------------------------------------------
 
 link_delete($code);
-// Auch die Sperrdatei: Sie blieb bis 4.5 liegen – ein Inode je gelöschtem
-// Link. Auf Shared Hosting ist das Inode-Kontingent die eigentliche
-// Obergrenze, und ein Leck darin fällt erst auf, wenn nichts mehr geht.
+// Seit 5.1 steht der Zählstand in drei Tabellen statt in Dateien; geprüft
+// wird, dass ALLE mitgehen. Die Dateiprüfungen bleiben stehen, weil die
+// Sperrdatei bis 4.5 liegen blieb – ein Inode je gelöschtem Link, und auf
+// Shared Hosting ist das Kontingent die eigentliche Obergrenze.
 pruefe('Testlink samt Protokoll, Töpfen UND Sperrdatei entfernt',
     !is_file(clicks_file($code)) && !is_file(clicks_log_file($code))
     && !is_file(clicks_file($code) . '.lock')
-    && clicks_dims_of($code) === []);
+    && clicks_dims_of($code) === []
+    && $basisRoh($code) === 0
+    && (int)db()->query("SELECT COUNT(*) FROM clickdays WHERE schluessel = '" . $code . "'")->fetchColumn() === 0);
 
 echo "\n" . ($fehler === 0 ? "Alle Prüfungen bestanden.\n" : "$fehler Prüfung(en) fehlgeschlagen.\n");
 exit($fehler === 0 ? 0 : 1);
