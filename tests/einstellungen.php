@@ -96,8 +96,9 @@ $faelle = [
         'erwartet' => ['ext_stores'],
     ],
     'Öffentlicher Zugang' => [
-        'post' => ['public_mode' => 'on', 'public_prefix' => 'p', 'public_rate_limit' => '15', 'registration' => 'on'],
-        'erwartet' => ['public_mode', 'public_prefix', 'public_rate_limit', 'registration'],
+        'post' => ['public_mode' => 'on', 'public_prefix' => 'p', 'public_rate_limit' => '15',
+                   'registration' => 'on', 'qr_public' => 'auto'],
+        'erwartet' => ['public_mode', 'public_prefix', 'public_rate_limit', 'registration', 'qr_public'],
     ],
     // Die Grundregeln tragen inzwischen auch die Fristen fürs Aufräumen. Sie
     // sind das größte Teilformular – wenn irgendwo ein Feld die Nachbarn

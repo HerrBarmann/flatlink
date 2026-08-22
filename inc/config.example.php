@@ -73,6 +73,16 @@ return [
     // Max. Links pro IP und Stunde über das öffentliche Formular
     'public_rate_limit' => 15,
 
+    // Die statischen QR-Werkzeuge (WLAN, Kontakt, Termin, GS1 und der
+    // Designer ohne Kurzlink). Sie speichern nichts – ihr Ergebnis ist ein
+    // Bild, das die Daten selbst trägt.
+    //   'auto' – öffentlich, solange auch das Kürzen öffentlich ist (Vorgabe)
+    //   'on'   – öffentlich auch bei public_mode=off; die Startseite
+    //            verweist dann darauf
+    //   'off'  – nur für Angemeldete
+    // Auch zur Laufzeit unter Grundregeln umstellbar.
+    'qr_public' => 'auto',
+
     // Codes, die nie als Kurzlink vergeben werden dürfen.
     // Hier ergänzen, was an eigenen Seiten dazukommt.
     'reserved' => ['admin', 'assets', 'data', 'inc', 'qr', 'go', 'index',

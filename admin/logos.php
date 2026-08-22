@@ -70,6 +70,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ? t('alle angemeldeten Konten')
                 : implode(', ', array_map('group_label', $sh))));
         audit(t('Freigabe des Logos „%s“ geändert', (string)(logos_meta()[$id]['name'] ?? $id)));
+    } elseif ($action === 'public' && $gueltig && $isAdmin) {
+        // Instanzweite Entscheidung, deshalb Verwaltungssache: Ein
+        // öffentliches Logo steht auch Gästen in den QR-Generatoren zur
+        // Wahl – wer die Gruppenfreigabe darf, darf noch lange nicht die
+        // ganze Welt.
+        $oeffentlich = ($_POST['public'] ?? '') === '1';
+        logo_public_set($id, $oeffentlich);
+        flash($oeffentlich
+            ? t('Das Logo steht jetzt auch ohne Anmeldung zur Wahl.')
+            : t('Das Logo ist wieder nur für Angemeldete da.'));
+        audit(t('Öffentliche Freigabe des Logos „%s“ geändert', (string)(logos_meta()[$id]['name'] ?? $id)));
     } elseif ($action === 'delete' && $gueltig && logo_gehoert($id, $user, $isAdmin)) {
         if (is_file($logosDir . '/' . $id)) unlink($logosDir . '/' . $id);
         logo_meta_delete($id);
@@ -159,6 +170,9 @@ page_header(t('Logo-Bibliothek'), true);
                             ? t('für alle Konten freigegeben')
                             : t('freigegeben für %s', implode(', ', array_map('group_label', $shared)))) ?>
                 <?php endif; ?>
+                <?php if (!empty($m['public'])): ?>
+                    · <strong><?= t('öffentlich – auch ohne Anmeldung nutzbar') ?></strong>
+                <?php endif; ?>
             </p>
 
             <?php if (!$mein): ?>
@@ -175,6 +189,18 @@ page_header(t('Logo-Bibliothek'), true);
                     <button class="btn btn-small" type="submit"><?= t('Speichern') ?></button>
                 </form>
             </details>
+
+            <?php if ($isAdmin): ?>
+            <form method="post" action="" class="short-row" style="margin:0.4rem 0">
+                <?= csrf_field() ?>
+                <input type="hidden" name="action" value="public">
+                <input type="hidden" name="logo" value="<?= e((string)$id) ?>">
+                <input type="hidden" name="public" value="<?= empty($m['public']) ? '1' : '0' ?>">
+                <button class="btn btn-small" type="submit"><?= empty($m['public'])
+                    ? t('Öffentlich anbieten (auch ohne Anmeldung)')
+                    : t('Öffentliche Freigabe zurücknehmen') ?></button>
+            </form>
+            <?php endif; ?>
 
             <?php if ($teilbar !== []): ?>
             <details<?= $shared !== [] ? ' open' : '' ?>>

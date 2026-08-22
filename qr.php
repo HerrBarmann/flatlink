@@ -36,6 +36,20 @@ function qp(string $key, string $default, string $pattern): string
 $type = qp('t', 'link', '/^(link|url|wifi|vcard|event|gs1)$/');
 
 if ($type !== 'link') {
+    // Die statischen Typen folgen derselben Regel wie ihre Seiten: Wer die
+    // Werkzeuge den Angemeldeten vorbehält, meint auch die Bilderzeugung –
+    // sonst stünde das Werkzeug nur scheinbar hinter der Anmeldung. Der Typ
+    // 'link' bleibt außen vor: Das Bild eines Kurzlinks trägt nichts, was
+    // nicht schon in seiner Adresse steht.
+    require_once __DIR__ . '/inc/qrpanel.php';
+    auth_boot();
+    if (auth_user() === null && !qr_static_offen()) {
+        http_response_code(403);
+        exit(t('Die QR-Generatoren stehen auf dieser Instanz nur angemeldeten Konten offen.'));
+    }
+}
+
+if ($type !== 'link') {
     // Statische Codes: Payload direkt aus Formularfeldern, nichts wird gespeichert.
     $in = fn(string $k, int $max): string => mb_strimwidth(
         trim((string)preg_replace('/[\x00-\x1F\x7F]/u', '', (string)(qin($k) ?? ''))), 0, $max, '');

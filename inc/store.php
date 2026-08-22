@@ -1666,11 +1666,30 @@ function logo_share_set(string $id, array $gruppen): void
  */
 function logo_visible_for(array $meta, string $username, string $role, array $gruppen): bool
 {
+    // Öffentliche Logos sieht jeder – erst recht jedes angemeldete Konto.
+    if (!empty($meta['public'])) return true;
     if ($role === 'admin') return true;
     if (($meta['by'] ?? null) === $username) return true;
     $shared = (array)($meta['shared'] ?? []);
     if (in_array('*', $shared, true)) return true;
     return array_intersect($shared, $gruppen) !== [];
+}
+
+/**
+ * Ein Logo öffentlich stellen oder die Freigabe zurücknehmen.
+ *
+ * Öffentlich heißt: Es steht auch OHNE Anmeldung in den QR-Generatoren zur
+ * Wahl (siehe qr_logo_choices). Das ist eine instanzweite Entscheidung und
+ * deshalb Verwaltungssache – die Oberfläche bietet sie nur Administratoren
+ * an; wer die Gruppenfreigabe darf, darf noch lange nicht die ganze Welt.
+ */
+function logo_public_set(string $id, bool $public): void
+{
+    db_map_update(db(), 'logos', 'id', function (array $m) use ($id, $public) {
+        if (!isset($m[$id])) return $m;
+        if ($public) $m[$id]['public'] = true; else unset($m[$id]['public']);
+        return $m;
+    });
 }
 
 function logo_meta_delete(string $id): void

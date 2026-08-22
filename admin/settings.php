@@ -49,6 +49,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $neu['public_prefix'] = $prefix === '' ? 'p' : $prefix;
             $neu['public_rate_limit'] = $rate;
             $neu['registration'] = ($_POST['registration'] ?? '') === 'on' ? 'on' : 'off';
+            $qrp = (string)($_POST['qr_public'] ?? 'auto');
+            $neu['qr_public'] = in_array($qrp, ['auto', 'on', 'off'], true) ? $qrp : 'auto';
         }
     }
 
@@ -421,6 +423,26 @@ $host = preg_replace('#^https?://#', '', base_url());
 
         <label for="s-rate"><?= t('Rate-Limit der öffentlichen Erstellung (Links pro IP und Stunde)') ?></label>
         <input id="s-rate" type="number" name="public_rate_limit" value="<?= (int)$s['public_rate_limit'] ?>" min="1" max="1000">
+
+        <h2 style="margin-top:1.5rem"><?= t('QR-Generatoren ohne Kurzlink') ?></h2>
+        <p class="muted small"><?= t('WLAN, Kontakt, Termin, GS1 und der Designer im Modus „Ohne Kürzen“. Sie speichern nichts auf der Instanz – der fertige Code enthält die Daten selbst.') ?></p>
+        <div class="radio-group">
+            <label class="radio">
+                <input type="radio" name="qr_public" value="auto"<?= ($s['qr_public'] ?? 'auto') === 'auto' ? ' checked' : '' ?>>
+                <span><strong><?= t('Wie die Link-Erstellung') ?></strong><br>
+                <span class="muted"><?= t('Öffentlich, solange auch das Kürzen öffentlich ist – wer oben deaktiviert, schließt die Generatoren mit.') ?></span></span>
+            </label>
+            <label class="radio">
+                <input type="radio" name="qr_public" value="on"<?= ($s['qr_public'] ?? '') === 'on' ? ' checked' : '' ?>>
+                <span><strong><?= t('Immer öffentlich') ?></strong><br>
+                <span class="muted"><?= t('Auch bei deaktivierter Link-Erstellung – die Startseite verweist dann auf die Generatoren. Für Häuser, die allen QR-Codes anbieten, Kurzlinks aber den Konten vorbehalten.') ?></span></span>
+            </label>
+            <label class="radio">
+                <input type="radio" name="qr_public" value="off"<?= ($s['qr_public'] ?? '') === 'off' ? ' checked' : '' ?>>
+                <span><strong><?= t('Nur für Angemeldete') ?></strong><br>
+                <span class="muted"><?= t('Gäste sehen die Generatoren nicht – auch dann nicht, wenn das Kürzen öffentlich ist.') ?></span></span>
+            </label>
+        </div>
 
         <h2 style="margin-top:1.5rem"><?= t('Registrierung') ?></h2>
         <div class="radio-group">

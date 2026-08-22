@@ -12,11 +12,28 @@ auth_boot();
 
 $mode = settings()['public_mode'];
 if ($mode === 'off') {
-    // Öffentliches Kürzen deaktiviert – nur der Login-Bereich bleibt erreichbar
+    // Öffentliches Kürzen deaktiviert – nur der Login-Bereich bleibt
+    // erreichbar. Stehen die statischen QR-Werkzeuge trotzdem offen
+    // (Grundregel qr_public = 'on'), verweist die Karte darauf: Das ist der
+    // Fall einer Instanz, die Kurzlinks den Angemeldeten vorbehält, aber
+    // allen im Haus QR-Codes anbieten will – ohne den Hinweis fände die
+    // niemand.
+    require_once __DIR__ . '/inc/qrpanel.php';
     page_header(t('Nicht verfügbar'));
     echo '<div class="card center"><h1>' . e(cfg('site_name')) . '</h1>'
         . '<p>' . t('Die öffentliche Link-Erstellung ist deaktiviert.') . '</p>'
         . '<p><a class="btn" href="admin/">' . t('Zum Login') . '</a></p></div>';
+    if (qr_static_offen()) {
+        echo '<div class="card center"><h2>' . t('QR-Codes ohne Kurzlink') . '</h2>'
+            . '<p class="muted">' . t('Diese Werkzeuge stehen allen offen. Der fertige Code enthält die Daten selbst – gespeichert wird nichts.') . '</p>'
+            . '<p class="qr-links">'
+            . '<a class="btn" href="qr-designer.php?m=statisch">' . t('Link/Text') . '</a> '
+            . '<a class="btn" href="wlan-qr.php">' . t('WLAN') . '</a> '
+            . '<a class="btn" href="vcard-qr.php">' . t('Kontakt') . '</a> '
+            . '<a class="btn" href="termin-qr.php">' . t('Termin') . '</a> '
+            . '<a class="btn" href="gs1-qr.php">GS1</a>'
+            . '</p></div>';
+    }
     page_footer();
     exit;
 }

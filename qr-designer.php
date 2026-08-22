@@ -29,6 +29,18 @@ auth_boot();
 $user = auth_user();
 $mode = settings()['public_mode'];
 
+// Ohne öffentliches Kürzen UND ohne offene statische Werkzeuge gibt es hier
+// für Gäste nichts – dieselbe Karte wie bei den vier Generator-Seiten.
+if ($user === null && $mode === 'off' && !qr_static_offen()) {
+    http_response_code(403);
+    page_header(t('Nur nach Anmeldung'));
+    echo '<div class="card center"><h1>' . e(cfg('site_name')) . '</h1>'
+        . '<p>' . t('Die QR-Generatoren stehen auf dieser Instanz nur angemeldeten Konten offen.') . '</p>'
+        . '<p><a class="btn" href="admin/">' . t('Zum Login') . '</a></p></div>';
+    page_footer();
+    exit;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_check();
     $action = $_POST['action'] ?? '';
@@ -133,13 +145,26 @@ if (function_exists('qr_type_nav')) echo qr_type_nav('link');
 //              aber das Ziel steht fest, solange der Aufkleber klebt.
 //   Kurzlink – der Code zeigt auf uns, das Ziel ist jederzeit änderbar, und
 //              es gibt eine Klickzahl.
-$statisch = ($_GET['m'] ?? '') === 'statisch' || isset($_GET['u']);
+// Der statische Modus ist eines der Werkzeuge, die qr_public regelt: Für
+// Gäste nur, wenn die Regel ihn öffnet. Bei abgeschaltetem Kürzen ist er
+// für Gäste zugleich der EINZIG sinnvolle Modus – dann führt er, statt ein
+// totes Kurzlink-Formular zu zeigen.
+$statisch = (($_GET['m'] ?? '') === 'statisch' || isset($_GET['u']))
+    && ($user !== null || qr_static_offen());
+if ($user === null && $mode === 'off' && qr_static_offen()) $statisch = true;
 $statischText = trim((string)($_GET['u'] ?? ''));
 ?>
 <div class="card">
     <div class="modus-wahl">
+        <?php // Tote Türen ausblenden: Gäste sehen nur die Modi, die ihnen
+              // offenstehen – „Mit Kurzlink" nicht bei abgeschaltetem Kürzen,
+              // „Ohne Kürzen" nicht bei zugedrehten statischen Werkzeugen. ?>
+        <?php if ($user !== null || $mode !== 'off'): ?>
         <a class="btn btn-small<?= $statisch ? '' : ' btn-primary' ?>" href="qr-designer.php"><?= t('Mit Kurzlink') ?></a>
+        <?php endif; ?>
+        <?php if ($user !== null || qr_static_offen()): ?>
         <a class="btn btn-small<?= $statisch ? ' btn-primary' : '' ?>" href="qr-designer.php?m=statisch"><?= t('Ohne Kürzen') ?></a>
+        <?php endif; ?>
     </div>
     <?php if ($statisch): ?>
     <h2><?= t('QR-Code für eine Adresse') ?></h2>

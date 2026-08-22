@@ -232,6 +232,7 @@ function settings(): array
             'public_mode' => (string)cfg('public_mode'),      // on | prefix | off
             'public_prefix' => (string)cfg('public_prefix'),  // Namensraum im Prefix-Modus
             'public_rate_limit' => cfg('public_rate_limit'),
+            'qr_public' => (string)cfg('qr_public'),          // statische QR-Werkzeuge: auto | on | off
             'registration' => (string)cfg('registration'),    // Selbst-Registrierung: on | off
             'limits' => (array)cfg('limits'),
             'default_perms' => (array)cfg('default_perms'),

@@ -9,6 +9,20 @@ require_once __DIR__ . '/inc/groups.php';
 require_once __DIR__ . '/inc/qrpanel.php';
 
 auth_boot();
+
+// Ob dieses Werkzeug ohne Anmeldung offensteht, entscheidet die Grundregel
+// qr_public (siehe qr_static_offen). Gespeichert wird hier nie etwas – aber
+// wer seine Instanz zumacht, meint damit auch die Werkzeuge.
+if (auth_user() === null && !qr_static_offen()) {
+    http_response_code(403);
+    page_header(t('Nur nach Anmeldung'));
+    echo '<div class="card center"><h1>' . e(cfg('site_name')) . '</h1>'
+        . '<p>' . t('Die QR-Generatoren stehen auf dieser Instanz nur angemeldeten Konten offen.') . '</p>'
+        . '<p><a class="btn" href="admin/">' . t('Zum Login') . '</a></p></div>';
+    page_footer();
+    exit;
+}
+
 page_header(t('Kontakt-QR-Code erstellen'), false,
     t('Name, Telefon, E-Mail und Web in einen QR-Code – gescannt landet der Kontakt direkt im Adressbuch.'),
     base_url() . '/vcard-qr.php');

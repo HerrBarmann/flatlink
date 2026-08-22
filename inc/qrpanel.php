@@ -32,9 +32,48 @@ declare(strict_types=1);
  *
  * @return array<string,string>
  */
+/**
+ * Stehen die statischen QR-Werkzeuge ohne Anmeldung offen?
+ *
+ * Gemeint sind die Generatoren, deren Ergebnis KEINEN Kurzlink braucht –
+ * WLAN, Kontakt, Termin, GS1 und der Designer im statischen Modus. Sie
+ * speichern nichts und erzeugen nichts auf der Instanz; ihr Ergebnis ist ein
+ * Bild, das die Daten selbst trägt.
+ *
+ * Bis 5.2 hingen sie an gar keinem Schalter: Auch wer die öffentliche
+ * Link-Erstellung abgeschaltet hatte, lieferte sie aus – unverlinkt und
+ * unbeabsichtigt. Jetzt ist es eine Entscheidung mit drei Stellungen:
+ *
+ *   'auto' (Vorgabe) – sie folgen public_mode: öffentlich, solange auch das
+ *            Kürzen öffentlich ist. Wer alles abschaltet, schaltet sie mit ab.
+ *   'on'   – öffentlich auch bei public_mode=off. Der Fall einer Instanz,
+ *            die Kurzlinks den Angemeldeten vorbehält, aber allen im Haus
+ *            QR-Codes anbieten will – die Startseite verweist dann darauf.
+ *   'off'  – nur für Angemeldete, selbst wenn das Kürzen öffentlich ist.
+ */
+function qr_static_offen(): bool
+{
+    $s = (string)(settings()['qr_public'] ?? 'auto');
+    if ($s === 'on') return true;
+    if ($s === 'off') return false;
+    return (string)settings()['public_mode'] !== 'off';
+}
+
 function qr_logo_choices(?array $user): array
 {
-    if ($user === null) return [];
+    if ($user === null) {
+        // Ohne Anmeldung stehen genau die Logos zur Wahl, die ein
+        // Administrator ausdrücklich öffentlich gestellt hat – etwa das
+        // Hauslogo, damit auch Gäste den Code „im richtigen Gewand" bauen.
+        $logos = [];
+        foreach (logos_meta() as $id => $m) {
+            if (empty($m['public'])) continue;
+            $ext = strtoupper(pathinfo((string)$id, PATHINFO_EXTENSION));
+            $logos[$id] = (string)($m['name'] ?? $id) . ' (' . $ext . ')';
+        }
+        asort($logos, SORT_NATURAL | SORT_FLAG_CASE);
+        return $logos;
+    }
     $isAdmin = $user['role'] === 'admin';
     $logosDir = data_path('logos');
     $files = array_values(array_filter(scandir($logosDir) ?: [],
@@ -240,6 +279,11 @@ function qr_type_nav(string $active): string
         'event' => [$root . '/termin-qr.php', t('Termin')],
         'gs1'   => [$root . '/gs1-qr.php', t('GS1')],
     ];
+    // Stehen die statischen Werkzeuge dem Gast nicht offen, sind ihre Reiter
+    // tote Türen – dann lieber gar keine zeigen als vier gesperrte.
+    if ($u === null && !qr_static_offen()) {
+        $reiter = array_intersect_key($reiter, ['link' => 1]);
+    }
     $out = '<nav class="type-nav" aria-label="' . t('QR-Code-Typ') . '">';
     foreach ($reiter as $key => [$href, $label]) {
         $out .= '<a class="btn btn-small' . ($key === $active ? ' active' : '') . '"'
