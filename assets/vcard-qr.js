@@ -6,6 +6,12 @@
 (function () {
     var $ = function (id) { return document.getElementById(id); };
     if (!window.QRGestaltung) return;
+    /* Übersetzungen wie in qroptions.js: page_footer() legt sie als
+     * JSON-Datenblock in die Seite; fehlt er (deutsche Instanz), bleibt der
+     * deutsche Text. */
+    var UEB = {};
+    try { UEB = JSON.parse(document.getElementById('lang-js').textContent); } catch (e) {}
+    function t(s) { return UEB[s] || s; }
     var timer = null, currentUrl = null, laeuft = null;
     var felder = ['v-vorname', 'v-nachname', 'v-firma', 'v-tel', 'v-email', 'v-url'];
 
@@ -27,8 +33,8 @@
         if (!$('v-vorname').value && !$('v-nachname').value) { $('v-preview').removeAttribute('src'); return; }
         fetch('qr.php', { method: 'POST', body: formData({ size: 300 }) })
             .then(function (r) {
-                if (r.status === 400) { $('v-hint').textContent = 'Zu viele Zeichen für einen QR-Code – bitte Angaben kürzen.'; throw 0; }
-                $('v-hint').textContent = 'Tipp: Weniger Felder = gröberes, leichter scannbares Raster.';
+                if (r.status === 400) { $('v-hint').textContent = t('Zu viele Zeichen für einen QR-Code – bitte Angaben kürzen.'); throw 0; }
+                $('v-hint').textContent = t('Tipp: Weniger Felder = gröberes, leichter scannbares Raster.');
                 return r.blob();
             })
             .then(function (b) {
@@ -65,7 +71,7 @@
                 a.click();
                 setTimeout(function () { URL.revokeObjectURL(a.href); }, 5000);
             })
-            .catch(function () { alert('Bitte zuerst einen Namen eingeben (und ggf. Angaben kürzen).'); });
+            .catch(function () { alert(t('Bitte zuerst einen Namen eingeben (und ggf. Angaben kürzen).')); });
     }
 
     function angefasst() { clearTimeout(timer); timer = setTimeout(refresh, 250); }

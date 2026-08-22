@@ -138,6 +138,10 @@ function lang_js(): string
         'Kopiert',
         // assets/qrdesign.js
         'Scan mich!',
+        // assets/vcard-qr.js
+        'Zu viele Zeichen für einen QR-Code – bitte Angaben kürzen.',
+        'Tipp: Weniger Felder = gröberes, leichter scannbares Raster.',
+        'Bitte zuerst einen Namen eingeben (und ggf. Angaben kürzen).',
     ];
     $map = [];
     foreach ($texte as $satz) {

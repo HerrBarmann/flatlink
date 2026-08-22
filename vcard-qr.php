@@ -24,18 +24,18 @@ page_header(t('Kontakt-QR-Code erstellen'), false,
 
 <div class="designer">
     <div class="card controls">
-        <h3>Dein Kontakt</h3>
+        <h3><?= t('Dein Kontakt') ?></h3>
         <div class="two-col">
-            <div><label for="v-vorname">Vorname</label><input id="v-vorname" type="text" maxlength="48" autofocus></div>
-            <div><label for="v-nachname">Nachname</label><input id="v-nachname" type="text" maxlength="48"></div>
+            <div><label for="v-vorname"><?= t('Vorname') ?></label><input id="v-vorname" type="text" maxlength="48" autofocus></div>
+            <div><label for="v-nachname"><?= t('Nachname') ?></label><input id="v-nachname" type="text" maxlength="48"></div>
         </div>
-        <label for="v-firma">Firma <span class="muted">(optional)</span></label>
+        <label for="v-firma"><?= t('Firma') ?> <span class="muted"><?= t('(optional)') ?></span></label>
         <input id="v-firma" type="text" maxlength="48">
-        <label for="v-tel">Telefon <span class="muted">(optional)</span></label>
-        <input id="v-tel" type="text" maxlength="32" inputmode="tel" placeholder="+49 40 123456">
-        <label for="v-email">E-Mail <span class="muted">(optional)</span></label>
+        <label for="v-tel"><?= t('Telefon') ?> <span class="muted"><?= t('(optional)') ?></span></label>
+        <input id="v-tel" type="text" maxlength="32" inputmode="tel" placeholder="<?= e(t('+49 40 123456')) ?>">
+        <label for="v-email"><?= t('E-Mail') ?> <span class="muted"><?= t('(optional)') ?></span></label>
         <input id="v-email" type="text" maxlength="64" inputmode="email">
-        <label for="v-url">Website <span class="muted">(optional)</span></label>
+        <label for="v-url"><?= t('Website') ?> <span class="muted"><?= t('(optional)') ?></span></label>
         <input id="v-url" type="text" maxlength="96" placeholder="https://…">
 
         <?= qr_design_panel([
@@ -43,22 +43,22 @@ page_header(t('Kontakt-QR-Code erstellen'), false,
             'logos' => qr_logo_choices(auth_user()),
         ]) ?>
 
-        <p class="muted small" style="margin-top:1rem">Die Angaben werden nur zur Erzeugung der Grafik übertragen und <strong>nicht gespeichert</strong>. Der Code enthält die Kontaktdaten selbst (vCard) und funktioniert ohne jeden Dienst dahinter.</p>
+        <p class="muted small" style="margin-top:1rem"><?= t('Die Angaben werden nur zur Erzeugung der Grafik übertragen und %snicht gespeichert%s. Der Code enthält die Kontaktdaten selbst (vCard) und funktioniert ohne jeden Dienst dahinter.', '<strong>', '</strong>') ?></p>
     </div>
 
     <div class="card preview">
-        <h3>Vorschau</h3>
+        <h3><?= t('Vorschau') ?></h3>
         <div id="preview-stage" style="display:inline-block; padding:1.2rem; border-radius:6px; background:#FAFCF6;">
-            <img id="v-preview" alt="Kontakt-QR-Code-Vorschau" width="300">
+            <img id="v-preview" alt="<?= e(t('Kontakt-QR-Code-Vorschau')) ?>" width="300">
         </div>
         <div id="v-lesbarkeit" class="lesbarkeit" aria-live="polite"></div>
         <div class="qr-links">
             <button id="v-svg" class="btn" type="button">SVG</button>
-            <button id="v-png" class="btn" type="button">PNG (1024 px)</button>
-            <button id="v-pdf" class="btn" type="button">PDF (Druck)</button>
-            <button id="v-eps" class="btn" type="button" title="EPS für Satz und Belichtung">EPS</button>
+            <button id="v-png" class="btn" type="button"><?= t('PNG (1024 px)') ?></button>
+            <button id="v-pdf" class="btn" type="button"><?= t('PDF (Druck)') ?></button>
+            <button id="v-eps" class="btn" type="button" title="<?= e(t('EPS für Satz und Belichtung')) ?>">EPS</button>
         </div>
-        <p class="muted small" id="v-hint">Tipp: Weniger Felder = gröberes, leichter scannbares Raster.</p>
+        <p class="muted small" id="v-hint"><?= t('Tipp: Weniger Felder = gröberes, leichter scannbares Raster.') ?></p>
     </div>
 </div>
 </div>
