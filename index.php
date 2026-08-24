@@ -19,11 +19,17 @@ if ($mode === 'off') {
     // allen im Haus QR-Codes anbieten will – ohne den Hinweis fände die
     // niemand.
     require_once __DIR__ . '/inc/qrpanel.php';
-    page_header(t('Nicht verfügbar'));
+    // Der Titel benennt, was die Seite ANBIETET, nicht was sie nicht kann.
+    // „Nicht verfügbar" stand hier bis 5.4 und war schlicht unwahr: Die Seite
+    // ist da, sie kürzt nur nicht öffentlich – und auf einer Instanz mit
+    // offenen QR-Werkzeugen ist sie sogar deren Eingangstür. Im Browser-Tab,
+    // im Lesezeichen und in Suchergebnissen steht das sonst als Absage.
+    $offen = qr_static_offen();
+    page_header($offen ? t('QR-Codes') : t('Anmelden'));
     echo '<div class="card center"><h1>' . e(cfg('site_name')) . '</h1>'
         . '<p>' . t('Die öffentliche Link-Erstellung ist deaktiviert.') . '</p>'
         . '<p><a class="btn" href="admin/">' . t('Zum Login') . '</a></p></div>';
-    if (qr_static_offen()) {
+    if ($offen) {
         echo '<div class="card center"><h2>' . t('QR-Codes ohne Kurzlink') . '</h2>'
             . '<p class="muted">' . t('Diese Werkzeuge stehen allen offen. Der fertige Code enthält die Daten selbst – gespeichert wird nichts.') . '</p>'
             . '<p class="qr-links">'

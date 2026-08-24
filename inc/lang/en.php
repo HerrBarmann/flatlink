@@ -1409,4 +1409,5 @@ your password immediately and contact us.
     'öffentlich – auch ohne Anmeldung nutzbar' => 'public – usable without signing in',
     'Öffentlich anbieten (auch ohne Anmeldung)' => 'Offer publicly (no sign-in needed)',
     'Öffentliche Freigabe zurücknehmen' => 'Withdraw public availability',
+    'QR-Codes' => 'QR codes',
 ];
