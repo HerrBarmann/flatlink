@@ -7,7 +7,22 @@ Der Unterschied zu den Erweiterungen der bekannten Dienste: Sie redet mit
 genau einer Adresse, nämlich der, die du einträgst. Es gibt keinen Anbieter
 dahinter, der mitliest, welche Seiten du kürzt.
 
-## Warum es keinen „Jetzt installieren"-Knopf gibt
+## Installieren
+
+Die Erweiterung steht in den Läden – dieselbe Fassung für jeden
+flatlink-Server:
+
+* **Chrome, Edge, Brave, Opera** –
+  [Chrome Web Store](https://chromewebstore.google.com/detail/flatlink/ckagheabmfenjmmhjbfanbocpmjeajdc)
+* **Firefox** –
+  [addons.mozilla.org](https://addons.mozilla.org/firefox/addon/flatlink/)
+
+Sie gehört keinem Server: Erst der Verbindungscode sagt ihr, mit welcher
+Adresse sie reden soll. Ein Server, der seine Adressen in `ext_stores`
+stehen hat (Vorgabe seit 5.4), zeigt die Knöpfe direkt unter
+*Profil → Browser-Erweiterung*.
+
+## Warum es keinen „Jetzt installieren"-Knopf auf dem eigenen Server gibt
 
 Weil die Browser ihn abgeschafft haben, nicht weil er fehlt:
 

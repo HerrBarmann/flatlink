@@ -100,7 +100,7 @@ Counted per day, for the page and per target.
 | **Installation** | copy the files – or use a container image for amd64 and arm64 |
 | **Backup** | one button that writes database, settings, counters and logos into a ZIP; plus a text export for versionable backups |
 | **API** | links, tags and a health endpoint for monitoring, with access keys per account |
-| **Browser extension** | "shorten this page" for Chrome and Firefox, pointed at your own instance |
+| **Browser extension** | "shorten this page" for [Chrome](https://chromewebstore.google.com/detail/flatlink/ckagheabmfenjmmhjbfanbocpmjeajdc) and [Firefox](https://addons.mozilla.org/firefox/addon/flatlink/), pointed at your own instance – one generic build, connected to your server by a one-click code |
 | **Abuse protection** | rate limits, a report form, blocking, optionally Google Safe Browsing including a re-check pass over the existing links |
 | **Audit log** | who administered what, and when – administration only, never visitors |
 | **Cleanup** | never-visited links after N years, with advance warning by mail; periods set in the ground rules, off by default |
@@ -483,7 +483,7 @@ The README is the overview; the depth lives in dedicated documents:
 | [Short links day to day](docs/kurzlinks.en.md) | Tags, campaign parameters, link in bio, migrating from Bitly or YOURLS |
 | [Accounts and sign-in](docs/konten.en.md) | Passkeys and one-time passwords, LDAP, Shibboleth/SAML/OIDC, data access and deletion |
 | [Groups, permissions and domains](docs/gruppen.en.md) | Permission and working groups, limits, namespaces, multiple domains per instance |
-| [Browser extension](extension/README.md) | "shorten this page" for Chrome and Firefox, pointed at your own instance |
+| [Browser extension](extension/README.md) | "shorten this page" for Chrome and Firefox – install links, the connection code, and how to build your own |
 | [API](docs/API.en.md) | the API |
 | [openapi.yaml](docs/openapi.yaml) | the same as OpenAPI 3.1, for generated clients |
 | [Deployment](docs/DEPLOYMENT.en.md) | production setup, condensed – the [German guide](docs/DEPLOYMENT.md) is the step-by-step reference |

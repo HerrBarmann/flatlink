@@ -232,9 +232,20 @@ return [
     //
     // Adressen in den Läden. Stehen sie hier, zeigt das Profil einen Knopf
     // dorthin. Nur https und nur die Läden selbst werden angenommen.
+    //
+    // Voreingetragen ist die offizielle flatlink-Erweiterung. Sie ist
+    // GENERISCH: Sie gehört keinem Server, sondern erfährt erst über den
+    // Verbindungscode, mit welcher Adresse sie reden soll. Deshalb passt
+    // dieselbe Erweiterung für jede Instanz, und deshalb steht sie hier als
+    // Vorgabe. Wer eine eigene Fassung veröffentlicht, trägt sie ein.
+    //
+    // Die Firefox-Adresse steht bewusst OHNE Sprachkürzel: addons.mozilla.org
+    // leitet dann nach Accept-Language um (nachgeprüft: de → /de/, fr → /fr/,
+    // sonst /en-US/). Ein festes /de/ zeigte jedem Nutzer weltweit die
+    // deutsche Seite.
     'ext_stores' => [
-        'chrome' => '',   // https://chromewebstore.google.com/detail/...
-        'firefox' => '',  // https://addons.mozilla.org/firefox/addon/...
+        'chrome' => 'https://chromewebstore.google.com/detail/flatlink/ckagheabmfenjmmhjbfanbocpmjeajdc',
+        'firefox' => 'https://addons.mozilla.org/firefox/addon/flatlink/',
         'edge' => '',     // https://microsoftedge.microsoft.com/addons/detail/...
     ],
     'domains' => [],
