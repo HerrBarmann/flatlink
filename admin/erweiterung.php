@@ -68,10 +68,16 @@ $darfApi = user_can($user['name'], 'api_access');
 page_header(t('Browser-Erweiterung / API'), true);
 show_flash();
 ?>
-<div class="card narrow">
+<div class="card weit">
     <h1><?= t('Browser-Erweiterung') ?></h1>
     <p><?= t('Kürzt die Seite, auf der du gerade bist, mit einem Klick – Kurzlink und QR-Code, ohne den Tab zu wechseln.') ?></p>
 
+    <?php // Die beiden Schritte nebeneinander, wo Platz ist – beide sind kurz,
+          // und „installieren" und „verbinden" gehören ohnehin zusammen. Nur
+          // wenn es wirklich zwei gibt: Steht die Erweiterung noch in keinem
+          // Laden, bliebe sonst eine leere Spalte.
+          $zweiSchritte = $laeden !== []; ?>
+    <?php if ($zweiSchritte): ?><div class="spalten"><div><?php endif; ?>
     <?php if ($laeden !== []): ?>
     <h2><?= t('1. Installieren') ?></h2>
     <p class="short-row">
@@ -84,6 +90,7 @@ show_flash();
     <p class="muted small"><?= t('Sobald sie in den Läden von Chrome und Firefox steht, findest du den Link hier. Ist sie schon installiert, richtet ein Verbindungscode sie ein.') ?></p>
     <?php endif; ?>
 
+    <?php if ($zweiSchritte): ?></div><div><?php endif; ?>
     <h2><?= $laeden !== [] ? t('2. Verbinden') : t('Verbinden') ?></h2>
     <?php if (!$darfApi): ?>
         <p class="muted small"><?= t('Für den Zugriff über die Schnittstelle fehlt deinem Konto die Berechtigung – die Erweiterung braucht sie. Frag die Verwaltung deiner Instanz.') ?></p>
@@ -107,6 +114,11 @@ show_flash();
     </form>
     <p class="muted small"><?= t('Jeder Code wird nur einmal angezeigt. Ein neuer Code legt einen eigenen Zugangsschlüssel an – alte bleiben gültig, bis du sie unten zurückziehst.') ?></p>
     <?php endif; ?>
+    <?php if ($zweiSchritte): ?></div></div><!-- /.spalten --><?php endif; ?>
+
+    <?php // Die Schnittstelle bleibt über die volle Breite: Ihre Tabelle
+          // braucht 721 px in natürlicher Breite – in einer halben Spalte
+          // müsste sie querscrollen, und das wäre schlechter als vorher. ?>
     <h2 id="api"><?= t('Programmierschnittstelle') ?></h2>
     <p class="muted small"><?= t('Der Verbindungscode oben ist nichts anderes als ein verpackter Zugangsschlüssel – hier liegen alle Schlüssel deines Kontos, auch für eigene Programme.') ?></p>
     <?php if (!user_can($user['name'], 'api_access')): ?>

@@ -157,6 +157,33 @@ code, .prefix { font-family: var(--mono); }
 .card.narrow-wide { max-width: 720px; margin: 2rem auto; }
 .card.narrow-wide h2 { margin-top: 1.4rem; font-size: 1.1rem; }
 
+/* Seiten, die aus der 420er-Spalte herausgewachsen sind.
+   .narrow ist für das gemacht, was schmal bleiben soll: Anmeldung,
+   Registrierung, Passwortabfrage – ein Formular, das breit gezogen nur
+   schlechter zu lesen wäre. Profil und Erweiterung/API sind daraus
+   herausgewachsen (gemessen 420 × 1218 px in einem 1440er Fenster) und
+   sahen auf dem Desktop aus wie am Handy, nur mit viel Weiß daneben. */
+.card.weit { max-width: 960px; margin: 2rem auto; }
+
+/* Zwei Spalten, sobald der Schirm sie trägt – darunter bleibt es eine.
+   Grid und nicht `columns`: Beim Aufklappen eines Abschnitts soll kein
+   Nachbar in die andere Spalte rutschen. align-items:start hält die
+   Abschnitte oben, statt sie auf Zeilenhöhe zu strecken. */
+.spalten { display: grid; gap: 0 2.2rem; }
+@media (min-width: 860px) {
+    .spalten { grid-template-columns: 1fr 1fr; align-items: start; }
+    /* Was über beide Spalten gehört – etwa das Löschen des Kontos, das
+       unten und für sich stehen soll. */
+    .spalten > .voll { grid-column: 1 / -1; }
+
+    /* Der aufgeklappte Abschnitt nimmt die ganze Breite. Das folgt der
+       Idee, die dem Profil ohnehin zugrunde liegt: zugeklappt ein
+       Inhaltsverzeichnis, offen genau der eine Abschnitt, in dem gerade
+       etwas passiert. Ohne diese Zeile wüchse er in seiner halben Spalte
+       in die Länge, während die andere leer danebensteht. */
+    .spalten > details[open] { grid-column: 1 / -1; }
+}
+
 /* Profil: einklappbare Abschnitte.
    Acht offene Formulare untereinander waren zu viel Seite – zugeklappt ist
    das Profil ein Inhaltsverzeichnis, und offen ist genau der Abschnitt, in

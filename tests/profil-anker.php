@@ -38,7 +38,11 @@ $pruefe = function (string $was, bool $ok) use (&$fehler): void {
 
 // Welche Marken vergibt die Seite? Seit 4.4 sitzen die ids an den
 // einklappbaren <details>-Abschnitten, nicht mehr an den Überschriften.
-preg_match_all('/<details class="abschnitt" id="([a-z0-9-]+)"/', $quelle, $m);
+// Die Klassenliste ist offen: Seit 5.4 trägt der Löschen-Abschnitt
+// zusätzlich `voll`, damit er im Zwei-Spalten-Raster über beide Spalten geht.
+// Eine Regex, die genau `class="abschnitt"` verlangt, übersieht ihn – und
+// meldete damit einen Anker als fehlend, den es sehr wohl gibt.
+preg_match_all('/<details class="abschnitt[^"]*" id="([a-z0-9-]+)"/', $quelle, $m);
 $vorhanden = $m[1];
 $pruefe('die Seite vergibt Sprungmarken', count($vorhanden) >= 7);
 

@@ -287,7 +287,7 @@ show_flash();
 $zeige = (string)($_GET['zeige'] ?? '');
 $auf = fn(string $id): string => $zeige === $id ? ' open' : '';
 ?>
-<div class="card narrow">
+<div class="card weit">
     <h1><?= t('Profil') ?></h1>
     <p class="muted"><?= t('Angemeldet als') ?> <strong><?= e(user_display($user['name'])) ?></strong>
         <?php if (user_has_display($user['name'])): ?><br><span class="small" style="font-family:var(--mono)"><?= e($user['name']) ?></span><?php endif; ?>
@@ -299,6 +299,11 @@ $auf = fn(string $id): string => $zeige === $id ? ' open' : '';
         <?= t('Logos:') ?> <?= e(limit_label(user_limit($user['name'], 'logos'))) ?> ·
         <?= t('Statistik:') ?> <?= (int)user_limit($user['name'], 'stats_days') === PHP_INT_MAX ? t('unbegrenzt') : t('%d Tage', (int)user_limit($user['name'], 'stats_days')) ?></span></p>
 
+    <?php // Ab 860 px zwei Spalten: Zugeklappt ist das Profil ein
+          // Inhaltsverzeichnis, und sieben schmale Zeilen über 960 px zu
+          // ziehen sähe leerer aus als nötig. Das Löschen des Kontos steht
+          // darunter über beide Spalten – es gehört ans Ende und für sich. ?>
+    <div class="spalten">
     <details class="abschnitt" id="anzeigename"<?= $auf('anzeigename') ?>>
     <summary><h2><?= t('Anzeigename') ?></h2></summary>
     <div class="abschnitt-inhalt">
@@ -546,7 +551,7 @@ $auf = fn(string $id): string => $zeige === $id ? ' open' : '';
     </details>
 
     <?php if (cfg('self_delete')): $umfang = account_delete_scope($user['name']); ?>
-    <details class="abschnitt" id="loeschen"<?= $auf('loeschen') ?>>
+    <details class="abschnitt voll" id="loeschen"<?= $auf('loeschen') ?>>
     <summary><h2><?= t('Konto löschen') ?></h2></summary>
     <div class="abschnitt-inhalt">
     <p class="muted small"><?= $umfang['eigene'] === 1
@@ -578,6 +583,7 @@ $auf = fn(string $id): string => $zeige === $id ? ' open' : '';
     <?php endif; ?>
     </div>
     </details>
+    </div><!-- /.spalten -->
 
 </div>
 <?php page_script('assets/passkey.js');
