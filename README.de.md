@@ -495,6 +495,7 @@ vier Handbücher gibt es auch auf Englisch (`.en.md` daneben):
 | [Was flatlink nie tun wird](docs/niemals.md) | die Funktionen, die es hier nie geben wird – und warum |
 | [Barrierefreiheit](docs/barrierefreiheit.md) | Selbsteinschätzung nach WCAG 2.1 AA samt Muster-Erklärung für öffentliche Stellen |
 | [Sicherheit](docs/SECURITY.md) | was gespeichert wird, was nicht, und wie sich Lücken melden lassen |
+| [Änderungen](CHANGELOG.de.md) | was sich geändert hat, nach Reihen verdichtet – und was beim Aktualisieren zu beachten ist |
 
 ## Wie die Daten liegen
 

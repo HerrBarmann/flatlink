@@ -492,6 +492,7 @@ The README is the overview; the depth lives in dedicated documents:
 | [What flatlink will never do](docs/niemals.md) | the features that will never exist here – and why (German) |
 | [Accessibility](docs/barrierefreiheit.en.md) | self-assessment against WCAG 2.1 AA, with a statement template for public bodies |
 | [Security](docs/SECURITY.en.md) | what is stored, what is not, and how to report vulnerabilities |
+| [Changelog](CHANGELOG.md) | what changed, condensed by series – and what to watch for when upgrading |
 
 ## How the data is stored
 
