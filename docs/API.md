@@ -25,7 +25,7 @@ für alle gelten, gehört es in `'default_perms'` in der Konfiguration.
 
 ## Schlüssel anlegen
 
-*Profil → Programmierschnittstelle → Anlegen.* Der Schlüssel wird **einmal**
+*Fußzeile → Browser-Erweiterung / API → Anlegen.* Der Schlüssel wird **einmal**
 angezeigt und danach nirgends mehr – gespeichert ist nur sein Hash. Geht er
 verloren, wird er zurückgezogen und ein neuer angelegt.
 

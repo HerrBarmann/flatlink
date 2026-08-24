@@ -20,7 +20,7 @@ flatlink-Server:
 Sie gehört keinem Server: Erst der Verbindungscode sagt ihr, mit welcher
 Adresse sie reden soll. Ein Server, der seine Adressen in `ext_stores`
 stehen hat (Vorgabe seit 5.4), zeigt die Knöpfe direkt unter
-*Profil → Browser-Erweiterung*.
+*Fußzeile → Browser-Erweiterung / API*.
 
 ## Warum es keinen „Jetzt installieren"-Knopf auf dem eigenen Server gibt
 
@@ -42,14 +42,14 @@ gibt es den Verbindungscode.
 
 Erweiterung aus einem Laden installiert, dann:
 
-1. Auf dem Server unter **Profil → Browser-Erweiterung** einen
+1. Auf dem Server unten in der Fußzeile unter **Browser-Erweiterung / API** einen
    **Verbindungscode** erzeugen – ein Klick.
 2. In den Einstellungen der Erweiterung einfügen, *Verbinden* – ein Klick.
 
 Im Code stehen Adresse und ein frisch erzeugter Zugangsschlüssel. Er wird
 geprüft, bevor etwas gespeichert wird. Weitergeben sollte man ihn nicht: Wer
 ihn hat, kann im eigenen Namen Kurzlinks anlegen – zurückziehen lässt er
-sich unter *Profil → Zugangsschlüssel*.
+sich auf derselben Seite unter *Programmierschnittstelle*.
 
 Wer ein Konto auf einem flatlink-Server hat, braucht diesen Ordner gar
 nicht. Was unten steht, ist der Weg für alle anderen: Entwickler, oder wer
@@ -64,7 +64,7 @@ und das sich nie aktualisiert.
 
 ## Einrichten
 
-1. Auf deinem flatlink-Server unter **Profil → Zugangsschlüssel** einen Schlüssel
+1. Auf deinem flatlink-Server unter **Browser-Erweiterung / API → Programmierschnittstelle** einen Schlüssel
    anlegen. Er wird nur einmal angezeigt.
 2. Die Erweiterung laden (siehe unten) und in ihren Einstellungen die
    Adresse deines flatlink-Servers und den Schlüssel eintragen.
@@ -194,4 +194,12 @@ Paket: 1280×800, wie Chrome es verlangt, wahlweise auf Deutsch oder Englisch.
 
 ## Version
 
-1.3.4 – gebaut gegen die Schnittstelle von flatlink 3.5.1.
+1.3.5 – die Wegbeschreibung in der Oberfläche zeigt jetzt dorthin, wo die
+Seite seit flatlink 4.4 wirklich liegt: **Fußzeile → Browser-Erweiterung /
+API**. Bis 1.3.4 stand dort „Profil → Browser-Erweiterung" bzw. „Profil →
+Zugangsschlüssel"; beides gibt es im Profil nicht mehr, seit Erweiterung und
+Schnittstelle eine eigene Seite haben. Sonst unverändert.
+
+1.3.4 – gebaut gegen die Schnittstelle von flatlink 3.5.1. Sie ist bis heute
+unverändert gültig: Der `domain`-Parameter aus flatlink 5.0 ist optional, und
+ohne Angabe gilt die Hauptdomain.

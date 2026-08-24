@@ -25,7 +25,7 @@ configuration.
 
 ## Creating a key
 
-*Profile → API → Create.* The key is shown **once** and never again — only
+*Footer → Browser extension / API → Create.* The key is shown **once** and never again — only
 its hash is stored. If it is lost, revoke it and create a new one.
 
 A key starts with `flk_`. That is deliberate: if it accidentally shows up in

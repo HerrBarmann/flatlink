@@ -22,7 +22,7 @@
     "message": "Am schnellsten geht es mit einem Verbindungscode: Auf deinem flatlink-Server unter"
   },
   "setupIntroPath": {
-    "message": "Profil → Browser-Erweiterung"
+    "message": "Fußzeile → Browser-Erweiterung / API"
   },
   "setupIntroB": {
     "message": "erzeugen, hier einfügen – Adresse und Zugangsschlüssel stehen darin."
@@ -169,7 +169,7 @@
     "message": "Den Code erzeugst du auf deinem flatlink-Server unter"
   },
   "pairingHintPath": {
-    "message": "Profil → Browser-Erweiterung"
+    "message": "Fußzeile → Browser-Erweiterung / API"
   },
   "pairingHintB": {
     "message": "Er enthält Adresse und Zugangsschlüssel – einmal kopieren, hier einfügen, fertig."
@@ -190,7 +190,7 @@
     "message": "Den legst du auf deinem flatlink-Server an:"
   },
   "tokenHintPath": {
-    "message": "Profil → Zugangsschlüssel"
+    "message": "Fußzeile → Browser-Erweiterung / API"
   },
   "tokenHintB": {
     "message": "Er wird nur einmal angezeigt. Gespeichert wird er im lokalen Speicher dieses Browsers – nicht in der Browser-Synchronisierung, damit er nicht durch fremde Rechenzentren wandert."

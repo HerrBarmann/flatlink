@@ -22,7 +22,7 @@
     "message": "The quickest way is a pairing code: on your flatlink server, under"
   },
   "setupIntroPath": {
-    "message": "Profile → Browser extension"
+    "message": "Footer → Browser extension / API"
   },
   "setupIntroB": {
     "message": "generate one and paste it here – it holds both the address and the API key."
@@ -169,7 +169,7 @@
     "message": "You generate the code on your flatlink server, under"
   },
   "pairingHintPath": {
-    "message": "Profile → Browser extension"
+    "message": "Footer → Browser extension / API"
   },
   "pairingHintB": {
     "message": "It holds the address and the API key – copy it once, paste it here, done."
@@ -190,7 +190,7 @@
     "message": "You create one on your flatlink server:"
   },
   "tokenHintPath": {
-    "message": "Profile → API keys"
+    "message": "Footer → Browser extension / API"
   },
   "tokenHintB": {
     "message": "It is shown only once. It is kept in this browser's local storage – not in browser sync, so it never travels through anyone else's data centre."
