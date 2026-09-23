@@ -33,6 +33,39 @@ declare(strict_types=1);
  * @return array<string,string>
  */
 /**
+ * Darf auf diesem QR-Code die Absenderzeile entfallen?
+ *
+ * WER darüber entscheidet, hängt am Typ, und das ist der ganze Punkt:
+ *
+ *   Kurzlink  – der BESITZER des Links, nicht der Aufrufer. Ein gedruckter
+ *               Code gehört zu seinem Link; entschiede der Aufrufer, ließe
+ *               sich die Zeile abstreifen, indem ein anderes Konto das Bild
+ *               holt. Ein herrenloser Link (anonym angelegt) trägt sie immer.
+ *
+ *   statisch  – der AUFRUFER, denn einen Besitzer gibt es nicht: WLAN-,
+ *               Kontakt-, Termin- und GS1-Codes sowie der Designer im Modus
+ *               „ohne Kürzen" hängen an keinem Konto. Bis 5.4.2 lief hier
+ *               dieselbe Besitzerprüfung, fiel auf null und damit immer auf
+ *               „Zeile drauf" – auch bei einem Konto, das genau dafür zahlt,
+ *               und selbst beim Admin.
+ *
+ * Bewusst nicht über einen URL-Parameter steuerbar: Sonst wäre das Recht
+ * eine Bitte. Und bewusst ohne Blick in die Konfiguration – OB die Instanz
+ * überhaupt eine Zeile führt (`qr_brand_text`), ist eine andere Frage als
+ * WER sie weglassen darf. Nur so ist die Regel prüfbar, ohne dass ein Test
+ * an der Konfiguration dreht.
+ *
+ * @param string      $typ       'link' oder ein statischer Typ
+ * @param string|null $besitzer  Konto des Links (nur bei 'link' von Belang)
+ * @param string|null $aufrufer  angemeldetes Konto, null bei Gästen
+ */
+function qr_ohne_absenderzeile(string $typ, ?string $besitzer, ?string $aufrufer): bool
+{
+    $konto = $typ === 'link' ? $besitzer : $aufrufer;
+    return $konto !== null && $konto !== '' && user_can($konto, 'qr_unbranded');
+}
+
+/**
  * Stehen die statischen QR-Werkzeuge ohne Anmeldung offen?
  *
  * Gemeint sind die Generatoren, deren Ergebnis KEINEN Kurzlink braucht –

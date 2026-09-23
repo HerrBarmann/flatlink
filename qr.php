@@ -15,6 +15,7 @@ require_once __DIR__ . '/inc/qrlib.php';
 require_once __DIR__ . '/inc/domains.php';
 require_once __DIR__ . '/inc/auth.php';
 require_once __DIR__ . '/inc/groups.php';
+require_once __DIR__ . '/inc/qrpanel.php';   // qr_static_offen(), qr_ohne_absenderzeile()
 
 /**
  * Eingaben ausdrücklich aus GET und POST – nicht aus $_REQUEST.
@@ -41,7 +42,6 @@ if ($type !== 'link') {
     // sonst stünde das Werkzeug nur scheinbar hinter der Anmeldung. Der Typ
     // 'link' bleibt außen vor: Das Bild eines Kurzlinks trägt nichts, was
     // nicht schon in seiner Adresse steht.
-    require_once __DIR__ . '/inc/qrpanel.php';
     auth_boot();
     if (auth_user() === null && !qr_static_offen()) {
         http_response_code(403);
@@ -221,12 +221,16 @@ $ftext = trim((string)preg_replace('/[\x00-\x1F\x7F]/u', '', (string)(qin('ftext
 $ftext = $ftext === '' ? null : mb_strimwidth($ftext, 0, 24, '');
 
 // Absender-Zeile (mit Rahmen im Band, ohne Rahmen als dezente Zeile unter dem
-// Code). Sie entfällt, wenn das Konto des Link-Besitzers das Recht
-// 'qr_unbranded' hat – entscheidend ist also der Besitzer, nicht der Aufrufer.
-// Bewusst nicht per URL-Parameter steuerbar.
+// Code). Wer über sie entscheidet, hängt am Typ – beim Kurzlink der Besitzer,
+// beim statischen Code der Aufrufer. Die Begründung steht bei der Funktion.
+//
+// Für die statischen Typen lief auth_boot() schon oben bei der Zugangsprüfung;
+// beim Typ 'link' ist die Sitzung hier noch nicht geöffnet – dort fragt die
+// Funktion aber ohnehin nur den Besitzer.
 $brandText = (string)cfg('qr_brand_text');
-$unbranded = $owner !== null && user_can((string)$owner, 'qr_unbranded');
-$brand = ($brandText === '' || $unbranded) ? null : $brandText;
+$aufrufer  = $type === 'link' ? null : (auth_user()['name'] ?? null);
+$brand = ($brandText === '' || qr_ohne_absenderzeile($type, $owner === null ? null : (string)$owner, $aufrufer))
+    ? null : $brandText;
 
 // Optionales Symbol neben der Absenderzeile
 $glyphSvg = (string)cfg('qr_brand_glyph_svg');
