@@ -358,7 +358,7 @@ function bio_render(string $code, array $l, string $domain = ''): never
         . '<link rel="canonical" href="' . e(base_url() . '/' . $code) . '">';
     $favicon = (string)cfg('favicon');
     if ($favicon !== '') echo '<link rel="icon" href="' . e(base_url() . '/assets/' . $favicon) . '">';
-    echo '<link rel="stylesheet" href="' . e(base_url()) . '/assets/bio.css">';
+    echo '<link rel="stylesheet" href="' . e(asset_v('assets/bio.css', base_url())) . '">';
     // Nur die vier gewählten Farben als Variablen – kein Nutzer-Text landet in
     // einem style-Attribut, und die Werte sind zuvor gegen #rrggbb geprüft.
     $akzent = trim((string)cfg('bio_footer_accent'));

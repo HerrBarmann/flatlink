@@ -87,7 +87,7 @@ page_header(t('GS1 Digital Link erstellen'), false,
 </div>
 </div>
 
-<script src="assets/qroptions.js" defer></script>
-<script src="assets/gs1-qr.js" defer></script>
+<script src="<?= e(asset_v('assets/qroptions.js', '.')) ?>" defer></script>
+<script src="<?= e(asset_v('assets/gs1-qr.js', '.')) ?>" defer></script>
 
 <?php page_footer(); ?>

@@ -854,14 +854,14 @@ function page_header(string $title, bool $admin = false, ?string $desc = null, ?
     if ($admin) {
         echo '<meta name="robots" content="noindex">';
     }
-    echo '<link rel="stylesheet" href="' . $root . '/assets/style.css">';
+    echo '<link rel="stylesheet" href="' . e(asset_v('assets/style.css', $root)) . '">';
     // Eigenes Aussehen: assets/custom.css wird nach dem Standard-Stylesheet
     // geladen und überschreibt es damit. Die Datei ist per .gitignore
     // ausgenommen und übersteht jedes Update. Der Zeitstempel im
     // Query-String sorgt dafür, dass Browser Änderungen sofort sehen.
     $custom = dirname(__DIR__) . '/assets/custom.css';
     if (is_file($custom)) {
-        echo '<link rel="stylesheet" href="' . $root . '/assets/custom.css?v=' . filemtime($custom) . '">';
+        echo '<link rel="stylesheet" href="' . e(asset_v('assets/custom.css', $root)) . '">';
     }
     $favicon = (string)cfg('favicon');
     if ($favicon !== '') {
@@ -880,7 +880,7 @@ function page_header(string $title, bool $admin = false, ?string $desc = null, ?
     // Wert in der Konfiguration nimmt die Variante wieder zurück – ohne die
     // Stile zu löschen und ohne eine einzige Vorlage anzufassen.
     $bodyClass = trim((string)cfg('body_class'));
-    echo '<script src="' . $root . '/assets/app.js" defer></script>'
+    echo '<script src="' . e(asset_v('assets/app.js', $root)) . '" defer></script>'
         . '</head><body' . ($bodyClass !== '' ? ' class="' . e($bodyClass) . '"' : '') . '>'
         // Erste Station beim Tabben: über die Kopfzeile hinweg zum Inhalt
         . '<a class="skip" href="#inhalt">' . t('Zum Inhalt springen') . '</a>'
@@ -1045,6 +1045,27 @@ function origin_note(): string
  * und hier verlinken.
  */
 /**
+ * Adresse einer eigenen Datei unter assets/, mit ihrem Zeitstempel als ?v=.
+ *
+ * Ohne den Anhang schätzt jeder Browser selbst, wie lange er eine Datei
+ * aufheben darf – der Webserver sagt es ihm meist nicht, und üblich sind
+ * 10 % ihres Alters. Ein style.css, das knapp drei Monate unverändert lag,
+ * blieb nach einem Update so bis zu acht Tage lang im Zwischenspeicher: neues
+ * Markup, altes Aussehen (5.5.0, Menü links mit Aufzählungspunkten). Mit dem
+ * Zeitstempel ist jede neue Fassung eine neue Adresse.
+ *
+ * $pfad relativ zum Webroot ('assets/app.js'), $vor das, was davor gehört
+ * ('.', '..', base_url()). Fehlt die Datei, bleibt die Adresse ohne Anhang.
+ */
+function asset_v(string $pfad, string $vor = '.'): string
+{
+    $pfad = ltrim($pfad, '/');
+    $datei = dirname(__DIR__) . '/' . $pfad;
+    $v = is_file($datei) ? '?v=' . filemtime($datei) : '';
+    return rtrim($vor, '/') . '/' . $pfad . $v;
+}
+
+/**
  * Ein weiteres Skript für diese Seite anfordern.
  *
  * Wird vor dem schließenden </body> ausgegeben. Vor dieser Stelle hängten
@@ -1085,7 +1106,7 @@ function page_footer(): void
     // Inline-Skript, deshalb verträgt er sich mit der CSP
     echo lang_js();
     foreach ((array)($GLOBALS['_page_js'] ?? []) as $js) {
-        echo '<script src="' . e($root . '/' . ltrim($js, '/')) . '" defer></script>';
+        echo '<script src="' . e(asset_v($js, $root)) . '" defer></script>';
     }
     echo '</body></html>';
 }

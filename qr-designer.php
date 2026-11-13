@@ -269,6 +269,6 @@ $statischText = trim((string)($_GET['u'] ?? ''));
 
 </div><!-- /.designer-stage -->
 <?php if (function_exists('designer_outro')) echo designer_outro(); ?>
-<script src="assets/qroptions.js" defer></script>
-<script src="assets/qrdesign.js" defer></script>
+<script src="<?= e(asset_v('assets/qroptions.js', '.')) ?>" defer></script>
+<script src="<?= e(asset_v('assets/qrdesign.js', '.')) ?>" defer></script>
 <?php page_footer(); ?>

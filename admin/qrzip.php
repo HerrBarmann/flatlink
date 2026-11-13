@@ -284,6 +284,6 @@ if ($fehler !== null) echo '<div class="flash flash-err">' . e($fehler) . '</div
     </form>
     <?php endif; ?>
 </div>
-<script src="../assets/qroptions.js" defer></script>
-<script src="../assets/qrzip.js" defer></script>
+<script src="<?= e(asset_v('assets/qroptions.js', '..')) ?>" defer></script>
+<script src="<?= e(asset_v('assets/qrzip.js', '..')) ?>" defer></script>
 <?php page_footer(); ?>

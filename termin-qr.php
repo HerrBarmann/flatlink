@@ -73,7 +73,7 @@ page_header(t('Termin-QR-Code erstellen'), false,
 </div>
 </div>
 
-<script src="assets/qroptions.js" defer></script>
-<script src="assets/termin-qr.js" defer></script>
+<script src="<?= e(asset_v('assets/qroptions.js', '.')) ?>" defer></script>
+<script src="<?= e(asset_v('assets/termin-qr.js', '.')) ?>" defer></script>
 
 <?php page_footer(); ?>
