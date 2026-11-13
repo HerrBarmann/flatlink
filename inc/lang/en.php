@@ -1393,6 +1393,8 @@ your password immediately and contact us.
     'Die QR-Generatoren stehen auf dieser Instanz nur angemeldeten Konten offen.' => 'On this flatlink server the QR generators are available to signed-in accounts only.',
     'Nur nach Anmeldung' => 'Sign-in required',
     'QR-Codes ohne Kurzlink' => 'QR codes without a short link',
+    'QR-Codes ohne Anmeldung' => 'QR codes without signing in',
+    'Kurzlinks legen nur angemeldete Konten an.' => 'Only signed-in accounts can create short links.',
     'Diese Werkzeuge stehen allen offen. Der fertige Code enthält die Daten selbst – gespeichert wird nichts.' => 'These tools are open to everyone. The finished code carries the data itself – nothing is stored.',
     'Link/Text' => 'Link/text',
     'QR-Generatoren ohne Kurzlink' => 'QR generators without a short link',

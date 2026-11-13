@@ -26,11 +26,13 @@ if ($mode === 'off') {
     // im Lesezeichen und in Suchergebnissen steht das sonst als Absage.
     $offen = qr_static_offen();
     page_header($offen ? t('QR-Codes') : t('Anmelden'));
-    echo '<div class="card center"><h1>' . e(cfg('site_name')) . '</h1>'
-        . '<p>' . t('Die öffentliche Link-Erstellung ist deaktiviert.') . '</p>'
-        . '<p><a class="btn" href="admin/">' . t('Zum Login') . '</a></p></div>';
+    // Sind die QR-Werkzeuge offen, sind sie für Gäste die Hauptaufgabe dieser
+    // Seite und stehen oben; die Überschrift sagt, was man hier tun kann. Der
+    // Name der Instanz stand hier bis 5.5 als Überschrift – direkt unter
+    // demselben Namen im Kopf, sobald eine Instanz ihn dort zeigt.
+    $login = '<p><a class="btn" href="admin/">' . t('Zum Login') . '</a></p>';
     if ($offen) {
-        echo '<div class="card center"><h2>' . t('QR-Codes ohne Kurzlink') . '</h2>'
+        echo '<div class="card center"><h1>' . t('QR-Codes ohne Anmeldung') . '</h1>'
             . '<p class="muted">' . t('Diese Werkzeuge stehen allen offen. Der fertige Code enthält die Daten selbst – gespeichert wird nichts.') . '</p>'
             . '<p class="qr-links">'
             . '<a class="btn" href="qr-designer.php?m=statisch">' . t('Link/Text') . '</a> '
@@ -39,6 +41,11 @@ if ($mode === 'off') {
             . '<a class="btn" href="termin-qr.php">' . t('Termin') . '</a> '
             . '<a class="btn" href="gs1-qr.php">GS1</a>'
             . '</p></div>';
+        echo '<div class="card center"><h2>' . t('Kurzlinks') . '</h2>'
+            . '<p>' . t('Kurzlinks legen nur angemeldete Konten an.') . '</p>' . $login . '</div>';
+    } else {
+        echo '<div class="card center"><h1>' . e(cfg('site_name')) . '</h1>'
+            . '<p>' . t('Die öffentliche Link-Erstellung ist deaktiviert.') . '</p>' . $login . '</div>';
     }
     page_footer();
     exit;
