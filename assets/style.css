@@ -168,10 +168,13 @@ code, .prefix { font-family: var(--mono); }
 /* Zwei Spalten, sobald der Schirm sie trägt – darunter bleibt es eine.
    Grid und nicht `columns`: Beim Aufklappen eines Abschnitts soll kein
    Nachbar in die andere Spalte rutschen. align-items:start hält die
-   Abschnitte oben, statt sie auf Zeilenhöhe zu strecken. */
-.spalten { display: grid; gap: 0 2.2rem; }
+   Abschnitte oben, statt sie auf Zeilenhöhe zu strecken.
+   minmax(0, …): Eine Rasterspalte ohne Angabe ist so breit wie ihr
+   breitester Inhalt – eine Schlüsseltabelle schob die Seite auf dem
+   Smartphone sonst seitlich aus dem Bild. */
+.spalten { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0 2.2rem; }
 @media (min-width: 860px) {
-    .spalten { grid-template-columns: 1fr 1fr; align-items: start; }
+    .spalten { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
     /* Was über beide Spalten gehört – etwa das Löschen des Kontos, das
        unten und für sich stehen soll. */
     .spalten > .voll { grid-column: 1 / -1; }
@@ -247,6 +250,10 @@ details.abschnitt .abschnitt-inhalt > :first-child { margin-top: 0; }
    Abstand klebte die Überschrift am oberen Fensterrand, und was darüber steht
    – die Rückmeldung zur eben gemachten Sache – wäre außer Sicht. */
 h2[id] { scroll-margin-top: 5rem; }
+/* Überschriften tragen manchmal eine Adresse („QR-Designer für https://…/Gw…"),
+   und eine Adresse hat keine Stelle zum Umbrechen. Ohne das schob sie die
+   Seite auf dem Smartphone seitlich aus dem Bild. */
+h1, h2, h3 { overflow-wrap: anywhere; }
 .card.highlight { border-color: var(--accent); border-left-width: 3px; }
 .card.center { text-align: center; margin: 3rem auto; max-width: 420px; }
 
@@ -321,7 +328,13 @@ input[type="range"] { width: 100%; accent-color: var(--accent); }
 .prefix { color: var(--muted); white-space: nowrap; }
 .grid-form { display: grid; gap: 0.4rem; }
 .grid-form button { justify-self: start; margin-top: 0.6rem; }
-.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; }
+/* minmax(0, 1fr) statt 1fr: Eine 1fr-Spalte ist mindestens so breit wie ihr
+   Inhalt, und ein Datumsfeld hat eine große Mindestbreite – auf dem Smartphone
+   schob das die Seite seitlich aus dem Bild („Mehr Optionen" beim Anlegen).
+   Unter 560 px ohnehin eine Spalte: Zwei Felder nebeneinander sind dort
+   keine 170 px breit. */
+.two-col { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.8rem; }
+@media (max-width: 560px) { .two-col { grid-template-columns: minmax(0, 1fr); } }
 
 /* Buttons — sprechen Mono, sie sind Kommandos.
    Primär ist die einzige gefüllte Akzentfläche im Sichtfeld. */
