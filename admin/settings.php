@@ -418,7 +418,7 @@ $host = preg_replace('#^https?://#', '', base_url());
 
         <label for="s-prefix"><?= t('Prefix für öffentliche Links') ?></label>
         <input id="s-prefix" type="text" name="public_prefix" value="<?= e($s['public_prefix']) ?>" pattern="[A-Za-z0-9_-]{1,64}"
-               oninput="document.getElementById('pfx-preview').textContent = this.value || 'p'">
+               data-mirror="#pfx-preview" data-mirror-empty="p">
         <p class="muted small"><?= t('Gilt nur im Prefix-Modus und nur für neue Links – bestehende Kurzlinks behalten ihre Adresse.') ?></p>
 
         <label for="s-rate"><?= t('Rate-Limit der öffentlichen Erstellung (Links pro IP und Stunde)') ?></label>

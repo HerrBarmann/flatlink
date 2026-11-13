@@ -101,7 +101,7 @@ show_flash();
     <?php if ($code !== null): ?>
     <div class="flash flash-ok">
         <strong><?= t('Dein Verbindungscode:') ?></strong>
-        <p><input type="text" value="<?= e($code) ?>" readonly onclick="this.select()"
+        <p><input type="text" value="<?= e($code) ?>" readonly data-select
                   style="font-family:var(--mono);font-size:0.85rem" aria-label="<?= t('Verbindungscode') ?>"></p>
         <p class="small"><?= t('Er enthält ein Zugangsmittel: nicht weitergeben. Zurückziehen lässt er sich unten bei den Zugangsschlüsseln.') ?></p>
     </div>

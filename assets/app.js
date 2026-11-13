@@ -38,6 +38,25 @@
         if (el && el.form) el.form.submit();
     });
 
+    // <input data-mirror="#ziel" data-mirror-empty="…"> – schreibt die Eingabe
+    // beim Tippen in ein anderes Element (Vorschau). War bis 5.4 ein oninput-
+    // Attribut, das die CSP (script-src 'self') stillschweigend verworfen hat:
+    // Die Vorschau des Präfixes in den Grundregeln reagierte nie.
+    document.addEventListener('input', function (e) {
+        var el = e.target.closest('[data-mirror]');
+        if (!el) return;
+        var ziel = document.querySelector(el.getAttribute('data-mirror'));
+        if (ziel) ziel.textContent = el.value || el.getAttribute('data-mirror-empty') || '';
+    });
+
+    // <input readonly data-select> – ein Klick markiert den ganzen Inhalt
+    // (Verbindungscode zum Abschreiben). Ebenfalls früher ein onclick, das die
+    // CSP verworfen hat.
+    document.addEventListener('click', function (e) {
+        var el = e.target.closest('input[data-select]');
+        if (el) el.select();
+    });
+
     // <form data-confirm="Wirklich löschen?">
     document.addEventListener('submit', function (e) {
         var form = e.target.closest('[data-confirm]');
