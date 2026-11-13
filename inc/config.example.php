@@ -302,6 +302,16 @@ return [
     // Zeile CSS zu löschen. Mehrere Klassen durch Leerzeichen getrennt.
     'body_class' => '',
 
+    // Wo das Menü für Angemeldete steht.
+    //   'top'  – eine Zeile im Kopf, die Verwaltung als Klappe (Vorgabe)
+    //   'side' – links nach Bereichen (Kurzlinks, QR-Codes, Verwaltung), im
+    //            Kopf nur die angemeldete Person; auf schmalen Bildschirmen
+    //            dieselbe Liste zum Aufklappen. Für Instanzen mit Verwaltung,
+    //            in denen die Zeile oben zu voll wird.
+    // Beide zeigen dieselben Punkte – nur, was das Konto benutzen darf. Gäste
+    // sehen in beiden Fällen die kurze Zeile oben.
+    'nav_layout' => 'top',
+
     // Eigenes Logo in der Kopfzeile. Dateiname innerhalb von assets/,
     // leer = nur der Name der Instanz. SVG oder PNG, etwa 'logo.svg'.
     'logo' => '',

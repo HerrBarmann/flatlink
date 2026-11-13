@@ -120,6 +120,37 @@ code, .prefix { font-family: var(--mono); }
     .nav-panel a { padding: 0.6rem 0.7rem; }
 }
 
+/* Menü links ('nav_layout' = 'side'): Leiste neben dem Inhalt, im Kopf nur
+   die angemeldete Person. Unter 860 px dieselbe Liste als Klappe über dem
+   Inhalt – die andere Fassung ist jeweils ganz weg (display: none), damit
+   Vorleseprogramme das Menü nur einmal hören. */
+.app-user { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.3rem 1.1rem; margin-left: auto; }
+.app-user-name { font-weight: 600; }
+.app-user a { color: var(--ink); text-decoration: underline; }
+.app-user a[aria-current] { font-weight: 600; }
+.app-layout { display: grid; grid-template-columns: 13rem minmax(0, 1fr); gap: 2.4rem; align-items: start; flex: 1 0 auto; }
+.app-layout > main { min-width: 0; }
+.side-nav-side { position: sticky; top: 1rem; }
+.side-nav ul { list-style: none; margin: 0; padding: 0; }
+.side-nav-group + .side-nav-group { margin-top: 1.1rem; }
+.side-nav-title {
+    margin: 0 0 0.3rem 0.75rem; color: var(--muted);
+    font-family: var(--mono); font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em;
+}
+.side-nav a { display: block; padding: 0.45rem 0.75rem; color: var(--ink); border-left: 3px solid transparent; }
+.side-nav a:hover { background: var(--accent-tint); text-decoration: none; }
+.side-nav a[aria-current] { font-weight: 600; background: var(--accent-tint); border-left-color: var(--accent); }
+.side-nav-mobile { display: none; }
+@media (max-width: 860px) {
+    .app-layout { grid-template-columns: minmax(0, 1fr); gap: 0; }
+    .side-nav-side { display: none; }
+    .side-nav-mobile { display: block; margin: 0 0 1.4rem; border: 1px solid var(--line); border-radius: var(--radius); }
+    .side-nav-mobile > summary { cursor: pointer; padding: 0.7rem 0.9rem; font-weight: 600; }
+    .side-nav-mobile[open] > summary { border-bottom: 1px solid var(--line); }
+    .side-nav-mobile nav { padding: 0.5rem 0 0.7rem; }
+    .app-user { margin-left: 0; }
+}
+
 .site-foot {
     margin-top: 3rem; padding-top: 1.2rem; border-top: 1px solid var(--line);
     color: var(--muted); font-size: 0.8rem; text-align: center;

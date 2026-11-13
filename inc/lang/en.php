@@ -1410,4 +1410,8 @@ your password immediately and contact us.
     'Öffentlich anbieten (auch ohne Anmeldung)' => 'Offer publicly (no sign-in needed)',
     'Öffentliche Freigabe zurücknehmen' => 'Withdraw public availability',
     'QR-Codes' => 'QR codes',
+    // Menü links ('nav_layout' = 'side')
+    'Kurzlinks' => 'Short links',
+    'Hauptmenü' => 'Main menu',
+    'Menü' => 'Menu',
 ];

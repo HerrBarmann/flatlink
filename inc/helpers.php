@@ -704,6 +704,99 @@ function security_headers(): void
 }
 
 /**
+ * Das Menü des Login-Bereichs als Tabelle: Bereiche mit ihren Punkten – und nur
+ * die Punkte, die das Konto benutzen darf.
+ *
+ * Aus derselben Tabelle entstehen beide Darstellungen (siehe 'nav_layout'):
+ * die Zeile oben mit der Verwaltungsklappe und die Leiste links nach
+ * Bereichen. Ein Punkt kann so nicht im Menü stehen, ohne dass sein Recht
+ * geprüft wurde – gleich, wie er gezeichnet wird.
+ *
+ * Unterseiten lassen den Punkt ihrer Liste aktiv: Bearbeiten und Statistik
+ * gehören zu „Links", die Generatoren für WLAN, Kontakt, Termin und GS1 zum
+ * QR-Designer, dessen Reiter sie sind. Ein Bereich mit nur einem Punkt
+ * verliert seine Überschrift – er ist dann kein Bereich, sondern ein Punkt.
+ *
+ * @return list<array{schluessel: string, titel: string,
+ *                    punkte: list<array{schluessel: string, text: string, href: string, aktiv: bool}>}>
+ */
+function nav_menu(array $u, string $adm, string $pub): array
+{
+    // Die Rechte-Schicht ist nicht auf jeder Seite geladen; das Menü läuft aber
+    // überall.
+    require_once __DIR__ . '/groups.php';
+    $skript = (string)($_SERVER['SCRIPT_NAME'] ?? '');
+    $ist = static function (string ...$dateien) use ($skript): bool {
+        foreach ($dateien as $d) {
+            if (str_ends_with($skript, '/' . $d)) return true;
+        }
+        return false;
+    };
+    $punkt = static fn(string $k, string $text, string $href, bool $aktiv): array =>
+        ['schluessel' => $k, 'text' => $text, 'href' => $href, 'aktiv' => $aktiv];
+
+    $links = [$punkt('links', t('Links'), $adm . 'index.php',
+        $ist('admin/index.php', 'admin/edit.php', 'admin/stats.php'))];
+    // Nur zeigen, wo es auch benutzbar ist – ein Punkt, der zur Absage
+    // führt, ist keine Werbung, sondern eine Sackgasse.
+    if (user_can($u['name'], 'bio_page')) {
+        $links[] = $punkt('bio', t('Link-in-Bio'), $adm . 'bio.php', $ist('admin/bio.php'));
+    }
+
+    $qr = [
+        $punkt('qr', t('QR-Designer'), $pub . 'qr-designer.php',
+            $ist('qr-designer.php', 'wlan-qr.php', 'vcard-qr.php', 'termin-qr.php', 'gs1-qr.php')),
+        $punkt('qrzip', t('QR-Serie'), $adm . 'qrzip.php', $ist('admin/qrzip.php')),
+    ];
+    // Die Bibliothek ist ein eigener Ort, kein Anhang des Designers.
+    if (user_can($u['name'], 'logo_upload')) {
+        $qr[] = $punkt('logos', t('Logos'), $adm . 'logos.php', $ist('admin/logos.php'));
+    }
+
+    // Verwaltung: was das Konto auch benutzen darf. Administratoren alles, eine
+    // Redaktion nur die Meldungen. Wer nichts davon hat, sieht den Bereich nicht.
+    $verwaltung = [];
+    $seiten = $u['role'] === 'admin'
+        ? ['users' => t('Nutzer'), 'groups' => t('Gruppen'), 'reports' => t('Meldungen'),
+           'audit' => t('Protokoll'), 'settings' => t('Einstellungen')]
+        : (user_can($u['name'], 'reports_manage') ? ['reports' => t('Meldungen')] : []);
+    foreach ($seiten as $k => $text) {
+        $verwaltung[] = $punkt($k, $text, $adm . $k . '.php', $ist('admin/' . $k . '.php'));
+    }
+
+    $bereiche = [];
+    foreach ([['links', t('Kurzlinks'), $links], ['qr', t('QR-Codes'), $qr],
+              ['verwaltung', t('Verwaltung'), $verwaltung]] as [$k, $titel, $punkte]) {
+        if ($punkte === []) continue;
+        $bereiche[] = ['schluessel' => $k, 'titel' => count($punkte) > 1 ? $titel : '', 'punkte' => $punkte];
+    }
+    return $bereiche;
+}
+
+/**
+ * Die Leiste links: Bereiche als Gruppen mit Überschrift, der aktive Punkt mit
+ * aria-current. Gibt eine Liste zurück, weil page_header() sie zweimal braucht
+ * (Seitenleiste und aufklappbar für schmale Bildschirme).
+ *
+ * @param list<array{schluessel: string, titel: string, punkte: list<array>}> $bereiche
+ */
+function nav_side_list(array $bereiche): string
+{
+    $html = '';
+    foreach ($bereiche as $b) {
+        $html .= '<div class="side-nav-group">';
+        if ($b['titel'] !== '') $html .= '<p class="side-nav-title">' . e($b['titel']) . '</p>';
+        $html .= '<ul>';
+        foreach ($b['punkte'] as $p) {
+            $html .= '<li><a href="' . e($p['href']) . '" data-key="' . e($p['schluessel']) . '"'
+                . ($p['aktiv'] ? ' aria-current="page"' : '') . '>' . e($p['text']) . '</a></li>';
+        }
+        $html .= '</ul></div>';
+    }
+    return $html;
+}
+
+/**
  * Seitenkopf.
  *
  * @param ?string $desc       Meta-Description (nur für öffentliche Seiten setzen)
@@ -818,65 +911,88 @@ function page_header(string $title, bool $admin = false, ?string $desc = null, ?
     // Link-Erstellung ist deaktiviert" und musste sich zurückklicken.
     $heim = $u !== null ? $adm . 'index.php' : $root . '/';
     echo demo_banner();
-    echo '<header class="site-head"><a class="brand" href="' . e($heim) . '">' . $mark . '</a>';
-    echo '<nav>';  // umbruchfähig; die Verwaltungsklappe darf auf schmalen Schirmen eine eigene Zeile bekommen
     // Zusätzliche Einträge dieser Instanz. 'nav_links' erscheint immer,
     // 'nav_links_guest' nur für Nichtangemeldete – nützlich für Seiten, die
     // im Login-Bereich ohnehin über einen eigenen Punkt erreichbar sind.
-    $extra = (array)cfg('nav_links');
-    if ($u === null) $extra += (array)cfg('nav_links_guest');
-    foreach ($extra as $label => $url) {
-        $href = preg_match('#^(https?:)?//#', (string)$url) === 1
+    $extra = [];
+    foreach ((array)cfg('nav_links') + ($u === null ? (array)cfg('nav_links_guest') : []) as $label => $url) {
+        $extra[(string)$label] = preg_match('#^(https?:)?//#', (string)$url) === 1
             ? (string)$url
             : $pub . ltrim((string)$url, '/');
-        echo '<a href="' . e($href) . '">' . e((string)$label) . '</a> ';
+    }
+    $menu = $u !== null ? nav_menu($u, $adm, $pub) : [];
+    $wer = $u !== null ? e(mb_strimwidth($u['display'] ?? $u['name'], 0, 28, '…')) : '';
+
+    // Zwei Darstellungen derselben Tabelle. 'top' (Vorgabe): eine Zeile im
+    // Kopf, die Verwaltung als Klappe. 'side': das Menü links nach Bereichen,
+    // im Kopf nur die angemeldete Person – für Instanzen mit vielen Konten und
+    // Verwaltung, in denen die Zeile oben zu voll wird. Gäste sehen in beiden
+    // Fällen dieselbe kurze Zeile; ein Menü brauchen sie nicht.
+    if ($u !== null && cfg('nav_layout') === 'side') {
+        echo '<header class="site-head site-head-app"><a class="brand" href="' . e($heim) . '">' . $mark . '</a>';
+        $profil = str_ends_with((string)($_SERVER['SCRIPT_NAME'] ?? ''), '/admin/profile.php');
+        echo '<div class="app-user"><span class="app-user-name">' . $wer . '</span> '
+            . '<a href="' . $adm . 'profile.php"' . ($profil ? ' aria-current="page"' : '') . '>' . t('Profil') . '</a> '
+            . '<a href="' . $adm . 'logout.php">' . t('Abmelden') . '</a></div>';
+        echo '</header>';
+        if ($extra !== []) {
+            $eigene = [];
+            foreach ($extra as $label => $href) {
+                $eigene[] = ['schluessel' => 'extra', 'text' => $label, 'href' => $href, 'aktiv' => false];
+            }
+            $menu[] = ['schluessel' => 'extra', 'titel' => '', 'punkte' => $eigene];
+        }
+        // Dieselbe Liste zweimal: als Leiste ab mittlerer Breite, darunter
+        // aufklappbar. Die jeweils andere ist per CSS ausgeblendet (display:
+        // none), Vorleseprogramme sehen also nur eine. Ohne JavaScript, weil
+        // <details> das Aufklappen selbst kann.
+        $liste = nav_side_list($menu);
+        echo '<div class="app-layout">'
+            . '<nav class="side-nav side-nav-side" aria-label="' . t('Hauptmenü') . '">' . $liste . '</nav>'
+            . '<details class="side-nav side-nav-mobile"><summary>' . t('Menü') . '</summary>'
+            . '<nav aria-label="' . t('Hauptmenü') . '">' . $liste . '</nav></details>';
+        // tabindex: Die Sprungmarke „Zum Inhalt" setzt den Fokus wirklich
+        // hierher, statt nur zu scrollen – sonst landete die nächste Tabulator-
+        // Taste wieder im Menü.
+        echo '<main id="inhalt" tabindex="-1">';
+        $GLOBALS['_page_app_layout'] = true;
+        return;
+    }
+
+    echo '<header class="site-head"><a class="brand" href="' . e($heim) . '">' . $mark . '</a>';
+    echo '<nav>';  // umbruchfähig; die Verwaltungsklappe darf auf schmalen Schirmen eine eigene Zeile bekommen
+    foreach ($extra as $label => $href) {
+        echo '<a href="' . e($href) . '">' . e($label) . '</a> ';
     }
     if ($u !== null) {
-        echo '<a href="' . $adm . 'index.php">' . t('Links') . '</a> '
-            . '<a href="' . $pub . 'qr-designer.php">' . t('QR-Designer') . '</a> '
-            . '<a href="' . $adm . 'qrzip.php">' . t('QR-Serie') . '</a> ';
-        // Nur zeigen, wo es auch benutzbar ist – ein Punkt, der zur Absage
-        // führt, ist keine Werbung, sondern eine Sackgasse.
-        if (function_exists('user_can') && user_can($u['name'], 'bio_page')) {
-            echo '<a href="' . $adm . 'bio.php">' . t('Link-in-Bio') . '</a> ';
-        }
-        // Die Bibliothek ist ein eigener Ort, kein Anhang des Designers.
-        if (function_exists('user_can') && user_can($u['name'], 'logo_upload')) {
-            echo '<a href="' . $adm . 'logos.php">' . t('Logos') . '</a> ';
-        }
-        // Die Klappe zeigt, was das Konto auch benutzen darf: Administratoren
-        // alles, eine Redaktion nur die Meldungen. Wer nichts davon hat,
-        // sieht die Klappe gar nicht.
-        $verwaltung = [];
-        if ($u['role'] === 'admin') {
-            $verwaltung = [
-                'users.php' => t('Nutzer'),
-                'groups.php' => t('Gruppen'),
-                'reports.php' => t('Meldungen'),
-                'audit.php' => t('Protokoll'),
-                'settings.php' => t('Einstellungen'),
-            ];
-        } else {
-            // Auf Seiten ohne Rechte-Schicht steht user_can() noch nicht bereit;
-            // die Navigation läuft aber überall.
-            require_once __DIR__ . '/groups.php';
-            if (user_can($u['name'], 'reports_manage')) {
-                $verwaltung = ['reports.php' => t('Meldungen')];
+        // Die Zeile hält ihre gewohnte Reihenfolge; die Bereiche gibt es nur
+        // in der Leiste.
+        $punkte = [];
+        $klappe = [];
+        foreach ($menu as $b) {
+            foreach ($b['punkte'] as $pt) {
+                if ($b['schluessel'] === 'verwaltung') $klappe[] = $pt;
+                else $punkte[$pt['schluessel']] = $pt;
             }
         }
-        if ($verwaltung !== []) {
-            $hier = basename((string)($_SERVER['SCRIPT_NAME'] ?? ''));
-            $drin = isset($verwaltung[$hier]);
-            echo '<details class="nav-more"><summary' . ($drin ? ' class="here"' : '') . '>'
-                . ($drin ? e($verwaltung[$hier]) : t('Verwaltung')) . '</summary><div class="nav-panel">';
-            foreach ($verwaltung as $datei => $label) {
-                echo '<a href="' . $adm . $datei . '"' . ($datei === $hier ? ' class="here"' : '') . '>'
-                    . e($label) . '</a>';
+        foreach (['links', 'qr', 'qrzip', 'bio', 'logos'] as $k) {
+            if (!isset($punkte[$k])) continue;
+            echo '<a href="' . e($punkte[$k]['href']) . '"' . ($punkte[$k]['aktiv'] ? ' aria-current="page"' : '')
+                . '>' . e($punkte[$k]['text']) . '</a> ';
+        }
+        if ($klappe !== []) {
+            $drin = null;
+            foreach ($klappe as $pt) if ($pt['aktiv']) $drin = $pt;
+            echo '<details class="nav-more"><summary' . ($drin !== null ? ' class="here"' : '') . '>'
+                . ($drin !== null ? e($drin['text']) : t('Verwaltung')) . '</summary><div class="nav-panel">';
+            foreach ($klappe as $pt) {
+                echo '<a href="' . e($pt['href']) . '"' . ($pt['aktiv'] ? ' class="here"' : '') . '>'
+                    . e($pt['text']) . '</a>';
             }
             echo '</div></details> ';
         }
         echo '<a class="who" href="' . $adm . 'profile.php" title="' . t('Profil / Passwort ändern') . '">'
-            . e(mb_strimwidth($u['display'] ?? $u['name'], 0, 28, '…')) . '</a> '
+            . $wer . '</a> '
             . '<a class="btn btn-small" href="' . $adm . 'logout.php">' . t('Abmelden') . '</a>';
     } else {
         if (settings()['registration'] === 'on') echo '<a href="' . $pub . 'register.php">' . t('Registrieren') . '</a> ';
@@ -960,7 +1076,10 @@ function page_footer(): void
             : $root . '/' . ltrim((string)$url, '/');
         $links .= ' · <a href="' . e($href) . '">' . e((string)$label) . '</a>';
     }
-    echo '</main><footer class="site-foot"><p>' . e(cfg('site_name'))
+    // Mit der Leiste links ('nav_layout' = 'side') steckt <main> in einem
+    // Raster, das hier mit zugeht.
+    echo '</main>' . (!empty($GLOBALS['_page_app_layout']) ? '</div>' : '')
+        . '<footer class="site-foot"><p>' . e(cfg('site_name'))
         . ' · ' . $links . '</p>' . origin_note() . '</footer></div>';
     // Übersetzungen für die Skripte – ein JSON-Datenblock, kein ausführbares
     // Inline-Skript, deshalb verträgt er sich mit der CSP
