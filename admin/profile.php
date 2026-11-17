@@ -415,9 +415,6 @@ $auf = fn(string $id): string => $zeige === $id ? ' open' : '';
         <button class="btn btn-small" type="submit"><?= t('Alle anderen Sitzungen abmelden') ?></button>
     </form>
     <?php endif; ?>
-</div>
-
-<div class="card">
     </div>
     </details>
 
