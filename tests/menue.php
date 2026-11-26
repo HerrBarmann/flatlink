@@ -138,6 +138,25 @@ pruefe('bei der Redaktion keine Überschrift über dem einzelnen Punkt „Meldun
 pruefe('Text wird maskiert', !str_contains(nav_side_list([['schluessel' => 'x', 'titel' => '<b>', 'punkte' => [
     ['schluessel' => 'x', 'text' => '<i>', 'href' => '"><x', 'aktiv' => false]]]]), '<i>'));
 
+// ---- Tab-Leiste für schmale Bildschirme (5.6) ------------------------------
+// Ohne 'nav_search' (Vorgabe): höchstens fünf Tabs; passen nicht alle Ziele
+// hinein, die häufigsten und „Mehr".
+$tabsVon = function (string $html): array {
+    preg_match_all('/data-key="([^"]+)"/', $html, $m);
+    return $m[1];
+};
+$adminTabs = $tabsVon(nav_tab_bar(menue_auf(M_ADMIN, 'admin/index.php'), '../admin/'));
+pruefe('Admin: vier häufige Ziele und „Mehr"', $adminTabs === ['links', 'qr', 'qrzip', 'mehr'], implode(',', $adminTabs));
+$kontoTabs = $tabsVon(nav_tab_bar(menue_auf(M_KONTO, 'admin/index.php'), '../admin/'));
+pruefe('Konto mit wenigen Zielen: alle als Tabs, kein „Mehr"',
+    !in_array('mehr', $kontoTabs, true) && count($kontoTabs) <= 5 && $kontoTabs[0] === 'links', implode(',', $kontoTabs));
+$html = nav_tab_bar(menue_auf(M_ADMIN, 'admin/users.php'), '../admin/');
+pruefe('Seite ohne eigenen Tab (Nutzer): „Mehr" ist markiert',
+    str_contains($html, 'href="#mehr" data-key="mehr" aria-current="page"'));
+$html = nav_tab_bar(menue_auf(M_ADMIN, 'admin/qrzip.php'), '../admin/');
+pruefe('Seite mit Tab (QR-Serie): der Tab ist markiert, „Mehr" nicht',
+    str_contains($html, 'data-key="qrzip" aria-current="page"') && !str_contains($html, 'data-key="mehr" aria-current'));
+
 // ---- Aufräumen -------------------------------------------------------------
 foreach ([M_ADMIN, M_KONTO, M_REDAKTION] as $k) user_delete($k);
 group_delete(M_GRUPPE);

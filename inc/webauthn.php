@@ -409,7 +409,56 @@ function passkey_hint_seen(string $user, bool $nie = false): void
  */
 function login_ziel(string $user): string
 {
-    return passkey_hint_due($user) ? 'passkey.php' : 'index.php';
+    if (passkey_hint_due($user)) return base_url() . '/admin/passkey.php';
+    // Der Rückweg gilt einmal: Er stammt aus der Adresse, über die jemand zur
+    // Anmeldung kam, und wurde dort schon geprüft – hier noch einmal, weil die
+    // Sitzung älter sein kann als die Prüfregel.
+    $next = login_next_pruefen((string)($_SESSION['login_next'] ?? ''));
+    unset($_SESSION['login_next']);
+    return base_url() . ($next ?? '/admin/index.php');
+}
+
+/**
+ * Die Antwort des Geräts in die flache Form bringen, die passkey_verify()
+ * liest. Das Skript des Kerns schickt sie schon so; das HFMT-Design-System und
+ * andere Bibliotheken legen die Felder in ein Unterobjekt `response`, wie die
+ * Schnittstelle des Browsers selbst.
+ */
+function passkey_antwort_flach(array $a): array
+{
+    $r = is_array($a['response'] ?? null) ? $a['response'] : $a;
+    return [
+        'id' => (string)($a['id'] ?? ''),
+        'clientDataJSON' => (string)($r['clientDataJSON'] ?? ''),
+        'authenticatorData' => (string)($r['authenticatorData'] ?? ''),
+        'signature' => (string)($r['signature'] ?? ''),
+        'userHandle' => (string)($r['userHandle'] ?? ''),
+    ];
+}
+
+/**
+ * Anmelden mit einem Passkey, ohne dass die Kennung vorher feststand.
+ *
+ * Das Gerät hat ohne Liste gesucht und sagt über das Handle, wen es meint; ob
+ * es darf, entscheidet die Unterschrift. Jeder Fehlschlag endet gleich (null),
+ * damit die Antwort nicht verrät, ob es das Konto gibt, ob es gesperrt ist
+ * oder ob nur die Bremse gegriffen hat.
+ *
+ * @return ?string das angemeldete Konto, sonst null
+ */
+function login_mit_passkey(?array $antwort): ?string
+{
+    $daten = $antwort === null ? null : passkey_antwort_flach($antwort);
+    $wer = $daten === null ? null : passkey_user_by_handle($daten['userHandle']);
+    if ($wer === null || !login_source_ok() || login_throttle_left($wer) > 0) {
+        webauthn_take_challenge('login');
+        return null;
+    }
+    if (passkey_verify($wer, $daten, true) !== null) {
+        login_failure_note();
+        return null;
+    }
+    return auth_login_passkey($wer) ? $wer : null;
 }
 
 /** Antwort als JSON ausgeben und beenden */

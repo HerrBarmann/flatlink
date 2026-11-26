@@ -206,3 +206,99 @@
     window.addEventListener('hashchange', oeffne);
     oeffne();
 })();
+
+/* ---- Suche überall ('nav_search') -------------------------------------------
+ *
+ * Das Feld im Kopf schickt ohne Skript an admin/suche.php. Mit Skript öffnen
+ * Tippen ins Feld, Absenden, Strg/⌘+K oder der Tab „Suche" einen Dialog; er
+ * holt beim Tippen dieselbe Seite und setzt ihre .suche-ergebnisse ein. Was
+ * gefunden wird und was das Konto sehen darf, entscheidet allein der Server. */
+(function () {
+    'use strict';
+    var UEB = {};
+    try { UEB = JSON.parse(document.getElementById('lang-js').textContent); } catch (e) {}
+    function t(s) { return UEB[s] || s; }
+
+    document.documentElement.classList.add('js');
+    var kopf = document.querySelector('form[data-palette]');
+    var dlg = kopf ? document.querySelector(kopf.getAttribute('data-palette')) : null;
+    if (!kopf || !dlg || typeof dlg.showModal !== 'function') return;
+    var form = dlg.querySelector('form');
+    var feld = form.querySelector('input[name=q]');
+    var aus = dlg.querySelector('.suche-ergebnisse');
+    var kopfFeld = kopf.querySelector('input[name=q]');
+    var lauf = 0, warte = null;
+
+    if (!/Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent)) {
+        document.querySelectorAll('[data-palette-key]').forEach(function (k) { k.textContent = t('Strg K'); });
+    }
+
+    function treffer() { return Array.prototype.slice.call(aus.querySelectorAll('.suche-treffer')); }
+    function aktuell() {
+        var alle = treffer();
+        for (var i = 0; i < alle.length; i++) if (alle[i].classList.contains('is-current')) return i;
+        return -1;
+    }
+    function markieren(i) {
+        treffer().forEach(function (a, j) {
+            a.classList.toggle('is-current', j === i);
+            if (j === i) a.scrollIntoView({ block: 'nearest' });
+        });
+    }
+    function hinweis(text) {
+        aus.textContent = '';
+        var p = document.createElement('p');
+        p.className = 'suche-nichts';
+        p.textContent = text;
+        aus.appendChild(p);
+    }
+    function suchen() {
+        var q = feld.value.trim();
+        if (q.length < 2) { aus.textContent = ''; return; }
+        var nr = ++lauf;
+        fetch(form.action, { method: 'POST', body: new FormData(form), credentials: 'same-origin' })
+            .then(function (r) { return r.text(); })
+            .then(function (html) {
+                if (nr !== lauf) return;   // eine neuere Eingabe ist schon unterwegs
+                var neu = new DOMParser().parseFromString(html, 'text/html').querySelector('.suche-ergebnisse');
+                if (!neu) { hinweis(t('Die Suche hat nicht geklappt.')); return; }
+                aus.replaceChildren.apply(aus, Array.prototype.map.call(neu.childNodes, function (n) {
+                    return document.importNode(n, true);
+                }));
+                if (treffer().length) markieren(0);
+                else if (!aus.textContent.trim()) hinweis(t('Nichts gefunden.'));
+            })
+            .catch(function () { if (nr === lauf) hinweis(t('Die Suche hat nicht geklappt.')); });
+    }
+    function oeffnen(text) {
+        if (!dlg.open) dlg.showModal();
+        if (typeof text === 'string') feld.value = text;
+        feld.focus();
+        try { feld.setSelectionRange(feld.value.length, feld.value.length); } catch (e) {}
+        suchen();
+    }
+
+    kopf.addEventListener('submit', function (e) { e.preventDefault(); oeffnen(kopfFeld.value); });
+    kopfFeld.addEventListener('input', function () { var v = kopfFeld.value; kopfFeld.value = ''; oeffnen(v); });
+    document.querySelectorAll('[data-palette-open]').forEach(function (a) {
+        a.addEventListener('click', function (e) { e.preventDefault(); oeffnen(''); });
+    });
+    document.addEventListener('keydown', function (e) {
+        if ((e.metaKey || e.ctrlKey) && !e.altKey && (e.key === 'k' || e.key === 'K')) { e.preventDefault(); oeffnen(); }
+    });
+    // Enter öffnet den markierten Treffer; ohne Treffer wird gesucht.
+    form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var i = aktuell();
+        if (i >= 0) window.location.href = treffer()[i].href; else suchen();
+    });
+    feld.addEventListener('input', function () { clearTimeout(warte); warte = setTimeout(suchen, 150); });
+    feld.addEventListener('keydown', function (e) {
+        var n = treffer().length;
+        if (!n) return;
+        if (e.key === 'ArrowDown') { e.preventDefault(); markieren((aktuell() + 1) % n); }
+        if (e.key === 'ArrowUp') { e.preventDefault(); markieren((aktuell() - 1 + n) % n); }
+    });
+    // Ein Klick neben den Dialog (auf die abgedunkelte Fläche) schließt ihn.
+    dlg.addEventListener('click', function (e) { if (e.target === dlg) dlg.close(); });
+})();

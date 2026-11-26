@@ -51,6 +51,21 @@
         });
     }
 
+    /* Der Merker: Hat sich in diesem Browser zuletzt jemand mit Passkey
+     * angemeldet, startet die Abfrage in Schritt 2 von selbst. Er liegt nur
+     * hier im Browser – der Server erfährt nichts davon und verrät nichts.
+     * Wer sich mit Passwort anmeldet, nimmt ihn wieder weg (data-passkey-forget). */
+    var MERKER = 'flatlink-passkey';
+    function merken(an) {
+        try { if (an) localStorage.setItem(MERKER, '1'); else localStorage.removeItem(MERKER); } catch (e) {}
+    }
+    function gemerkt() {
+        try { return localStorage.getItem(MERKER) === '1'; } catch (e) { return false; }
+    }
+    document.querySelectorAll('form[data-passkey-forget]').forEach(function (form) {
+        form.addEventListener('submit', function () { merken(false); });
+    });
+
     function melden(box, text, fehler) {
         if (!box) return;
         box.textContent = text;
@@ -79,7 +94,10 @@
     }
 
     document.querySelectorAll('[data-passkey]').forEach(function (btn) {
-        var modus = btn.getAttribute('data-passkey');          // 'register' | 'login'
+        // 'register' | 'login' (zweite Stufe, Schlüssel des Kontos) |
+        // 'any' (Anmeldung ohne Schlüsselliste: das Gerät sucht selbst)
+        var modus = btn.getAttribute('data-passkey');
+        var ohneListe = modus === 'any';
         var url = btn.getAttribute('data-url') || '';
         var csrf = btn.getAttribute('data-csrf') || '';
         var box = document.getElementById(btn.getAttribute('data-status') || '');
@@ -98,9 +116,9 @@
 
         btn.addEventListener('click', function () {
             btn.disabled = true;
-            melden(box, modus === 'login' ? t('Warte auf dein Gerät …') : t('Folge der Abfrage deines Geräts …'), false);
+            melden(box, modus === 'register' ? t('Folge der Abfrage deines Geräts …') : t('Warte auf dein Gerät …'), false);
 
-            senden(url, { action: 'pk_challenge', _csrf: csrf }).then(function (opt) {
+            senden(url, { action: ohneListe ? 'pk_any_challenge' : 'pk_challenge', _csrf: csrf }).then(function (opt) {
                 if (opt.error) throw new Error(opt.error);
                 opt.challenge = ab(opt.challenge);
 
@@ -121,12 +139,16 @@
                     });
                 }
 
-                opt.allowCredentials = idsUmbauen(opt.allowCredentials);
+                opt.allowCredentials = ohneListe ? [] : idsUmbauen(opt.allowCredentials);
                 return navigator.credentials.get({ publicKey: opt }).then(function (c) {
-                    return senden(url, { action: 'pk_verify', _csrf: csrf, daten: antwort(c) });
+                    return senden(url, { action: ohneListe ? 'pk_any_verify' : 'pk_verify', _csrf: csrf, daten: antwort(c) });
                 });
             }).then(function (a) {
-                if (a && a.ok) { window.location.href = a.redirect || window.location.pathname; return; }
+                if (a && a.ok) {
+                    if (ohneListe) merken(true);
+                    window.location.href = a.redirect || window.location.pathname;
+                    return;
+                }
                 throw new Error((a && a.error) || t('Es hat nicht geklappt.'));
             }).catch(function (e) {
                 var vonSelbst = leise;
@@ -141,7 +163,8 @@
          * es erspart einen Klick, der ohnehin nur „ja, bitte" bedeutet.
          * Verweigert einer die Abfrage ohne Geste, landet man im catch oben –
          * kommentarlos, denn darunter steht das Passwortfeld ohnehin schon. */
-        if (btn.getAttribute('data-sofort') === '1') {
+        var sofort = btn.getAttribute('data-sofort');
+        if (sofort === '1' || (sofort === 'merker' && gemerkt())) {
             leise = true;
             setTimeout(function () { btn.click(); }, 60);
         }
@@ -180,7 +203,7 @@
                 melden(box, t('Warte auf dein Gerät …'), false);
                 return senden(url, { action: 'pk_any_verify', _csrf: csrf, daten: antwort(c) });
             }).then(function (a) {
-                if (a && a.ok) { window.location.href = a.redirect || window.location.pathname; return; }
+                if (a && a.ok) { merken(true); window.location.href = a.redirect || window.location.pathname; return; }
                 throw new Error((a && a.error) || t('Es hat nicht geklappt.'));
             });
         }).catch(function (e) {

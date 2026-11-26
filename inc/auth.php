@@ -32,7 +32,86 @@ function auth_boot(): void
         'httponly' => true,
         'samesite' => 'Lax',
     ]);
+    // Brachte der Browser eine Sitzung mit, die es nicht mehr gibt, hat der
+    // Strict Mode sie eben durch eine neue ersetzt: Sie ist verfallen (zu lange
+    // nichts getan) oder wurde beendet. Die Anmeldung sagt das dazu.
+    $mitgebracht = $_COOKIE[session_name()] ?? null;
     session_start();
+    $GLOBALS['_sitzung_verfallen'] = is_string($mitgebracht) && $mitgebracht !== ''
+        && session_id() !== $mitgebracht;
+}
+
+/** Kam diese Anfrage mit einer Sitzung, die es nicht mehr gibt? (nach auth_boot) */
+function auth_sitzung_verfallen(): bool
+{
+    return !empty($GLOBALS['_sitzung_verfallen']);
+}
+
+/**
+ * Rückweg nach der Anmeldung prüfen: nur ein Pfad dieser Instanz.
+ *
+ * Er beginnt mit genau einem Schrägstrich und gilt relativ zu base_url() –
+ * „//andere.example" oder „/\andere.example" sind für den Browser fremde
+ * Adressen und fallen hier heraus. So kann ein Link auf die Anmeldung
+ * niemanden nach der Anmeldung woandershin schicken.
+ */
+function login_next_pruefen(string $next): ?string
+{
+    if ($next === '' || strlen($next) > 500 || $next[0] !== '/') return null;
+    if (str_starts_with($next, '//') || preg_match('/[\\\\\x00-\x1f\x7f]/', $next)) return null;
+    // Die Anmeldung selbst als Ziel ergäbe einen Kreis.
+    if (preg_match('#^/admin/login\.php(\?|$)#', $next)) return null;
+    return $next;
+}
+
+/**
+ * Anhang für die Adresse der Anmeldung: woher jemand kam (next) und ob seine
+ * Sitzung verfallen ist (abgelaufen). Nur GET-Seiten sind ein Rückweg – ein
+ * abgeschicktes Formular lässt sich nicht noch einmal aufrufen.
+ */
+function login_rueckweg(): string
+{
+    $q = [];
+    if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET') {
+        $uri = (string)($_SERVER['REQUEST_URI'] ?? '');
+        $basis = rtrim((string)(parse_url(base_url(), PHP_URL_PATH) ?? ''), '/');
+        if ($basis !== '' && str_starts_with($uri, $basis . '/')) $uri = substr($uri, strlen($basis));
+        $next = login_next_pruefen($uri);
+        if ($next !== null && !in_array($next, ['/admin/', '/admin/index.php'], true)) $q['next'] = $next;
+    }
+    if (auth_sitzung_verfallen()) $q['abgelaufen'] = '1';
+    return $q === [] ? '' : '?' . http_build_query($q);
+}
+
+/**
+ * Die eine Meldung nach einer fehlgeschlagenen Anmeldung – für jeden Grund
+ * dieselbe: unbekannt, falsches Passwort, gesperrt, zu viele Versuche. Jede
+ * genauere Auskunft verriete, welche Konten es gibt oder wie es um sie steht.
+ */
+function login_fehlertext(): string
+{
+    return t('Das hat nicht geklappt. Prüf Benutzername und Passwort und versuch es noch einmal; nach mehreren Fehlversuchen erst in einigen Minuten.');
+}
+
+/**
+ * Die eigene Anmeldevorlage dieser Instanz ('login_template'), falls es sie gibt.
+ *
+ * Ein relativer Pfad gilt ab dem Wurzelverzeichnis von flatlink. Fehlt die
+ * Datei, bleibt es bei der Anmeldeseite des Kerns – eine halb ausgerollte
+ * Vorlage soll niemanden aussperren.
+ */
+function login_vorlage(): ?string
+{
+    $pfad = trim((string)cfg('login_template'));
+    if ($pfad === '') return null;
+    if ($pfad[0] !== '/') $pfad = dirname(__DIR__) . '/' . $pfad;
+    return is_file($pfad) ? $pfad : null;
+}
+
+/** Dasselbe für die Anmeldung mit Passkey */
+function login_passkey_fehlertext(): string
+{
+    return t('Das hat mit dem Passkey nicht geklappt. Versuch es noch einmal oder nimm dein Passwort.');
 }
 
 /**
@@ -313,7 +392,7 @@ function auth_login_passkey(string $username): bool
     $u = user_get($username);
     if ($u === null || user_locked($u)) return false;
     session_regenerate_id(true);
-    unset($_SESSION['pending_user'], $_SESSION['pending_since'], $_SESSION['csrf'], $_SESSION['login_name'], $_SESSION['login_roh']);
+    unset($_SESSION['pending_user'], $_SESSION['pending_since'], $_SESSION['csrf'], $_SESSION['login_roh']);
     $_SESSION['user'] = $username;
     $_SESSION['auth_method'] = 'passkey';
     session_register($username);
@@ -338,7 +417,7 @@ function auth_pending_complete(): void
     $n = auth_pending();
     if ($n === null) return;
     session_regenerate_id(true);
-    unset($_SESSION['pending_user'], $_SESSION['pending_since'], $_SESSION['csrf'], $_SESSION['login_name'], $_SESSION['login_roh']);
+    unset($_SESSION['pending_user'], $_SESSION['pending_since'], $_SESSION['csrf'], $_SESSION['login_roh']);
     $_SESSION['user'] = $n;
     session_register($n);
 }
@@ -458,7 +537,7 @@ function auth_require(bool $frei = false): array
     $u = auth_user();
     // Absolut, nicht relativ: Dateien außerhalb von admin/ landeten sonst auf
     // einem /login.php, das es nicht gibt
-    if ($u === null) redirect_to(base_url() . '/admin/login.php');
+    if ($u === null) redirect_to(base_url() . '/admin/login.php' . login_rueckweg());
 
     // Verlangt die Instanz die zweite Stufe, führt der Weg zuerst dorthin.
     // Nicht aussperren, sondern hinführen: Wer sie nicht eingerichtet hat, hat

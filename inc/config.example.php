@@ -312,6 +312,31 @@ return [
     // sehen in beiden Fällen die kurze Zeile oben.
     'nav_layout' => 'top',
 
+    // Nur mit 'nav_layout' = 'side': das Menü auf schmalen Bildschirmen.
+    //   'klappe' – eine aufklappbare Zeile über dem Inhalt (Vorgabe)
+    //   'tabs'   – unten eine feste Tab-Leiste mit den häufigsten Zielen
+    //              (Links, QR-Designer, QR-Serie, Suche); bei mehr als fünf
+    //              Zielen ist der fünfte Tab „Mehr" und springt zu „Alle
+    //              Bereiche", dem ganzen Menü nach dem Inhalt.
+    'nav_mobile' => 'klappe',
+
+    // Nur mit 'nav_layout' = 'side': ein Suchfeld im Kopf jeder Seite für
+    // Kurzlinks und Seiten der Verwaltung (admin/suche.php). Mit JavaScript
+    // als Dialog, der beim Tippen sucht, dazu Strg/⌘+K.
+    'nav_search' => false,
+
+    // Eigene Anmeldeseite: eine PHP-Datei, die die Schritte 1 und 2 der
+    // Anmeldung als ganze Seite zeichnet – für Einrichtungen mit fester
+    // Anmeldeseite, die überall gleich aussehen muss. Pfad ab dem Wurzel-
+    // verzeichnis von flatlink (z. B. 'inc/vorlagen/anmelden.php'; unter inc/
+    // liefert der Webserver sie nicht direkt aus), leer = die Seite von
+    // flatlink. Die Datei bekommt $anmeldung mit dem Zustand (Schritt, Fehler
+    // ja/nein, Kennung, CSRF-Feld, Passkey-Aufgabe …; siehe admin/login.php)
+    // und schickt dieselben Felder zurück wie die Vorlage des HFMT-Design-
+    // Systems: uid, password, method=password|passkey, assertion, next.
+    // Ersteinrichtung und zweite Stufe zeigt weiter flatlink selbst.
+    'login_template' => '',
+
     // Eigenes Logo in der Kopfzeile. Dateiname innerhalb von assets/,
     // leer = nur der Name der Instanz. SVG oder PNG, etwa 'logo.svg'.
     'logo' => '',

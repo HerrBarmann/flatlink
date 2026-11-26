@@ -136,6 +136,9 @@ function lang_js(): string
         'Es hat nicht geklappt.',
         // assets/app.js
         'Kopiert',
+        'Strg K',
+        'Die Suche hat nicht geklappt.',
+        'Nichts gefunden.',
         // assets/qrdesign.js
         'Scan mich!',
         // assets/vcard-qr.js

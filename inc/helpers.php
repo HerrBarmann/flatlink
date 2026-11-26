@@ -134,9 +134,9 @@ function short_url(string $code, string $domain = ''): string
     return domain_url($domain) . '/' . $code;
 }
 
-function redirect_to(string $url): never
+function redirect_to(string $url, int $status = 302): never
 {
-    header('Location: ' . $url);
+    header('Location: ' . $url, true, $status);
     exit;
 }
 
@@ -697,7 +697,8 @@ function security_headers(): void
     header('X-Content-Type-Options: nosniff');
     // Beim Verlassen der Seite nur die Herkunft mitgeben, nie den vollen Pfad –
     // ein Kurzlink im Referrer würde das Ziel an Dritte verraten
-    header('Referrer-Policy: strict-origin-when-cross-origin');
+    // Die Anmeldung gibt gar nichts mit (same-origin, siehe admin/login.php).
+    header('Referrer-Policy: ' . ($GLOBALS['_referrer_policy'] ?? 'strict-origin-when-cross-origin'));
     if (str_starts_with((string)cfg('base_url'), 'https://')) {
         header('Strict-Transport-Security: max-age=31536000');
     }
@@ -732,8 +733,11 @@ function nav_menu(array $u, string $adm, string $pub): array
         }
         return false;
     };
+    // 'tab': eines der häufigsten Ziele – steht in der Tab-Leiste auch dann,
+    // wenn nicht alle Ziele hineinpassen (nav_tab_bar()).
     $punkt = static fn(string $k, string $text, string $href, bool $aktiv): array =>
-        ['schluessel' => $k, 'text' => $text, 'href' => $href, 'aktiv' => $aktiv];
+        ['schluessel' => $k, 'text' => $text, 'href' => $href, 'aktiv' => $aktiv,
+         'tab' => in_array($k, ['links', 'qr', 'qrzip'], true)];
 
     $links = [$punkt('links', t('Links'), $adm . 'index.php',
         $ist('admin/index.php', 'admin/edit.php', 'admin/stats.php'))];
@@ -794,6 +798,74 @@ function nav_side_list(array $bereiche): string
         $html .= '</ul></div>';
     }
     return $html;
+}
+
+/**
+ * Tab-Leiste für schmale Bildschirme ('nav_mobile' = 'tabs').
+ *
+ * Höchstens fünf Tabs. Passen alle Ziele hinein, stehen alle da; sonst die
+ * häufigsten (Links, QR-Designer, QR-Serie, Suche) und als fünfter „Mehr",
+ * der zu „Alle Bereiche" nach dem Inhalt springt. So ist jedes Ziel mit zwei
+ * Fingertipps erreichbar, und das Menü kostet oben keinen Platz.
+ */
+function nav_tab_bar(array $bereiche, string $adm): string
+{
+    $alle = [];
+    foreach ($bereiche as $b) {
+        foreach ($b['punkte'] as $p) $alle[] = $p;
+    }
+    if (cfg('nav_search')) {
+        $skript = (string)($_SERVER['SCRIPT_NAME'] ?? '');
+        $alle[] = ['schluessel' => 'suche', 'text' => t('Suche'), 'href' => $adm . 'suche.php',
+            'aktiv' => str_ends_with($skript, '/admin/suche.php'), 'tab' => true];
+    }
+    $tabs = count($alle) <= 5
+        ? $alle
+        : array_slice(array_values(array_filter($alle, fn($p) => !empty($p['tab']))), 0, 4);
+    $mehr = count($tabs) < count($alle);
+
+    $html = '<nav class="tab-nav" aria-label="' . t('Schnellzugriff') . '">';
+    foreach ($tabs as $p) {
+        $html .= '<a href="' . e($p['href']) . '" data-key="' . e($p['schluessel']) . '"'
+            . ($p['schluessel'] === 'suche' ? ' data-palette-open' : '')
+            . ($p['aktiv'] ? ' aria-current="page"' : '') . '><span>' . e($p['text']) . '</span></a>';
+    }
+    if ($mehr) {
+        // Aktiv ist „Mehr", wenn die aktuelle Seite unter keinem Tab steht.
+        $woanders = array_filter($alle, fn($p) => $p['aktiv']) !== [] && array_filter($tabs, fn($p) => $p['aktiv']) === [];
+        $html .= '<a href="#mehr" data-key="mehr"' . ($woanders ? ' aria-current="page"' : '') . '><span>'
+            . t('Mehr') . '</span></a>';
+    }
+    return $html . '</nav>';
+}
+
+/** Das Suchfeld im Kopf ('nav_search'); ohne Skript schickt es an admin/suche.php. */
+function nav_search_form(string $adm): string
+{
+    return '<form class="app-search" role="search" method="post" action="' . e($adm . 'suche.php') . '" data-palette="#suche">'
+        . csrf_field()
+        . '<label class="sr-only" for="kopf-q">' . t('Suche') . '</label>'
+        . '<input id="kopf-q" name="q" type="search" placeholder="' . t('Links, Seiten …') . '" autocomplete="off">'
+        . '<kbd class="js-only" data-palette-key>⌘K</kbd>'
+        . '<button type="submit"><span>' . t('Suchen') . '</span></button></form>';
+}
+
+/**
+ * Der Dialog der Suche. assets/app.js öffnet ihn (Tippen ins Feld im Kopf,
+ * Strg/⌘+K, Tab „Suche") und setzt die Treffer von admin/suche.php ein.
+ */
+function nav_search_dialog(string $adm): string
+{
+    return '<dialog class="palette" id="suche" aria-label="' . t('Suche') . '">'
+        . '<form class="palette-field" role="search" method="post" action="' . e($adm . 'suche.php') . '">'
+        . csrf_field()
+        . '<label class="sr-only" for="suche-q">' . t('Suchen') . '</label>'
+        . '<input id="suche-q" name="q" type="search" autocomplete="off" placeholder="' . t('Links, Seiten …') . '">'
+        . '<kbd>Esc</kbd></form>'
+        . '<div class="suche-ergebnisse" aria-live="polite"></div>'
+        . '<p class="palette-foot"><span><kbd>↑</kbd> <kbd>↓</kbd> ' . t('auswählen') . '</span>'
+        . '<span><kbd>↵</kbd> ' . t('öffnen') . '</span><span><kbd>Esc</kbd> ' . t('schließen') . '</span></p>'
+        . '</dialog>';
 }
 
 /**
@@ -931,6 +1003,7 @@ function page_header(string $title, bool $admin = false, ?string $desc = null, ?
     if ($u !== null && cfg('nav_layout') === 'side') {
         echo '<header class="site-head site-head-app"><a class="brand" href="' . e($heim) . '">' . $mark . '</a>';
         $profil = str_ends_with((string)($_SERVER['SCRIPT_NAME'] ?? ''), '/admin/profile.php');
+        if (cfg('nav_search')) echo nav_search_form($adm);
         echo '<div class="app-user"><span class="app-user-name">' . $wer . '</span> '
             . '<a href="' . $adm . 'profile.php"' . ($profil ? ' aria-current="page"' : '') . '>' . t('Profil') . '</a> '
             . '<a href="' . $adm . 'logout.php">' . t('Abmelden') . '</a></div>';
@@ -946,11 +1019,19 @@ function page_header(string $title, bool $admin = false, ?string $desc = null, ?
         // aufklappbar. Die jeweils andere ist per CSS ausgeblendet (display:
         // none), Vorleseprogramme sehen also nur eine. Ohne JavaScript, weil
         // <details> das Aufklappen selbst kann.
+        //
+        // Mit 'nav_mobile' = 'tabs' gibt es statt der Klappe unten eine
+        // Tab-Leiste und nach dem Inhalt „Alle Bereiche" (page_footer()).
         $liste = nav_side_list($menu);
-        echo '<div class="app-layout">'
-            . '<nav class="side-nav side-nav-side" aria-label="' . t('Hauptmenü') . '">' . $liste . '</nav>'
-            . '<details class="side-nav side-nav-mobile"><summary>' . t('Menü') . '</summary>'
-            . '<nav aria-label="' . t('Hauptmenü') . '">' . $liste . '</nav></details>';
+        $tabs = cfg('nav_mobile') === 'tabs';
+        echo '<div class="app-layout' . ($tabs ? ' app-layout-tabs' : '') . '">'
+            . '<nav class="side-nav side-nav-side" aria-label="' . t('Hauptmenü') . '">' . $liste . '</nav>';
+        if (!$tabs) {
+            echo '<details class="side-nav side-nav-mobile"><summary>' . t('Menü') . '</summary>'
+                . '<nav aria-label="' . t('Hauptmenü') . '">' . $liste . '</nav></details>';
+        }
+        $GLOBALS['_page_menu'] = $menu;
+        $GLOBALS['_page_adm'] = $adm;
         // tabindex: Die Sprungmarke „Zum Inhalt" setzt den Fokus wirklich
         // hierher, statt nur zu scrollen – sonst landete die nächste Tabulator-
         // Taste wieder im Menü.
@@ -1099,8 +1180,20 @@ function page_footer(): void
     }
     // Mit der Leiste links ('nav_layout' = 'side') steckt <main> in einem
     // Raster, das hier mit zugeht.
-    echo '</main>' . (!empty($GLOBALS['_page_app_layout']) ? '</div>' : '')
-        . '<footer class="site-foot"><p>' . e(cfg('site_name'))
+    $app = !empty($GLOBALS['_page_app_layout']);
+    $tabs = $app && cfg('nav_mobile') === 'tabs';
+    echo '</main>';
+    if ($tabs) {
+        // „Alle Bereiche": das ganze Menü nach dem Inhalt, nur auf schmalen
+        // Bildschirmen sichtbar. Ziel des Tabs „Mehr" – ein Sprung ohne Skript.
+        echo '<nav class="side-nav side-nav-more" id="mehr" aria-label="' . t('Alle Bereiche') . '">'
+            . '<h2 class="side-nav-more-title">' . t('Alle Bereiche') . '</h2>'
+            . nav_side_list((array)($GLOBALS['_page_menu'] ?? [])) . '</nav>';
+    }
+    echo $app ? '</div>' : '';
+    if ($tabs) echo nav_tab_bar((array)($GLOBALS['_page_menu'] ?? []), (string)($GLOBALS['_page_adm'] ?? ''));
+    if ($app && cfg('nav_search')) echo nav_search_dialog((string)($GLOBALS['_page_adm'] ?? ''));
+    echo '<footer class="site-foot"><p>' . e(cfg('site_name'))
         . ' · ' . $links . '</p>' . origin_note() . '</footer></div>';
     // Übersetzungen für die Skripte – ein JSON-Datenblock, kein ausführbares
     // Inline-Skript, deshalb verträgt er sich mit der CSP

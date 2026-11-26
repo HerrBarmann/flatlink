@@ -141,6 +141,45 @@ code, .prefix { font-family: var(--mono); }
 .side-nav a:hover { background: var(--accent-tint); text-decoration: none; }
 .side-nav a[aria-current] { font-weight: 600; background: var(--accent-tint); border-left-color: var(--accent); }
 .side-nav-mobile { display: none; }
+.tab-nav, .side-nav-more { display: none; }
+.tab-nav {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
+    background: var(--paper); border-top: 1px solid var(--line);
+    padding-bottom: env(safe-area-inset-bottom);
+}
+.tab-nav a {
+    flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 0.2rem;
+    padding: 0.55rem 0.2rem 0.6rem; color: var(--muted); font-size: 0.78rem; text-align: center;
+}
+.tab-nav a span { overflow-wrap: anywhere; }
+.tab-nav a[aria-current] { color: var(--ink); font-weight: 600; box-shadow: inset 0 3px 0 var(--accent); }
+.side-nav-more:target { outline: 2px solid var(--accent); outline-offset: 0.4rem; }
+.side-nav-more-title { font-size: 1rem; margin: 0 0 0.6rem; }
+
+/* Suche überall ('nav_search'): Feld im Kopf, Dialog, Ergebnisseite */
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.js-only { display: none; }
+.js .js-only { display: inline; }
+.app-search { display: flex; align-items: center; gap: 0.4rem; flex: 0 1 18rem; min-width: 0; margin-left: auto; }
+.app-search input { flex: 1 1 auto; min-width: 0; width: auto; margin: 0; }
+.app-search kbd, .palette kbd { font: inherit; font-size: 0.75rem; color: var(--muted); border: 1px solid var(--line); border-radius: 3px; padding: 0 0.3rem; }
+.app-search button { flex: none; }
+.palette { width: min(40rem, calc(100vw - 2rem)); max-height: min(34rem, calc(100vh - 4rem)); padding: 0; border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper); color: var(--ink); }
+.palette[open] { display: flex; flex-direction: column; }
+.palette::backdrop { background: rgb(0 0 0 / 0.35); }
+.palette-field { display: flex; align-items: center; gap: 0.6rem; padding: 0.7rem 0.9rem; border-bottom: 1px solid var(--line); }
+.palette-field input { flex: 1 1 auto; min-width: 0; margin: 0; border: 0; font-size: 1.05rem; }
+.palette .suche-ergebnisse { overflow-y: auto; padding: 0.4rem 0.9rem 0.8rem; }
+.palette-foot { display: flex; flex-wrap: wrap; gap: 0.3rem 1.2rem; margin: 0; padding: 0.55rem 0.9rem; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.8rem; }
+.suche-gruppe h2 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 0.9rem 0 0.3rem; }
+.suche-gruppe ul { list-style: none; margin: 0; padding: 0; }
+.suche-treffer { display: flex; align-items: center; justify-content: space-between; gap: 0.8rem; padding: 0.5rem 0.6rem; color: var(--ink); border-left: 3px solid transparent; }
+.suche-treffer:hover, .suche-treffer.is-current { background: var(--accent-tint); border-left-color: var(--accent); text-decoration: none; }
+.suche-text { display: flex; flex-direction: column; flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+.suche-text span { color: var(--muted); font-size: 0.85rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.suche-art { flex: none; color: var(--muted); font-size: 0.78rem; }
+.suche-mehr { margin: 0.3rem 0 0; font-size: 0.9rem; }
+.suche-nichts { color: var(--muted); margin: 0.8rem 0; }
 @media (max-width: 860px) {
     .app-layout { grid-template-columns: minmax(0, 1fr); gap: 0; }
     .side-nav-side { display: none; }
@@ -149,6 +188,12 @@ code, .prefix { font-family: var(--mono); }
     .side-nav-mobile[open] > summary { border-bottom: 1px solid var(--line); }
     .side-nav-mobile nav { padding: 0.5rem 0 0.7rem; }
     .app-user { margin-left: 0; }
+    /* Tab-Leiste ('nav_mobile' = 'tabs'): unten fest, das ganze Menü als
+       „Alle Bereiche" nach dem Inhalt */
+    .tab-nav { display: flex; }
+    .side-nav-more { display: block; margin: 2rem 0 0; padding-top: 1.2rem; border-top: 1px solid var(--line); }
+    body:has(.tab-nav) { padding-bottom: 4.2rem; }
+    .app-search { order: 3; flex: 1 1 100%; margin-left: 0; }
 }
 
 .site-foot {
