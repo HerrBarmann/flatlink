@@ -62,6 +62,15 @@ ever waits for the database while that happens.
   even when public shortening is off. Individual logos can be marked public.
 * **5.4.0 / 5.4.1** — The browser extension is in the Chrome Web Store and on
   AMO; both addresses ship as defaults.
+* **5.6.0** — Signing in no longer gives anything away about accounts. Step 2
+  looks the same for every username, with or without a passkey; "Sign in with
+  passkey" asks the browser without a list of keys and only starts by itself if
+  someone last signed in with a passkey in this browser. Every failure ends with
+  the same message and the same status — including the throttle, which used to
+  answer 429 with a waiting time. After signing in, you return to the page you
+  came from. Plus three switches: `nav_mobile` (tab bar on phones),
+  `nav_search` (search everywhere, ⌘K) and `login_template` (a custom sign-in
+  page, such as an institution's mandatory one).
 
 ## 4.x — One storage, and scale (2026-08-20 → 2026-08-21)
 

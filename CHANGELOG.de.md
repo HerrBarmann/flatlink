@@ -67,6 +67,15 @@ wartet.
   lassen sich öffentlich stellen.
 * **5.4.0 / 5.4.1** — Die Browser-Erweiterung steht im Chrome Web Store und bei
   AMO; beide Adressen sind Vorgabe.
+* **5.6.0** — Die Anmeldung verrät nichts mehr über Konten. Schritt 2 sieht für
+  jede Kennung gleich aus, auch mit oder ohne Passkey; „Mit Passkey" fragt den
+  Browser ohne Schlüsselliste und startet nur von selbst, wenn sich in diesem
+  Browser zuletzt jemand mit Passkey angemeldet hat. Jeder Fehlschlag endet mit
+  derselben Meldung und demselben Status — auch die Bremse, die bisher mit 429
+  und Wartezeit antwortete. Nach der Anmeldung geht es zurück auf die Seite, von
+  der man kam. Dazu drei Schalter: `nav_mobile` (Tab-Leiste auf dem Handy),
+  `nav_search` (Suche überall, ⌘K) und `login_template` (eigene Anmeldeseite,
+  etwa die feste einer Hochschule).
 
 ## 4.x — Eine Ablage, und Größe (20.08.2026 → 21.08.2026)
 
