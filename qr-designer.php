@@ -247,7 +247,7 @@ $statischText = trim((string)($_GET['u'] ?? ''));
             <button class="btn btn-small" type="button" data-pbg="#FAFCF6"><?= t('Hell') ?></button>
             <button class="btn btn-small" type="button" data-pbg="#16181D"><?= t('Dunkel') ?></button>
         </h3>
-        <div id="preview-stage" style="display:inline-block; padding:1.2rem; border-radius:6px; background:#FAFCF6;">
+        <div id="preview-stage">
             <img id="qr-preview" src="" alt="<?= t('QR-Code-Vorschau') ?>" width="320">
         </div>
         <div id="lesbarkeit" class="lesbarkeit" aria-live="polite"></div>

@@ -178,7 +178,7 @@ function qr_design_panel(array $o = []): string
         <option value="circle"><?= t('Kreis') ?></option>
         <option value="leaf"><?= t('Blatt') ?></option>
     </select>
-    <label class="check" style="margin:0.5rem 0 0.2rem">
+    <label class="check qr-check">
         <input id="opt-eyeown" type="checkbox"<?= $n('eyeown') ?> value="1">
         <span><?= t('Augen eigene Farben geben') ?></span>
     </label>
@@ -251,7 +251,7 @@ function qr_design_panel(array $o = []): string
             <input id="opt-bgc-k" type="number" min="0" max="100" placeholder="K" aria-label="Hintergrund Schwarz">
         </div>
         <label for="opt-mm"><?= t('Breite auf dem Papier') ?> <span class="muted">(<?= t('mm, für PDF und EPS') ?>)</span></label>
-        <input id="opt-mm" type="number" min="10" max="1000" value="80" style="max-width:8rem">
+        <input id="opt-mm" type="number" min="10" max="1000" value="80" class="w-xs">
     </details>
     <?php endif; ?>
 

@@ -290,7 +290,7 @@ $auf = fn(string $id): string => $zeige === $id ? ' open' : '';
 <div class="card weit">
     <h1><?= t('Profil') ?></h1>
     <p class="muted"><?= t('Angemeldet als') ?> <strong><?= e(user_display($user['name'])) ?></strong>
-        <?php if (user_has_display($user['name'])): ?><br><span class="small" style="font-family:var(--mono)"><?= e($user['name']) ?></span><?php endif; ?>
+        <?php if (user_has_display($user['name'])): ?><br><span class="small mono"><?= e($user['name']) ?></span><?php endif; ?>
         <br><?= t('Rolle:') ?> <?= e($user['role']) ?></p>
     <?php $codeQuota = (int)settings()['custom_code_quota']; ?>
     <p><span class="muted small"><?= t('Links:') ?> <?= link_count($user['name']) ?>/<?= e(limit_label(user_limit($user['name'], 'links'))) ?> ·
@@ -467,7 +467,7 @@ $auf = fn(string $id): string => $zeige === $id ? ' open' : '';
                     data-passkey="register" data-url="profile.php" data-csrf="<?= e(csrf_token()) ?>"
                     data-label="pk-label" data-status="pk-status"><?= $keys === [] ? t('Passkey einrichten') : t('Weiteren einrichten') ?></button>
         </div>
-        <div id="pk-status" class="flash" style="display:none"></div>
+        <div id="pk-status" class="flash" hidden></div>
         <?php if ($keys !== []): ?>
         <p class="muted small"><?= t('Ein zweites Gerät ist keine Umständlichkeit, sondern der Ersatzschlüssel: Passkeys lassen sich nicht abschreiben und aufheben.') ?></p>
         <?php endif; ?>
@@ -478,7 +478,7 @@ $auf = fn(string $id): string => $zeige === $id ? ' open' : '';
     <?php if ($frischeCodes !== null): ?>
     <div class="flash flash-ok">
         <strong><?= t('Wiederherstellungscodes') ?></strong> – <?= t('jeder gilt einmal, falls dein Gerät weg ist. Sie werden nicht noch einmal angezeigt.') ?>
-        <div class="term" style="margin-top:0.6rem"><?= e(implode("\n", $frischeCodes)) ?></div>
+        <div class="term mt-s"><?= e(implode("\n", $frischeCodes)) ?></div>
     </div>
     <?php endif; ?>
 
@@ -494,7 +494,7 @@ $auf = fn(string $id): string => $zeige === $id ? ' open' : '';
                 <input type="hidden" name="action" value="totp_off">
                 <?php if ($extern): ?>
                     <label for="t-confirm"><?= t('Zur Sicherheit deine Kennung eintippen:') ?>
-                        <span style="font-family:var(--mono)"><?= e($user['name']) ?></span></label>
+                        <span class="mono"><?= e($user['name']) ?></span></label>
                     <input id="t-confirm" type="text" name="confirm" required autocomplete="off">
                 <?php else: ?>
                     <?= username_hint($user['name']) ?>
@@ -508,9 +508,9 @@ $auf = fn(string $id): string => $zeige === $id ? ' open' : '';
 
     <?php elseif ($t !== null): ?>
         <p class="muted small"><?= t('Scanne den Code mit einer Authenticator-App und gib dann die sechs Ziffern ein, die sie anzeigt.') ?></p>
-        <div style="max-width:220px;margin:0 0 0.8rem"><?= totp_qr_svg($user['name'], (string)$t['secret']) ?></div>
+        <div class="totp-qr"><?= totp_qr_svg($user['name'], (string)$t['secret']) ?></div>
         <p class="muted small"><?= t('Geht das Scannen nicht, trag den Schlüssel von Hand ein:') ?><br>
-        <code style="word-break:break-all"><?= e(chunk_split((string)$t['secret'], 4, ' ')) ?></code></p>
+        <code class="break-all"><?= e(chunk_split((string)$t['secret'], 4, ' ')) ?></code></p>
         <form method="post" action="" data-enter-submit>
             <?= csrf_field() ?>
             <input type="hidden" name="action" value="totp_confirm">
@@ -568,7 +568,7 @@ $auf = fn(string $id): string => $zeige === $id ? ' open' : '';
         <input type="hidden" name="action" value="delete">
         <?php if ($extern): ?>
             <label for="p-confirm"><?= t('Zur Sicherheit deine Kennung eintippen:') ?>
-                <span style="font-family:var(--mono)"><?= e($user['name']) ?></span></label>
+                <span class="mono"><?= e($user['name']) ?></span></label>
             <input id="p-confirm" type="text" name="confirm" required autocomplete="off">
         <?php else: ?>
             <?= username_hint($user['name']) ?>

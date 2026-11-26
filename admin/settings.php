@@ -214,7 +214,7 @@ $host = preg_replace('#^https?://#', '', base_url());
             <label for="s-minlen"><?= t('Mindestlänge für Wunsch-Codes') ?>
                 <span class="muted"><?= t('(kürzere bleiben Administratoren vorbehalten)') ?></span></label>
             <input id="s-minlen" type="number" name="custom_code_min_len" min="1" max="64"
-                   style="max-width:8rem" value="<?= (int)($s['custom_code_min_len'] ?? 5) ?>">
+                   class="w-xs" value="<?= (int)($s['custom_code_min_len'] ?? 5) ?>">
         </div>
 
         <label><?= t('Rechte, die jedes Konto hat') ?></label>
@@ -234,7 +234,7 @@ $host = preg_replace('#^https?://#', '', base_url());
         <p class="muted small"><?= t('Was hier nicht angekreuzt ist, lässt sich einzelnen Konten über eine Gruppe geben – so entsteht aus einem Recht ein Tarif.') ?></p>
 
         <label for="s-lang"><?= t('Sprache der Oberfläche') ?></label>
-        <select id="s-lang" name="language" style="max-width:22rem">
+        <select id="s-lang" name="language" class="w-m">
             <?php foreach (lang_available() as $kuerzel => $eigenname): ?>
             <option value="<?= e($kuerzel) ?>"<?= ($s['language'] ?? 'de') === $kuerzel ? ' selected' : '' ?>><?= e($eigenname) ?></option>
             <?php endforeach; ?>
@@ -242,7 +242,7 @@ $host = preg_replace('#^https?://#', '', base_url());
         <p class="muted small"><?= t('Gilt für die ganze Instanz. Deutsch ist die Quellsprache; was in einer Übersetzung fehlt, bleibt sichtbar deutsch statt leer.') ?></p>
 
         <label for="s-totp"><?= t('Zwei-Faktor-Anmeldung verlangen') ?></label>
-        <select id="s-totp" name="totp_required" style="max-width:22rem">
+        <select id="s-totp" name="totp_required" class="w-m">
             <?php foreach (['off' => t('freiwillig'), 'admins' => t('für Administratoren'), 'all' => t('für alle Konten')] as $k => $lbl): ?>
             <option value="<?= e($k) ?>"<?= ($s['totp_required'] ?? 'off') === $k ? ' selected' : '' ?>><?= e($lbl) ?></option>
             <?php endforeach; ?>
@@ -250,7 +250,7 @@ $host = preg_replace('#^https?://#', '', base_url());
         <p class="muted small"><?= t('Ein Passkey oder ein Einmalkennwort aus einer App – beides zählt. Wer noch keines eingerichtet hat, wird nach der Anmeldung dorthin geführt statt ausgesperrt.') ?></p>
 
         <label for="s-pkhint"><?= t('Passkey vorschlagen') ?></label>
-        <select id="s-pkhint" name="passkey_hint" style="max-width:22rem">
+        <select id="s-pkhint" name="passkey_hint" class="w-m">
             <?php foreach (['on' => t('allen Konten'), 'local' => t('nur lokalen Konten'), 'off' => t('gar nicht')] as $k => $lbl): ?>
             <option value="<?= e($k) ?>"<?= ($s['passkey_hint'] ?? 'on') === $k ? ' selected' : '' ?>><?= e($lbl) ?></option>
             <?php endforeach; ?>
@@ -372,20 +372,20 @@ $host = preg_replace('#^https?://#', '', base_url());
     <strong><?= t('Das Datenverzeichnis ist über das Web abrufbar.') ?></strong>
     <?= t('Nachgeprüft am %s: Eine Testdatei in %s ließ sich von außen herunterladen. Damit sind auch Passwort-Hashes, gültige Reset-Token und das Instanz-Geheimnis abrufbar. Das ist kein Hinweis, sondern ein offener Zugang – bitte sofort handeln: entweder %s in %s auf einen Pfad außerhalb des Webroots stellen (Inhalt vorher kopieren) oder im Webserver einen Block für das Verzeichnis einrichten (siehe %s).',
         e(date('d.m.Y H:i', strtotime((string)$probe['zeit']))),
-        '<code style="word-break:break-all">' . e(data_path()) . '</code>',
+        '<code class="break-all">' . e(data_path()) . '</code>',
         '<code>data_dir</code>', '<code>inc/config.php</code>', '<code>docs/DEPLOYMENT.md</code>') ?>
     <?php elseif (($probe['stand'] ?? '') === 'dicht'): ?>
     <strong><?= t('Das Datenverzeichnis liegt im Webroot, ist aber dicht.') ?></strong>
     <?= t('Nachgeprüft am %s: %s Der Schutz hängt damit an der Webserver-Konfiguration – wird sie beim nächsten Umzug oder Upload nicht mitgenommen, liegt alles offen. Ein Pfad außerhalb des Webroots (%s) hängt an nichts.',
         e(date('d.m.Y H:i', strtotime((string)$probe['zeit']))), e((string)$probe['detail']), '<code>data_dir</code>') ?>
     <?php else: ?>
-    <strong><?= t('Das Datenverzeichnis liegt im Webroot') ?></strong> (<code style="word-break:break-all"><?= e(data_path()) ?></code>).
+    <strong><?= t('Das Datenverzeichnis liegt im Webroot') ?></strong> (<code class="break-all"><?= e(data_path()) ?></code>).
     <?= t('Geschützt ist es dort nur durch die %s – die nginx, Caddy und LiteSpeed ignorieren. Darin stehen Passwort-Hashes und gültige Reset-Token. Wenn dein Hosting einen Pfad außerhalb zulässt, trag ihn als %s in %s ein – den Inhalt vorher kopieren, erst danach die Konfiguration umstellen.', '<code>.htaccess</code>', '<code>data_dir</code>', '<code>inc/config.php</code>') ?>
     <p class="small"><?= ($probe['stand'] ?? '') === 'ungeprueft'
         ? t('Ob der Schutz wirklich greift, lässt sich nachmessen: Der Knopf legt eine Testdatei in das Verzeichnis, ruft sie über die eigene Adresse ab und löscht sie wieder.')
         : t('Die Selbstprüfung konnte nichts feststellen: %s', e((string)($probe['detail'] ?? ''))) ?></p>
     <?php endif; ?>
-    <form method="post" action="" style="margin-top:.6rem">
+    <form method="post" action="" class="mt-s">
         <?= csrf_field() ?>
         <input type="hidden" name="probe" value="1">
         <button class="btn btn-small" type="submit"><?= ($probe['stand'] ?? '') === 'ungeprueft' ? t('Jetzt nachmessen') : t('Jetzt erneut prüfen') ?></button>
@@ -424,7 +424,7 @@ $host = preg_replace('#^https?://#', '', base_url());
         <label for="s-rate"><?= t('Rate-Limit der öffentlichen Erstellung (Links pro IP und Stunde)') ?></label>
         <input id="s-rate" type="number" name="public_rate_limit" value="<?= (int)$s['public_rate_limit'] ?>" min="1" max="1000">
 
-        <h2 style="margin-top:1.5rem"><?= t('QR-Generatoren ohne Kurzlink') ?></h2>
+        <h2 class="mt-xl"><?= t('QR-Generatoren ohne Kurzlink') ?></h2>
         <p class="muted small"><?= t('WLAN, Kontakt, Termin, GS1 und der Designer im Modus „Ohne Kürzen“. Sie speichern nichts auf der Instanz – der fertige Code enthält die Daten selbst.') ?></p>
         <div class="radio-group">
             <label class="radio">
@@ -444,7 +444,7 @@ $host = preg_replace('#^https?://#', '', base_url());
             </label>
         </div>
 
-        <h2 style="margin-top:1.5rem"><?= t('Registrierung') ?></h2>
+        <h2 class="mt-xl"><?= t('Registrierung') ?></h2>
         <div class="radio-group">
             <label class="radio">
                 <input type="radio" name="registration" value="on"<?= $s['registration'] === 'on' ? ' checked' : '' ?>>
@@ -458,7 +458,7 @@ $host = preg_replace('#^https?://#', '', base_url());
             </label>
         </div>
 
-        <button class="btn btn-primary" type="submit" style="margin-top:1rem"><?= t('Speichern') ?></button>
+        <button class="btn btn-primary mt-l" type="submit"><?= t('Speichern') ?></button>
     </form>
 </div>
 <div class="card">

@@ -26,7 +26,7 @@
         var box = $('g-status');
         box.textContent = text;
         box.className = 'flash ' + (fehler ? 'flash-err' : 'flash-ok') + (text ? '' : ' hidden');
-        box.style.display = text ? '' : 'none';
+        box.hidden = !text;
     }
 
     function update() {

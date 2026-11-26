@@ -21,7 +21,7 @@
     }
 
     function refresh() {
-        $('w-pw-row').style.display = $('w-enc').value === 'nopass' ? 'none' : '';
+        $('w-pw-row').hidden = $('w-enc').value === 'nopass';
         if (!$('w-ssid').value) { $('w-preview').removeAttribute('src'); return; }
         fetch('qr.php', { method: 'POST', body: formData({ size: 300 }) })
             .then(function (r) { if (!r.ok) throw 0; return r.blob(); })

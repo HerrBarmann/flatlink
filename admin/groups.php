@@ -109,7 +109,7 @@ show_flash();
             <label for="g-prefix"><?= t('Namensraum') ?> <span class="muted"><?= t('(optional – z.&nbsp;B. %s)', '<code>bib</code>') ?></span></label>
             <div class="short-row">
                 <span class="prefix"><?= e(preg_replace('#^https?://#', '', base_url())) ?>/</span>
-                <input id="g-prefix" type="text" name="prefix" pattern="[a-z0-9_-]{1,32}" style="max-width:12rem"
+                <input id="g-prefix" type="text" name="prefix" pattern="[a-z0-9_-]{1,32}" class="w-s"
                        value="<?= e($edit['prefix'] ?? '') ?>" placeholder="bib">
                 <span class="prefix">/…</span>
             </div>
@@ -119,9 +119,9 @@ show_flash();
             <label><?= t('Eigene Limits') ?> <span class="muted"><?= t('(leer oder 0 = es gilt der Wert aus %s)', '<code>config.php</code>') ?></span></label>
             <div class="check-row">
                 <?php foreach (limit_names() as $k => $lbl): ?>
-                <span style="display:inline-flex;align-items:center;gap:0.4rem">
+                <span class="inline-row">
                     <span class="muted small"><?= e($lbl) ?></span>
-                    <input type="number" name="limits[<?= e($k) ?>]" min="0" step="1" style="width:6.5rem"
+                    <input type="number" name="limits[<?= e($k) ?>]" min="0" step="1" class="w-num"
                            value="<?= e((string)($edit['limits'][$k] ?? '')) ?>">
                 </span>
                 <?php endforeach; ?>
@@ -151,7 +151,7 @@ show_flash();
             <summary>
                 <span class="user-name">
                     <strong><?= e($g['name']) ?></strong>
-                    <br><span class="muted small" style="font-family:var(--mono)"><?= e((string)$id) ?></span>
+                    <br><span class="muted small mono"><?= e((string)$id) ?></span>
                 </span>
                 <span class="user-meta">
                     <?= $geteilt

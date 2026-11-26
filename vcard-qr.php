@@ -57,12 +57,12 @@ page_header(t('Kontakt-QR-Code erstellen'), false,
             'logos' => qr_logo_choices(auth_user()),
         ]) ?>
 
-        <p class="muted small" style="margin-top:1rem"><?= t('Die Angaben werden nur zur Erzeugung der Grafik übertragen und %snicht gespeichert%s. Der Code enthält die Kontaktdaten selbst (vCard) und funktioniert ohne jeden Dienst dahinter.', '<strong>', '</strong>') ?></p>
+        <p class="muted small mt-l"><?= t('Die Angaben werden nur zur Erzeugung der Grafik übertragen und %snicht gespeichert%s. Der Code enthält die Kontaktdaten selbst (vCard) und funktioniert ohne jeden Dienst dahinter.', '<strong>', '</strong>') ?></p>
     </div>
 
     <div class="card preview">
         <h3><?= t('Vorschau') ?></h3>
-        <div id="preview-stage" style="display:inline-block; padding:1.2rem; border-radius:6px; background:#FAFCF6;">
+        <div id="preview-stage">
             <img id="v-preview" alt="<?= e(t('Kontakt-QR-Code-Vorschau')) ?>" width="300">
         </div>
         <div id="v-lesbarkeit" class="lesbarkeit" aria-live="polite"></div>

@@ -70,7 +70,7 @@
         if (!box) return;
         box.textContent = text;
         box.className = 'flash ' + (fehler ? 'flash-err' : 'flash-ok');
-        box.style.display = text ? '' : 'none';
+        box.hidden = !text;
     }
 
     function senden(url, felder) {

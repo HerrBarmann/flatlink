@@ -32,6 +32,9 @@
 }
 
 * { box-sizing: border-box; }
+/* hidden gilt immer – auch gegen eine Regel, die dem Element eine Anzeige gibt
+   (.flash). Skripte blenden Meldungen damit ein und aus, nicht über style. */
+[hidden] { display: none !important; }
 
 body {
     margin: 0;
@@ -589,7 +592,10 @@ td a { font-family: var(--mono); }
 .designer .preview img { border: 1px solid var(--line); border-radius: var(--radius); background: #fff; max-width: 100%; height: auto; margin-bottom: 0.8rem; }
 /* Auf der Untergrund-Bühne bringt das Bild keinen eigenen Grund mit –
    transparente Rahmen-Ecken liegen direkt auf Hell/Dunkel auf */
-#preview-stage { line-height: 0; max-width: 100%; }
+#preview-stage {
+    display: inline-block; padding: 1.2rem; border-radius: 6px; background: #FAFCF6;
+    line-height: 0; max-width: 100%;
+}
 #preview-stage img { background: transparent; border: 0; border-radius: 0; margin-bottom: 0; }
 .controls form { margin-top: 0.8rem; }
 .muted { color: var(--muted); font-weight: 400; }
@@ -810,10 +816,10 @@ details.druckfarben[open] > summary { margin-bottom: 0.4rem; color: var(--ink); 
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-right: 0.5rem;
 }
 .dim-bar { width: 100%; }
-.dim-bar span {
-    display: block; height: 0.55rem; min-width: 2px; border-radius: 3px;
-    background: var(--accent);
-}
+/* Die Breite ergibt sich aus der Zahl: ein SVG mit einem Rechteck von 1 bis 100
+   Einheiten, ohne style-Attribut. */
+.dim-bar svg { display: block; width: 100%; height: 0.55rem; }
+.dim-bar rect { fill: var(--accent); }
 .dim-n {
     text-align: right; padding-left: 0.5rem; font-family: var(--mono);
     font-size: 0.8rem; color: var(--muted); font-variant-numeric: tabular-nums;
@@ -912,3 +918,49 @@ button, .btn, a, summary, label, input, select, textarea {
     .logo-bild { flex-basis: auto; align-self: flex-start; }
 }
 
+/* ---- Klassen statt style-Attributen ------------------------------------------
+   Bis 5.6 standen diese Angaben als style-Attribute im Markup. Ein Attribut
+   schlägt jede Regel – ein eigenes Stylesheet (assets/custom.css) kam nicht
+   dagegen an, und Gestaltungssysteme mit strenger CSP verbieten es.
+
+   Die Hilfsklassen (Abstände, Breiten, Schrift) gelten wie vorher das
+   Attribut: mit !important, damit keine Seite anders aussieht als zuvor –
+   auch nicht unter einem eigenen Stylesheet, das Überschriften oder Zahlen-
+   felder allgemein anders setzt. Wer eine davon wirklich ändern will, sagt es
+   ausdrücklich (body.meine .mt-xl { margin-top: … !important; }).
+   Die benannten Bausteine darunter sind gewöhnliche Regeln (doppelte Klasse,
+   damit sie .card p oder .check schlagen); dort soll ein eigenes Stylesheet
+   ohne Umstand mitreden. */
+.m-0 { margin: 0 !important; }
+.mb-0 { margin-bottom: 0 !important; }
+.mt-xs { margin-top: 0.4rem !important; }
+.mt-s { margin-top: 0.6rem !important; }
+.mt-m { margin-top: 0.8rem !important; }
+.mt-l { margin-top: 1rem !important; }
+.mt-xl { margin-top: 1.5rem !important; }
+.my-xs { margin-top: 0.4rem !important; margin-bottom: 0.4rem !important; }
+.mono { font-family: var(--mono) !important; }
+.nowrap { white-space: nowrap !important; }
+.break-all { word-break: break-all !important; }
+.text-center { text-align: center !important; }
+.num { text-align: right !important; font-family: var(--mono) !important; }
+.w-xs { max-width: 8rem !important; }
+.w-s { max-width: 12rem !important; }
+.w-m { max-width: 22rem !important; }
+.w-num { width: 6.5rem !important; }
+.fit { flex: 0 0 auto !important; width: auto !important; }
+.inline-row { display: inline-flex !important; align-items: center !important; gap: 0.4rem !important; }
+/* Hinweis unter dem Kürzen-Formular („Viele auf einmal?") */
+.form-note.form-note { margin: 0.7rem 0 0; }
+/* „Augen eigene Farben geben" im QR-Panel */
+.qr-check.qr-check { margin: 0.5rem 0 0.2rem; }
+/* QR-Code zum Einrichten der zweiten Stufe im Profil */
+.totp-qr.totp-qr { max-width: 220px; margin: 0 0 0.8rem; }
+/* Eingabefeld des CSV-Imports */
+.csv-eingabe.csv-eingabe {
+    width: 100%; font-family: var(--mono); font-size: 0.9rem; padding: 0.6rem 0.75rem;
+    border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper); color: var(--ink);
+}
+/* Die Kennung für Passwortmanager (username_hint): da, aber nicht zu sehen.
+   Nicht hidden – versteckte Felder lesen Passwortmanager nicht. */
+.konto-feld.konto-feld { position: absolute; left: -9999px; width: 1px; height: 1px; }

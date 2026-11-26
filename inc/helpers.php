@@ -321,7 +321,7 @@ function username_hint(string $kennung): string
     if ($kennung === '') return '';
     return '<input type="text" name="_konto" value="' . e($kennung)
         . '" autocomplete="username" readonly tabindex="-1" aria-hidden="true"'
-        . ' style="position:absolute;left:-9999px;width:1px;height:1px">';
+        . ' class="konto-feld">';
 }
 
 function csrf_field(): string

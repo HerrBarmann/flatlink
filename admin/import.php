@@ -291,7 +291,7 @@ show_flash();
         </div>
         <div>
             <label for="i-daten"><?= t('… oder direkt einfügen') ?></label>
-            <textarea id="i-daten" name="daten" rows="6" style="width:100%; font-family:var(--mono); font-size:0.9rem; padding:0.6rem 0.75rem; border:1px solid var(--line); border-radius:var(--radius); background:var(--paper); color:var(--ink);" placeholder="https://example.com/sommer;sommerfest-2026;2026-09-30&#10;https://example.com/karte"></textarea>
+            <textarea id="i-daten" name="daten" rows="6" class="csv-eingabe" placeholder="https://example.com/sommer;sommerfest-2026;2026-09-30&#10;https://example.com/karte"></textarea>
         </div>
         <?php if ($assignable !== []): ?>
         <div>

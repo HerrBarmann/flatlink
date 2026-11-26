@@ -51,7 +51,7 @@ page_header(t('WLAN-QR-Code erstellen'), false,
             <label for="w-pw"><?= t('Passwort') ?></label>
             <input id="w-pw" type="text" maxlength="63" autocomplete="off">
         </div>
-        <label class="radio" style="margin-top:0.6rem">
+        <label class="radio mt-s">
             <input id="w-hidden" type="checkbox">
             <span><?= t('Verstecktes Netzwerk (SSID wird nicht ausgestrahlt)') ?></span>
         </label>
@@ -61,12 +61,12 @@ page_header(t('WLAN-QR-Code erstellen'), false,
             'logos' => qr_logo_choices(auth_user()),
         ]) ?>
 
-        <p class="muted small" style="margin-top:1rem"><?= t('Netzwerkname und Passwort werden nur zur Erzeugung der Grafik an den Server geschickt (per POST, nicht in der Adresszeile) und %snicht gespeichert%s. Der fertige Code funktioniert für immer – er enthält die Daten selbst.', '<strong>', '</strong>') ?></p>
+        <p class="muted small mt-l"><?= t('Netzwerkname und Passwort werden nur zur Erzeugung der Grafik an den Server geschickt (per POST, nicht in der Adresszeile) und %snicht gespeichert%s. Der fertige Code funktioniert für immer – er enthält die Daten selbst.', '<strong>', '</strong>') ?></p>
     </div>
 
     <div class="card preview">
         <h3><?= t('Vorschau') ?></h3>
-        <div id="preview-stage" style="display:inline-block; padding:1.2rem; border-radius:6px; background:#FAFCF6;">
+        <div id="preview-stage">
             <img id="w-preview" alt="<?= e(t('WLAN-QR-Code-Vorschau')) ?>" width="300">
         </div>
         <div id="w-lesbarkeit" class="lesbarkeit" aria-live="polite"></div>

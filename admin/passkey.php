@@ -63,7 +63,7 @@ page_header(t('Passkey einrichten'), true);
 
     <p class="muted small"><?= t('Der Passkey liegt in deinem Telefon, deinem Rechner oder deiner Passwortverwaltung und gilt %snur für diese Adresse%s: Auf einer nachgebauten Anmeldeseite gibt ihn dein Gerät gar nicht erst heraus. Genau davor schützt ein Passwort nicht.', '<strong>', '</strong>') ?></p>
 
-    <div id="pk-status" class="flash" style="display:none"></div>
+    <div id="pk-status" class="flash" hidden></div>
     <p><button class="btn btn-primary btn-block" type="button"
                data-passkey="register" data-url="passkey.php" data-csrf="<?= e(csrf_token()) ?>"
                data-status="pk-status"><?= t('Passkey einrichten') ?></button></p>

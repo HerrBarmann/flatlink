@@ -469,7 +469,7 @@ if ($neu !== null && link_access($user, $neu)):
                     <span class="prefix"><?= e($myPrefixes[0]) ?>/</span>
                     <input type="hidden" name="prefix" value="<?= e($myPrefixes[0]) ?>">
                 <?php elseif (count($myPrefixes) > 1): ?>
-                    <select name="prefix" style="flex:0 0 auto;width:auto">
+                    <select name="prefix" class="fit">
                         <?php foreach ($myPrefixes as $p): ?><option value="<?= e($p) ?>"><?= e($p) ?>/</option><?php endforeach; ?>
                     </select>
                 <?php endif; ?>
@@ -485,7 +485,7 @@ if ($neu !== null && link_access($user, $neu)):
         <div>
             <label><?= t('Namensraum') ?></label>
             <?php if (count($myPrefixes) === 1): ?>
-                <p class="muted small" style="margin:0"><?= t('Deine Links entstehen unter %s',
+                <p class="muted small m-0"><?= t('Deine Links entstehen unter %s',
                 '<code>' . e(preg_replace('#^https?://#', '', base_url())) . '/' . e($myPrefixes[0]) . '/…</code>') ?></p>
                 <input type="hidden" name="prefix" value="<?= e($myPrefixes[0]) ?>">
             <?php else: ?>
@@ -518,7 +518,7 @@ if ($neu !== null && link_access($user, $neu)):
         </div>
         <div>
             <label for="c-maxv"><?= t('Aufruf-Limit') ?> <span class="muted">(<?= t('optional – danach antwortet der Link wie ein abgelaufener') ?>)</span></label>
-            <input id="c-maxv" type="number" name="max_visits" min="1" placeholder="<?= t('leer = unbegrenzt') ?>" style="max-width:12rem">
+            <input id="c-maxv" type="number" name="max_visits" min="1" placeholder="<?= t('leer = unbegrenzt') ?>" class="w-s">
         </div>
         <div>
             <label for="c-linkpass"><?= t('Passwortschutz') ?> <span class="muted">(<?= t('optional – Besucher müssen es vor der Weiterleitung eingeben') ?>)</span></label>
@@ -528,7 +528,7 @@ if ($neu !== null && link_access($user, $neu)):
         <?php // Weichen gab es nur beim Bearbeiten. Wer beim Anlegen schon
               // weiß, dass Handys woandershin sollen, musste erst speichern und
               // den Link danach wieder aufmachen. ?>
-        <label style="margin-top:0.8rem"><?= t('Weichen') ?>
+        <label class="mt-m"><?= t('Weichen') ?>
             <span class="muted"><?= t('(optional – je nach Gerät, Sprache, Land oder Anteil woandershin)') ?></span></label>
         <div class="ziel-sprache">
             <label for="c-lang"><?= t('Sprache der Ziel-URL oben') ?>
@@ -557,7 +557,7 @@ if ($neu !== null && link_access($user, $neu)):
         </datalist>
         <?php endif; ?>
     </details>
-    <p class="muted small" style="margin:0.7rem 0 0"><?= t('Viele auf einmal?') ?> <a href="import.php"><?= t('CSV-Import') ?></a></p>
+    <p class="muted small form-note"><?= t('Viele auf einmal?') ?> <a href="import.php"><?= t('CSV-Import') ?></a></p>
 </form>
 </div><!-- /.stage -->
 
@@ -607,7 +607,7 @@ if ($neu !== null && link_access($user, $neu)):
                 <label for="e-expires"><?= t('Ablaufdatum') ?> <span class="muted">(<?= t('leer = kein Ablauf') ?>)</span></label>
                 <input id="e-expires" type="date" name="expires" value="<?= e($editLink['expires'] ?? '') ?>">
                 <label for="e-maxv"><?= t('Aufruf-Limit') ?> <span class="muted">(<?= t('leer = unbegrenzt') ?>)</span></label>
-                <input id="e-maxv" type="number" name="max_visits" min="1" style="max-width:12rem"
+                <input id="e-maxv" type="number" name="max_visits" min="1" class="w-s"
                        value="<?= (int)($editLink['max_visits'] ?? 0) > 0 ? (int)$editLink['max_visits'] : '' ?>">
             </div>
         </div>
@@ -654,7 +654,7 @@ if ($neu !== null && link_access($user, $neu)):
                 <span class="muted"><?= !empty($editLink['pass']) ? t('(aktiv – neues Passwort setzen oder entfernen)') : '(' . t('optional') . ')' ?></span></label>
             <input id="e-linkpass" type="text" name="linkpass" autocomplete="off" placeholder="<?= t('leer = unverändert') ?>">
             <?php if (!empty($editLink['pass'])): ?>
-            <label class="radio" style="margin-top:0.4rem">
+            <label class="radio mt-xs">
                 <input type="checkbox" name="linkpass_remove" value="1">
                 <span><?= t('Passwortschutz entfernen') ?></span>
             </label>

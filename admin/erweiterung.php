@@ -102,7 +102,7 @@ show_flash();
     <div class="flash flash-ok">
         <strong><?= t('Dein Verbindungscode:') ?></strong>
         <p><input type="text" value="<?= e($code) ?>" readonly data-select
-                  style="font-family:var(--mono);font-size:0.85rem" aria-label="<?= t('Verbindungscode') ?>"></p>
+                  class="mono small" aria-label="<?= t('Verbindungscode') ?>"></p>
         <p class="small"><?= t('Er enthält ein Zugangsmittel: nicht weitergeben. Zurückziehen lässt er sich unten bei den Zugangsschlüsseln.') ?></p>
     </div>
     <?php endif; ?>
@@ -126,7 +126,7 @@ show_flash();
     <?php else: ?>
         <?php $frisch = $_SESSION['fresh_token'] ?? null; unset($_SESSION['fresh_token']); ?>
         <?php if ($frisch !== null): ?>
-        <div class="flash flash-ok" style="word-break:break-all">
+        <div class="flash flash-ok break-all">
             <strong><?= t('Dein neuer Schlüssel:') ?></strong><br>
             <code><?= e($frisch) ?></code><br>
             <span class="small"><?= t('Notier ihn jetzt – er wird nicht gespeichert und lässt sich später nicht noch einmal anzeigen.') ?></span>
@@ -171,13 +171,13 @@ show_flash();
             <input id="p-label" type="text" name="label" maxlength="60" placeholder="z. B. Kassensystem">
 
             <label for="p-scope"><?= t('Umfang') ?> <span class="muted"><?= t('(mehr als dein Konto darf er nie – aber weniger)') ?></span></label>
-            <select id="p-scope" name="scope" style="max-width:22rem">
+            <select id="p-scope" name="scope" class="w-m">
                 <?php foreach (token_umfaenge() as $wert => $titel): ?>
                 <option value="<?= e($wert) ?>"><?= e($titel) ?></option>
                 <?php endforeach; ?>
             </select>
 
-            <label class="radio" style="margin-top:.6rem">
+            <label class="radio mt-s">
                 <input type="checkbox" name="own_only" value="1">
                 <span><?= t('Nur Links, die mit diesem Schlüssel angelegt wurden') ?><br>
                 <span class="muted small"><?= t('Der Schlüssel sieht und ändert nichts vom übrigen Bestand des Kontos – auch nicht das, was du selbst hier anlegst. Passend für ein Kassensystem oder einen Auftrag, der laufend Codes erzeugt.') ?></span></span>

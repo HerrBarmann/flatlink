@@ -251,7 +251,7 @@ if ($fehler !== null) echo '<div class="flash flash-err">' . e($fehler) . '</div
                     <button class="btn btn-small" type="button" data-pbg="#FAFCF6"><?= t('Hell') ?></button>
                     <button class="btn btn-small" type="button" data-pbg="#16181D"><?= t('Dunkel') ?></button>
                 </h3>
-                <div id="preview-stage" style="display:inline-block; padding:1.2rem; border-radius:6px; background:#FAFCF6;">
+                <div id="preview-stage">
                     <img id="qr-preview" src="" alt="<?= t('QR-Code-Vorschau') ?>" width="280">
                 </div>
                 <div id="lesbarkeit" class="lesbarkeit" aria-live="polite"></div>
@@ -259,7 +259,7 @@ if ($fehler !== null) echo '<div class="flash flash-err">' . e($fehler) . '</div
             </div>
         </div>
 
-        <label class="check" style="margin-top:0.8rem">
+        <label class="check mt-m">
             <input type="checkbox" data-checkall="codes[]"<?= $links !== [] && count($vorauswahl) >= count($links) ? ' checked' : '' ?>>
             <strong><?= t('Alle %d auswählen', count($links)) ?></strong>
         </label>

@@ -191,7 +191,7 @@ page_header(t('Logo-Bibliothek'), true);
             </details>
 
             <?php if ($isAdmin): ?>
-            <form method="post" action="" class="short-row" style="margin:0.4rem 0">
+            <form method="post" action="" class="short-row my-xs">
                 <?= csrf_field() ?>
                 <input type="hidden" name="action" value="public">
                 <input type="hidden" name="logo" value="<?= e((string)$id) ?>">

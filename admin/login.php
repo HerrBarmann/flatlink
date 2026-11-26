@@ -64,7 +64,7 @@ if ($wartet !== null) {
 
         <?php if ($keys !== []): ?>
         <p class="muted"><?= t('Bestätige mit deinem Passkey – Fingerabdruck, Gesicht oder Geräte-PIN.') ?></p>
-        <div id="pk-status" class="flash" style="display:none"></div>
+        <div id="pk-status" class="flash" hidden></div>
         <p><button class="btn btn-primary btn-block" type="button"
                    data-passkey="login" data-url="login.php" data-csrf="<?= e(csrf_token()) ?>"
                    data-status="pk-status"><?= t('Mit Passkey bestätigen') ?></button></p>
@@ -294,9 +294,9 @@ page_header($firstRun ? t('Ersteinrichtung') : t('Login'), true);
     <?php endif; ?>
 
     <?php if (!$firstRun && sso_enabled() && $sso['login_url'] !== ''): ?>
-        <p><a class="btn btn-primary" style="display:block;text-align:center"
+        <p><a class="btn btn-primary btn-block"
               href="<?= e((string)$sso['login_url']) ?>"><?= e(t((string)$sso['button_label'])) ?></a></p>
-        <p class="muted small" style="text-align:center"><?= t('oder mit lokalem Konto:') ?></p>
+        <p class="muted small text-center"><?= t('oder mit lokalem Konto:') ?></p>
     <?php endif; ?>
 
     <?php if ($firstRun): ?>
@@ -316,7 +316,7 @@ page_header($firstRun ? t('Ersteinrichtung') : t('Login'), true);
              Vorschlagsliste an — getippt werden muss dann gar nichts mehr.
              Der Server verrät dabei nicht, wer überhaupt einen hat: Die Suche
              findet ausschließlich auf dem Gerät statt. */ ?>
-    <div id="pk-status" class="flash" style="display:none"></div>
+    <div id="pk-status" class="flash" hidden></div>
     <form method="post" action="" data-enter-submit
           data-passkey-cond="login.php" data-csrf="<?= e(csrf_token()) ?>" data-status="pk-status">
         <?= csrf_field() ?>
@@ -342,7 +342,7 @@ page_header($firstRun ? t('Ersteinrichtung') : t('Login'), true);
              von selbst, wenn in diesem Browser zuletzt ein Passkey zum Ziel
              führte. Bewusst kein Umschalter: Beide Wege sind sichtbar, und
              damit funktioniert die Maske auch ohne JavaScript unverändert. */ ?>
-    <div id="pk-status" class="flash" style="display:none"></div>
+    <div id="pk-status" class="flash" hidden></div>
     <p><button class="btn btn-block" type="button"
                data-passkey="any" data-url="login.php" data-csrf="<?= e(csrf_token()) ?>"
                data-status="pk-status" data-sofort="merker"><?= t('Mit Passkey anmelden') ?></button></p>

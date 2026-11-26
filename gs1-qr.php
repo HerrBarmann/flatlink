@@ -70,12 +70,12 @@ page_header(t('GS1 Digital Link erstellen'), false,
 
     <div class="card preview">
         <h3><?= t('Vorschau') ?></h3>
-        <div id="preview-stage" style="display:inline-block; padding:1.2rem; border-radius:6px; background:#FAFCF6;">
+        <div id="preview-stage">
             <img id="g-preview" alt="<?= e(t('GS1-QR-Code-Vorschau')) ?>" width="300">
         </div>
         <div id="g-lesbarkeit" class="lesbarkeit" aria-live="polite"></div>
-        <div id="g-status" class="flash" style="display:none"></div>
-        <p class="muted small" style="word-break:break-all"><code id="g-url"></code></p>
+        <div id="g-status" class="flash" hidden></div>
+        <p class="muted small break-all"><code id="g-url"></code></p>
         <div class="qr-links">
             <button class="btn btn-small" type="button" id="g-svg">SVG</button>
             <button class="btn btn-small" type="button" id="g-png"><?= t('PNG (1024 px)') ?></button>

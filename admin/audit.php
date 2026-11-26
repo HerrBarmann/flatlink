@@ -29,10 +29,10 @@ show_flash();
         <tr><th><?= t('Zeit') ?></th><th><?= t('Konto') ?></th><th><?= t('Handlung') ?></th></tr>
         <?php foreach ($eintraege as $e): ?>
         <tr>
-            <td class="small" style="white-space:nowrap"><?= e(date('d.m.Y H:i', strtotime((string)$e['t']))) ?></td>
+            <td class="small nowrap"><?= e(date('d.m.Y H:i', strtotime((string)$e['t']))) ?></td>
             <td class="small"><?= e(user_display((string)($e['wer'] ?? ''))) ?></td>
             <td><?= e((string)$e['aktion']) ?><?php if (($e['objekt'] ?? '') !== ''): ?>
-                <span class="muted small" style="font-family:var(--mono)"> · <?= e((string)$e['objekt']) ?></span><?php endif; ?></td>
+                <span class="muted small mono"> · <?= e((string)$e['objekt']) ?></span><?php endif; ?></td>
         </tr>
         <?php endforeach; ?>
     </table></div>

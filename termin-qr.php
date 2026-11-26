@@ -53,12 +53,12 @@ page_header(t('Termin-QR-Code erstellen'), false,
             'logos' => qr_logo_choices(auth_user()),
         ]) ?>
 
-        <p class="muted small" style="margin-top:1rem"><?= t('Die Angaben werden nur zur Erzeugung der Grafik verwendet und %snicht gespeichert%s. Der Code enthält den Termin selbst – er funktioniert für immer, ganz ohne uns.', '<strong>', '</strong>') ?></p>
+        <p class="muted small mt-l"><?= t('Die Angaben werden nur zur Erzeugung der Grafik verwendet und %snicht gespeichert%s. Der Code enthält den Termin selbst – er funktioniert für immer, ganz ohne uns.', '<strong>', '</strong>') ?></p>
     </div>
 
     <div class="card preview">
         <h3><?= t('Vorschau') ?></h3>
-        <div id="preview-stage" style="display:inline-block; padding:1.2rem; border-radius:6px; background:#FAFCF6;">
+        <div id="preview-stage">
             <img id="t-preview" alt="<?= e(t('Termin-QR-Code-Vorschau')) ?>" width="300">
         </div>
         <div id="t-lesbarkeit" class="lesbarkeit" aria-live="polite"></div>

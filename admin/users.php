@@ -197,14 +197,14 @@ show_flash();
                 <?php if (!empty($e['email'])): ?><br><span class="muted small"><?= e($e['email']) ?></span><?php endif; ?>
                 <?php if (($e['reason'] ?? '') === 'kollision'):
                     $vorhanden = user_get($key); ?>
-                <div class="flash flash-err small" style="margin:0.4rem 0 0">
+                <div class="flash flash-err small mt-xs mb-0">
                     <strong><?= t('Achtung:') ?></strong> <?= t('Unter dieser Kennung gibt es hier bereits ein Konto (Anmeldung: %s, Rolle: %s). Freischalten verknüpft beide: Das bisherige Passwort verfällt, und die Rolle wird auf %s zurückgesetzt. Nur bestätigen, wenn es dieselbe Person ist.',
                         e(match ($vorhanden['auth'] ?? 'local') { 'ldap' => 'LDAP', 'sso' => 'SSO', default => t('lokales Passwort') }),
                         e($vorhanden['role'] ?? '?'), '<em>user</em>') ?>
                 </div>
                 <?php endif; ?>
             </td>
-            <td class="small" style="font-family:var(--mono)" title="<?= e((string)$key) ?>">
+            <td class="small mono" title="<?= e((string)$key) ?>">
                 <?= e(mb_strimwidth((string)$key, 0, 34, '…')) ?></td>
             <td class="small"><?php
                 $gs = (array)($e['groups'] ?? []);
@@ -348,7 +348,7 @@ show_flash();
                 <span class="user-name">
                     <strong><?= e(user_display((string)$name)) ?></strong><?= $selbst ? ' <span class="muted">(' . t('du') . ')</span>' : '' ?>
                     <?php if (user_has_display((string)$name)): ?>
-                    <br><span class="muted small" style="font-family:var(--mono)" title="<?= e((string)$name) ?>"><?= e(mb_strimwidth((string)$name, 0, 44, '…')) ?></span>
+                    <br><span class="muted small mono" title="<?= e((string)$name) ?>"><?= e(mb_strimwidth((string)$name, 0, 44, '…')) ?></span>
                     <?php endif; ?>
                 </span>
                 <span class="user-meta">

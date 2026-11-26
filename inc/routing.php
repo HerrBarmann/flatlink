@@ -195,7 +195,11 @@ function preview_render(string $code, array $link, string $ziel): void
     if ($bild !== '') {
         echo '<meta property="og:image" content="' . e($bild) . '">';
     }
-    echo '</head><body style="font-family:system-ui,sans-serif;max-width:38rem;margin:3rem auto;padding:0 1rem">'
+    // Kein Stylesheet: Die Seite wird auch unter Nebendomains ausgeliefert, und
+    // wer sie abruft, ist fast immer ein Vorschaudienst. Die paar Regeln stehen
+    // deshalb im Kopf statt in einem style-Attribut.
+    echo '<style>body{font-family:system-ui,sans-serif;max-width:38rem;margin:3rem auto;padding:0 1rem}</style>'
+        . '</head><body>'
         . '<h1>' . e($titel) . '</h1>';
     if ($text !== '') echo '<p>' . e($text) . '</p>';
     // Das echte Ziel steht sichtbar da – wer hier landet, sieht dasselbe,

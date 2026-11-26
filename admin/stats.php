@@ -162,7 +162,7 @@ if ($hatDims): ?>
                 if ($feld === 'devs') $label = ['mobile' => t('Handy'), 'tablet' => t('Tablet'), 'desktop' => t('Rechner')][$wert] ?? $label; ?>
                 <tr>
                     <td class="dim-name" title="<?= e((string)$wert) ?>"><?= e(mb_strimwidth((string)$label, 0, 24, '…')) ?></td>
-                    <td class="dim-bar"><span style="width:<?= round((int)$n / $summe * 100) ?>%"></span></td>
+                    <td class="dim-bar"><svg viewBox="0 0 100 1" preserveAspectRatio="none" aria-hidden="true" focusable="false"><rect width="<?= max(1, (int)round((int)$n / $summe * 100)) ?>" height="1"/></svg></td>
                     <td class="dim-n"><?= (int)$n ?></td>
                 </tr>
             <?php endforeach; ?>
@@ -184,15 +184,15 @@ if ($hatDims): ?>
         <tr><th><?= t('Wenn') ?></th><th><?= t('Ziel') ?></th><th><?= t('Griff') ?></th></tr>
         <?php foreach ($weichen as $i => $r): $n = (int)($treffer[(string)$i] ?? 0); ?>
         <tr>
-            <td class="small" style="white-space:nowrap"><?= e(route_label($r)) ?></td>
+            <td class="small nowrap"><?= e(route_label($r)) ?></td>
             <td class="url-cell" title="<?= e((string)($r['url'] ?? '')) ?>"><?= e(mb_strimwidth((string)($r['url'] ?? ''), 0, 52, '…')) ?></td>
-            <td class="small" style="text-align:right;font-family:var(--mono)"><?= $n > 0 ? (int)$n : '–' ?></td>
+            <td class="small num"><?= $n > 0 ? (int)$n : '–' ?></td>
         </tr>
         <?php endforeach; ?>
         <tr>
             <td class="small muted"><?= t('sonst') ?></td>
             <td class="url-cell muted" title="<?= e((string)($link['url'] ?? '')) ?>"><?= e(mb_strimwidth((string)($link['url'] ?? ''), 0, 52, '…')) ?></td>
-            <td class="small muted" style="text-align:right;font-family:var(--mono)"><?= max(0, (int)($clicks['n'] ?? 0) - $summe) ?></td>
+            <td class="small muted num"><?= max(0, (int)($clicks['n'] ?? 0) - $summe) ?></td>
         </tr>
     </table></div>
 </div>
@@ -206,7 +206,7 @@ if ($hatDims): ?>
         <tr><th><?= t('Zeit') ?></th><th><?= t('Konto') ?></th><th><?= t('Von') ?></th><th><?= t('Nach') ?></th></tr>
         <?php foreach ($historie as $h): ?>
         <tr>
-            <td class="small" style="white-space:nowrap"><?= e(date('d.m.Y H:i', strtotime((string)($h['t'] ?? '')))) ?></td>
+            <td class="small nowrap"><?= e(date('d.m.Y H:i', strtotime((string)($h['t'] ?? '')))) ?></td>
             <td class="small"><?= e(user_display((string)($h['wer'] ?? ''))) ?></td>
             <td class="url-cell" title="<?= e((string)($h['von'] ?? '')) ?>"><?= e(mb_strimwidth((string)($h['von'] ?? ''), 0, 44, '…')) ?></td>
             <td class="url-cell" title="<?= e((string)($h['nach'] ?? '')) ?>"><?= e(mb_strimwidth((string)($h['nach'] ?? ''), 0, 44, '…')) ?></td>
