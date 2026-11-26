@@ -508,6 +508,9 @@ td a { font-family: var(--mono); }
 .actions input[type="password"] { width: 150px; padding: 0.3rem 0.5rem; font-size: 0.85rem; }
 .list-head { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; }
 .list-head form { margin: 0; }
+/* Über der Linkliste: Schlagworte als Filter, darunter Serie und Export */
+.tag-row.list-tags { margin: 0 0 0.9rem; }
+.list-actions { margin: 0 0 0.5rem; }
 
 /* Nutzerliste: eine Zeile je Konto zum Überfliegen, die Formulare erst beim
    Aufklappen. In einer Tabellenzelle standen sie zuvor nebeneinander und

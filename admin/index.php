@@ -787,7 +787,7 @@ if ($neu !== null && link_access($user, $neu)):
         </form>
     </div>
     <?php if ($alleTags !== []): ?>
-    <p class="tag-row" style="margin:0 0 0.9rem">
+    <p class="tag-row list-tags">
         <?php if ($tagFilter !== ''): ?>
             <a class="tag" href="index.php<?= $q !== '' ? '?q=' . e(rawurlencode($q)) : '' ?>"><?= t('alle anzeigen') ?></a>
         <?php endif; ?>
@@ -807,7 +807,7 @@ if ($neu !== null && link_access($user, $neu)):
     // dann eine Serie zieht, meint genau diese Links.
     $serieFilter = array_filter(['g' => $gFilter, 'tag' => $tagFilter, 'q' => $q], fn($v) => $v !== '');
     ?>
-    <p class="muted small" style="margin:0 0 0.5rem">
+    <p class="muted small list-actions">
         <a class="btn btn-small" href="qrzip.php<?= $serieFilter !== [] ? '?' . e(http_build_query($serieFilter)) : '' ?>"><?= t('QR-Codes dieser %d Links als ZIP', $listenGesamt) ?></a>
         <a class="btn btn-small" href="index.php?<?= e(http_build_query($serieFilter + ['export' => 'csv'])) ?>"><?= t('CSV-Export') ?></a>
     </p>
