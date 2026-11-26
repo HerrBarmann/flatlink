@@ -41,18 +41,29 @@ $fehler = 0;
 /**
  * Startet einen nachgestellten SMTP-Server in einem Unterprozess.
  *
+ * Bis 5.6.1 schlief der Test nach dem Start fest 400 ms, nahm einen
+ * zufälligen Port und las das Protokoll, sobald der Client fertig war. Das
+ * ging etwa jedes vierte Mal schief: Der Server schreibt sein Protokoll erst
+ * nach dem letzten Befehl, und der Test las es, bevor der Prozess so weit
+ * war. Jetzt sucht sich der Server einen freien Port, meldet „BEREIT <port>",
+ * sobald er lauscht, und server_protokoll() wartet, bis er beendet ist.
+ *
  * @param bool $starttls Bietet der Server STARTTLS an?
  * @param bool $auth     Bietet er AUTH an?
- * @return array{0:int,1:string} Port und Pfad zum Protokoll
+ * @return array{0:int,1:array} Port und Server (für server_protokoll())
  */
 function server_start(bool $starttls, bool $auth): array
 {
     $log = tempnam(sys_get_temp_dir(), 'smtplog');
-    $port = random_int(21000, 21999);
     $code = <<<'PHPEOF'
-$port = (int)$argv[1]; $starttls = $argv[2] === '1'; $auth = $argv[3] === '1'; $log = $argv[4];
-$srv = @stream_socket_server("tcp://127.0.0.1:$port", $e, $s);
+$starttls = $argv[1] === '1'; $auth = $argv[2] === '1'; $log = $argv[3];
+// Port 0: Das Betriebssystem vergibt einen freien – kein Zusammenstoß mit
+// einem anderen Prozess, der zufällig denselben Port hält.
+$srv = @stream_socket_server('tcp://127.0.0.1:0', $e, $s);
 if ($srv === false) { file_put_contents($log, "LISTEN-FEHLER $s"); exit(1); }
+$name = (string)stream_socket_get_name($srv, false);
+fwrite(STDOUT, 'BEREIT ' . substr($name, strrpos($name, ':') + 1) . "\n");
+fflush(STDOUT);
 $c = @stream_socket_accept($srv, 10);
 if ($c === false) { file_put_contents($log, 'KEINE VERBINDUNG'); exit(1); }
 $mit = []; $imBody = false;
@@ -85,11 +96,34 @@ file_put_contents($log, implode("\n", $mit));
 PHPEOF;
     $datei = tempnam(sys_get_temp_dir(), 'smtpsrv') . '.php';
     file_put_contents($datei, "<?php\n" . $code);
-    $cmd = sprintf('php %s %d %d %d %s > /dev/null 2>&1 &',
-        escapeshellarg($datei), $port, $starttls ? 1 : 0, $auth ? 1 : 0, escapeshellarg($log));
-    exec($cmd);
-    usleep(400000);
-    return [$port, $log];
+    $proc = proc_open([PHP_BINARY, $datei, $starttls ? '1' : '0', $auth ? '1' : '0', $log],
+        [1 => ['pipe', 'w'], 2 => ['file', '/dev/null', 'w']], $pipes);
+    if (!is_resource($proc)) exit("Testserver ließ sich nicht starten.\n");
+    // Warten, bis er lauscht – höchstens fünf Sekunden, dann ist etwas faul.
+    $lesen = [$pipes[1]]; $nichts = null;
+    $zeile = stream_select($lesen, $nichts, $nichts, 5) === 1 ? (string)fgets($pipes[1]) : '';
+    if (!preg_match('/^BEREIT (\d+)/', $zeile, $m)) {
+        exit("Testserver meldet sich nicht bereit: " . trim($zeile . ' ' . (string)@file_get_contents($log)) . "\n");
+    }
+    return [(int)$m[1], ['proc' => $proc, 'pipe' => $pipes[1], 'log' => $log, 'datei' => $datei]];
+}
+
+/**
+ * Das Protokoll des Testservers – erst, wenn er fertig ist. Er schreibt es
+ * nach dem letzten Befehl (QUIT, STARTTLS oder Verbindungsende) und beendet
+ * sich dann; wer vorher liest, findet eine leere Datei.
+ */
+function server_protokoll(array $server): string
+{
+    $bis = microtime(true) + 5;
+    while (proc_get_status($server['proc'])['running'] && microtime(true) < $bis) usleep(20000);
+    if (proc_get_status($server['proc'])['running']) proc_terminate($server['proc']);
+    fclose($server['pipe']);
+    proc_close($server['proc']);
+    $mit = (string)file_get_contents($server['log']);
+    @unlink($server['log']);
+    @unlink($server['datei']);
+    return $mit;
 }
 
 function pruefe(string $was, bool $ok, string $detail = ''): void
@@ -102,42 +136,44 @@ function pruefe(string $was, bool $ok, string $detail = ''): void
 echo "SMTP-Client: handelt er Verschlüsselung und Anmeldung richtig aus?\n\n";
 
 // ---- 1. Hausinternes Relay: kein STARTTLS, kein AUTH, keine Zugangsdaten ----
-[$port, $log] = server_start(false, false);
+[$port, $server] = server_start(false, false);
 $fall = 'Relay ohne TLS und ohne Anmeldung';
 try {
     smtp_send(['host' => '127.0.0.1', 'port' => $port, 'user' => '', 'pass' => '',
         'from' => 'admin@example.org', 'from_name' => 'Test'], 'wer@example.org', 'Betreff', 'Text');
-    $mit = (string)file_get_contents($log);
+    $mit = server_protokoll($server);
     pruefe($fall, strpos($mit, 'AUTH') === false && strpos($mit, 'STARTTLS') === false
         && strpos($mit, 'MAIL FROM') !== false,
         'Gesendet: ' . str_replace("\n", ' | ', $mit));
 } catch (Throwable $e) {
-    pruefe($fall, false, $e->getMessage());
+    pruefe($fall, false, $e->getMessage() . ' | Gesendet: ' . str_replace("\n", ' | ', server_protokoll($server)));
 }
 
 // ---- 2. Anbieter-Relay: STARTTLS wird angeboten, also genommen ----
-[$port, $log] = server_start(true, true);
+[$port, $server] = server_start(true, true);
 $fall = 'Server bietet STARTTLS an – Client nimmt es';
 try {
     smtp_send(['host' => '127.0.0.1', 'port' => $port, 'user' => '', 'pass' => '',
         'from' => 'admin@example.org', 'from_name' => 'Test'], 'wer@example.org', 'Betreff', 'Text');
-    pruefe($fall, false, 'Kein TLS-Fehler – der Client hat STARTTLS übersprungen');
+    pruefe($fall, false, 'Kein TLS-Fehler – der Client hat STARTTLS übersprungen. Gesendet: '
+        . str_replace("\n", ' | ', server_protokoll($server)));
 } catch (Throwable $e) {
     // Der Testserver bricht nach 220 ab; ein Handshake-Fehler ist hier der Beweis
-    $mit = (string)file_get_contents($log);
+    $mit = server_protokoll($server);
     pruefe($fall, strpos($mit, 'STARTTLS') !== false,
         strpos($mit, 'STARTTLS') !== false ? '' : 'Gesendet: ' . str_replace("\n", ' | ', $mit));
 }
 
 // ---- 3. Zugangsdaten ohne Verschlüsselung: muss abbrechen ----
-[$port, $log] = server_start(false, true);
+[$port, $server] = server_start(false, true);
 $fall = 'Zugangsdaten ohne STARTTLS – Abbruch statt Klartext-Passwort';
 try {
     smtp_send(['host' => '127.0.0.1', 'port' => $port, 'user' => 'konto', 'pass' => 'geheim',
         'from' => 'admin@example.org', 'from_name' => 'Test'], 'wer@example.org', 'Betreff', 'Text');
-    pruefe($fall, false, 'Kein Abbruch – das Passwort wäre im Klartext gegangen');
+    pruefe($fall, false, 'Kein Abbruch – das Passwort wäre im Klartext gegangen. Gesendet: '
+        . str_replace("\n", ' | ', server_protokoll($server)));
 } catch (Throwable $e) {
-    $mit = (string)file_get_contents($log);
+    $mit = server_protokoll($server);
     pruefe($fall, strpos($mit, 'AUTH') === false && strpos($e->getMessage(), 'STARTTLS') !== false,
         strpos($mit, 'AUTH') === false ? '' : 'AUTH wurde trotzdem gesendet!');
 }
