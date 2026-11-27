@@ -337,6 +337,15 @@ return [
     // Ersteinrichtung und zweite Stufe zeigt weiter flatlink selbst.
     'login_template' => '',
 
+    // Eigene Startseite, solange das öffentliche Kürzen aus ist: wie
+    // 'login_template' eine PHP-Datei, die die ganze Seite zeichnet (z. B.
+    // 'inc/vorlagen/start.php'), leer = die Seite von flatlink. Sie bekommt
+    // $startseite: angemeldet ja/nein, Adresse der Anmeldung, ob die QR-
+    // Werkzeuge offen sind und ihre Adressen, die Adresse für Meldungen und
+    // die für den Hinweis auf flatlink, den auch diese Seite tragen muss
+    // (LICENSE, §7(b)); siehe index.php.
+    'start_template' => '',
+
     // Eigenes Logo in der Kopfzeile. Dateiname innerhalb von assets/,
     // leer = nur der Name der Instanz. SVG oder PNG, etwa 'logo.svg'.
     'logo' => '',

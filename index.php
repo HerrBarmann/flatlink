@@ -25,6 +25,34 @@ if ($mode === 'off') {
     // offenen QR-Werkzeugen ist sie sogar deren Eingangstür. Im Browser-Tab,
     // im Lesezeichen und in Suchergebnissen steht das sonst als Absage.
     $offen = qr_static_offen();
+
+    // Eigene Startseite ('start_template'): Sie zeichnet die ganze Seite, etwa
+    // im Aufbau, den eine Einrichtung für die öffentlichen Seiten ihrer Dienste
+    // vorgibt. Sie bekommt nur Zustand und Adressen; was darauf steht,
+    // entscheidet sie. Der Hinweis auf flatlink gehört auch auf diese Seite
+    // (LICENSE, §7(b)) – deshalb kommt die Adresse dafür mit.
+    if (($vorlage = vorlage_pfad('start_template')) !== null) {
+        security_headers();
+        $basis = base_url();
+        $startseite = [
+            'angemeldet' => auth_user() !== null,
+            'anmelden'   => $basis . '/admin/',       // Anmeldung bzw. eigene Links
+            'qr_offen'   => $offen,
+            'qr'         => $offen ? [
+                'link'    => $basis . '/qr-designer.php?m=statisch',
+                'wlan'    => $basis . '/wlan-qr.php',
+                'kontakt' => $basis . '/vcard-qr.php',
+                'termin'  => $basis . '/termin-qr.php',
+                'gs1'     => $basis . '/gs1-qr.php',
+            ] : [],
+            'melden'     => $basis . '/report.php',
+            'herkunft'   => cfg('show_origin') ? 'https://1337.kiwi/flatlink' : '',
+            'basis'      => $basis,
+        ];
+        (static function (string $datei, array $startseite): void { require $datei; })($vorlage, $startseite);
+        exit;
+    }
+
     page_header($offen ? t('QR-Codes') : t('Anmelden'));
     // Sind die QR-Werkzeuge offen, sind sie für Gäste die Hauptaufgabe dieser
     // Seite und stehen oben; die Überschrift sagt, was man hier tun kann. Der

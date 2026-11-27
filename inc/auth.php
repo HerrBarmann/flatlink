@@ -102,7 +102,17 @@ function login_fehlertext(): string
  */
 function login_vorlage(): ?string
 {
-    $pfad = trim((string)cfg('login_template'));
+    return vorlage_pfad('login_template');
+}
+
+/**
+ * Eine eigene Seitenvorlage aus der Konfiguration ('login_template',
+ * 'start_template'): relativ ab dem Wurzelverzeichnis von flatlink, sonst
+ * absolut. Fehlt die Datei, gilt die Seite von flatlink.
+ */
+function vorlage_pfad(string $schluessel): ?string
+{
+    $pfad = trim((string)cfg($schluessel));
     if ($pfad === '') return null;
     if ($pfad[0] !== '/') $pfad = dirname(__DIR__) . '/' . $pfad;
     return is_file($pfad) ? $pfad : null;
