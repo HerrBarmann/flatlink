@@ -315,7 +315,7 @@ return [
     // Nur mit 'nav_layout' = 'side': das Menü auf schmalen Bildschirmen.
     //   'klappe' – eine aufklappbare Zeile über dem Inhalt (Vorgabe)
     //   'tabs'   – unten eine feste Tab-Leiste mit den häufigsten Zielen
-    //              (Links, QR-Designer, QR-Serie, Suche); bei mehr als fünf
+    //              (Übersicht, Links, QR-Designer, Suche, QR-Serie); bei mehr als fünf
     //              Zielen ist der fünfte Tab „Mehr" und springt zu „Alle
     //              Bereiche", dem ganzen Menü nach dem Inhalt.
     'nav_mobile' => 'klappe',
@@ -324,6 +324,13 @@ return [
     // Kurzlinks und Seiten der Verwaltung (admin/suche.php). Mit JavaScript
     // als Dialog, der beim Tippen sucht, dazu Strg/⌘+K.
     'nav_search' => false,
+
+    // Eine Übersicht als erste Seite nach der Anmeldung (admin/uebersicht.php):
+    // „Hallo, Vorname", was ansteht (Freischaltungen und Meldungen für die
+    // Verwaltung, gesperrte und bald ablaufende eigene Links, ein Tipp),
+    // Schnellzugriff und die zuletzt angelegten Links. Im Menü steht sie
+    // zuerst. Aus = nach der Anmeldung geht es wie bisher zur Linkliste.
+    'overview' => false,
 
     // Eigene Anmeldeseite: eine PHP-Datei, die die Schritte 1 und 2 der
     // Anmeldung als ganze Seite zeichnet – für Einrichtungen mit fester

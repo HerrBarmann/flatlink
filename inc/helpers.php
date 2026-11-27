@@ -733,11 +733,15 @@ function nav_menu(array $u, string $adm, string $pub): array
         }
         return false;
     };
-    // 'tab': eines der häufigsten Ziele – steht in der Tab-Leiste auch dann,
-    // wenn nicht alle Ziele hineinpassen (nav_tab_bar()).
+    // 'tab': Rang unter den häufigsten Zielen – sie stehen in der Tab-Leiste
+    // auch dann, wenn nicht alle Ziele hineinpassen (nav_tab_bar(), Suche = 4).
+    // 'zaehler': Arbeit, die dort wartet (uebersicht_zaehler()).
+    require_once __DIR__ . '/uebersicht.php';
+    $zaehler = uebersicht_zaehler($u);
+    $rang = ['uebersicht' => 1, 'links' => 2, 'qr' => 3, 'qrzip' => 5];
     $punkt = static fn(string $k, string $text, string $href, bool $aktiv): array =>
         ['schluessel' => $k, 'text' => $text, 'href' => $href, 'aktiv' => $aktiv,
-         'tab' => in_array($k, ['links', 'qr', 'qrzip'], true)];
+         'tab' => $rang[$k] ?? 0, 'zaehler' => $zaehler[$k] ?? 0];
 
     $links = [$punkt('links', t('Links'), $adm . 'index.php',
         $ist('admin/index.php', 'admin/edit.php', 'admin/stats.php'))];
@@ -768,8 +772,13 @@ function nav_menu(array $u, string $adm, string $pub): array
         $verwaltung[] = $punkt($k, $text, $adm . $k . '.php', $ist('admin/' . $k . '.php'));
     }
 
+    // Die Übersicht ('overview') steht vor allem anderen, ohne Bereich.
+    $start = cfg('overview')
+        ? [$punkt('uebersicht', t('Übersicht'), $adm . 'uebersicht.php', $ist('admin/uebersicht.php'))]
+        : [];
+
     $bereiche = [];
-    foreach ([['links', t('Kurzlinks'), $links], ['qr', t('QR-Codes'), $qr],
+    foreach ([['start', '', $start], ['links', t('Kurzlinks'), $links], ['qr', t('QR-Codes'), $qr],
               ['verwaltung', t('Verwaltung'), $verwaltung]] as [$k, $titel, $punkte]) {
         if ($punkte === []) continue;
         $bereiche[] = ['schluessel' => $k, 'titel' => count($punkte) > 1 ? $titel : '', 'punkte' => $punkte];
@@ -792,8 +801,11 @@ function nav_side_list(array $bereiche): string
         if ($b['titel'] !== '') $html .= '<p class="side-nav-title">' . e($b['titel']) . '</p>';
         $html .= '<ul>';
         foreach ($b['punkte'] as $p) {
+            $n = (int)($p['zaehler'] ?? 0);
             $html .= '<li><a href="' . e($p['href']) . '" data-key="' . e($p['schluessel']) . '"'
-                . ($p['aktiv'] ? ' aria-current="page"' : '') . '>' . e($p['text']) . '</a></li>';
+                . ($p['aktiv'] ? ' aria-current="page"' : '') . '>' . e($p['text'])
+                . ($n > 0 ? ' <span class="menu-count" title="' . e(t('%d offen', $n)) . '">' . $n . '</span>' : '')
+                . '</a></li>';
         }
         $html .= '</ul></div>';
     }
@@ -804,7 +816,8 @@ function nav_side_list(array $bereiche): string
  * Tab-Leiste für schmale Bildschirme ('nav_mobile' = 'tabs').
  *
  * Höchstens fünf Tabs. Passen alle Ziele hinein, stehen alle da; sonst die
- * häufigsten (Links, QR-Designer, QR-Serie, Suche) und als fünfter „Mehr",
+ * vier häufigsten nach Rang (Übersicht, Links, QR-Designer, Suche, QR-Serie)
+ * und als fünfter „Mehr",
  * der zu „Alle Bereiche" nach dem Inhalt springt. So ist jedes Ziel mit zwei
  * Fingertipps erreichbar, und das Menü kostet oben keinen Platz.
  */
@@ -817,11 +830,15 @@ function nav_tab_bar(array $bereiche, string $adm): string
     if (cfg('nav_search')) {
         $skript = (string)($_SERVER['SCRIPT_NAME'] ?? '');
         $alle[] = ['schluessel' => 'suche', 'text' => t('Suche'), 'href' => $adm . 'suche.php',
-            'aktiv' => str_ends_with($skript, '/admin/suche.php'), 'tab' => true];
+            'aktiv' => str_ends_with($skript, '/admin/suche.php'), 'tab' => 4];
     }
-    $tabs = count($alle) <= 5
-        ? $alle
-        : array_slice(array_values(array_filter($alle, fn($p) => !empty($p['tab']))), 0, 4);
+    if (count($alle) <= 5) {
+        $tabs = $alle;
+    } else {
+        $tabs = array_values(array_filter($alle, fn($p) => (int)($p['tab'] ?? 0) > 0));
+        usort($tabs, fn($a, $b) => (int)$a['tab'] <=> (int)$b['tab']);
+        $tabs = array_slice($tabs, 0, 4);
+    }
     $mehr = count($tabs) < count($alle);
 
     $html = '<nav class="tab-nav" aria-label="' . t('Schnellzugriff') . '">';

@@ -424,7 +424,7 @@ if ($neu !== null && link_access($user, $neu)):
 </div>
 <?php endif; ?>
 
-<form class="card create-form" method="post" action="">
+<form class="card create-form" id="neu" method="post" action="">
     <?= csrf_field() ?>
     <input type="hidden" name="action" value="create">
     <label for="c-url"><?= t('Ziel-URL') ?></label>

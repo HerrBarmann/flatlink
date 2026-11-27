@@ -918,6 +918,38 @@ button, .btn, a, summary, label, input, select, textarea {
     .logo-bild { flex-basis: auto; align-self: flex-start; }
 }
 
+/* ---- Übersicht nach der Anmeldung ('overview', admin/uebersicht.php) ------- */
+.ueb-teil { margin-top: 1.6rem; }
+.ueb-teil > h2 { margin-bottom: 0.5rem; }
+.todos { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.5rem; max-width: 52rem; }
+.todo > a {
+    display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+    padding: 0.8rem 1rem; background: var(--surface); color: var(--ink);
+    border-left: 4px solid var(--accent); border-radius: var(--radius); text-decoration: none;
+}
+.todo > a:hover { background: var(--accent-tint); text-decoration: none; }
+.todo-todo > a { border-left-color: #C0392B; font-weight: 600; }   /* zu erledigen */
+.todo-warn > a { border-left-color: var(--accent); }               /* prüfen */
+.todo-hint > a { border-left-color: var(--line); color: var(--muted); } /* Tipp */
+.todo-pfeil { flex: none; }
+.todo-none { margin: 0; color: var(--muted); }
+.quick { display: grid; grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr)); gap: 0.5rem; max-width: 52rem; }
+.quick a {
+    display: flex; align-items: center; gap: 0.6rem; padding: 0.7rem 0.9rem;
+    border: 1px solid var(--line); border-radius: var(--radius); color: var(--ink); font-weight: 600;
+}
+.quick a:hover { border-color: var(--accent); text-decoration: none; }
+.recent { list-style: none; margin: 0 0 0.6rem; padding: 0; max-width: 52rem; }
+.recent li { display: flex; flex-wrap: wrap; gap: 0.2rem 0.8rem; padding: 0.4rem 0; border-bottom: 1px solid var(--line); }
+.recent li > .muted { flex: 1 1 12rem; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.when, .recent-n { color: var(--muted); font-variant-numeric: tabular-nums; }
+/* Arbeit, die hinter einem Menüpunkt wartet (dieselbe Zahl wie in der Übersicht) */
+.menu-count {
+    display: inline-block; min-width: 1.6em; margin-left: 0.4rem; padding: 0 0.4rem; border-radius: 999px;
+    background: var(--ink); color: var(--paper); font-size: 0.72rem; font-weight: 700; text-align: center;
+    font-variant-numeric: tabular-nums;
+}
+
 /* ---- Klassen statt style-Attributen ------------------------------------------
    Bis 5.6 standen diese Angaben als style-Attribute im Markup. Ein Attribut
    schlägt jede Regel – ein eigenes Stylesheet (assets/custom.css) kam nicht

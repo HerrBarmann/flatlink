@@ -415,7 +415,8 @@ function login_ziel(string $user): string
     // Sitzung älter sein kann als die Prüfregel.
     $next = login_next_pruefen((string)($_SESSION['login_next'] ?? ''));
     unset($_SESSION['login_next']);
-    return base_url() . ($next ?? '/admin/index.php');
+    // Ohne Rückweg: die Übersicht, wo es eine gibt ('overview'), sonst die Links.
+    return base_url() . ($next ?? (cfg('overview') ? '/admin/uebersicht.php' : '/admin/index.php'));
 }
 
 /**

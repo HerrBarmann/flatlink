@@ -188,7 +188,7 @@ show_flash();
 ?>
 
 <?php if ($queue !== []): ?>
-<div class="card highlight">
+<div class="card highlight" id="freischalten">
     <h2><?= t('Wartet auf Freischaltung') ?> <span class="muted">(<?= count($queue) ?>)</span></h2>
     <p class="muted small"><?= t('Diese Kennungen haben sich erfolgreich über die zentrale Anmeldung ausgewiesen, haben hier aber noch kein Konto. Freischalten legt eines an – Name, E-Mail und Gruppen kommen bei der nächsten Anmeldung aus dem Verzeichnis.') ?></p>
     <div class="table-scroll"><table>
