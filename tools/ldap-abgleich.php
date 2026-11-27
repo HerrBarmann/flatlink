@@ -77,13 +77,15 @@ sage('  Im Verzeichnis: ' . count($kennungen) . ' Kennungen');
 // ---- 2. Betroffene Konten bestimmen -------------------------------------
 
 $zentral = [];
+// Nur, was auch über das Verzeichnis hereinkommt. Lokale Konten haben mit
+// dieser Liste nichts zu tun; SSO-Konten nur, wenn das Verzeichnis der Bestand
+// für die zentrale Anmeldung ist ('login' => false, ab 5.7).
+$herkuenfte = ldap_bestand_herkunft(ldap_login_enabled(), sso_enabled());
 foreach (users_all() as $name => $u) {
-    // Nur, was auch über das Verzeichnis hereinkommt. Lokale Konten und
-    // Shibboleth-Konten haben mit dieser Liste nichts zu tun.
-    if (($u['auth'] ?? 'local') !== 'ldap') continue;
+    if (!in_array($u['auth'] ?? 'local', $herkuenfte, true)) continue;
     $zentral[$name] = $u;
 }
-sage('  Konten über LDAP: ' . count($zentral));
+sage('  Konten aus dem Verzeichnis (' . implode(', ', $herkuenfte) . '): ' . count($zentral));
 if ($zentral === []) {
     sage('');
     sage('  Nichts zu tun.');

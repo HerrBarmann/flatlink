@@ -1204,6 +1204,7 @@ your password immediately and contact us.
     // Nutzer aus dem Verzeichnis anlegen
     'Aus dem Verzeichnis anlegen' => 'Create from the directory',
     'Nach Name, Kennung oder E-Mail suchen. Wer hier angelegt wird, meldet sich sofort mit seinem gewohnten Passwort an – ein vergeblicher erster Versuch entfällt.' => 'Search by name, login or e-mail. Whoever is created here can sign in straight away with their usual password – no pointless first attempt.',
+    'Nach Name, Kennung oder E-Mail suchen. Wer hier angelegt wird, meldet sich sofort über die zentrale Anmeldung an – ein vergeblicher erster Versuch entfällt.' => 'Search by name, login or e-mail. Whoever is created here can sign in straight away through single sign-on – no pointless first attempt.',
     'z. B. Bormann oder db12345' => 'e.g. Smith or ab12345',
     'Im Verzeichnis suchen' => 'Search the directory',
     'Suche zurücksetzen' => 'Clear search',

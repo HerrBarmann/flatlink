@@ -76,6 +76,10 @@ wartet.
   der man kam. Dazu drei Schalter: `nav_mobile` (Tab-Leiste auf dem Handy),
   `nav_search` (Suche überall, ⌘K) und `login_template` (eigene Anmeldeseite,
   etwa die feste einer Hochschule).
+* **5.7.0** — Das Verzeichnis lässt sich allein als Bestand nutzen
+  (`'ldap' => ['login' => false]`): Angemeldet wird zentral über den Webserver,
+  *Aus dem Verzeichnis anlegen* legt SSO-Konten an, und der
+  Verzeichnisabgleich prüft auch sie. Ohne den Schalter bleibt alles wie bisher.
 
 ## 4.x — Eine Ablage, und Größe (20.08.2026 → 21.08.2026)
 

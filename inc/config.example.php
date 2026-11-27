@@ -540,6 +540,13 @@ return [
     'ldap' => [
         'enabled' => false,
 
+        // Ab 5.7: false = das Verzeichnis nur als Bestand. Suche und „Aus dem
+        // Verzeichnis anlegen“ in der Nutzerverwaltung und der Abgleich
+        // bleiben, angemeldet wird über den Webserver (Weg 1, 'sso'); aus dem
+        // Verzeichnis angelegte Konten werden SSO-Konten. Das Formular nimmt
+        // dann kein Verzeichnispasswort mehr an.
+        'login' => true,
+
         // ldaps:// bevorzugen; bei ldap:// unbedingt 'start_tls' setzen,
         // sonst geht das Passwort im Klartext über das Netz
         'uri' => 'ldaps://ldap.example.org:636',

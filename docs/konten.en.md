@@ -296,6 +296,34 @@ make the search narrower, not wider.
 The queue remains alongside: anyone who signs in without an account still lands
 there. Both lead to the same result, just from different sides.
 
+### The directory without LDAP sign-in (5.7 and later)
+
+If an institution signs people in centrally (route 1, e.g. OpenID Connect
+through its identity provider) but still wants to create accounts from the
+directory in advance and assign groups before someone first arrives, set:
+
+```php
+'sso'  => ['enabled' => true, /* … */],
+'ldap' => ['enabled' => true, 'login' => false, /* … */],
+```
+
+Then:
+
+| | |
+| --- | --- |
+| Sign-in | only through the web server. The form accepts no directory password; local accounts and passkeys remain. |
+| *Create from directory* | stays and creates **SSO accounts**. The person can then sign in through single sign-on straight away, with the groups and role assigned here. |
+| Directory sync | also checks SSO accounts and locks whoever is no longer in the directory – including API keys the identity provider knows nothing about. |
+
+Extending the sync to SSO accounts is only right if the identity provider
+knows the same people as the directory. If a whole federation comes in through
+SSO, members of other institutions included, keep `login` at `true`: the sync
+then checks LDAP accounts only, as before.
+
+Existing LDAP accounts are not converted. To carry them over, approve them
+through the queue (the first central sign-in creates a "collision" entry
+there) or change their sign-in type in the database.
+
 ### Groups from the directory
 
 Both paths can adopt group memberships: with SSO from an attribute like

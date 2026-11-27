@@ -310,6 +310,37 @@ Die Warteschlange bleibt daneben bestehen: Wer sich ohne Konto anmeldet,
 landet weiterhin dort. Beides führt zum selben Ergebnis, nur von
 verschiedenen Seiten.
 
+### Das Verzeichnis ohne LDAP-Anmeldung (ab 5.7)
+
+Meldet eine Einrichtung zentral an (Weg 1, etwa OpenID Connect über ihren
+Identity Provider), will sie Konten aber trotzdem vorab aus dem Verzeichnis
+anlegen und Gruppen vergeben, bevor jemand zum ersten Mal kommt, steht in
+der Konfiguration:
+
+```php
+'sso'  => ['enabled' => true, /* … */],
+'ldap' => ['enabled' => true, 'login' => false, /* … */],
+```
+
+Dann gilt:
+
+| | |
+| --- | --- |
+| Anmeldung | nur über den Webserver. Das Formular nimmt kein Verzeichnispasswort an; lokale Konten und Passkeys bleiben. |
+| *Aus dem Verzeichnis anlegen* | bleibt und legt **SSO-Konten** an. Die Person meldet sich danach sofort über die zentrale Anmeldung an, mit den Gruppen und der Rolle, die hier vergeben wurden. |
+| Verzeichnisabgleich | prüft auch die SSO-Konten und sperrt, wer nicht mehr im Verzeichnis steht – samt Zugangsschlüsseln, die der Identity Provider nicht kennt. |
+
+Den Abgleich auf SSO-Konten auszudehnen ist nur richtig, wenn der Identity
+Provider dieselben Leute kennt wie das Verzeichnis. Kommt über SSO eine
+ganze Föderation herein, Angehörige anderer Einrichtungen eingeschlossen,
+bleibt `login` auf `true`: Dann prüft der Abgleich wie bisher nur
+LDAP-Konten.
+
+Bestehende LDAP-Konten werden dabei nicht umgestellt. Wer sie mitnehmen will,
+schaltet sie über die Warteschlange frei (die erste zentrale Anmeldung legt
+dort einen Eintrag „Kollision“ an) oder stellt die Anmeldeart in der
+Datenbank um.
+
 ### Gruppen aus dem Verzeichnis
 
 Beide Wege können Gruppenzugehörigkeiten übernehmen: bei SSO aus einem

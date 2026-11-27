@@ -147,6 +147,7 @@ if ($ldapUri !== null) {
             'mail_attr'   => $env('FLATLINK_LDAP_MAIL_ATTR'),
             'name_attr'   => $env('FLATLINK_LDAP_NAME_ATTR'),
             'auto_create' => $flag('FLATLINK_LDAP_AUTO_CREATE'),
+            'login'       => $flag('FLATLINK_LDAP_LOGIN'),
         ], fn($wert) => $wert !== null)
     );
 }

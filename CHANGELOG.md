@@ -71,6 +71,10 @@ ever waits for the database while that happens.
   came from. Plus three switches: `nav_mobile` (tab bar on phones),
   `nav_search` (search everywhere, ⌘K) and `login_template` (a custom sign-in
   page, such as an institution's mandatory one).
+* **5.7.0** — The directory can serve purely as the source of accounts
+  (`'ldap' => ['login' => false]`): people sign in centrally through the web
+  server, *Create from directory* creates SSO accounts, and the directory sync
+  checks them too. Without the switch nothing changes.
 
 ## 4.x — One storage, and scale (2026-08-20 → 2026-08-21)
 

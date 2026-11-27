@@ -236,7 +236,7 @@ if ($vorgang === 'passwort') {
         } elseif (auth_login($username, $password, $braucht2fa)) {
             unset($_SESSION['login_roh']);
             redirect_to($braucht2fa ? $selbst : login_ziel($username), 303);
-        } elseif (ldap_enabled() && ldap_login($username, $password) === null) {
+        } elseif (ldap_login_enabled() && ldap_login($username, $password) === null) {
             // Lokales Passwort hat nicht gepasst – jetzt das Verzeichnis fragen
             unset($_SESSION['login_roh']);
             redirect_to(login_ziel($username), 303);
@@ -361,7 +361,7 @@ page_header($firstRun ? t('Ersteinrichtung') : t('Login'), true);
     <?php if (!$firstRun): ?>
         <?php page_script('assets/passkey.js'); ?>
         <p class="muted small form-foot"><a href="../reset.php"><?= t('Passwort vergessen?') ?></a><?php if (settings()['registration'] === 'on'): ?> · <?= t('Noch kein Konto?') ?> <a href="../register.php"><?= t('Registrieren') ?></a><?php endif; ?></p>
-        <?php if (ldap_enabled()): ?>
+        <?php if (ldap_login_enabled()): ?>
         <p class="muted small form-foot"><?= t('Konten aus dem Verzeichnis melden sich hier mit ihrer gewohnten Kennung an.') ?></p>
         <?php endif; ?>
     <?php endif; ?>

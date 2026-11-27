@@ -106,7 +106,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // sonst der Anmeldung überlässt.
         $anzeige = trim((string)($_POST['display'] ?? ''));
         $mail = trim((string)($_POST['email'] ?? ''));
-        $err = user_provision($name, 'ldap', $mail !== '' ? $mail : null,
+        // Meldet sich niemand über LDAP an, sondern über SSO, wird es ein
+        // SSO-Konto (ab 5.7, 'login' => false) – sonst käme es nirgends herein.
+        $herkunft = ldap_konto_herkunft(ldap_login_enabled(), sso_enabled());
+        $err = user_provision($name, $herkunft, $mail !== '' ? $mail : null,
             (array)(ldap_cfg()['default_groups'] ?? []), true, $anzeige !== '' ? $anzeige : null);
         if ($err === null) {
             // Ein Eintrag in der Warteschlange wäre jetzt gegenstandslos.
@@ -236,7 +239,11 @@ show_flash();
 <div class="card">
     <h2><?= t('Aus dem Verzeichnis anlegen') ?></h2>
     <p class="muted">
+        <?php if (ldap_konto_herkunft(ldap_login_enabled(), sso_enabled()) === 'sso'): ?>
+        <?= t('Nach Name, Kennung oder E-Mail suchen. Wer hier angelegt wird, meldet sich sofort über die zentrale Anmeldung an – ein vergeblicher erster Versuch entfällt.') ?>
+        <?php else: ?>
         <?= t('Nach Name, Kennung oder E-Mail suchen. Wer hier angelegt wird, meldet sich sofort mit seinem gewohnten Passwort an – ein vergeblicher erster Versuch entfällt.') ?>
+        <?php endif; ?>
     </p>
     <form method="get" action="" class="short-row">
         <input type="search" name="dir" value="<?= e($dirQ) ?>" placeholder="<?= t('z. B. Bormann oder db12345') ?>"

@@ -54,6 +54,10 @@ function ldap_cfg(): array
         // user_filter, weil der eine Kennung exakt trifft, dieser aber
         // Bruchstücke über mehrere Attribute finden soll.
         'search_filter' => '', 'uid_attr' => '',
+        // Ab 5.7: false = das Verzeichnis nur als Bestand (Suche, Anlegen,
+        // Abgleich), angemeldet wird über den Webserver (SSO). Siehe
+        // ldap_login_enabled().
+        'login' => true,
     ];
 }
 
@@ -65,6 +69,50 @@ function sso_enabled(): bool
 function ldap_enabled(): bool
 {
     return (bool)ldap_cfg()['enabled'] && function_exists('ldap_connect');
+}
+
+/**
+ * Meldet sich jemand mit Kennung und Passwort aus dem Verzeichnis an?
+ *
+ * Ab 5.7 lässt sich das Verzeichnis auch allein als Bestand nutzen
+ * ('login' => false): Suche und „Aus dem Verzeichnis anlegen“ in der
+ * Nutzerverwaltung und der Verzeichnisabgleich bleiben, angemeldet wird
+ * aber über den Webserver (SSO). So legt eine Hochschule Konten vorab an und
+ * vergibt Gruppen, bevor jemand zum ersten Mal kommt – und das Passwort sieht
+ * nur noch der Identity Provider.
+ */
+function ldap_login_enabled(): bool
+{
+    return ldap_enabled() && (bool)ldap_cfg()['login'];
+}
+
+/**
+ * Anmeldeart eines Kontos, das aus dem Verzeichnis angelegt wird.
+ *
+ * Meldet sich niemand über LDAP an, wohl aber über SSO, entsteht ein
+ * SSO-Konto. Ein LDAP-Konto könnte sich in dem Fall nirgends anmelden: Das
+ * Formular nimmt kein Verzeichnispasswort an, und die zentrale Anmeldung
+ * hielte es für ein fremdes Konto unter derselben Kennung.
+ */
+function ldap_konto_herkunft(bool $ldapLogin, bool $sso): string
+{
+    return !$ldapLogin && $sso ? 'sso' : 'ldap';
+}
+
+/**
+ * Anmeldearten der Konten, für die das Verzeichnis der Bestand ist – die
+ * also der Verzeichnisabgleich prüft.
+ *
+ * SSO-Konten nur, wenn das Verzeichnis ausdrücklich der Bestand für die
+ * zentrale Anmeldung ist ('login' => false). Sonst nicht: Über eine Föderation
+ * kommen auch Angehörige anderer Einrichtungen, die in keinem eigenen
+ * Verzeichnis stehen, und der Abgleich sperrte sie alle.
+ *
+ * @return string[]
+ */
+function ldap_bestand_herkunft(bool $ldapLogin, bool $sso): array
+{
+    return ldap_konto_herkunft($ldapLogin, $sso) === 'sso' ? ['ldap', 'sso'] : ['ldap'];
 }
 
 /**
@@ -878,6 +926,9 @@ function ldap_group_names($conn, string $dn, array $entry, array $c): array
  */
 function ldap_login(string $username, string $password): ?string
 {
+    // Verzeichnis nur als Bestand: kein Passwort über LDAP, auch nicht, wenn
+    // ein Aufrufer das vergisst
+    if (!ldap_login_enabled()) return t('Anmeldung fehlgeschlagen.');
     $id = ldap_authenticate($username, $password);
     if ($id === null) return t('Anmeldung fehlgeschlagen.');
     $c = ldap_cfg();
