@@ -36,6 +36,11 @@ function sso_cfg(): array
         'group_separator' => ';', 'group_map' => [], 'auto_create' => true, 'group_sync' => 'merge',
         'allowed_scopes' => [], 'require_group' => false, 'approval_queue' => true,
         'default_groups' => [], 'login_url' => '', 'logout_url' => '',
+        // Ab 5.10: true = eine über SSO entstandene Sitzung gilt nur, solange der
+        // Webserver dieselbe Kennung meldet (Abmelden beim IdP beendet sie).
+        // Setzt voraus, dass der Webserver die Kennung auf allen Seiten der
+        // Verwaltung mitgibt, nicht nur auf der Anmeldeseite.
+        'session_check' => false,
         'trusted_proxies' => [], 'button_label' => 'Mit institutionellem Konto anmelden',
     ];
 }
@@ -428,6 +433,27 @@ function sso_server_var(string $key): ?string
     }
     $v = $_SERVER[$key] ?? null;
     return is_string($v) && $v !== '' ? $v : null;
+}
+
+/**
+ * Gilt eine über SSO entstandene Sitzung noch? (ab 5.10, 'session_check')
+ *
+ * Rechnung ohne Server: Ist die Prüfung aus, gilt sie immer (wie bis 5.7).
+ * Ist sie an, nur wenn der Webserver gerade jemanden meldet und es dieselbe
+ * Kennung ist, ohne Rücksicht auf Groß- und Kleinschreibung.
+ */
+function sso_sitzung_gilt(bool $an, bool $pruefen, ?string $gemeldet, string $konto): bool
+{
+    if (!$an || !$pruefen) return true;
+    return $gemeldet !== null && mb_strtolower($gemeldet) === mb_strtolower($konto);
+}
+
+/** Dieselbe Rechnung mit der Konfiguration und dem, was der Webserver meldet. */
+function sso_session_ok(string $konto): bool
+{
+    $c = sso_cfg();
+    return sso_sitzung_gilt((bool)$c['enabled'], (bool)$c['session_check'],
+        sso_server_var((string)$c['user_var']), $konto);
 }
 
 /**

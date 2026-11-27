@@ -544,6 +544,15 @@ return [
         'login_url' => '',           // z. B. '/Shibboleth.sso/Login?target=/admin/'
         'logout_url' => '',          // z. B. '/Shibboleth.sso/Logout'
         'button_label' => 'Mit institutionellem Konto anmelden',
+
+        // Ab 5.10: true = eine über SSO entstandene Sitzung gilt nur, solange der
+        // Webserver dieselbe Kennung meldet. Wer sich beim Identity Provider
+        // abmeldet (auch über Single Logout), ist hier beim nächsten Klick
+        // abgemeldet. Voraussetzung: Der Webserver gibt REMOTE_USER auf allen
+        // Seiten unter /admin/ mit, ohne dort eine Anmeldung zu erzwingen – etwa
+        // mod_auth_openidc mit OIDCUnAuthAction pass, mod_shib mit
+        // ShibRequestSetting requireSession 0. Lokale Konten prüft das nicht.
+        'session_check' => false,
     ],
 
     // ---- Weg 2: LDAP / Active Directory ----

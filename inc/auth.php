@@ -522,6 +522,19 @@ function auth_user(): ?array
         auth_logout();
         return null;
     }
+    // Über SSO entstanden (ab 5.10, 'sso' => ['session_check' => true]): Die
+    // Sitzung gilt nur, solange der Webserver dieselbe Kennung meldet. Wer sich
+    // beim Identity Provider abmeldet – auch über Single Logout aus einem
+    // anderen Dienst –, ist hier beim nächsten Aufruf abgemeldet. Meldet der
+    // Server eine andere Kennung, endet sie ebenso; sonst sähe am geteilten
+    // Rechner die nächste Person die Sitzung der vorigen.
+    if (($_SESSION['auth_source'] ?? 'local') === 'sso') {
+        require_once __DIR__ . '/sso.php';
+        if (!sso_session_ok($name)) {
+            auth_logout();
+            return null;
+        }
+    }
     return [
         'name' => $name,
         'role' => $u['role'],

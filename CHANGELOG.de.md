@@ -80,6 +80,10 @@ wartet.
   (`'ldap' => ['login' => false]`): Angemeldet wird zentral über den Webserver,
   *Aus dem Verzeichnis anlegen* legt SSO-Konten an, und der
   Verzeichnisabgleich prüft auch sie. Ohne den Schalter bleibt alles wie bisher.
+* **5.10.0** — `'sso' => ['session_check' => true]`: Eine über SSO entstandene
+  Sitzung gilt nur, solange der Webserver dieselbe Kennung meldet. Wer sich beim
+  Identity Provider abmeldet, auch über Single Logout, ist hier beim nächsten
+  Klick abgemeldet. Ohne den Schalter bleibt alles wie bisher.
 
 ## 4.x — Eine Ablage, und Größe (20.08.2026 → 21.08.2026)
 

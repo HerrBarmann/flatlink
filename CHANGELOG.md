@@ -75,6 +75,10 @@ ever waits for the database while that happens.
   (`'ldap' => ['login' => false]`): people sign in centrally through the web
   server, *Create from directory* creates SSO accounts, and the directory sync
   checks them too. Without the switch nothing changes.
+* **5.10.0** — `'sso' => ['session_check' => true]`: a session that came from
+  SSO is only valid while the web server reports the same username. Signing out
+  at the identity provider, single logout included, signs you out here on the
+  next click. Without the switch nothing changes.
 
 ## 4.x — One storage, and scale (2026-08-20 → 2026-08-21)
 

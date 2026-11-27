@@ -219,6 +219,29 @@ Konten entstehen beim ersten Login automatisch.
 > nachweislich überschreibt. Ohne diesen Eintrag werden sie verworfen und die
 > Anmeldung schlägt fehl. Das ist Absicht.
 
+**Abmelden beim Identity Provider** (ab 5.10): Ohne weiteres merkt flatlink
+nicht, wenn sich jemand beim Identity Provider abmeldet – auch nicht über
+Single Logout aus einem anderen Dienst. Die Sitzung hier läuft weiter, und am
+geteilten Rechner sähe die nächste Person die Sitzung der vorigen. Mit
+`'sso' => ['session_check' => true]` gilt eine über SSO entstandene Sitzung nur,
+solange der Webserver dieselbe Kennung meldet; sonst endet sie beim nächsten
+Aufruf. Dafür muss der Webserver `REMOTE_USER` auf allen Seiten unter `/admin/`
+mitgeben, ohne dort eine Anmeldung zu erzwingen, etwa:
+
+```apache
+<Location /admin/>
+    AuthType openid-connect
+    OIDCUnAuthAction pass
+    Require valid-user
+</Location>
+```
+
+Bei `mod_shib` entsprechend `ShibRequestSetting requireSession 0`. Ist neben
+`mod_auth_openidc` auch `mod_shib` geladen, braucht der vhost
+`ShibCompatValidUser On`, sonst gilt `Require valid-user` nur für
+Shibboleth-Sitzungen. Lokale Konten und die Passkeys von flatlink prüft das
+nicht; sie bleiben der Rückweg, wenn der Identity Provider einmal steht.
+
 ### Über LDAP oder Active Directory
 
 Hier fragt flatlink selbst beim Verzeichnis nach; Kennung und Passwort

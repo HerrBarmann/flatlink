@@ -210,6 +210,29 @@ Accounts are created automatically at first login.
 > demonstrably overwrites these headers. Without that entry they are
 > discarded and the sign-in fails. That is intentional.
 
+**Signing out at the identity provider** (5.10 and later): by itself flatlink
+does not notice when someone signs out at the identity provider – not even
+through single logout from another service. The session here keeps running,
+and on a shared computer the next person would see the previous one's
+session. With `'sso' => ['session_check' => true]` a session that came from
+SSO is only valid while the web server reports the same username; otherwise
+it ends on the next request. The web server must then pass `REMOTE_USER` on
+every page under `/admin/` without forcing a sign-in there, for example:
+
+```apache
+<Location /admin/>
+    AuthType openid-connect
+    OIDCUnAuthAction pass
+    Require valid-user
+</Location>
+```
+
+With `mod_shib`, use `ShibRequestSetting requireSession 0`. If `mod_shib` is
+loaded next to `mod_auth_openidc`, the vhost needs `ShibCompatValidUser On`,
+otherwise `Require valid-user` only accepts Shibboleth sessions. Local accounts
+and flatlink's own passkeys are not checked; they remain the way back in when
+the identity provider is down.
+
 ### Via LDAP or Active Directory
 
 Here flatlink itself asks the directory; identifier and password are entered
